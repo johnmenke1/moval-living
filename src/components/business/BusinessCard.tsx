@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { MapPin, Star, Award } from 'lucide-react'
+import { MapPin, Star, Award, Tag } from 'lucide-react'
 import { cn, averageRating } from '@/lib/utils'
 
 interface BusinessCardProps {
@@ -18,6 +18,13 @@ interface BusinessCardProps {
     category: { name: string; slug: string }
     reviews: Array<{ rating: number }>
     _count?: { reviews: number }
+    hasCoupon?: boolean
+    coupon?: {
+      headline: string
+      description?: string | null
+      code?: string | null
+      expiresAt?: string | null
+    } | null
   }
 }
 
@@ -45,6 +52,12 @@ export function BusinessCard({ business }: BusinessCardProps) {
           <div className="absolute top-3 left-3 flex items-center gap-1 bg-accent text-white text-xs font-bold px-2.5 py-1 rounded-full">
             <Award className="w-3 h-3" />
             Featured
+          </div>
+        )}
+        {business.hasCoupon && (
+          <div className="absolute top-3 right-3 flex items-center gap-1 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-full">
+            <Tag className="w-3 h-3" />
+            Deal
           </div>
         )}
       </div>

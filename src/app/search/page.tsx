@@ -75,7 +75,20 @@ async function getBusinesses(params: {
     prisma.business.count({ where }),
   ])
 
-  return { businesses, total, page, totalPages: Math.ceil(total / RESULTS_PER_PAGE) }
+  return {
+    businesses: businesses.map(b => ({
+      ...b,
+      coupon: b.coupon as {
+        headline: string
+        description?: string | null
+        code?: string | null
+        expiresAt?: string | null
+      } | null,
+    })),
+    total,
+    page,
+    totalPages: Math.ceil(total / RESULTS_PER_PAGE),
+  }
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {

@@ -49,6 +49,10 @@ model Business {
   metaTitle        String?
   metaDescription  String?
 
+  // Coupon/Deal
+  hasCoupon        Boolean   @default(false)
+  coupon          Json?     // { headline: string, description: string, code?: string, expiresAt?: string }
+
   // Relations
   owner            Owner?    @relation(fields: [ownerId], references: [id])
   ownerId          String?    @unique

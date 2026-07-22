@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, tagline, categoryId, address, city, state, zip, phone, email, website, description, facebook, instagram, yelp } = body
+    const { name, tagline, categoryId, address, city, state, zip, phone, email, website, description, facebook, instagram, yelp, hasCoupon, couponHeadline, couponDescription, couponCode, couponExpiresAt } = body
 
     if (!name?.trim() || !categoryId || !address?.trim() || !zip?.trim() || !description?.trim()) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -15,6 +15,16 @@ export async function POST(request: Request) {
     if (description.trim().length < 50) {
       return NextResponse.json({ error: 'Description must be at least 50 characters' }, { status: 400 })
     }
+
+    // Build coupon object if hasCoupon is true
+    const coupon = hasCoupon && couponHeadline?.trim()
+      ? {
+          headline: couponHeadline.trim(),
+          description: couponDescription?.trim() || null,
+          code: couponCode?.trim() || null,
+          expiresAt: couponExpiresAt?.trim() || null,
+        }
+      : undefined
 
     // Check for duplicate
     const existing = await prisma.business.findFirst({
@@ -50,8 +60,10 @@ export async function POST(request: Request) {
         facebook: facebook?.trim() || null,
         instagram: instagram?.trim() || null,
         yelp: yelp?.trim() || null,
-        status: 'APPROVED', // Auto-approve for now; change to PENDING for moderation
+        status: 'APPROVED',
         tier: 'FREE',
+        hasCoupon: !!coupon,
+        coupon: coupon || undefined,
       },
     })
 

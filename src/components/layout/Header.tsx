@@ -6,9 +6,12 @@ import Link from 'next/link'
 import { Menu, X, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+import { Tag } from 'lucide-react'
+
 const navLinks = [
   { label: 'Home', href: '/' },
   { label: 'Browse', href: '/search' },
+  { label: 'Deals', href: '/deals', icon: Tag },
   { label: 'Submit Business', href: '/submit' },
 ]
 
@@ -36,8 +39,9 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-text-secondary hover:text-primary transition-colors"
+                className="text-sm font-medium text-text-secondary hover:text-primary transition-colors flex items-center gap-1.5"
               >
+                {link.icon && <link.icon className="w-4 h-4" />}
                 {link.label}
               </Link>
             ))}

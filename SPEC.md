@@ -57,6 +57,7 @@ Modern, clean, and vibrant — inspired by successful local directories like Veg
 ```
 / (Home)
 /search (Directory search + browse)
+/deals (Deals & coupons listing)
 /business/[slug] (Business detail page)
 /submit (Submit a new business)
 /claim (Claim a business listing)
@@ -145,6 +146,7 @@ Each business profile includes:
 | Homepage featured section | ❌ | ✅ |
 | Priority search ranking | ❌ | ✅ |
 | Photos (up to 8) | ❌ | ✅ |
+| **Coupons/Deals** | ❌ | ✅ |
 | Social links | ❌ | ✅ |
 | Analytics | Basic | Full |
 

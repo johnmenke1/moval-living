@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { CheckCircle, ChevronRight, ChevronLeft, Upload } from 'lucide-react'
 import { categories } from '@/data/categories'
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
 const steps = [
   { num: 1, label: 'Basics' },
@@ -14,7 +14,8 @@ const steps = [
   { num: 3, label: 'Contact' },
   { num: 4, label: 'Description' },
   { num: 5, label: 'Photos' },
-  { num: 6, label: 'Review' },
+  { num: 6, label: 'Deal' },
+  { num: 7, label: 'Review' },
 ]
 
 export default function SubmitPage() {
@@ -38,9 +39,14 @@ export default function SubmitPage() {
     facebook: '',
     instagram: '',
     yelp: '',
+    hasCoupon: false,
+    couponHeadline: '',
+    couponDescription: '',
+    couponCode: '',
+    couponExpiresAt: '',
   })
 
-  const update = (field: string, value: string) => {
+  const update = (field: string, value: string | boolean) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
@@ -223,8 +229,75 @@ export default function SubmitPage() {
               </div>
             )}
 
-            {/* Step 6: Review */}
+            {/* Step 6: Deal */}
             {step === 6 && (
+              <div className="space-y-5">
+                <h2 className="text-xl font-bold text-text mb-4">Special Offer <span className="text-text-secondary font-normal text-base">(optional)</span></h2>
+                <p className="text-sm text-text-secondary">Give customers a reason to choose you — add a deal or discount to your listing.</p>
+
+                {/* Toggle */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => update('hasCoupon', !form.hasCoupon)}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${form.hasCoupon ? 'bg-primary' : 'bg-slate-200'}`}
+                  >
+                    <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${form.hasCoupon ? 'translate-x-7' : 'translate-x-1'}`} />
+                  </button>
+                  <span className="text-sm font-medium text-text">{form.hasCoupon ? 'Deal is active' : 'No deal currently'}</span>
+                </div>
+
+                {form.hasCoupon && (
+                  <div className="space-y-4 bg-slate-50 rounded-xl p-5">
+                    <div>
+                      <label className="label">Deal Headline <span className="text-error">*</span></label>
+                      <input
+                        value={form.couponHeadline}
+                        onChange={e => update('couponHeadline', e.target.value)}
+                        className="input"
+                        placeholder="e.g. 20% off your first service"
+                        maxLength={80}
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Deal Details <span className="text-error">*</span></label>
+                      <textarea
+                        value={form.couponDescription}
+                        onChange={e => update('couponDescription', e.target.value)}
+                        className="input min-h-[80px] resize-none"
+                        placeholder="e.g. Must mention this listing. Cannot be combined with other offers. Valid for new customers only."
+                        maxLength={300}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">Promo Code <span className="text-text-secondary font-normal">(optional)</span></label>
+                        <input
+                          value={form.couponCode}
+                          onChange={e => update('couponCode', e.target.value.toUpperCase())}
+                          className="input font-mono"
+                          placeholder="SAVE20"
+                          maxLength={20}
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Expires <span className="text-text-secondary font-normal">(optional)</span></label>
+                        <input
+                          type="date"
+                          value={form.couponExpiresAt}
+                          onChange={e => update('couponExpiresAt', e.target.value)}
+                          className="input"
+                          min={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 7: Review */}
+            {step === 7 && (
               <div className="space-y-5">
                 <h2 className="text-xl font-bold text-text mb-4">Review & Submit</h2>
                 <div className="bg-slate-50 rounded-xl p-5 space-y-3 text-sm">
@@ -279,7 +352,23 @@ export default function SubmitPage() {
                 <Link href="/" className="text-sm text-text-secondary hover:text-text transition-colors">Cancel</Link>
               )}
 
-              {step < 6 ? (
+              {step < 5 ? (
+                <button
+                  onClick={() => setStep((s => (s + 1) as Step))}
+                  disabled={!canProceed()}
+                  className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next <ChevronRight className="w-4 h-4" />
+                </button>
+              ) : step < 6 ? (
+                <button
+                  onClick={() => setStep((s => (s + 1) as Step))}
+                  disabled={!canProceed()}
+                  className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next <ChevronRight className="w-4 h-4" />
+                </button>
+              ) : step < 7 ? (
                 <button
                   onClick={() => setStep((s => (s + 1) as Step))}
                   disabled={!canProceed()}
