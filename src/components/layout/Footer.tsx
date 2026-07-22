@@ -101,7 +101,7 @@ export function Footer() {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-slate-500">
-            &copy; {new Date().getFullYear()} moval.living — Moreno Valley Local Business Directory. All rights reserved.
+            &copy; {new Date().getUTCFullYear()} moval.living — Moreno Valley Local Business Directory. All rights reserved.
           </p>
           <p className="text-sm text-slate-500">
             Built with ❤️ for Moreno Valley

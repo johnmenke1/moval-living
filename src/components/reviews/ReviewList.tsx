@@ -14,6 +14,13 @@ interface Review {
   createdAt: Date
 }
 
+// Format dates consistently on both server and client without locale-dependent toLocaleDateString.
+function formatReviewDate(date: Date): string {
+  const d = new Date(date)
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`
+}
+
 interface ReviewListProps {
   businessId: string
   businessSlug: string
@@ -204,7 +211,7 @@ export function ReviewList({ businessId, businessSlug, initialReviews }: ReviewL
                   </div>
                 </div>
                 <span className="text-xs text-text-secondary">
-                  {new Date(review.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {formatReviewDate(review.createdAt)}
                 </span>
               </div>
               <p className="text-text-secondary leading-relaxed ml-13">{review.content}</p>
