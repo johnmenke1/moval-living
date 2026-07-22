@@ -14,13 +14,13 @@
 Modern, clean, and vibrant — inspired by successful local directories like VegasThrive and NVLocalThrive but with fresher, more contemporary polish. Think bold section dividers, card-based layouts, and confident use of whitespace.
 
 ### Color Palette
-- **Primary:** `#2563EB` (bright blue — trust, community)
-- **Secondary:** `#0EA5E9` (sky blue — energy, openness)
-- **Accent:** `#F97316` (warm orange — CTAs, highlights, urgency)
-- **Background:** `#F8FAFC` (off-white — clean, readable)
+*- **Primary:** `#007a7f` (deep teal — trust, grounded, sophisticated)
+- **Secondary:** `#00405c` (dark navy — depth, authority)
+- **Accent:** `#c9786d` (muted terracotta — warmth, visible pop without garishness)
+- **Background:** `#f0efeb` (warm off-white — clean, inviting)
 - **Surface:** `#FFFFFF` (white — cards, modals)
-- **Text Primary:** `#0F172A` (near-black)
-- **Text Secondary:** `#64748B` (muted slate)
+- **Text Primary:** `#1a2e35` (warm near-black)
+- **Text Secondary:** `#5a6c72` (warm muted slate)
 - **Success:** `#22C55E`
 - **Error:** `#EF4444`
 

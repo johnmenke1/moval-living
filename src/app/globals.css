@@ -1,25 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #2563EB;
-  --color-secondary: #0EA5E9;
-  --color-accent: #F97316;
-  --color-background: #F8FAFC;
+  /* Refined palette based on Moval Living logo — muted, sophisticated, not garish */
+  --color-primary: #007a7f;
+  --color-secondary: #00405c;
+  --color-accent: #c9786d;
+  --color-background: #f0efeb;
   --color-surface: #FFFFFF;
-  --color-text: #0F172A;
-  --color-text-secondary: #64748B;
+  --color-text: #1a2e35;
+  --color-text-secondary: #5a6c72;
   --color-success: #22C55E;
   --color-error: #EF4444;
 }
 
 @theme inline {
-  --color-primary: #2563EB;
-  --color-secondary: #0EA5E9;
-  --color-accent: #F97316;
-  --color-background: #F8FAFC;
+  --color-primary: #007a7f;
+  --color-secondary: #00405c;
+  --color-accent: #c9786d;
+  --color-background: #f0efeb;
   --color-surface: #FFFFFF;
-  --color-text: #0F172A;
-  --color-text-secondary: #64748B;
+  --color-text: #1a2e35;
+  --color-text-secondary: #5a6c72;
   --color-success: #22C55E;
   --color-error: #EF4444;
   --font-sans: 'Inter', sans-serif;
