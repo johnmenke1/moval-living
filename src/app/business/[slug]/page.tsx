@@ -230,8 +230,13 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                     Location
                   </h2>
                 </div>
-                <div className="h-72">
-                  <BusinessMap address={business.address} city={business.city} state={business.state} zip={business.zip} />
+                <div className="h-72 min-h-[288px]">
+                  <BusinessMap
+                    address={business.address}
+                    city={business.city}
+                    state={business.state}
+                    zip={business.zip}
+                  />
                 </div>
               </div>
             )}
