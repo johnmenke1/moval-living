@@ -22,10 +22,10 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <Image
-              src="/logo.png"
+              src="/navbar-logo.png"
               alt="Moval Living"
-              width={120}
-              height={48}
+              width={280}
+              height={40}
               className="object-contain group-hover:scale-105 transition-transform"
             />
             <span className="text-xl font-bold text-text">
