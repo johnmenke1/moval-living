@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { Menu, X, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -20,9 +21,13 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg group-hover:scale-105 transition-transform">
-              M
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Moval Living"
+              width={36}
+              height={36}
+              className="object-contain group-hover:scale-105 transition-transform"
+            />
             <span className="text-xl font-bold text-text">
               moval<span className="text-primary">.living</span>
             </span>

@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, Mail, ArrowUpRight } from 'lucide-react'
 
@@ -31,9 +32,7 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg">
-                M
-              </div>
+              <Image src="/logo.png" alt="Moval Living" width={36} height={36} className="object-contain" />
               <span className="text-xl font-bold">
                 moval<span className="text-secondary">.living</span>
               </span>
