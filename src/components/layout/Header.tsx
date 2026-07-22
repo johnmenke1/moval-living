@@ -24,8 +24,8 @@ export function Header() {
             <Image
               src="/logo.png"
               alt="Moval Living"
-              width={36}
-              height={36}
+              width={120}
+              height={48}
               className="object-contain group-hover:scale-105 transition-transform"
             />
             <span className="text-xl font-bold text-text">

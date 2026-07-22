@@ -32,7 +32,7 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <Image src="/logo.png" alt="Moval Living" width={36} height={36} className="object-contain" />
+              <Image src="/logo.png" alt="Moval Living" width={120} height={48} className="object-contain" />
               <span className="text-xl font-bold">
                 moval<span className="text-secondary">.living</span>
               </span>
