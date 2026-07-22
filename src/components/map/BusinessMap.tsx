@@ -27,16 +27,20 @@ declare global {
 /**
  * Renders a Google Maps embed for a single business address.
  *
- * The `ref` lives on a single wrapper <div> that is rendered in ALL
- * states (idle, loading, ready, error). This means `mapRef.current` is
- * never null once the component has mounted on the client, and the
- * loader effect can always find a DOM node to mount the map into.
+ * Critical architectural note: the <div> that Google Maps mounts into
+ * (`mapRef`) MUST NOT contain any React-rendered children after the map
+ * starts loading. Google mutates that DOM freely — adding tiles,
+ * controls, an internal shadow tree. If React also tries to reconcile
+ * children inside that same node, you get the
+ * `Failed to execute 'removeChild' on 'Node': The node to be removed
+ * is not a child of this node.` error, because React's view of the
+ * DOM and Google's diverge.
  *
- * The previous design had three `return` branches, each with its own
- * outer div, and only the third branch carried the ref — so the loader
- * effect ran before React rendered the ref-bearing div, bailed with
- * "Map container not ready," and the user was stuck on the error
- * card forever.
+ * So: the wrapper is BARE from the moment `mounted === true`. Loading
+ * / error UI is rendered as a SIBLING overlay (absolute-positioned)
+ * that covers the wrapper while it's still needed, and is removed once
+ * the map is ready. That way Google owns the wrapper's children 100%
+ * of the time it's in use, and React never reconciles inside it.
  */
 export function BusinessMap({
   address,
@@ -51,8 +55,6 @@ export function BusinessMap({
   const [statusMsg, setStatusMsg] = useState<string>('Loading map…')
   const [mounted, setMounted] = useState(false)
 
-  // Defer map loading until after hydration so SSR and first client
-  // render are byte-identical (no React #418 text-mismatch).
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -68,8 +70,6 @@ export function BusinessMap({
       return
     }
     if (!mapRef.current) {
-      // With the stable-wrapper render below, this branch should be
-      // unreachable on the client. If it ever fires, it's a real bug.
       console.warn('[BusinessMap] mapRef.current is null after mount')
       setStatusMsg('Map container not ready.')
       setMapStatus('error')
@@ -78,8 +78,8 @@ export function BusinessMap({
 
     let cancelled = false
     let timeoutId: ReturnType<typeof setTimeout> | null = null
+    let mapInstance: unknown = null
 
-    // Hard timeout so the user never spins forever.
     timeoutId = setTimeout(() => {
       if (cancelled) return
       setStatusMsg('Map took too long to load.')
@@ -92,7 +92,7 @@ export function BusinessMap({
       if (cancelled) return
       if (g && g.maps && g.maps.Map && el) {
         if (timeoutId) clearTimeout(timeoutId)
-        initMap(g, el)
+        mapInstance = initMap(g, el)
         return
       }
       if (attemptsLeft <= 0) {
@@ -104,7 +104,6 @@ export function BusinessMap({
       setTimeout(() => tryInit(el, attemptsLeft - 1), 75)
     }
 
-    // Global callback the Maps bootstrap script will invoke.
     window.__movalMapsReady = () => {
       if (mapRef.current) tryInit(mapRef.current)
     }
@@ -115,9 +114,13 @@ export function BusinessMap({
       if ((window as any).google?.maps?.Map) {
         if (mapRef.current) tryInit(mapRef.current)
       } else {
-        existing.addEventListener('load', () => {
-          if (mapRef.current) tryInit(mapRef.current)
-        }, { once: true })
+        existing.addEventListener(
+          'load',
+          () => {
+            if (mapRef.current) tryInit(mapRef.current)
+          },
+          { once: true },
+        )
         existing.addEventListener(
           'error',
           () => {
@@ -172,6 +175,10 @@ export function BusinessMap({
               position: loc,
               title: name || fullAddress,
             })
+            // Tell React the wrapper is now owned by Google. We flip
+            // status to 'ready' AFTER the map has populated its DOM,
+            // so React's next render won't try to reconcile inside
+            // the wrapper.
             setMapStatus('ready')
           } else {
             setStatusMsg("Couldn't locate this address on the map.")
@@ -179,71 +186,72 @@ export function BusinessMap({
           }
         },
       )
+      return map
     }
 
     return () => {
       cancelled = true
       if (timeoutId) clearTimeout(timeoutId)
+      // Drop our reference to the map so GC can clean it up. We do NOT
+      // call map.setMap(null) or similar — Google's internal cleanup
+      // happens automatically when the DOM node is detached.
+      mapInstance = null
+      // Wipe the wrapper's children so any leftover Google DOM doesn't
+      // sit there if React keeps this component instance alive.
+      if (mapRef.current) {
+        while (mapRef.current.firstChild) {
+          mapRef.current.removeChild(mapRef.current.firstChild)
+        }
+      }
     }
   }, [mounted, apiKey, fullAddress, name])
 
-  // ONE stable wrapper. The ref is attached in every render.
-  // Children swap based on mapStatus, but the wrapper itself never unmounts
-  // across state transitions — so mapRef.current is reliable from the
-  // moment the component mounts on the client.
+  // Overlay that covers the map wrapper during loading/error.
+  // It's a SIBLING, not a child, so React never reconciles inside
+  // the wrapper while Google is mutating it.
   return (
-    <div
-      ref={mapRef}
-      className="w-full h-full min-h-[288px]"
-      aria-label={`Map showing location of ${address}`}
-    >
-      {mapStatus === 'idle' && (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 gap-3">
-          <div className="flex gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-primary/40 animate-pulse" />
-            <span className="w-2 h-2 rounded-full bg-primary/40 animate-pulse [animation-delay:150ms]" />
-            <span className="w-2 h-2 rounded-full bg-primary/40 animate-pulse [animation-delay:300ms]" />
-          </div>
-          <span className="text-slate-400 text-sm">Loading map…</span>
+    <div className="relative w-full h-full min-h-[288px]">
+      <div
+        ref={mapRef}
+        className="absolute inset-0 w-full h-full"
+        aria-label={`Map showing location of ${address}`}
+      />
+
+      {mapStatus !== 'ready' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 gap-3 z-10 pointer-events-none">
+          {mapStatus === 'error' ? (
+            <>
+              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                <MapPin className="w-6 h-6" />
+              </div>
+              <p className="text-slate-700 font-medium">{address}</p>
+              <p className="text-slate-500 text-sm">
+                {city}, {state} {zip}
+              </p>
+              <p className="text-slate-400 text-xs">{statusMsg}</p>
+              <a
+                href={mapsHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="pointer-events-auto inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline"
+              >
+                Get directions <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </>
+          ) : (
+            <>
+              <div className="flex gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse [animation-delay:150ms]" />
+                <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse [animation-delay:300ms]" />
+              </div>
+              <span className="text-slate-500 text-sm">
+                {mapStatus === 'idle' ? 'Loading map…' : statusMsg}
+              </span>
+            </>
+          )}
         </div>
       )}
-
-      {mapStatus === 'loading' && (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 gap-3">
-          <div className="flex gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse" />
-            <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse [animation-delay:150ms]" />
-            <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse [animation-delay:300ms]" />
-          </div>
-          <span className="text-slate-500 text-sm">{statusMsg}</span>
-        </div>
-      )}
-
-      {mapStatus === 'error' && (
-        <div className="w-full h-full flex items-center justify-center bg-slate-50 p-6">
-          <div className="text-center max-w-sm">
-            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
-              <MapPin className="w-6 h-6" />
-            </div>
-            <p className="text-slate-700 font-medium mb-1">{address}</p>
-            <p className="text-slate-500 text-sm mb-4">
-              {city}, {state} {zip}
-            </p>
-            <p className="text-slate-400 text-xs mb-4">{statusMsg}</p>
-            <a
-              href={mapsHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline"
-            >
-              Get directions <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        </div>
-      )}
-
-      {/* When mapStatus === 'ready' the wrapper itself is the map
-          container — Google Maps replaces its children with the canvas. */}
     </div>
   )
 }
