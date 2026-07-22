@@ -9,11 +9,11 @@ interface BusinessMapProps {
   state: string
   zip: string
   name?: string
-  /** Maps JS API key. Must be passed in by the parent server component. */
+  /** Maps JS API key — pass from server component env so it reaches the client */
   apiKey?: string
 }
 
-type MapStatus = 'loading' | 'ready' | 'error'
+type MapStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 const LOAD_TIMEOUT_MS = 15_000
 const SCRIPT_ID = 'google-maps-script'
@@ -27,39 +27,35 @@ declare global {
 /**
  * Renders a Google Maps embed for a single business address.
  *
- * Why this is so plain: every "smart" loader wrapper we tried
- * (`@googlemaps/js-api-loader`'s functional `setOptions` / `importLibrary`,
- * and the `Loader` class which is no longer exported at runtime in v2.x)
- * silently failed to inject the bootstrap script in this app. The
- * no-dependency pattern below — a single `<script>` tag with a `callback`
- * param and a polling `useEffect` — is what we proved works in
- * `/map-test.html`. It is boring on purpose.
+ * Hydration guard: renders a placeholder on the server and on first client
+ * render (idle state). Only after `mounted` flips to true does the map
+ * attempt to load — this eliminates hydration mismatches that would
+ * otherwise kill the component before useEffect can attach the ref.
  */
-export function BusinessMap({
-  address,
-  city,
-  state,
-  zip,
-  name,
-  apiKey,
-}: BusinessMapProps) {
+export function BusinessMap({ address, city, state, zip, name, apiKey }: BusinessMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
-  const [mapStatus, setMapStatus] = useState<MapStatus>('loading')
+  const [mapStatus, setMapStatus] = useState<MapStatus>('idle')
   const [statusMsg, setStatusMsg] = useState<string>('Loading map…')
+  const [mounted, setMounted] = useState(false)
+
+  // Defer map loading until after hydration is complete.
+  // This ensures the server and initial client renders are identical
+  // (no DOM mismatch → no React error #418).
+  useEffect(() => { setMounted(true) }, [])
 
   const fullAddress = `${address}, ${city}, ${state} ${zip}`
+  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
 
+  // ── Map loading (only runs after mounted=true) ────────────────────────────────
   useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log('[BusinessMap] mount, apiKey len=', (apiKey || '').length, 'addr=', fullAddress)
-    if (!mapRef.current) {
-      // eslint-disable-next-line no-console
-      console.log('[BusinessMap] no mapRef, bailing')
-      return
-    }
-
+    if (!mounted) return
     if (!apiKey) {
       setStatusMsg('Map unavailable (no API key configured).')
+      setMapStatus('error')
+      return
+    }
+    if (!mapRef.current) {
+      setStatusMsg('Map container not ready.')
       setMapStatus('error')
       return
     }
@@ -67,14 +63,12 @@ export function BusinessMap({
     let cancelled = false
     let timeoutId: ReturnType<typeof setTimeout> | null = null
 
-    // 1) Hard timeout.
     timeoutId = setTimeout(() => {
       if (cancelled) return
       setStatusMsg('Map took too long to load.')
       setMapStatus('error')
     }, LOAD_TIMEOUT_MS)
 
-    // 2) Once `window.google.maps.Map` exists, render.
     const tryInit = (attemptsLeft = 200) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const g = (window as any).google
@@ -93,11 +87,8 @@ export function BusinessMap({
       setTimeout(() => tryInit(attemptsLeft - 1), 75)
     }
 
-    // 3) Wire the global callback BEFORE the script is appended. The Maps
-    //    bootstrap script calls this once the API is fully parsed.
     window.__movalMapsReady = () => tryInit()
 
-    // 4) Inject the script (or hook the existing one).
     const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null
     if (existing) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,7 +152,7 @@ export function BusinessMap({
             })
             setMapStatus('ready')
           } else {
-            setStatusMsg('We couldn’t pinpoint the address on the map.')
+            setStatusMsg("Couldn't locate this address on the map.")
             setMapStatus('error')
           }
         },
@@ -172,9 +163,26 @@ export function BusinessMap({
       cancelled = true
       if (timeoutId) clearTimeout(timeoutId)
     }
-  }, [apiKey, fullAddress, name])
+  }, [mounted, apiKey, fullAddress, name])
 
-  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
+  // ── Render ────────────────────────────────────────────────────────────────────
+
+  // "idle" = not yet mounted (SSR + first hydration paint).
+  // Render the same placeholder on both so there is NO hydration mismatch.
+  if (mapStatus === 'idle') {
+    return (
+      <div className="w-full h-full min-h-[288px] flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-primary/40 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-primary/40 animate-pulse [animation-delay:150ms]" />
+            <span className="w-2 h-2 rounded-full bg-primary/40 animate-pulse [animation-delay:300ms]" />
+          </div>
+          <span className="text-slate-400 text-sm">Loading map…</span>
+        </div>
+      </div>
+    )
+  }
 
   if (mapStatus === 'error') {
     return (
@@ -183,16 +191,14 @@ export function BusinessMap({
           <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
             <MapPin className="w-6 h-6" />
           </div>
-          <p className="text-text font-medium mb-1">{address}</p>
-          <p className="text-text-secondary text-sm mb-4">
-            {city}, {state} {zip}
-          </p>
-          <p className="text-text-secondary text-xs mb-4">{statusMsg}</p>
+          <p className="text-slate-700 font-medium mb-1">{address}</p>
+          <p className="text-slate-500 text-sm mb-4">{city}, {state} {zip}</p>
+          <p className="text-slate-400 text-xs mb-4">{statusMsg}</p>
           <a
             href={mapsHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline"
           >
             Get directions <ExternalLink className="w-3.5 h-3.5" />
           </a>
@@ -201,19 +207,7 @@ export function BusinessMap({
     )
   }
 
-  if (mapStatus === 'loading') {
-    return (
-      <div className="w-full h-full min-h-[288px] flex items-center justify-center bg-slate-50">
-        <div className="flex items-center gap-2 text-text-secondary text-sm">
-          <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse" />
-          <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse [animation-delay:150ms]" />
-          <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse [animation-delay:300ms]" />
-          <span className="ml-2">{statusMsg}</span>
-        </div>
-      </div>
-    )
-  }
-
+  // loading / ready
   return (
     <div
       ref={mapRef}
