@@ -1,6 +1,10 @@
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 
-const prisma = new PrismaClient()
+const pool = new Pool({ connectionString: process.env.DATABASE_URL! })
+const adapter = new PrismaPg(pool)
+const prisma = new PrismaClient({ adapter })
 
 const categories = [
   { name: 'Restaurants & Dining', slug: 'restaurants', description: 'Local eateries, cafes, food trucks, and catering', icon: 'UtensilsCrossed' },
