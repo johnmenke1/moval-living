@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { averageRating, formatPhone } from '@/lib/utils'
-import { MapPin, Phone, Globe, Mail, Clock, Star, ChevronRight, Map } from 'lucide-react'
+import { MapPin, Phone, Globe, Mail, Clock, Star, ChevronRight } from 'lucide-react'
+import { BusinessMapWrapper } from '@/components/map/BusinessMapWrapper'
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
@@ -20,7 +21,6 @@ function InstagramIcon({ className }: { className?: string }) {
   )
 }
 import { ReviewList } from '@/components/reviews/ReviewList'
-import { BusinessMap } from '@/components/map/BusinessMap'
 import { ContactBusinessForm } from '@/components/forms/ContactBusinessForm'
 import type { Metadata } from 'next'
 
@@ -226,12 +226,12 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="p-6">
                   <h2 className="text-xl font-bold text-text mb-4 flex items-center gap-2">
-                    <Map className="w-5 h-5 text-primary" />
+                    <MapPin className="w-5 h-5 text-primary" />
                     Location
                   </h2>
                 </div>
                 <div className="h-72 min-h-[288px]">
-                  <BusinessMap
+                  <BusinessMapWrapper
                     address={business.address}
                     city={business.city}
                     state={business.state}
