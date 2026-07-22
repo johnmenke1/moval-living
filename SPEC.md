@@ -266,6 +266,10 @@ model Business {
   // Hours (JSON)
   hours         Json?     // { mon: {open: "9am", close: "5pm"}, ... }
   
+  // Coupon/Deal
+  hasCoupon        Boolean   @default(false)
+  coupon          Json?     // { headline: string, description: string, code?: string, expiresAt?: string }
+
   // SEO
   metaTitle     String?
   metaDescription String?
@@ -290,11 +294,48 @@ model Category {
 }
 
 model Owner {
-  id          String    @id @default(cuid())
-  email       String    @unique
-  name        String?
-  business    Business?
-  createdAt   DateTime  @default(now())
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  business      Business?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token     String? @db.Text
+  expires_at       Int?
+  token_type       String?
+  scope             String?
+  id_token         String? @db.Text
+  session_state    String?
+  owner            Owner   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  owner        Owner    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token     String   @unique
+  expires   DateTime
+  @@unique([identifier, token])
 }
 
 model Review {
@@ -331,6 +372,7 @@ PUT    /api/businesses/[slug]   Update business (owner/admin)
 DELETE /api/businesses/[slug]   Delete business (admin)
 
 GET    /api/categories          List all categories
+GET    /api/deals              List businesses with active deals
 
 POST   /api/reviews             Create review
 GET    /api/businesses/[slug]/reviews  Get reviews for business
@@ -344,15 +386,17 @@ POST   /api/claim               Initiate business claim flow
 
 ### Environment Variables
 ```
-DATABASE_URL=           # Neon DB connection string
-NEXTAUTH_SECRET=        # Random secret for NextAuth
-NEXTAUTH_URL=           # https://moval.living
-GOOGLE_MAPS_API_KEY=    # Johnny's existing key
-GHL_API_KEY=            # GoHighLevel API key
-GHL_WEBHOOK_URL=        # GHL webhook for contact form
-AWS_SES_ACCESS_KEY=     # AWS SES access key
-AWS_SES_SECRET_KEY=     # AWS SES secret key
-AWS_SES_REGION=         # e.g. us-west-2
+DATABASE_URL=               # Neon DB connection string
+AUTH_SECRET=                 # Random secret for NextAuth JWT signing
+AUTH_URL=                   # https://moval.living (or http://localhost:3000 for dev)
+AUTH_EMAIL_FROM=            # Sender email, e.g. MovalLiving <noreply@moval.living>
+EMAIL_SERVER_HOST=          # AWS SES SMTP host, e.g. email-smtp.us-west-2.amazonaws.com
+EMAIL_SERVER_PORT=          # 587 (TLS)
+EMAIL_SERVER_USER=          # AWS SES SMTP username
+EMAIL_SERVER_PASSWORD=      # AWS SES SMTP password
+GOOGLE_MAPS_API_KEY=        # Johnny's existing key
+GHL_API_KEY=                # GoHighLevel API key
+GHL_WEBHOOK_URL=           # GHL webhook for contact form
 ```
 
 ### Third-Party Integrations
