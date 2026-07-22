@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Business {
+  id               String    @id @default(cuid())
+  slug             String    @unique
+  name             String
+  tagline          String?
+  description      String    @db.Text
+  categoryId       String
+  category         Category  @relation(fields: [categoryId], references: [id])
+  tier             Tier      @default(FREE)
+  status           Status    @default(PENDING)
+
+  // Contact
+  email            String?
+  phone            String?
+  website          String?
+  address          String
+  city             String    @default("Moreno Valley")
+  state            String    @default("CA")
+  zip              String
+  latitude         Float?
+  longitude        Float?
+
+  // Media
+  logo             String?
+  coverImage       String?
+  photos           String[]  // Array of photo URLs
+
+  // Social
+  facebook         String?
+  instagram        String?
+  yelp             String?
+  googleBusiness   String?
+
+  // Hours stored as JSON: { mon: { open: "9:00 AM", close: "5:00 PM", closed: false }, ... }
+  hours            Json?
+
+  // SEO
+  metaTitle        String?
+  metaDescription  String?
+
+  // Relations
+  owner            Owner?    @relation(fields: [ownerId], references: [id])
+  ownerId          String?    @unique
+  reviews          Review[]
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([tier])
+  @@index([city])
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  icon        String     // Lucide icon name e.g. "Utensils", "Car", "Stethoscope"
+  image       String?    // Optional category hero image URL
+  businesses  Business[]
+  createdAt   DateTime   @default(now())
+
+  @@index([slug])
+}
+
+model Owner {
+  id          String     @id @default(cuid())
+  email       String     @unique
+  name        String?
+  business    Business?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Review {
+  id          String    @id @default(cuid())
+  businessId  String
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  authorName  String
+  authorEmail String?
+  rating      Int       // 1-5
+  content     String    @db.Text
+  response    String?   @db.Text  // Owner's response
+  flagged     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([businessId])
+  @@index([flagged])
+}
+
+enum Tier {
+  FREE
+  FEATURED
+}
+
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
+}
