@@ -2,3 +2,11 @@ node_modules/
 .next/
 .env.local
 *.env
+
+# Diagnostic / one-off scratch files
+/check-db.js
+/chunk.js
+/chunk2.js
+/p.html
+/page.html
+/page5.html

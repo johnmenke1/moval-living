@@ -236,6 +236,8 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                     city={business.city}
                     state={business.state}
                     zip={business.zip}
+                    name={business.name}
+                    apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
                   />
                 </div>
               </div>
