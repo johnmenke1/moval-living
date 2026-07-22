@@ -28,9 +28,6 @@ export function Header() {
               height={40}
               className="object-contain group-hover:scale-105 transition-transform"
             />
-            <span className="text-xl font-bold text-text">
-              moval<span className="text-primary">.living</span>
-            </span>
           </Link>
 
           {/* Desktop Nav */}
