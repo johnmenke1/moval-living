@@ -1,8 +1,7 @@
 // ============================================================
 // src/lib/trestle-auth.ts
 // Shared Trestle OAuth2 client-credentials token management.
-// Used by all Trestle API routes — token is cached and
-// auto-refreshed before expiry.
+// Mirrors the proven working pattern from menke-real-estate.
 // ============================================================
 
 function readEnv(name: string): string | undefined {
@@ -11,8 +10,8 @@ function readEnv(name: string): string | undefined {
   return value.trim().replace(/^"|"$/g, '')
 }
 
-function getBaseUrl(): string {
-  const raw = readEnv('TRESTLE_BASE_URL') || 'https://api-prod.corelogic.com/trestle/odata'
+export function getBaseUrl(): string {
+  const raw = readEnv('TRESTLE_BASE_URL') || 'https://api.cotality.com/trestle/odata'
   return raw.replace(/\/$/, '')
 }
 
@@ -28,7 +27,7 @@ function getTokenUrl(baseUrl: string): string {
   return `${normalized}/connect/token`.replace(/\/+/g, '/')
 }
 
-function getPropertyEndpoint(): string {
+export function getPropertyEndpoint(): string {
   const baseUrl = getBaseUrl()
   if (baseUrl.includes('/odata')) {
     return `${baseUrl}/Property`.replace(/\/+/g, '/')
@@ -36,23 +35,17 @@ function getPropertyEndpoint(): string {
   return `${baseUrl}/odata/Property`.replace(/\/+/g, '/')
 }
 
-export { getPropertyEndpoint }
+// Token cache — module-level so it persists across requests
+type TokenCache = { token: string; expires: number } | null
+let tokenCache: TokenCache = null
 
-let tokenCache: { token: string; expires: number } | null = null
-
-export async function getAccessToken(): Promise<string> {
-  if (tokenCache && tokenCache.expires > Date.now()) {
-    return tokenCache.token
-  }
-
+async function fetchToken(): Promise<string> {
   const clientId = readEnv('TRESTLE_CLIENT_ID')
   const clientSecret = readEnv('TRESTLE_CLIENT_SECRET')
-  if (!clientId || !clientSecret) {
-    throw new Error('Trestle credentials missing (TRESTLE_CLIENT_ID/SECRET)')
-  }
+  if (!clientId || !clientSecret) throw new Error('Trestle credentials missing')
 
   const tokenUrl = getTokenUrl(getBaseUrl())
-  const res = await fetch(tokenUrl, {
+  const response = await fetch(tokenUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -64,18 +57,31 @@ export async function getAccessToken(): Promise<string> {
       client_secret: clientSecret,
       scope: 'api',
     }),
-    cache: 'no-store',
   })
 
-  if (!res.ok) {
-    throw new Error(`Trestle auth failed: ${res.status} ${await res.text()}`)
+  if (!response.ok) {
+    let errorText = await response.text()
+    try {
+      const json = JSON.parse(errorText)
+      if (json.error_description) errorText = json.error_description
+      else if (json.error === 'invalid_client') errorText = 'Invalid Trestle Client ID or Client Secret.'
+    } catch { /* ignore */ }
+    throw new Error(`Failed to get Trestle token: ${errorText}`)
   }
 
-  const data = (await res.json()) as { access_token: string; expires_in: number }
+  const data = (await response.json()) as { access_token: string; expires_in: number }
   const expiresIn = Number(data.expires_in) || 300
   tokenCache = {
     token: data.access_token,
-    expires: Date.now() + expiresIn * 1000 - 60_000, // refresh 60s early
+    expires: Date.now() + expiresIn * 1000 - 60_000,
   }
   return tokenCache.token
 }
+
+export async function getAccessToken(): Promise<string> {
+  if (tokenCache && tokenCache.expires > Date.now()) return tokenCache.token
+  return fetchToken()
+}
+
+// Alias — matches the name used in the API routes
+export const getTrestleToken = getAccessToken

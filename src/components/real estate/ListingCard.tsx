@@ -3,25 +3,21 @@ import { cn } from '@/lib/utils'
 
 interface Listing {
   listingKey: string
-  mlsNumber: string | null
+  listingId: string
+  address: string
   listPrice: number
+  closePrice: number | null
   status: string
-  propertyType: string
   bedrooms: number | null
-  bathroomsFull: number | null
-  bathroomsHalf: number | null
+  bathrooms: number | null
   livingArea: number | null
   lotSizeAcres: number | null
   garageSpaces: number | null
   yearBuilt: number | null
-  pool: boolean | null
-  streetNumber: string | null
-  streetName: string | null
-  unit: string | null
+  pool: boolean
   city: string | null
   state: string | null
   zip: string | null
-  listDate: string | null
   daysOnMarket: number | null
   listAgent: string | null
   listOffice: string | null
@@ -58,29 +54,21 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   'Active Under Contract': { label: 'Under Contract', className: 'bg-primary text-white' },
 }
 
-const PLACEHOLDER_SVG = 'data:image/svg+xml,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">' +
-  '<rect fill="%23e2e8f0" width="400" height="300"/>' +
-  '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" ' +
-  'fill="%2394a3b8" font-size="14" font-family="sans-serif">No Photo</text>' +
-  '</svg>'
-)
+const PLACEHOLDER_SVG =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">' +
+      '<rect fill="%23e2e8f0" width="400" height="300"/>' +
+      '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" ' +
+      'fill="%2394a3b8" font-size="14" font-family="sans-serif">No Photo</text>' +
+      '</svg>'
+  )
 
 export function ListingCard({ listing }: ListingCardProps) {
-  const statusInfo = STATUS_LABELS[listing.status] ?? { label: listing.status, className: 'bg-slate-500 text-white' }
-
-  const address = [
-    listing.streetNumber,
-    listing.streetName,
-    listing.unit ? `Unit ${listing.unit}` : null,
-    listing.city,
-    listing.state,
-    listing.zip,
-  ].filter(Boolean).join(' ')
-
-  const baths = listing.bathroomsFull ?? 0
-  const bathsHalf = listing.bathroomsHalf ?? 0
-  const bathsTotal = baths + bathsHalf * 0.5
+  const statusInfo = STATUS_LABELS[listing.status] ?? {
+    label: listing.status,
+    className: 'bg-slate-500 text-white',
+  }
 
   return (
     <div className="card overflow-hidden group">
@@ -88,7 +76,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       <div className="relative w-full h-52 overflow-hidden bg-slate-100">
         <img
           src={listing.photoUrl ?? PLACEHOLDER_SVG}
-          alt={`Home at ${listing.streetName ?? listing.listingKey}`}
+          alt={`Home at ${listing.address}`}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={(e) => {
             const target = e.currentTarget as HTMLImageElement
@@ -122,9 +110,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         {/* Address */}
         <div className="flex items-start gap-1.5 mb-3">
           <MapPin className="w-4 h-4 text-text-secondary mt-0.5 flex-shrink-0" />
-          <span className="text-sm text-text-secondary">
-            {listing.showAddress !== false ? address : `${listing.streetNumber ?? ''} ${listing.streetName ?? ''}, ${listing.city}`}
-          </span>
+          <span className="text-sm text-text-secondary">{listing.address}</span>
         </div>
 
         {/* Specs */}
@@ -135,10 +121,10 @@ export function ListingCard({ listing }: ListingCardProps) {
               <span>{listing.bedrooms} bed</span>
             </div>
           )}
-          {bathsTotal > 0 && (
+          {listing.bathrooms && (
             <div className="flex items-center gap-1.5">
               <Bath className="w-4 h-4" />
-              <span>{bathsTotal % 1 === 0 ? bathsTotal : bathsTotal.toFixed(1)} bath</span>
+              <span>{listing.bathrooms} bath</span>
             </div>
           )}
           {listing.livingArea && (
@@ -164,12 +150,10 @@ export function ListingCard({ listing }: ListingCardProps) {
                 <span>{listing.garageSpaces} garage</span>
               </div>
             )}
-            {listing.lotSizeAcres && (
-              <span>{formatAcres(listing.lotSizeAcres)}</span>
-            )}
+            {listing.lotSizeAcres && <span>{formatAcres(listing.lotSizeAcres)}</span>}
           </div>
-          {listing.mlsNumber && (
-            <span className="text-xs text-text-secondary font-mono">#{listing.mlsNumber}</span>
+          {listing.listingId && (
+            <span className="text-xs text-text-secondary font-mono">#{listing.listingId}</span>
           )}
         </div>
       </div>

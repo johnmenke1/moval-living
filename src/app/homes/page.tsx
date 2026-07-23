@@ -7,25 +7,21 @@ import { cn } from '@/lib/utils'
 
 interface Listing {
   listingKey: string
-  mlsNumber: string | null
+  listingId: string
+  address: string
   listPrice: number
+  closePrice: number | null
   status: string
-  propertyType: string
   bedrooms: number | null
-  bathroomsFull: number | null
-  bathroomsHalf: number | null
+  bathrooms: number | null
   livingArea: number | null
   lotSizeAcres: number | null
   garageSpaces: number | null
   yearBuilt: number | null
-  pool: boolean | null
-  streetNumber: string | null
-  streetName: string | null
-  unit: string | null
+  pool: boolean
   city: string | null
   state: string | null
   zip: string | null
-  listDate: string | null
   daysOnMarket: number | null
   listAgent: string | null
   listOffice: string | null

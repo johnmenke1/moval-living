@@ -3,18 +3,10 @@ import { getAccessToken, getPropertyEndpoint } from '@/lib/trestle-auth'
 
 /**
  * Market statistics for Moreno Valley — derived from Trestle / CRMLS data.
- *
- * Pulls active listings + recently closed sales (last 12 months) and computes:
- * - Active listings count, median list price, avg list price
- * - Sold count, median close price, avg close price
- * - Average days on market, average price per sqft
- * - Inventory months supply
- *
- * Auth: OAuth2 client credentials (TRESTLE_CLIENT_ID / TRESTLE_CLIENT_SECRET env vars).
- * Cached: ISR 1 hour (revalidate: 3600).
+ * Mirrors the proven working pattern from menke-real-estate.
  */
 
-export const revalidate = 3600
+export const revalidate = 0
 
 export async function GET() {
   let token: string
@@ -22,7 +14,10 @@ export async function GET() {
     token = await getAccessToken()
   } catch (err) {
     console.error('[Trestle stats] Auth error:', err)
-    return NextResponse.json({ error: 'Trestle credentials not configured' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Trestle credentials not configured', message: err instanceof Error ? err.message : String(err) },
+      { status: 500 }
+    )
   }
 
   const select = [
@@ -32,19 +27,19 @@ export async function GET() {
     'StandardStatus',
     'DaysOnMarket',
     'CloseDate',
-    'ListingContractDate',
     'PropertyType',
     'BedroomsTotal',
-    'BathroomsFull',
+    'BathroomsTotalInteger',
   ].join(',')
 
-  async function fetchStatus(status: string) {
-    const filter = `City eq 'Moreno Valley' and StandardStatus eq '${status}' and PropertyType eq 'Residential'`
-    const propertyUrl = getPropertyEndpoint()
+  const propertyUrl = getPropertyEndpoint()
+
+  async function fetchListings(status: string) {
+    const filter = `contains(City, 'Moreno Valley') and StateOrProvince eq 'CA' and StandardStatus eq '${status}' and PropertyType eq 'Residential'`
     const url = `${propertyUrl}?$filter=${encodeURIComponent(filter)}&$select=${select}&$top=500&$count=true`
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      next: { revalidate: 3600 },
+      cache: 'no-store',
     })
     if (!res.ok) return null
     const d = await res.json()
@@ -52,64 +47,63 @@ export async function GET() {
   }
 
   const [active, closed] = await Promise.all([
-    fetchStatus('Active'),
-    fetchStatus('Closed'),
+    fetchListings('Active'),
+    fetchListings('Closed'),
   ])
 
   if (!active || !closed) {
     return NextResponse.json({ error: 'Failed to fetch from Trestle' }, { status: 502 })
   }
 
-  // Filter to closed in last 12 months
   const twelveMonthsAgo = new Date()
   twelveMonthsAgo.setFullYear(twelveMonthsAgo.getFullYear() - 1)
-  const recentClosed = (closed as Record<string, unknown>[]).filter(r => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recentClosed = (closed as any[]).filter((r: any) => {
     if (!r.CloseDate) return false
-    return new Date(r.CloseDate as string) >= twelveMonthsAgo
+    return new Date(r.CloseDate) >= twelveMonthsAgo
   })
 
   const median = (arr: number[]): number => {
     const sorted = [...arr].sort((a, b) => a - b)
     const mid = Math.floor(sorted.length / 2)
-    return sorted.length % 2 !== 0
-      ? sorted[mid]
-      : (sorted[mid - 1] + sorted[mid]) / 2
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
   }
 
-  const activePrices = (active as Record<string, unknown>[]).map(r => r.ListPrice as number).filter(Boolean)
-  const closedPrices = (recentClosed as Record<string, unknown>[]).map(r => r.ClosePrice as number).filter(Boolean)
-  const activeDOM = (active as Record<string, unknown>[]).map(r => r.DaysOnMarket as number).filter(Boolean)
-  const closedDOM = (recentClosed as Record<string, unknown>[]).map(r => r.DaysOnMarket as number).filter(Boolean)
-  const livingArea = (recentClosed as Record<string, unknown>[]).map(r => r.LivingArea as number).filter(Boolean)
+  const activePrices = active.map((r: any) => r.ListPrice).filter(Number.isFinite)
+  const closedPrices = recentClosed.map((r: any) => r.ClosePrice).filter(Number.isFinite)
+  const activeDOM = active.map((r: any) => r.DaysOnMarket).filter(Number.isFinite)
+  const closedDOM = recentClosed.map((r: any) => r.DaysOnMarket).filter(Number.isFinite)
+  const livingArea = recentClosed.map((r: any) => r.LivingArea).filter(Number.isFinite)
 
   const avgPricePerSqft =
-    livingArea.length > 0
-      ? closedPrices.reduce((s, p, i) => s + p / (livingArea[i] || 1), 0) / closedPrices.length
+    livingArea.length > 0 && closedPrices.length > 0
+      ? closedPrices.reduce((s: number, p: number, i: number) => s + p / (livingArea[i] || 1), 0) / closedPrices.length
       : 0
 
-  const monthsSupply =
-    recentClosed.length > 0 ? (active.length / (recentClosed.length / 12)) : 0
+  const monthsSupply = recentClosed.length > 0 ? (active.length / (recentClosed.length / 12)) : 0
 
   const stats = {
     generatedAt: new Date().toISOString(),
     active: {
       count: active.length,
       medianListPrice: median(activePrices),
-      avgListPrice: activePrices.length ? activePrices.reduce((s, v) => s + v, 0) / activePrices.length : 0,
+      avgListPrice: activePrices.length ? activePrices.reduce((s: number, v: number) => s + v, 0) / activePrices.length : 0,
     },
     sold: {
       count: recentClosed.length,
-      totalVolume: closedPrices.reduce((s, v) => s + v, 0),
+      totalVolume: closedPrices.reduce((s: number, v: number) => s + v, 0),
       medianClosePrice: median(closedPrices),
-      avgClosePrice: closedPrices.length ? closedPrices.reduce((s, v) => s + v, 0) / closedPrices.length : 0,
+      avgClosePrice: closedPrices.length ? closedPrices.reduce((s: number, v: number) => s + v, 0) / closedPrices.length : 0,
     },
     daysOnMarket: {
-      avgActive: activeDOM.length ? activeDOM.reduce((s, v) => s + v, 0) / activeDOM.length : 0,
-      avgClosed: closedDOM.length ? closedDOM.reduce((s, v) => s + v, 0) / closedDOM.length : 0,
+      avgActive: activeDOM.length ? activeDOM.reduce((s: number, v: number) => s + v, 0) / activeDOM.length : 0,
+      avgClosed: closedDOM.length ? closedDOM.reduce((s: number, v: number) => s + v, 0) / closedDOM.length : 0,
     },
     pricePerSqFt: Math.round(avgPricePerSqft),
     inventoryMonths: Math.round(monthsSupply * 10) / 10,
   }
 
-  return NextResponse.json(stats)
+  return NextResponse.json(stats, {
+    headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+  })
 }
