@@ -118,10 +118,16 @@ export function MarketStats({ stats, loading, error }: MarketStatsProps) {
 
   if (!stats) {
     return (
-      <div className="py-12 text-center text-text-secondary">
-        <BarChart3 className="mx-auto mb-3 h-10 w-10 opacity-30" />
-        <p>Market data currently unavailable. Please check back shortly.</p>
-        {error && <p className="mt-2 text-xs text-text-secondary/70">Detail: {error}</p>}
+      <div className="text-center py-12 text-text-secondary">
+        <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+        {error ? (
+          <>
+            <p className="font-medium text-error">Unable to load market data.</p>
+            <p className="text-xs mt-1 opacity-70">{error}</p>
+          </>
+        ) : (
+          <p>Market data currently unavailable. Please check back shortly.</p>
+        )}
       </div>
     )
   }
