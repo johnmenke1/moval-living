@@ -1,26 +1,26 @@
 import { NextResponse } from 'next/server'
+import { getAccessToken, getPropertyEndpoint } from '@/lib/trestle-auth'
 
 /**
  * Trestle / CoreLogic OData proxy for Moreno Valley real estate listings.
  *
- * Auth: Bearer token (TRESTLE_API_KEY env var — set in Vercel, never exposed to client).
- * Base URL: https://api-prod.corelogic.com/trestle/odata/Property
- * Docs: https://trestle-documentation.corelogic.com
+ * Auth: OAuth2 client credentials (TRESTLE_CLIENT_ID / TRESTLE_CLIENT_SECRET env vars).
+ * Token is fetched + cached server-side; never exposed to the client.
+ * Base URL: TRESTLE_BASE_URL (falls back to https://api-prod.corelogic.com/trestle/odata)
  *
  * CRMLS covers Riverside County including Moreno Valley.
  * RESO WebAPI OData 4.0 — filter, select, orderby, top, skip.
  */
 
-const TRESTLE_BASE = 'https://api-prod.corelogic.com/trestle/odata'
-const MV_CITY_FILTER = "City eq 'Moreno Valley'"
-const MV_COUNTY_FILTER = "CountyOrParish eq 'Riverside'"
-
 export const revalidate = 900 // 15-minute ISR cache
 
 export async function GET(request: Request) {
-  const apiKey = process.env.TRESTLE_API_KEY
-  if (!apiKey) {
-    return NextResponse.json({ error: 'Trestle API key not configured' }, { status: 500 })
+  let token: string
+  try {
+    token = await getAccessToken()
+  } catch (err) {
+    console.error('[Trestle listings] Auth error:', err)
+    return NextResponse.json({ error: 'Trestle credentials not configured' }, { status: 500 })
   }
 
   const { searchParams } = new URL(request.url)
@@ -38,10 +38,11 @@ export async function GET(request: Request) {
   const skip = (page - 1) * limit
 
   // --- Build OData $filter ---
+  // StandardStatus is the correct field name per RESO standards
   const filters: string[] = [
-    MV_CITY_FILTER,
+    "City eq 'Moreno Valley'",
     `PropertyType eq '${propertyType}'`,
-    `MlsStatus eq '${status}'`,
+    `StandardStatus eq '${status}'`,
   ]
 
   if (minBeds) filters.push(`BedroomsTotal ge ${minBeds}`)
@@ -52,8 +53,7 @@ export async function GET(request: Request) {
   const odataFilter = filters.join(' and ')
 
   // --- Select limited fields for performance + privacy ---
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const select: any = [
+  const select = [
     'ListingKey',
     'ListPrice',
     'ClosePrice',
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
     'StateOrProvince',
     'PostalCode',
     'PropertyType',
-    'MlsStatus',
+    'StandardStatus',
     'ListingContractDate',
     'CloseDate',
     'DaysOnMarket',
@@ -83,7 +83,7 @@ export async function GET(request: Request) {
     'Media',
   ].join(',')
 
-  const odataUrl = `${TRESTLE_BASE}/Property`
+  const propertyUrl = getPropertyEndpoint()
   const params = new URLSearchParams({
     $filter: odataFilter,
     $select: select,
@@ -95,9 +95,9 @@ export async function GET(request: Request) {
 
   let res: Response
   try {
-    res = await fetch(`${odataUrl}?${params}`, {
+    res = await fetch(`${propertyUrl}?${params}`, {
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${token}`,
         Accept: 'application/json',
       },
       next: { revalidate: 900 },
@@ -132,7 +132,6 @@ export async function GET(request: Request) {
 function extractPhotoUrl(r: any): string | null {
   if (!r.Media) return null
   const mediaArr = Array.isArray(r.Media) ? r.Media : [r.Media]
-  // Pick the first primary photo (MediaGroup=1) or the first entry
   const photo = mediaArr.find((m: { MediaGroup?: number }) => m.MediaGroup === 1) ?? mediaArr[0]
   return photo?.MediaURL ?? null
 }
@@ -144,7 +143,7 @@ function normalizeListing(r: any): any {
     mlsNumber: r.MlsNumber,
     listPrice: r.ListPrice,
     closePrice: r.ClosePrice,
-    status: r.MlsStatus,
+    status: r.StandardStatus,
     propertyType: r.PropertyType,
     bedrooms: r.BedroomsTotal,
     bathroomsFull: r.BathroomsFull,
