@@ -35,6 +35,14 @@ export function getPropertyEndpoint(): string {
   return `${baseUrl}/odata/Property`.replace(/\/+/g, '/')
 }
 
+export function getMediaEndpoint(): string {
+  const baseUrl = getBaseUrl()
+  if (baseUrl.includes('/odata')) {
+    return `${baseUrl}/Media`.replace(/\/+/g, '/')
+  }
+  return `${baseUrl}/odata/Media`.replace(/\/+/g, '/')
+}
+
 // Token cache — module-level so it persists across requests
 type TokenCache = { token: string; expires: number } | null
 let tokenCache: TokenCache = null
