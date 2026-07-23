@@ -54,11 +54,11 @@ model Business {
   coupon          Json?     // { headline: string, description: string, code?: string, expiresAt?: string }
 
   // Relations
-  owner            Owner?    @relation(fields: [ownerId], references: [id])
-  ownerId          String?    @unique
-  reviews          Review[]
-
-  createdAt        DateTime  @default(now())
+  owner         Owner?    @relation(fields: [ownerId], references: [id])
+  ownerId       String?    @unique
+  reviews       Review[]
+  socialPosts   SocialPost[]
+  createdAt     DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   @@index([categoryId])
@@ -82,6 +82,7 @@ model Category {
 
 model Owner {
   id            String    @id @default(cuid())
+  role          UserRole  @default(USER)
   name          String?
   email         String    @unique
   emailVerified DateTime?
@@ -91,6 +92,11 @@ model Owner {
   accounts      Account[]
   sessions      Session[]
   business      Business?
+}
+
+enum UserRole {
+  USER
+  ADMIN
 }
 
 model Account {
@@ -142,6 +148,37 @@ model Review {
 
   @@index([businessId])
   @@index([flagged])
+}
+
+model SocialPost {
+  id          String       @id @default(cuid())
+  platform    Platform     // INSTAGRAM or FACEBOOK
+  postUrl     String
+  caption     String?      @db.Text
+  mediaUrl    String?      // Primary image/video URL (extracted from post)
+  authorName  String?
+  authorAvatar String?
+  status      PostStatus   @default(PENDING)
+  // Optional link to a business (if the event/opportunity is from that business)
+  businessId  String?
+  business    Business?    @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  submittedBy String?      // Owner's email or name
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([status])
+  @@index([businessId])
+}
+
+enum Platform {
+  INSTAGRAM
+  FACEBOOK
+}
+
+enum PostStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum Tier {

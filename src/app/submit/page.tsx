@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, ChevronRight, ChevronLeft, Upload } from 'lucide-react'
 import { categories } from '@/data/categories'
+import GMBImporter from '@/components/forms/GMBImporter'
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7
+type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
 
 const steps = [
   { num: 1, label: 'Basics' },
@@ -18,9 +19,21 @@ const steps = [
   { num: 7, label: 'Review' },
 ]
 
+interface GMBPlace {
+  placeId: string
+  name: string
+  address: string
+  phone: string
+  website: string
+  type: string
+  hours: Record<string, { open: string; close: string; closed: boolean }> | null
+  photos: { name: string }[]
+  location: { lat: number; lng: number } | null
+}
+
 export default function SubmitPage() {
   const router = useRouter()
-  const [step, setStep] = useState<Step>(1)
+  const [step, setStep] = useState<Step>(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -39,6 +52,9 @@ export default function SubmitPage() {
     facebook: '',
     instagram: '',
     yelp: '',
+    hours: null as Record<string, { open: string; close: string; closed: boolean }> | null,
+    latitude: null as number | null,
+    longitude: null as number | null,
     hasCoupon: false,
     couponHeadline: '',
     couponDescription: '',
@@ -46,8 +62,55 @@ export default function SubmitPage() {
     couponExpiresAt: '',
   })
 
-  const update = (field: string, value: string | boolean) => {
+  const update = (field: string, value: string | boolean | Record<string, unknown>) => {
     setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleGMBImport = (place: GMBPlace) => {
+    const parsed = parseAddress(place.address)
+    setForm(prev => ({
+      ...prev,
+      name: place.name || prev.name,
+      address: place.address || prev.address,
+      phone: place.phone || prev.phone,
+      website: place.website || prev.website,
+      hours: place.hours || prev.hours,
+      latitude: place.location?.lat || null,
+      longitude: place.location?.lng || null,
+      city: parsed.city !== prev.city ? parsed.city : prev.city,
+      state: 'CA',
+      zip: parsed.zip || prev.zip,
+    }))
+    setStep(1)
+  }
+
+  const parseAddress = (address: string) => {
+    // Try to extract city, state, zip from a formatted US address
+    // e.g. "123 Main St, Moreno Valley, CA 92553, USA"
+    const parts = address.split(',').map(p => p.trim())
+    let city = 'Moreno Valley'
+    let state = 'CA'
+    let zip = ''
+    let street = address
+
+    if (parts.length >= 2) {
+      // Last part is usually "CA 92553, USA" or "CA 92553"
+      const last = parts[parts.length - 1]
+      const zipMatch = last.match(/\d{5}/)
+      const stateMatch = last.match(/[A-Z]{2}/)
+      if (zipMatch) zip = zipMatch[0]
+      if (stateMatch) state = stateMatch[0]
+
+      // Second-to-last might be the city
+      if (parts.length >= 3) {
+        city = parts[parts.length - 2].replace(/, USA$/, '').trim()
+      }
+
+      // First part is usually the street
+      street = parts[0]
+    }
+
+    return { address: street, city, state, zip }
   }
 
   const canProceed = () => {
@@ -65,7 +128,12 @@ export default function SubmitPage() {
       const res = await fetch('/api/businesses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          hours: form.hours || undefined,
+          latitude: form.latitude,
+          longitude: form.longitude,
+        }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -90,22 +158,24 @@ export default function SubmitPage() {
 
       <div className="container-max py-8">
         <div className="max-w-2xl mx-auto">
-          {/* Progress Steps */}
-          <div className="flex items-center justify-between mb-10">
-            {steps.map((s, i) => (
-              <div key={s.num} className="flex items-center">
-                <div className={`flex flex-col items-center ${step >= s.num ? 'text-primary' : 'text-slate-300'}`}>
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors ${step >= s.num ? 'bg-primary text-white border-primary' : 'border-slate-200 text-slate-400 bg-white'}`}>
-                    {step > s.num ? '✓' : s.num}
+          {/* Progress Steps — hidden on step 0 */}
+          {step > 0 && (
+            <div className="flex items-center justify-between mb-10">
+              {steps.map((s, i) => (
+                <div key={s.num} className="flex items-center">
+                  <div className={`flex flex-col items-center ${step >= s.num ? 'text-primary' : 'text-slate-300'}`}>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors ${step >= s.num ? 'bg-primary text-white border-primary' : 'border-slate-200 text-slate-400 bg-white'}`}>
+                      {step > s.num ? '✓' : s.num}
+                    </div>
+                    <span className="text-xs mt-1 hidden sm:block">{s.label}</span>
                   </div>
-                  <span className="text-xs mt-1 hidden sm:block">{s.label}</span>
+                  {i < steps.length - 1 && (
+                    <div className={`w-8 sm:w-16 h-0.5 mx-1 ${step > s.num ? 'bg-primary' : 'bg-slate-200'}`} />
+                  )}
                 </div>
-                {i < steps.length - 1 && (
-                  <div className={`w-8 sm:w-16 h-0.5 mx-1 ${step > s.num ? 'bg-primary' : 'bg-slate-200'}`} />
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Form Card */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
@@ -113,6 +183,11 @@ export default function SubmitPage() {
               <div className="bg-error/10 border border-error/20 text-error text-sm p-4 rounded-lg mb-6">
                 {error}
               </div>
+            )}
+
+            {/* Step 0: GMB Import */}
+            {step === 0 && (
+              <GMBImporter onSelect={handleGMBImport} onSkip={() => setStep(1)} />
             )}
 
             {/* Step 1: Basics */}
@@ -150,7 +225,7 @@ export default function SubmitPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="col-span-2">
                     <label className="label">City</label>
-                    <input value={form.city} onChange={e => update('city', e.target.value)} className="input" readOnly />
+                    <input value={form.city} onChange={e => update('city', e.target.value)} className="input" readOnly={form.city === 'Moreno Valley'} />
                   </div>
                   <div>
                     <label className="label">State</label>
@@ -235,7 +310,6 @@ export default function SubmitPage() {
                 <h2 className="text-xl font-bold text-text mb-4">Special Offer <span className="text-text-secondary font-normal text-base">(optional)</span></h2>
                 <p className="text-sm text-text-secondary">Give customers a reason to choose you — add a deal or discount to your listing.</p>
 
-                {/* Toggle */}
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
@@ -342,50 +416,54 @@ export default function SubmitPage() {
               </div>
             )}
 
-            {/* Navigation */}
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100">
-              {step > 1 ? (
-                <button onClick={() => setStep((s => (s - 1) as Step))} className="btn-outline text-sm py-2.5 flex items-center gap-2">
-                  <ChevronLeft className="w-4 h-4" /> Back
-                </button>
-              ) : (
-                <Link href="/" className="text-sm text-text-secondary hover:text-text transition-colors">Cancel</Link>
-              )}
+            {/* Navigation — hidden on step 0 */}
+            {step > 0 && (
+              <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100">
+                {step > 1 ? (
+                  <button onClick={() => setStep((s => (s - 1) as Step))} className="btn-outline text-sm py-2.5 flex items-center gap-2">
+                    <ChevronLeft className="w-4 h-4" /> Back
+                  </button>
+                ) : (
+                  <button onClick={() => setStep(0)} className="text-sm text-text-secondary hover:text-text transition-colors">
+                    ← Search again
+                  </button>
+                )}
 
-              {step < 5 ? (
-                <button
-                  onClick={() => setStep((s => (s + 1) as Step))}
-                  disabled={!canProceed()}
-                  className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next <ChevronRight className="w-4 h-4" />
-                </button>
-              ) : step < 6 ? (
-                <button
-                  onClick={() => setStep((s => (s + 1) as Step))}
-                  disabled={!canProceed()}
-                  className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next <ChevronRight className="w-4 h-4" />
-                </button>
-              ) : step < 7 ? (
-                <button
-                  onClick={() => setStep((s => (s + 1) as Step))}
-                  disabled={!canProceed()}
-                  className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next <ChevronRight className="w-4 h-4" />
-                </button>
-              ) : (
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting || !canProceed()}
-                  className="btn-accent text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? 'Submitting...' : 'Submit Listing'} <CheckCircle className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+                {step < 5 ? (
+                  <button
+                    onClick={() => setStep((s => (s + 1) as Step))}
+                    disabled={!canProceed()}
+                    className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : step < 6 ? (
+                  <button
+                    onClick={() => setStep((s => (s + 1) as Step))}
+                    disabled={!canProceed()}
+                    className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : step < 7 ? (
+                  <button
+                    onClick={() => setStep((s => (s + 1) as Step))}
+                    disabled={!canProceed()}
+                    className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={submitting || !canProceed()}
+                    className="btn-accent text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? 'Submitting...' : 'Submit Listing'} <CheckCircle className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

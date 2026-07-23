@@ -1,129 +1,75 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { slugify } from '@/lib/utils'
 import { nanoid } from 'nanoid'
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json()
-    const { name, tagline, categoryId, address, city, state, zip, phone, email, website, description, facebook, instagram, yelp, hasCoupon, couponHeadline, couponDescription, couponCode, couponExpiresAt } = body
+// GET /api/businesses — list approved businesses (for social post form's "link to business" dropdown)
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const q = searchParams.get('q') || ''
 
-    if (!name?.trim() || !categoryId || !address?.trim() || !zip?.trim() || !description?.trim()) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-    }
+  const businesses = await prisma.business.findMany({
+    where: {
+      status: 'APPROVED',
+      ...(q ? { name: { contains: q, mode: 'insensitive' } } : {}),
+    },
+    select: { id: true, name: true, slug: true, logo: true },
+    take: 20,
+    orderBy: { name: 'asc' },
+  })
 
-    if (description.trim().length < 50) {
-      return NextResponse.json({ error: 'Description must be at least 50 characters' }, { status: 400 })
-    }
-
-    // Build coupon object if hasCoupon is true
-    const coupon = hasCoupon && couponHeadline?.trim()
-      ? {
-          headline: couponHeadline.trim(),
-          description: couponDescription?.trim() || null,
-          code: couponCode?.trim() || null,
-          expiresAt: couponExpiresAt?.trim() || null,
-        }
-      : undefined
-
-    // Check for duplicate
-    const existing = await prisma.business.findFirst({
-      where: { name: { equals: name.trim() }, address: { equals: address.trim() } },
-    })
-
-    if (existing) {
-      return NextResponse.json({
-        error: 'A business with this name and address already exists.',
-        existingSlug: existing.slug,
-      }, { status: 409 })
-    }
-
-    // Generate unique slug
-    const baseSlug = slugify(name)
-    const uniqueSuffix = nanoid(6)
-    const slug = `${baseSlug}-${uniqueSuffix}`
-
-    const business = await prisma.business.create({
-      data: {
-        slug,
-        name: name.trim(),
-        tagline: tagline?.trim() || null,
-        description: description.trim(),
-        categoryId,
-        address: address.trim(),
-        city: city?.trim() || 'Moreno Valley',
-        state: state?.trim() || 'CA',
-        zip: zip.trim(),
-        phone: phone?.trim() || null,
-        email: email?.trim() || null,
-        website: website?.trim() || null,
-        facebook: facebook?.trim() || null,
-        instagram: instagram?.trim() || null,
-        yelp: yelp?.trim() || null,
-        status: 'APPROVED',
-        tier: 'FREE',
-        hasCoupon: !!coupon,
-        coupon: coupon || undefined,
-      },
-    })
-
-    return NextResponse.json({ slug: business.slug, id: business.id }, { status: 201 })
-  } catch (error) {
-    console.error('Business creation error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+  return NextResponse.json(businesses)
 }
 
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const q = searchParams.get('q')
-    const category = searchParams.get('category')
-    const tier = searchParams.get('tier')
-    const sort = searchParams.get('sort') || 'newest'
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const skip = (page - 1) * limit
+// POST /api/businesses — create a new business submission
+export async function POST(req: NextRequest) {
+  const body = await req.json()
+  const {
+    name, tagline, categoryId, address, city, state, zip,
+    phone, email, website, description, facebook, instagram, yelp,
+    hasCoupon, couponHeadline, couponDescription, couponCode, couponExpiresAt,
+    hours, latitude, longitude,
+  } = body
 
-    const where: Record<string, unknown> = { status: 'APPROVED' }
-
-    if (q) {
-      where.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { description: { contains: q, mode: 'insensitive' } },
-        { tagline: { contains: q, mode: 'insensitive' } },
-      ]
-    }
-
-    if (category) {
-      where.category = { slug: category }
-    }
-
-    if (tier) {
-      where.tier = tier.toUpperCase()
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const orderBy: any = sort === 'rating'
-      ? { reviews: { _count: 'desc' } }
-      : sort === 'name'
-      ? { name: 'asc' }
-      : { createdAt: 'desc' }
-
-    const [businesses, total] = await Promise.all([
-      prisma.business.findMany({
-        where,
-        include: { category: true, reviews: true, _count: { select: { reviews: true } } },
-        orderBy,
-        skip,
-        take: limit,
-      }),
-      prisma.business.count({ where }),
-    ])
-
-    return NextResponse.json({ businesses, total, page, totalPages: Math.ceil(total / limit) })
-  } catch (error) {
-    console.error('Business listing error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  if (!name || !categoryId || !address || !zip || !description) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
+
+  if (description.trim().length < 50) {
+    return NextResponse.json({ error: 'Description must be at least 50 characters' }, { status: 400 })
+  }
+
+  const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${nanoid(6)}`
+
+  const business = await prisma.business.create({
+    data: {
+      slug,
+      name,
+      tagline: tagline || null,
+      categoryId,
+      address,
+      city: city || 'Moreno Valley',
+      state: state || 'CA',
+      zip,
+      phone: phone || null,
+      email: email || null,
+      website: website || null,
+      description,
+      facebook: facebook || null,
+      instagram: instagram || null,
+      yelp: yelp || null,
+      latitude: latitude || null,
+      longitude: longitude || null,
+      hours: hours || undefined,
+      hasCoupon: hasCoupon || false,
+      coupon: (hasCoupon && couponHeadline) ? {
+        headline: couponHeadline,
+        description: couponDescription || '',
+        code: couponCode || null,
+        expiresAt: couponExpiresAt || null,
+      } : undefined,
+      status: 'PENDING',
+    },
+  })
+
+  return NextResponse.json(business, { status: 201 })
 }

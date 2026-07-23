@@ -60,8 +60,10 @@ Modern, clean, and vibrant — inspired by successful local directories like Veg
 /homes (Moreno Valley homes for sale — Trestle/CRMLS powered)
 /about-moreno-valley (City hub page — demographics, lifestyle, market stats)
 /deals (Deals & coupons listing)
+/events (Community social posts — Instagram/Facebook events & opportunities, moderated)
 /business/[slug] (Business detail page)
 /submit (Submit a new business)
+/submit/social-posts (Submit a social post for the events page)
 /claim (Claim a business listing)
 /login (Business owner login)
 /dashboard (Owner dashboard — claimed businesses, edit, reviews)
@@ -152,7 +154,16 @@ Each business profile includes:
 | Social links | ❌ | ✅ |
 | Analytics | Basic | Full |
 
-#### 4.7 GoHighLevel Integration
+#### 4.8 Social Posts / Events (Community Moderation)
+- Businesses and community members submit Instagram or Facebook post URLs via `/submit/social-posts`
+- Posts enter `PENDING` status and are reviewed in the admin dashboard
+- Admin can approve, reject, or permanently delete posts
+- Approved posts appear publicly on `/events`
+- Posts optionally link to a business listing on moval.living
+- Platforms validated at submission time (Instagram URL → Instagram, Facebook URL → Facebook)
+- Future: automated Instagram Graph API fetch to pull posts directly
+
+#### 4.9 GoHighLevel Integration
 - Contact form submissions routed to GHL via webhook/API
 - "Get a Website" CTA routes to GHL funnel
 - GHL handles email nurturing sequences
@@ -376,11 +387,19 @@ DELETE /api/businesses/[slug]   Delete business (admin)
 GET    /api/categories          List all categories
 GET    /api/deals              List businesses with active deals
 
+GET    /api/places/search      Search Google Places API (for GMB import during submission)
+GET    /api/places/photos      Proxy Google Places photos server-side (hides API key)
+
 POST   /api/reviews             Create review
 GET    /api/businesses/[slug]/reviews  Get reviews for business
 PUT    /api/reviews/[id]        Update/respond to review
 
 POST   /api/auth/[...nextauth]  NextAuth handlers
+
+POST   /api/social-posts         Submit a new social post (public)
+GET    /api/social-posts         List social posts (public = approved only; auth = all for owner; admin = all)
+PATCH  /api/social-posts/[id]    Approve/reject a post (admin only)
+DELETE /api/social-posts/[id]    Delete a post (admin only)
 
 POST   /api/contact             Route contact form to GHL
 POST   /api/claim               Initiate business claim flow
@@ -399,6 +418,11 @@ EMAIL_SERVER_PASSWORD=      # AWS SES SMTP password
 GOOGLE_MAPS_API_KEY=        # Johnny's existing key
 GHL_API_KEY=                # GoHighLevel API key
 GHL_WEBHOOK_URL=           # GHL webhook for contact form
+
+# Meta App (Instagram/Facebook social posts)
+META_APP_ID=               # Meta App ID from developers.facebook.com
+META_APP_SECRET=           # Meta App Secret from developers.facebook.com
+META_ACCESS_TOKEN=         # Long-lived Page Access Token for Instagram Graph API (server-side only)
 ```
 
 ### Third-Party Integrations

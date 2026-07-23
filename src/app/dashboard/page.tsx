@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus } from 'lucide-react'
+import SocialPostsModeration from '@/components/admin/SocialPostsModeration'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -23,6 +24,29 @@ export default async function DashboardPage() {
       },
     },
   })
+
+  const isAdmin = session.user.role === 'ADMIN'
+
+  // Admin: show moderation panel
+  if (isAdmin) {
+    const posts = await prisma.socialPost.findMany({
+      include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
+      orderBy: { createdAt: 'desc' },
+    })
+    return (
+      <div className="bg-slate-50 min-h-screen">
+        <div className="bg-white border-b border-slate-100">
+          <div className="container-max py-8">
+            <h1 className="text-3xl font-bold text-text mb-1">Admin Dashboard</h1>
+            <p className="text-text-secondary">Site administration</p>
+          </div>
+        </div>
+        <div className="container-max py-8">
+          <SocialPostsModeration initialPosts={posts} />
+        </div>
+      </div>
+    )
+  }
 
   if (!owner || !owner.business) {
     return (

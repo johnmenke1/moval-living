@@ -105,6 +105,14 @@ export const categories: Category[] = [
     icon: 'Gauge',
     image: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800&q=80',
   },
+  {
+    id: 'real-estate',
+    name: 'Real Estate & Mortgage',
+    slug: 'real-estate',
+    description: 'Realtors, mortgage brokers, title companies, property managers',
+    icon: 'Building',
+    image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&q=80',
+  },
 ]
 
 export function getCategoryBySlug(slug: string): Category | undefined {
