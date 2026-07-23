@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { nanoid } from 'nanoid'
+import { auth } from '@/auth'
 
 // GET /api/businesses — list approved businesses (for social post form's "link to business" dropdown)
 export async function GET(req: NextRequest) {
@@ -61,6 +62,10 @@ export async function POST(req: NextRequest) {
     })
   }
 
+  // Auto-link to logged-in owner if authenticated
+  const session = await auth()
+  const ownerId = session?.user?.id || null
+
   const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${nanoid(6)}`
 
   const business = await prisma.business.create({
@@ -69,6 +74,7 @@ export async function POST(req: NextRequest) {
       name,
       tagline: tagline || null,
       categoryId: category.id,  // resolved CUID
+      ownerId,
       address,
       city: city || 'Moreno Valley',
       state: state || 'CA',

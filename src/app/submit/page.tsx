@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, ChevronRight, ChevronLeft, Upload } from 'lucide-react'
-import { categories } from '@/data/categories'
+import { categories as fallbackCategories, type Category } from '@/data/categories'
 import GMBImporter from '@/components/forms/GMBImporter'
 
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
@@ -36,6 +36,26 @@ export default function SubmitPage() {
   const [step, setStep] = useState<Step>(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [categories, setCategories] = useState<Category[]>(fallbackCategories)
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false)
+
+  // Pull the canonical category list from the DB on mount.
+  // The static fallback list is only used until this resolves (typically <200ms).
+  // Why: the DB uses CUIDs as primary keys, but the form sends slugs. The API
+  // resolves either, but we still want the dropdown to show whatever the DB
+  // actually has (single source of truth = prisma/seed.ts).
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/categories')
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
+      .then((rows: Category[]) => {
+        if (cancelled) return
+        if (Array.isArray(rows) && rows.length > 0) setCategories(rows)
+      })
+      .catch(() => {/* keep fallbackCategories — show offline copy */})
+      .finally(() => { if (!cancelled) setCategoriesLoaded(true) })
+    return () => { cancelled = true }
+  }, [])
 
   const [form, setForm] = useState({
     name: '',
@@ -203,7 +223,12 @@ export default function SubmitPage() {
                   <input value={form.tagline} onChange={e => update('tagline', e.target.value)} className="input" placeholder="Your trusted auto care specialists" />
                 </div>
                 <div>
-                  <label className="label">Category <span className="text-error">*</span></label>
+                  <label className="label">
+                    Category <span className="text-error">*</span>
+                    {!categoriesLoaded && (
+                      <span className="ml-2 text-text-secondary font-normal text-xs">(loading latest…)</span>
+                    )}
+                  </label>
                   <select value={form.categoryId} onChange={e => update('categoryId', e.target.value)} className="input">
                     <option value="">Select a category</option>
                     {categories.map(cat => (
