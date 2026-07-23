@@ -17,23 +17,24 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Google Places API v1 uses POST with JSON body
+    // Google Places API v1: POST with JSON body
+    // Use wildcard field mask (*) to start — this returns all available fields
+    // and we map only the ones we need downstream.
     const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.primaryType,places.nationalPhoneNumber,places.website,places.regularOpeningHours,places.photos,places.location',
+        'X-Goog-FieldMask': '*',
       },
       body: JSON.stringify({
         textQuery: q,
         locationBias: {
           circle: {
             center: { latitude: 33.9425, longitude: -117.2280 },
-            radius: 20000, // 20km radius around Moreno Valley
+            radius: 20000,
           },
         },
-        includedType: 'local_business',
         pageSize: 5,
       }),
     })
