@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
 
-// GET /api/places/search?q=...&location=... — search Google Places
+// GET /api/places/search?q=... — search Google Places
 // Used to find a business by name or GMB URL before creating a listing
 export async function GET(req: NextRequest) {
   if (!GOOGLE_PLACES_API_KEY) {
@@ -16,23 +16,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'q (query) is required' }, { status: 400 })
   }
 
-  // Try to scope results to Moreno Valley, CA
-  const locationBias = 'circle:20000@33.9425,-117.2280' // Moreno Valley center + 20km radius
-
   try {
-    const url = new URL('https://places.googleapis.com/v1/places:searchText')
-    url.searchParams.set('textQuery', q)
-    url.searchParams.set('locationBias', locationBias)
-    url.searchParams.set('includedType', 'local_business')
-    url.searchParams.set('pageSize', '5')
-    url.searchParams.set('fields', 'places.id,places.displayName,places.formattedAddress,places.primaryType,places.nationalPhoneNumber,places.website,places.regularOpeningHours,places.photos,places.location')
-
-    const res = await fetch(url.toString(), {
+    // Google Places API v1 uses POST with JSON body
+    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
         'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.primaryType,places.nationalPhoneNumber,places.website,places.regularOpeningHours,places.photos,places.location',
       },
+      body: JSON.stringify({
+        textQuery: q,
+        locationBias: {
+          circle: {
+            center: { latitude: 33.9425, longitude: -117.2280 },
+            radius: 20000, // 20km radius around Moreno Valley
+          },
+        },
+        includedType: 'local_business',
+        pageSize: 5,
+      }),
     })
 
     if (!res.ok) {
