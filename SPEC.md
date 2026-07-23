@@ -57,6 +57,8 @@ Modern, clean, and vibrant — inspired by successful local directories like Veg
 ```
 / (Home)
 /search (Directory search + browse)
+/homes (Moreno Valley homes for sale — Trestle/CRMLS powered)
+/about-moreno-valley (City hub page — demographics, lifestyle, market stats)
 /deals (Deals & coupons listing)
 /business/[slug] (Business detail page)
 /submit (Submit a new business)
@@ -404,3 +406,4 @@ GHL_WEBHOOK_URL=           # GHL webhook for contact form
 - **GoHighLevel:** Contact form submissions sent to GHL via REST API
 - **AWS SES:** Transactional emails via nodemailer
 - **NextAuth:** Auth for business owners (email + Google OAuth option)
+- **Trestle (CoreLogic/CRMLS):** RESO WebAPI OData endpoint for live MLS listing data — powers `/homes` and `/about-moreno-valley` market stats. Requires `TRESTLE_API_KEY` set in Vercel env vars. All Trestle calls are server-side (API routes); the key is never exposed to the client. Photos proxied through `/api/trestle/photos` to protect CDN URLs.

@@ -11,6 +11,8 @@ import { Tag } from 'lucide-react'
 const navLinks = [
   { label: 'Home', href: '/' },
   { label: 'Browse', href: '/search' },
+  { label: 'Homes', href: '/homes' },
+  { label: 'About MoVal', href: '/about-moreno-valley' },
   { label: 'Deals', href: '/deals', icon: Tag },
   { label: 'Submit Business', href: '/submit' },
 ]
