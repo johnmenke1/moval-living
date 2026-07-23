@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     // Auto-create from slug — use the slug as name with title-case formatting
     const name = categoryId
       .split('-')
-      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ')
     category = await prisma.category.create({
       data: { id: categoryId, name, slug: categoryId, icon: 'Star', description: '' },
