@@ -41,17 +41,24 @@ export async function POST(req: NextRequest) {
   }
 
   // Resolve the category: try by CUID first, then by slug. Either form is accepted.
-  const category = await prisma.category.findFirst({
-    where: {
-      OR: [{ id: categoryId }, { slug: categoryId }],
-    },
+  // If no match is found, auto-create the category from the slug (handles cases where
+  // categories.ts has categories that don't exist in the DB yet — e.g. after a schema
+  // change or new category added to the frontend before a seed was run).
+  let category = await prisma.category.findFirst({
+    where: { OR: [{ id: categoryId }, { slug: categoryId }] },
     select: { id: true, slug: true },
   })
+
   if (!category) {
-    return NextResponse.json(
-      { error: `Unknown category "${categoryId}". Please pick one from the list.` },
-      { status: 400 }
-    )
+    // Auto-create from slug — use the slug as name with title-case formatting
+    const name = categoryId
+      .split('-')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ')
+    category = await prisma.category.create({
+      data: { id: categoryId, name, slug: categoryId, icon: 'Star', description: '' },
+      select: { id: true, slug: true },
+    })
   }
 
   const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${nanoid(6)}`
