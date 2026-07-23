@@ -11,13 +11,14 @@ const categories = [
   { name: 'Contractors & Construction', slug: 'contractors', description: 'Home builders, remodelers, plumbers, electricians', icon: 'HardHat' },
   { name: 'Healthcare & Medical', slug: 'healthcare', description: 'Doctors, dentists, clinics, pharmacies, specialists', icon: 'Stethoscope' },
   { name: 'Retail & Shopping', slug: 'retail', description: 'Boutiques, shops, stores, and e-commerce locals', icon: 'ShoppingBag' },
-  { name: 'Automotive', slug: 'automotive', description: 'Auto repair, dealerships, parts, tires, detailing', icon: 'Car' },
-  { name: 'Professional Services', slug: 'professional', description: 'Attorneys, accountants, real estate, insurance', icon: 'Briefcase' },
+  { name: 'Auto & Transportation', slug: 'auto', description: 'Auto repair, tires, auto parts, body shops, transportation services', icon: 'Car' },
+  { name: 'Professional Services', slug: 'professional', description: 'Attorneys, accountants, insurance, marketing', icon: 'Briefcase' },
   { name: 'Beauty & Wellness', slug: 'beauty', description: 'Salons, spas, gyms, yoga, nails, barbers', icon: 'Sparkles' },
   { name: 'Home Services', slug: 'home-services', description: 'Landscaping, cleaning, pest control, HVAC, painting', icon: 'Wrench' },
   { name: 'Education & Tutoring', slug: 'education', description: 'Schools, tutors, music lessons, driving instructors', icon: 'GraduationCap' },
   { name: 'Pets & Veterinary', slug: 'pets', description: 'Vets, pet stores, grooming, dog walking, boarding', icon: 'PawPrint' },
   { name: 'Banks & Financial', slug: 'finance', description: 'Banks, credit unions, loan officers, financial advisors', icon: 'Landmark' },
+  { name: 'Real Estate & Mortgage', slug: 'real-estate', description: 'Realtors, mortgage brokers, title companies, property managers', icon: 'Building' },
 ]
 
 async function main() {

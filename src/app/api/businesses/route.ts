@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/businesses — create a new business submission
+// Accepts `categoryId` that may be either a CUID (from /api/categories) or a slug
+// (e.g. "real-estate"). Resolves to a real Category record before insert.
 export async function POST(req: NextRequest) {
   const body = await req.json()
   const {
@@ -38,6 +40,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Description must be at least 50 characters' }, { status: 400 })
   }
 
+  // Resolve the category: try by CUID first, then by slug. Either form is accepted.
+  const category = await prisma.category.findFirst({
+    where: {
+      OR: [{ id: categoryId }, { slug: categoryId }],
+    },
+    select: { id: true, slug: true },
+  })
+  if (!category) {
+    return NextResponse.json(
+      { error: `Unknown category "${categoryId}". Please pick one from the list.` },
+      { status: 400 }
+    )
+  }
+
   const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${nanoid(6)}`
 
   const business = await prisma.business.create({
@@ -45,7 +61,7 @@ export async function POST(req: NextRequest) {
       slug,
       name,
       tagline: tagline || null,
-      categoryId,
+      categoryId: category.id,  // resolved CUID
       address,
       city: city || 'Moreno Valley',
       state: state || 'CA',
