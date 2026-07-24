@@ -14,14 +14,14 @@ export async function GET() {
     })
 
     await transporter.sendMail({
-      from: process.env.AUTH_EMAIL_FROM || 'noreply@example.com',
+      from: 'noreply@moval.living',
       to: 'john@menke.re',
-      subject: 'Test Email from Moval',
-      text: 'This is a test email from the Moval SMTP test endpoint.',
+      subject: 'Test Email - AUTH_EMAIL_FROM check',
+      text: 'Testing if this arrives.',
     })
 
-    return NextResponse.json({ ok: true, message: 'Email sent' })
+    return NextResponse.json({ ok: true, message: 'Sent from noreply@moval.living' })
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 })
+    return NextResponse.json({ ok: false, error: e?.message || String(e), host: process.env.AWS_SES_SMTP_HOST, user: process.env.AWS_SES_SMTP_USERNAME ? 'SET' : 'MISSING' }, { status: 500 })
   }
 }
