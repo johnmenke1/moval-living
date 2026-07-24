@@ -1,12 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { Building2 } from 'lucide-react'
 
-// GET /claim/complete?token=... — called after magic link fires.
-// 1. Magic link created the session via NextAuth
-// 2. We read the claim token from the URL and complete the ownership link
-// 3. Redirect to dashboard
 export default async function ClaimCompletePage({
   searchParams,
 }: {
@@ -15,22 +10,27 @@ export default async function ClaimCompletePage({
   const session = await auth()
   const { token } = await searchParams
 
+  console.log('[claim/complete] session:', JSON.stringify(session))
+  console.log('[claim/complete] token:', token)
+
   if (!token) {
+    console.log('[claim/complete] no token, redirecting to /login')
     redirect('/login')
   }
 
   if (!session?.user?.email) {
+    console.log('[claim/complete] no session user email, redirecting to /login')
     redirect('/login')
   }
 
-  // Complete the claim: link the business to this owner
   const business = await prisma.business.findUnique({
     where: { claimToken: token },
     select: { id: true, name: true, ownerId: true, claimExpiresAt: true },
   })
 
+  console.log('[claim/complete] business:', JSON.stringify(business))
+
   if (business && !business.ownerId) {
-    // Find or create owner by email
     let owner = await prisma.owner.findUnique({
       where: { email: session.user.email! },
     })
@@ -44,19 +44,19 @@ export default async function ClaimCompletePage({
           emailVerified: new Date(),
         },
       })
+      console.log('[claim/complete] created owner:', owner.id)
     }
 
-    // Complete the claim
     await prisma.business.update({
       where: { id: business.id },
       data: {
         ownerId: owner.id,
         claimToken: null,
         claimExpiresAt: null,
-        // Also update the business email to match the owner's email if not set
         email: session.user.email!,
       },
     })
+    console.log('[claim/complete] business claimed successfully')
   }
 
   redirect('/dashboard')
