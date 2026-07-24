@@ -54,12 +54,14 @@ model Business {
   coupon          Json?     // { headline: string, description: string, code?: string, expiresAt?: string }
 
   // Relations
-  owner         Owner?    @relation(fields: [ownerId], references: [id])
-  ownerId       String?    @unique
-  reviews       Review[]
-  socialPosts   SocialPost[]
-  createdAt     DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  owner           Owner?     @relation(fields: [ownerId], references: [id])
+  ownerId         String?    @unique
+  claimToken      String?    @unique  // One-time token to claim ownership
+  claimExpiresAt  DateTime?            // Token expires after 7 days
+  reviews         Review[]
+  socialPosts     SocialPost[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   @@index([categoryId])
   @@index([status])

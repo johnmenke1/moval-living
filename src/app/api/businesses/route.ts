@@ -66,6 +66,10 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   const ownerId = session?.user?.id || null
 
+  // Generate a one-time claim token so the submitter can claim ownership
+  // without needing an account. Token expires in 7 days.
+  const claimToken = nanoid(32)
+
   const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${nanoid(6)}`
 
   const business = await prisma.business.create({
@@ -73,8 +77,10 @@ export async function POST(req: NextRequest) {
       slug,
       name,
       tagline: tagline || null,
-      categoryId: category.id,  // resolved CUID
+      categoryId: category.id,
       ownerId,
+      claimToken,
+      claimExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       address,
       city: city || 'Moreno Valley',
       state: state || 'CA',
@@ -100,5 +106,5 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  return NextResponse.json(business, { status: 201 })
+  return NextResponse.json({ slug: business.slug, claimToken, name: business.name }, { status: 201 })
 }

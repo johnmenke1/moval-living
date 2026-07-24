@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Search, Building2, Clock, CheckCircle, XCircle, ArrowRight, MapPin, Phone } from 'lucide-react'
+import { Search, Building2, Clock, CheckCircle, XCircle, ArrowRight, MapPin, Phone, UserPlus } from 'lucide-react'
 
 interface Business {
   id: string
@@ -16,6 +16,8 @@ interface Business {
   phone: string
   status: string
   createdAt: string
+  ownerId: string | null
+  claimToken: string | null
   category: { name: string } | null
 }
 
@@ -175,10 +177,20 @@ export default function MySubmissionsPage() {
                                 View Live <ArrowRight className="w-3.5 h-3.5" />
                               </Link>
                             )}
-                            {biz.status === 'PENDING' && (
-                              <span className="text-xs text-text-secondary italic">
-                                Under review
-                              </span>
+                            {biz.status === 'PENDING' && biz.claimToken && (
+                              <Link
+                                href={`/claim?token=${biz.claimToken}&slug=${biz.slug}`}
+                                className="btn-primary text-xs flex items-center gap-1 px-3 py-1.5"
+                              >
+                                <UserPlus className="w-3.5 h-3.5" />
+                                Claim This Listing
+                              </Link>
+                            )}
+                            {biz.status === 'PENDING' && !biz.claimToken && !biz.ownerId && (
+                              <span className="text-xs text-text-secondary italic">Pending — no claim link</span>
+                            )}
+                            {biz.status === 'PENDING' && biz.ownerId && (
+                              <span className="text-xs text-text-secondary italic">Under review</span>
                             )}
                           </div>
                         </div>

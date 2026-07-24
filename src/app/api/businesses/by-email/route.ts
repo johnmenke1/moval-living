@@ -27,6 +27,8 @@ export async function GET(req: NextRequest) {
       phone: true,
       status: true,
       createdAt: true,
+      ownerId: true,
+      claimToken: true,
       category: { select: { name: true } },
     },
     orderBy: { createdAt: 'desc' },

@@ -159,7 +159,8 @@ export default function SubmitPage() {
         const data = await res.json()
         throw new Error(data.error || 'Submission failed')
       }
-      router.push('/submit/success')
+      const { slug, claimToken, name } = await res.json()
+      router.push(`/submit/success?name=${encodeURIComponent(name)}&slug=${encodeURIComponent(slug)}&token=${encodeURIComponent(claimToken)}`)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       setSubmitting(false)
