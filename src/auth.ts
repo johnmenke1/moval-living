@@ -5,17 +5,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Nodemailer({
       server: {
-        host: process.env.AWS_SES_SMTP_HOST || 'email-smtp.us-west-1.amazonaws.com',
+        host: process.env.AWS_SES_SMTP_HOST || 'gza39qitgn3w.fips.jshu.mail-manager-smtp.amazonaws.com',
         port: 587,
         secure: false,
         requireTLS: true,
         auth: {
-          user: process.env.AWS_SES_ACCESS_KEY_ID,
+          user: process.env.AWS_SES_SMTP_USERNAME,
           pass: process.env.AWS_SES_SMTP_PASSWORD,
         },
         tls: { rejectUnauthorized: false },
       },
-      from: process.env.AUTH_EMAIL_FROM!,
+      from: process.env.AUTH_EMAIL_FROM || 'noreply@send.moval.living',
     }),
   ],
   session: { strategy: 'jwt' },
