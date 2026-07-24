@@ -1,20 +1,7 @@
 import NextAuth from 'next-auth'
-import { PrismaAdapter } from '@auth/prisma-adapter'
-import { PrismaClient } from '@prisma/client'
-import { Pool } from 'pg'
-import { PrismaPg } from '@prisma/adapter-pg'
 import Nodemailer from 'next-auth/providers/nodemailer'
 
-const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ||
-    'postgresql://placeholder:***@127.0.0.1:5432/placeholder?sslmode=disable',
-  ssl: { rejectUnauthorized: false },
-})
-const prisma = new PrismaClient({ adapter: new PrismaPg(pool) })
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
   providers: [
     Nodemailer({
       server: {
@@ -35,7 +22,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   pages: { signIn: '/login', error: '/login' },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) { token.id = user.id; token.role = (user as { role?: string }).role }
+      if (user) { token.id = user.id as string; token.role = (user as { role?: string }).role }
       return token
     },
     async session({ session, token }) {
