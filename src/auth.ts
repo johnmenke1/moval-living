@@ -17,13 +17,23 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = authPrisma
 
 // Minimal custom adapter — only implements what email magic link needs
 const emailAdapter = {
+  async createUser({ name, email }) {
+    const owner = await authPrisma.owner.create({
+      data: { name, email },
+    })
+    return { id: owner.id, email: owner.email, name: owner.name, emailVerified: null, image: null }
+  },
+  async getUserByEmail(email) {
+    const owner = await authPrisma.owner.findUnique({ where: { email } })
+    if (!owner) return null
+    return { id: owner.id, email: owner.email, name: owner.name, emailVerified: owner.emailVerified, image: owner.image }
+  },
   async createVerificationToken({ identifier, token, expires }) {
     return authPrisma.verificationToken.create({
       data: { identifier, token, expires },
     })
   },
   async useVerificationToken({ identifier, token }) {
-    // Find and delete atomically
     const found = await authPrisma.verificationToken.findUnique({
       where: { identifier_token: { identifier, token } },
     })

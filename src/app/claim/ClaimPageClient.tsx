@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { UserPlus, Building2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
-import { signIn } from 'next-auth/react'
+// Removed: import { signIn } from 'next-auth/react'
+// Using custom /api/auth/send-magic-link endpoint instead
 
 export default function ClaimPageClient() {
   const router = useRouter()
@@ -58,12 +59,17 @@ export default function ClaimPageClient() {
       if (!verifyRes.ok) throw new Error(verifyData.error || 'Invalid or expired claim link')
       setBusinessName(verifyData.business.name)
 
-      // Send magic link — NextAuth handles email delivery
-      await signIn('email', {
-        email: email.trim().toLowerCase(),
-        redirect: false,
-        callbackUrl: `/claim/complete?token=${token}`,
+      // Send magic link — using custom endpoint that bypasses NextAuth signin
+      const res = await fetch('/api/auth/send-magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          callbackUrl: `/claim/complete?token=${token}`,
+        }),
       })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to send sign-in link')
       setSent(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
