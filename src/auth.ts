@@ -18,7 +18,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Nodemailer({
       server: {
-        host: `email-smtp.${process.env.AWS_SES_REGION}.amazonaws.com`,
+        host: process.env.AWS_SES_SMTP_HOST || 'email-smtp.us-west-1.amazonaws.com',
         port: 465,
         secure: true,
         auth: {
