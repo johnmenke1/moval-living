@@ -47,14 +47,18 @@ export default function ClaimPageClient() {
     setError('')
 
     try {
-      const res = await fetch('/api/claim/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, email: email.trim().toLowerCase() }),
-      })
+      // Validate token one more time before sending magic link
+      const verifyRes = await fetch(`/api/claim/verify?token=${encodeURIComponent(token)}`)
+      const verifyData = await verifyRes.json()
+      if (!verifyRes.ok) throw new Error(verifyData.error || 'Invalid or expired claim link')
+      setBusinessName(verifyData.business.name)
 
-      // Send magic link for the claimer to sign in — callback completes the claim
-      await signIn('email', { email: email.trim().toLowerCase(), redirect: false, callbackUrl: `/claim/complete?token=${token}` })
+      // Send magic link — NextAuth handles email delivery
+      await signIn('email', {
+        email: email.trim().toLowerCase(),
+        redirect: false,
+        callbackUrl: `/claim/complete?token=${token}`,
+      })
       setSent(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
