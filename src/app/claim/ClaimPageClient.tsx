@@ -60,7 +60,7 @@ export default function ClaimPageClient() {
       setBusinessName(verifyData.business.name)
 
       // Send magic link — using custom endpoint that bypasses NextAuth signin
-      const res = await fetch('/api/auth/send-magic-link', {
+      const res = await fetch('/api/send-magic-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,7 +73,6 @@ export default function ClaimPageClient() {
       setSent(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-    } finally {
       setLoading(false)
     }
   }
