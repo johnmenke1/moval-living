@@ -18,13 +18,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const url = req.nextUrl.pathname
-  if (url.includes('/callback/')) {
-    try {
-      const body = await req.clone().text()
-      console.log('[AUTH callback POST]', url, Object.fromEntries(new URL(req.url).searchParams), 'body:', body)
-    } catch {}
-  }
   try {
     return await handlers.POST(req)
   } catch (e: any) {
