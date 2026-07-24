@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { UserPlus, Building2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
@@ -17,27 +17,32 @@ export default function ClaimPageClient() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const [validating, setValidating] = useState(false)
 
-  // Step 1: validate token and fetch business name
-  const validateToken = async () => {
+  // Step 1: validate token and fetch business name.
+  // Runs once when the token arrives (or changes). Cancellable on unmount.
+  useEffect(() => {
     if (!token) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/claim/verify?token=${encodeURIComponent(token!)}`)
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Invalid claim link')
-      setBusinessName(data.business.name)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid or expired claim link')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Load token validation on mount
-  if (token && !businessName && !error) {
-    validateToken()
-  }
+    if (businessName || error) return
+    let cancelled = false
+    setValidating(true)
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/claim/verify?token=${encodeURIComponent(token)}`)
+        const data = await res.json()
+        if (cancelled) return
+        if (!res.ok) throw new Error(data.error || 'Invalid claim link')
+        setBusinessName(data.business.name)
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Invalid or expired claim link')
+        }
+      } finally {
+        if (!cancelled) setValidating(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [token])  // intentionally NOT depending on businessName/error — see body
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

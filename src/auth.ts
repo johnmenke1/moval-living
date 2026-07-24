@@ -9,17 +9,20 @@ function createPrismaClient(): PrismaClient {
   const connectionString =
     process.env.DATABASE_URL ||
     'postgresql://placeholder:***@127.0.0.1:5432/placeholder?sslmode=disable'
-  const pool = new Pool({ connectionString })
+  const pool = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+  })
   return new PrismaClient({ adapter: new PrismaPg(pool) })
 }
 
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({
-    connectionString:
-      process.env.DATABASE_URL ||
-      'postgresql://placeholder:***@127.0.0.1:5432/placeholder?sslmode=disable',
-  }),
+const pool = new Pool({
+  connectionString:
+    process.env.DATABASE_URL ||
+    'postgresql://placeholder:***@127.0.0.1:5432/placeholder?sslmode=disable',
+  ssl: { rejectUnauthorized: false },
 })
+const prisma = new PrismaClient({ adapter: new PrismaPg(pool) })
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -32,6 +35,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           user: process.env.EMAIL_SERVER_USER!,
           pass: process.env.EMAIL_SERVER_PASSWORD!,
         },
+        secure: true,
       },
       from: process.env.AUTH_EMAIL_FROM!,
     }),
