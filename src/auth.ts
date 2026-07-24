@@ -2,6 +2,7 @@ import NextAuth from 'next-auth'
 import { PrismaClient } from '@prisma/client'
 import { Pool } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
+// @ts-ignore
 import nodemailer from 'nodemailer'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
@@ -17,23 +18,23 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = authPrisma
 
 // Minimal custom adapter — only implements what email magic link needs
 const emailAdapter = {
-  async createUser({ name, email }) {
+  async createUser({ name, email }: { name?: string | null; email: string }) {
     const owner = await authPrisma.owner.create({
       data: { name, email },
     })
     return { id: owner.id, email: owner.email, name: owner.name, emailVerified: null, image: null }
   },
-  async getUserByEmail(email) {
+  async getUserByEmail(email: string) {
     const owner = await authPrisma.owner.findUnique({ where: { email } })
     if (!owner) return null
     return { id: owner.id, email: owner.email, name: owner.name, emailVerified: owner.emailVerified, image: owner.image }
   },
-  async createVerificationToken({ identifier, token, expires }) {
+  async createVerificationToken({ identifier, token, expires }: { identifier: string; token: string; expires: Date }) {
     return authPrisma.verificationToken.create({
       data: { identifier, token, expires },
     })
   },
-  async useVerificationToken({ identifier, token }) {
+  async useVerificationToken({ identifier, token }: { identifier: string; token: string }) {
     const found = await authPrisma.verificationToken.findUnique({
       where: { identifier_token: { identifier, token } },
     })
