@@ -5,17 +5,6 @@ import { Pool } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
 import Nodemailer from 'next-auth/providers/nodemailer'
 
-function createPrismaClient(): PrismaClient {
-  const connectionString =
-    process.env.DATABASE_URL ||
-    'postgresql://placeholder:***@127.0.0.1:5432/placeholder?sslmode=disable'
-  const pool = new Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false },
-  })
-  return new PrismaClient({ adapter: new PrismaPg(pool) })
-}
-
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
@@ -29,13 +18,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Nodemailer({
       server: {
-        host: process.env.EMAIL_SERVER_HOST!,
-        port: Number(process.env.EMAIL_SERVER_PORT),
-        auth: {
-          user: process.env.EMAIL_SERVER_USER!,
-          pass: process.env.EMAIL_SERVER_PASSWORD!,
-        },
+        host: `email-smtp.${process.env.AWS_SES_REGION}.amazonaws.com`,
+        port: 465,
         secure: true,
+        auth: {
+          user: process.env.AWS_SES_ACCESS_KEY_ID,
+          pass: process.env.AWS_SES_SMTP_PASSWORD,
+        },
+        tls: { rejectUnauthorized: false },
       },
       from: process.env.AUTH_EMAIL_FROM!,
     }),
