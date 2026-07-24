@@ -1,5 +1,4 @@
 import NextAuth from 'next-auth'
-import { PrismaAdapter } from '@auth/prisma-adapter'
 import { PrismaClient } from '@prisma/client'
 import { Pool } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
@@ -16,26 +15,43 @@ function createAuthPrisma() {
 const authPrisma = globalForPrisma.prisma || createAuthPrisma()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = authPrisma
 
-// Custom email provider using nodemailer directly
-function makeEmailProvider() {
-  const { Nodemailer } = require('next-auth/providers/nodemailer')
-  return Nodemailer({
-    server: {
-      host: process.env.AWS_SES_SMTP_HOST,
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.AWS_SES_SMTP_USERNAME,
-        pass: process.env.AWS_SES_SMTP_PASSWORD,
-      },
-    },
-    from: process.env.AUTH_EMAIL_FROM || 'noreply@moval.living',
-  })
+// Minimal custom adapter — only implements what email magic link needs
+const emailAdapter = {
+  async createVerificationToken({ identifier, token, expires }) {
+    return authPrisma.verificationToken.create({
+      data: { identifier, token, expires },
+    })
+  },
+  async useVerificationToken({ identifier, token }) {
+    // Find and delete atomically
+    const found = await authPrisma.verificationToken.findUnique({
+      where: { identifier_token: { identifier, token } },
+    })
+    if (!found) return null
+    await authPrisma.verificationToken.delete({
+      where: { identifier_token: { identifier, token } },
+    })
+    return found
+  },
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(authPrisma),
-  providers: [makeEmailProvider()],
+  adapter: emailAdapter,
+  providers: [
+    // Using require() to avoid ESM import issues with nodemailer in Next.js
+    (require('next-auth/providers/nodemailer') as any).default({
+      server: {
+        host: process.env.AWS_SES_SMTP_HOST,
+        port: 587,
+        secure: false,
+        auth: {
+          user: process.env.AWS_SES_SMTP_USERNAME,
+          pass: process.env.AWS_SES_SMTP_PASSWORD,
+        },
+      },
+      from: process.env.AUTH_EMAIL_FROM || 'noreply@moval.living',
+    }),
+  ],
   session: { strategy: 'jwt' },
   pages: { signIn: '/login', error: '/login' },
   callbacks: {
