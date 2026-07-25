@@ -33,6 +33,12 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
   const [businesses, setBusinesses] = useState<Business[]>(initialBusinesses)
   const [filter, setFilter] = useState<'ALL' | BusinessStatus>('ALL')
   const [loading, setLoading] = useState<string | null>(null)
+  const [error, setError] = useState('')
+
+  const reportFailure = async (response: Response, fallback: string) => {
+    const data = await response.json().catch(() => ({})) as { error?: string }
+    setError(data.error || fallback)
+  }
 
   const filtered = filter === 'ALL' ? businesses : businesses.filter(b => b.status === filter)
 
@@ -45,16 +51,21 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
 
   const moderate = async (id: string, status: 'APPROVED' | 'REJECTED') => {
     setLoading(id)
+    setError('')
     try {
       const res = await fetch(`/api/admin/businesses/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       })
-      if (res.ok) {
-        const updated = await res.json()
-        setBusinesses(prev => prev.map(b => b.id === id ? { ...b, status: updated.status } : b))
+      if (!res.ok) {
+        await reportFailure(res, 'Unable to update this business')
+        return
       }
+      const updated = await res.json()
+      setBusinesses(prev => prev.map(b => b.id === id ? { ...b, status: updated.status } : b))
+    } catch {
+      setError('Unable to update this business')
     } finally {
       setLoading(null)
     }
@@ -63,11 +74,16 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
   const remove = async (id: string) => {
     if (!confirm('Permanently delete this business listing? This cannot be undone.')) return
     setLoading(id)
+    setError('')
     try {
       const res = await fetch(`/api/admin/businesses/${id}`, { method: 'DELETE' })
-      if (res.ok) {
-        setBusinesses(prev => prev.filter(b => b.id !== id))
+      if (!res.ok) {
+        await reportFailure(res, 'Unable to delete this business')
+        return
       }
+      setBusinesses(prev => prev.filter(b => b.id !== id))
+    } catch {
+      setError('Unable to delete this business')
     } finally {
       setLoading(null)
     }
@@ -93,7 +109,12 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2 mb-6">
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
         {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(f => (
           <button
             key={f}
@@ -178,15 +199,19 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                     )}
 
                     <div className="flex items-center gap-3">
-                      <a
-                        href={`/business/${business.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs font-medium hover:underline"
-                        style={{ color: 'var(--primary, #007a7f)' }}
-                      >
-                        View Live <ExternalLink className="w-3 h-3" />
-                      </a>
+                      {business.status === 'APPROVED' ? (
+                        <a
+                          href={`/business/${business.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs font-medium hover:underline"
+                          style={{ color: 'var(--primary, #007a7f)' }}
+                        >
+                          View Live <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="text-xs text-slate-400">Not publicly visible</span>
+                      )}
                       {business._count.reviews > 0 && (
                         <span className="flex items-center gap-1 text-xs text-text-secondary">
                           <Star className="w-3.5 h-3.5 text-amber-400" />

@@ -127,6 +127,9 @@ Each business profile includes:
 - "Claim This Business" button → email verification flow
 - Owner registers/login → links account to business
 - **Auto-approval: businesses claimed by an authenticated owner via email link are automatically set to APPROVED status (email proof of identity = ownership verified)**
+- Unclaimed submissions remain `PENDING` and can be approved or rejected by an administrator
+- Claim completion validates expiry and consumes the one-time token atomically
+- Owner and administrator business updates use an explicit field allowlist; status, tier, ownership, slug, and claim credentials cannot be edited through the owner form
 - Dashboard: edit all business fields, upload photos, manage hours
 - Reviews management: respond to reviews, flag inappropriate
 - Tier upgrade CTA within dashboard

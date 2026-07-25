@@ -12,7 +12,7 @@ export default function ClaimSuccessPage() {
         </div>
         <h1 className="text-3xl font-bold text-text mb-3">Business Claimed!</h1>
         <p className="text-text-secondary text-lg mb-8 leading-relaxed">
-          You&apos;ve successfully claimed this business listing. Check your email for next steps to verify your ownership and access your dashboard.
+          You&apos;ve successfully claimed and published this business listing. You can edit it now from your dashboard.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link href="/dashboard" className="btn-primary inline-flex items-center justify-center gap-2">

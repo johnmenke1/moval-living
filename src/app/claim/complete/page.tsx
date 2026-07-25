@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { getAutoApprovedClaimData, isClaimValid } from '@/lib/claim-policy'
 
 export default async function ClaimCompletePage({
   searchParams,
@@ -10,54 +11,53 @@ export default async function ClaimCompletePage({
   const session = await auth()
   const { token } = await searchParams
 
-  console.log('[claim/complete] session:', JSON.stringify(session))
-  console.log('[claim/complete] token:', token)
-
-  if (!token) {
-    console.log('[claim/complete] no token, redirecting to /login')
+  if (!token || !session?.user?.id || !session.user.email) {
     redirect('/login')
   }
 
-  if (!session?.user?.email) {
-    console.log('[claim/complete] no session user email, redirecting to /login')
-    redirect('/login')
-  }
+  const ownerId = session.user.id
+  const ownerEmail = session.user.email.toLowerCase()
 
   const business = await prisma.business.findUnique({
     where: { claimToken: token },
-    select: { id: true, name: true, ownerId: true, claimExpiresAt: true },
+    select: { id: true, ownerId: true, claimExpiresAt: true },
   })
 
-  console.log('[claim/complete] business:', JSON.stringify(business))
+  if (!business || !isClaimValid(business)) {
+    redirect('/claim?error=invalid-or-expired')
+  }
 
-  if (business && !business.ownerId) {
-    let owner = await prisma.owner.findUnique({
-      where: { email: session.user.email! },
-    })
-
-    if (!owner) {
-      owner = await prisma.owner.create({
-        data: {
-          email: session.user.email!,
-          name: session.user.name || null,
-          image: session.user.image || null,
-          emailVerified: new Date(),
-        },
-      })
-      console.log('[claim/complete] created owner:', owner.id)
-    }
-
-    await prisma.business.update({
-      where: { id: business.id },
+  // Conditional update makes token consumption safe if the completion URL is
+  // requested twice. A verified claim also publishes immediately by product
+  // decision: possession of the claim link + verified mailbox is sufficient.
+  const claimed = await prisma.$transaction(async tx => {
+    const consumed = await tx.business.updateMany({
+      where: {
+        id: business.id,
+        ownerId: null,
+        claimToken: token,
+        claimExpiresAt: { gt: new Date() },
+      },
       data: {
-        ownerId: owner.id,
         claimToken: null,
         claimExpiresAt: null,
-        email: session.user.email!,
-        status: 'APPROVED',
       },
     })
-    console.log('[claim/complete] business claimed successfully')
+
+    if (consumed.count !== 1) return false
+
+    await tx.business.update({
+      where: { id: business.id },
+      data: {
+        ...getAutoApprovedClaimData(ownerId),
+        email: ownerEmail,
+      },
+    })
+    return true
+  })
+
+  if (!claimed) {
+    redirect('/claim?error=already-claimed')
   }
 
   redirect('/dashboard')

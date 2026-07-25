@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { buildBusinessUpdateData, canManageBusiness } from '@/lib/business-mutations'
 
 export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ slug: string }> }
+  _request: Request,
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
     const { slug } = await params
+    const session = await auth()
     const business = await prisma.business.findUnique({
       where: { slug },
       include: {
@@ -23,7 +25,53 @@ export async function GET(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    return NextResponse.json(business)
+    const canSeePrivateListing = canManageBusiness(
+      session?.user?.id
+        ? { userId: session.user.id, role: session.user.role }
+        : null,
+      business.ownerId,
+    )
+
+    if (business.status !== 'APPROVED' && !canSeePrivateListing) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({
+      id: business.id,
+      slug: business.slug,
+      name: business.name,
+      tagline: business.tagline,
+      description: business.description,
+      categoryId: business.categoryId,
+      category: business.category,
+      tier: business.tier,
+      status: business.status,
+      email: business.email,
+      phone: business.phone,
+      website: business.website,
+      address: business.address,
+      city: business.city,
+      state: business.state,
+      zip: business.zip,
+      latitude: business.latitude,
+      longitude: business.longitude,
+      logo: business.logo,
+      coverImage: business.coverImage,
+      photos: business.photos,
+      facebook: business.facebook,
+      instagram: business.instagram,
+      yelp: business.yelp,
+      googleBusiness: business.googleBusiness,
+      hours: business.hours,
+      metaTitle: business.metaTitle,
+      metaDescription: business.metaDescription,
+      hasCoupon: business.hasCoupon,
+      coupon: business.coupon,
+      ownerId: business.ownerId,
+      reviews: business.reviews,
+      createdAt: business.createdAt,
+      updatedAt: business.updatedAt,
+    })
   } catch (error) {
     console.error('Business fetch error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -32,7 +80,7 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
     const session = await auth()
@@ -41,9 +89,6 @@ export async function PUT(
     }
 
     const { slug } = await params
-    const body = await request.json()
-
-    // Fetch the business to check ownership
     const existing = await prisma.business.findUnique({
       where: { slug },
       select: { id: true, ownerId: true },
@@ -53,27 +98,24 @@ export async function PUT(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    const isOwner = existing.ownerId === session.user.id
-    const isAdmin = session.user.role === 'ADMIN'
-
-    if (!isOwner && !isAdmin) {
+    if (!canManageBusiness(
+      { userId: session.user.id, role: session.user.role },
+      existing.ownerId,
+    )) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Prevent non-admins from changing status or tier
-    if (!isAdmin) {
-      delete body.status
-      delete body.tier
-      delete body.ownerId
-    }
-
+    const data = buildBusinessUpdateData(await request.json())
     const business = await prisma.business.update({
-      where: { slug },
-      data: body,
+      where: { id: existing.id },
+      data,
     })
 
     return NextResponse.json(business)
-  } catch (error) {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
+      return NextResponse.json({ error: 'Please check the listing fields and try again.' }, { status: 400 })
+    }
     console.error('Business update error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

@@ -257,12 +257,12 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
               <ContactBusinessForm businessName={business.name} businessSlug={business.slug} />
             </div>
 
-            {/* Claim CTA */}
+            {/* Owner management */}
             <div className="bg-gradient-to-br from-primary to-secondary rounded-2xl p-6 text-white">
-              <h3 className="text-lg font-bold mb-2">Are you the owner?</h3>
-              <p className="text-blue-100 text-sm mb-4">Claim your free listing and update your business information.</p>
-              <Link href={`/claim?business=${business.slug}`} className="block text-center bg-white text-primary font-bold py-2.5 px-4 rounded-lg hover:bg-blue-50 transition-colors">
-                Claim This Business
+              <h3 className="text-lg font-bold mb-2">Manage this listing</h3>
+              <p className="text-blue-100 text-sm mb-4">Sign in with the verified owner email to update business information.</p>
+              <Link href="/login?callbackUrl=/dashboard" className="block text-center bg-white text-primary font-bold py-2.5 px-4 rounded-lg hover:bg-blue-50 transition-colors">
+                Owner Sign In
               </Link>
             </div>
 

@@ -17,8 +17,8 @@ export async function PATCH(
   const body = await req.json()
   const { status } = body
 
-  if (!['APPROVED', 'REJECTED', 'PENDING'].includes(status)) {
-    return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+  if (!['APPROVED', 'REJECTED'].includes(status)) {
+    return NextResponse.json({ error: 'Status must be APPROVED or REJECTED' }, { status: 400 })
   }
 
   const business = await prisma.business.update({

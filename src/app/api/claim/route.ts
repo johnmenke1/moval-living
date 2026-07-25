@@ -1,37 +1,11 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 
-export async function POST(request: Request) {
-  try {
-    const { businessSlug, email } = await request.json()
-
-    if (!businessSlug?.trim() || !email?.trim()) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-    }
-
-    const business = await prisma.business.findUnique({
-      where: { slug: businessSlug.trim() },
-    })
-
-    if (!business) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
-    }
-
-    let owner = await prisma.owner.findUnique({ where: { email: email.trim().toLowerCase() } })
-    if (!owner) {
-      owner = await prisma.owner.create({
-        data: { email: email.trim().toLowerCase() },
-      })
-    }
-
-    await prisma.business.update({
-      where: { id: business.id },
-      data: { ownerId: owner.id },
-    })
-
-    return NextResponse.json({ success: true, slug: business.slug })
-  } catch (error) {
-    console.error('Claim error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+// Claiming is handled exclusively by the signed token + verified magic-link
+// flow at /claim. The legacy slug/email endpoint let callers assign ownership
+// without possessing a claim token, so it is intentionally disabled.
+export async function POST() {
+  return NextResponse.json(
+    { error: 'Use the secure claim link sent with the business submission.' },
+    { status: 410 },
+  )
 }

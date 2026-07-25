@@ -26,7 +26,7 @@ export default async function SubmitSuccessPage({ searchParams }: Props) {
           Thanks for submitting <strong>{name || 'your business'}</strong> on moval.living.
         </p>
         <p className="text-text-secondary mb-8 leading-relaxed">
-          Your listing will be reviewed and published within 1–2 business days. We&apos;ll send an email confirmation once it&apos;s live.
+          Claim your listing with a verified email and it will publish immediately. You can edit it from your dashboard as soon as you finish.
         </p>
 
         {/* Claim ownership CTA — shown when there's a valid token */}

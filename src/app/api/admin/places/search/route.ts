@@ -1,0 +1,121 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
+
+const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
+
+// GET /api/admin/places/search?q=...&pageToken=...
+// Admin-only — searches Google Places with Moreno Valley bias
+export async function GET(req: NextRequest) {
+  const session = await auth()
+
+  if (!session?.user?.id || session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  if (!GOOGLE_PLACES_API_KEY) {
+    return NextResponse.json({ error: 'Google Maps API key not configured' }, { status: 500 })
+  }
+
+  const { searchParams } = new URL(req.url)
+  const q = searchParams.get('q')
+  const pageToken = searchParams.get('pageToken')
+
+  if (!q && !pageToken) {
+    return NextResponse.json({ error: 'q (query) or pageToken is required' }, { status: 400 })
+  }
+
+  try {
+    const body: Record<string, unknown> = {
+      locationBias: {
+        circle: {
+          center: { latitude: 33.9425, longitude: -117.2280 },
+          radius: 20000,
+        },
+      },
+      pageSize: 20,
+    }
+
+    if (pageToken) {
+      body.pageToken = pageToken
+    } else {
+      body.textQuery = q
+    }
+
+    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+        'X-Goog-FieldMask': '*',
+      },
+      body: JSON.stringify(body),
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      console.error('Google Places search error:', err)
+      return NextResponse.json({ error: 'Google Places search failed' }, { status: 502 })
+    }
+
+    const data = await res.json()
+    const places = (data.places || []).map((p: {
+      id: string
+      displayName?: { text: string }
+      formattedAddress?: string
+      primaryType?: string
+      nationalPhoneNumber?: string
+      website?: string
+      regularOpeningHours?: { periods?: { openDay?: string; openTime?: string; closeDay?: string; closeTime?: string }[] }
+      photos?: { name: string }[]
+      location?: { latitude: number; longitude: number }
+    }) => ({
+      placeId: p.id,
+      name: p.displayName?.text || '',
+      address: p.formattedAddress || '',
+      phone: p.nationalPhoneNumber || '',
+      website: p.website || '',
+      type: p.primaryType || '',
+      hours: parseOpeningHours(p.regularOpeningHours),
+      photos: p.photos || [],
+      location: p.location ? { lat: p.location.latitude, lng: p.location.longitude } : null,
+    }))
+
+    return NextResponse.json({
+      places,
+      nextPageToken: data.nextPageToken || null,
+    })
+  } catch (err) {
+    console.error('Places search error:', err)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
+}
+
+function parseOpeningHours(roh?: {
+  periods?: { openDay?: string; openTime?: string; closeDay?: string; closeTime?: string }[]
+}): Record<string, { open: string; close: string; closed: boolean }> | null {
+  if (!roh?.periods?.length) return null
+
+  const dayMap: Record<string, string> = {
+    MONDAY: 'mon', TUESDAY: 'tue', WEDNESDAY: 'wed', THURSDAY: 'thu',
+    FRIDAY: 'fri', SATURDAY: 'sat', SUNDAY: 'sun',
+  }
+
+  const result: Record<string, { open: string; close: string; closed: boolean }> = {}
+  for (const p of roh.periods) {
+    const day = p.openDay ? dayMap[p.openDay] : null
+    if (!day) continue
+    result[day] = {
+      open: p.openTime ? formatTime(p.openTime) : '9:00 AM',
+      close: p.closeTime ? formatTime(p.closeTime) : '5:00 PM',
+      closed: false,
+    }
+  }
+  return Object.keys(result).length > 0 ? result : null
+}
+
+function formatTime(time: string): string {
+  const [h, m] = time.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const hour = h % 12 || 12
+  return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`
+}

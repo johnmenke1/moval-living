@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, ChevronLeft, Loader2, AlertCircle } from 'lucide-react'
 
@@ -39,7 +38,6 @@ interface Props {
 }
 
 export default function EditBusinessClient({ business, categories }: Props) {
-  const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
