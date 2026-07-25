@@ -410,6 +410,9 @@ POST   /api/admin/businesses     List all businesses (admin only)
 PATCH  /api/admin/businesses/[id] Approve/reject/delete business (admin only)
 DELETE /api/admin/businesses/[id]
 
+GET    /api/admin/places/search   Search Google Places (admin only; falls back to NEXT_PUBLIC_GOOGLE_MAPS_API_KEY)
+POST   /api/admin/places/import   Import a Google Place as an APPROVED business listing (admin only)
+
 POST   /api/social-posts         Submit a new social post (public)
 GET    /api/social-posts         List social posts (public = approved only; auth = all for owner; admin = all)
 PATCH  /api/social-posts/[id]    Approve/reject a post (admin only)
@@ -429,7 +432,7 @@ EMAIL_SERVER_HOST=          # AWS SES SMTP host, e.g. email-smtp.us-west-2.amazo
 EMAIL_SERVER_PORT=          # 587 (TLS)
 EMAIL_SERVER_USER=          # AWS SES SMTP username
 EMAIL_SERVER_PASSWORD=      # AWS SES SMTP password
-GOOGLE_MAPS_API_KEY=        # Johnny's existing key
+GOOGLE_MAPS_API_KEY=        # Johnny's existing key (also used for Places search — no separate key needed)
 GHL_API_KEY=                # GoHighLevel API key
 GHL_WEBHOOK_URL=           # GHL webhook for contact form
 

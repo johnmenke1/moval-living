@@ -12,7 +12,7 @@ const fs = require('fs')
 const lines = fs.readFileSync('./.env.local', 'utf8').split('\n')
 const get = k => lines.find(l => l.startsWith(k + '='))?.split('=').slice(1).join('=').trim() ?? ''
 const DATABASE_URL = get('DATABASE_URL')
-const GOOGLE_PLACES_API_KEY = get('GOOGLE_PLACES_API_KEY') || process.env.GOOGLE_PLACES_API_KEY
+const GOOGLE_PLACES_API_KEY = get('GOOGLE_PLACES_API_KEY') || get('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY') || process.env.GOOGLE_PLACES_API_KEY
 
 if (!DATABASE_URL) { console.error('DATABASE_URL not found in .env.local'); process.exit(1) }
 if (!GOOGLE_PLACES_API_KEY) { console.error('GOOGLE_PLACES_API_KEY not set in .env.local'); process.exit(1) }
@@ -91,6 +91,15 @@ async function searchPlaces(query) {
   }))
 }
 
+// Tiny cuid-like generator (compatible with Prisma's cuid format)
+let _counter = 0
+function cuid() {
+  const timestamp = Date.now().toString(36)
+  const random = Math.random().toString(36).substring(2, 10)
+  const counter = (_counter++).toString(36)
+  return 'c' + timestamp + random + counter
+}
+
 async function main() {
   console.log('Connecting to database...')
   const pool = new Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } })
@@ -125,9 +134,10 @@ async function main() {
         const finalSlug = base + '-' + nanoid(6)
         try {
           await pool.query(
-            'INSERT INTO "Business" (slug, name, "categoryId", address, city, state, zip, phone, website, description, "googleBusiness", latitude, longitude, hours, photos, status, tier) ' +
-            "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'APPROVED','FREE')",
+            'INSERT INTO "Business" (id, slug, name, "categoryId", address, city, state, zip, phone, website, description, "googleBusiness", latitude, longitude, hours, photos, status, tier, "createdAt", "updatedAt") ' +
+            "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'APPROVED','FREE',NOW(),NOW())",
             [
+              cuid(),
               finalSlug, place.name, categoryId, parsed.street, parsed.city, parsed.state, parsed.zip,
               place.phone || null, place.website || null,
               'Business information for ' + place.name + ' in ' + parsed.city + ', ' + parsed.state + '.',

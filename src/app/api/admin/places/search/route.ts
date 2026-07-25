@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 
-const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
+const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
 // GET /api/admin/places/search?q=...&pageToken=...
 // Admin-only — searches Google Places with Moreno Valley bias
