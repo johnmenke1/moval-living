@@ -54,6 +54,7 @@ export default async function ClaimCompletePage({
         claimToken: null,
         claimExpiresAt: null,
         email: session.user.email!,
+        status: 'APPROVED',
       },
     })
     console.log('[claim/complete] business claimed successfully')

@@ -126,10 +126,17 @@ Each business profile includes:
 #### 4.4 Business Claiming & Owner Dashboard
 - "Claim This Business" button → email verification flow
 - Owner registers/login → links account to business
+- **Auto-approval: businesses claimed by an authenticated owner via email link are automatically set to APPROVED status (email proof of identity = ownership verified)**
 - Dashboard: edit all business fields, upload photos, manage hours
 - Reviews management: respond to reviews, flag inappropriate
 - Tier upgrade CTA within dashboard
 - Analytics: view count, search position
+
+#### 4.4b Admin Business Moderation
+- Admin dashboard shows all submitted businesses in a moderation queue
+- Admin can: approve, reject, or permanently delete any business listing
+- Filter tabs: All / Pending / Approved / Rejected
+- Admin-only API routes (`/api/admin/businesses`) gated by `role = ADMIN`
 
 #### 4.5 Reviews System
 - Logged-in users can leave a review (1 per business)
@@ -395,6 +402,10 @@ GET    /api/businesses/[slug]/reviews  Get reviews for business
 PUT    /api/reviews/[id]        Update/respond to review
 
 POST   /api/auth/[...nextauth]  NextAuth handlers
+
+POST   /api/admin/businesses     List all businesses (admin only)
+PATCH  /api/admin/businesses/[id] Approve/reject/delete business (admin only)
+DELETE /api/admin/businesses/[id]
 
 POST   /api/social-posts         Submit a new social post (public)
 GET    /api/social-posts         List social posts (public = approved only; auth = all for owner; admin = all)

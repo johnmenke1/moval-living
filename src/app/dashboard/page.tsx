@@ -4,6 +4,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus } from 'lucide-react'
 import SocialPostsModeration from '@/components/admin/SocialPostsModeration'
+import BusinessesModeration from '@/components/admin/BusinessesModeration'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -27,12 +28,22 @@ export default async function DashboardPage() {
 
   const isAdmin = session.user.role === 'ADMIN'
 
-  // Admin: show moderation panel
+  // Admin: show moderation panels
   if (isAdmin) {
-    const posts = await prisma.socialPost.findMany({
-      include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
-      orderBy: { createdAt: 'desc' },
-    })
+    const [posts, businesses] = await Promise.all([
+      prisma.socialPost.findMany({
+        include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.business.findMany({
+        include: {
+          category: { select: { name: true, slug: true } },
+          owner: { select: { id: true, name: true, email: true } },
+          _count: { select: { reviews: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ])
     return (
       <div className="bg-slate-50 min-h-screen">
         <div className="bg-white border-b border-slate-100">
@@ -41,7 +52,8 @@ export default async function DashboardPage() {
             <p className="text-text-secondary">Site administration</p>
           </div>
         </div>
-        <div className="container-max py-8">
+        <div className="container-max py-8 space-y-10">
+          <BusinessesModeration initialBusinesses={businesses} />
           <SocialPostsModeration initialPosts={posts} />
         </div>
       </div>
@@ -117,9 +129,12 @@ export default async function DashboardPage() {
                 <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">
                   <Star className="w-4 h-4" /> Reviews
                 </div>
-                <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">
+                <Link
+                  href={`/dashboard/edit`}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
                   <Settings className="w-4 h-4" /> Edit Listing
-                </div>
+                </Link>
               </nav>
               <div className="p-4 border-t border-slate-100">
                 <a
