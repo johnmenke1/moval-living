@@ -52,11 +52,16 @@ export default async function DashboardPage() {
               <h1 className="text-3xl font-bold text-text mb-1">Admin Dashboard</h1>
               <p className="text-text-secondary">Site administration</p>
             </div>
-            {owner?.business && (
-              <Link href="/dashboard/edit" className="btn-outline inline-flex items-center justify-center gap-2">
-                <Settings className="w-4 h-4" /> Edit My Listing
+            <div className="flex flex-col sm:flex-row gap-2">
+              {owner?.business && (
+                <Link href="/dashboard/edit" className="btn-outline inline-flex items-center justify-center gap-2">
+                  <Settings className="w-4 h-4" /> Edit My Listing
+                </Link>
+              )}
+              <Link href="/dashboard/add" className="btn-primary inline-flex items-center justify-center gap-2">
+                <Plus className="w-4 h-4" /> Add Business
               </Link>
-            )}
+            </div>
           </div>
         </div>
         <div className="container-max py-8 space-y-10">
