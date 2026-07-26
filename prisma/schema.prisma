@@ -89,6 +89,9 @@ model Owner {
   email         String    @unique
   emailVerified DateTime?
   image         String?
+  passwordHash  String?   // Set when user creates/updates a password
+  resetToken    String?   @unique // Hashed token for password reset
+  resetExpires  DateTime? // Expiry time for reset token
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
@@ -125,14 +128,6 @@ model Session {
   userId       String
   expires      DateTime
   owner        Owner    @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token     String   @unique
-  expires   DateTime
-
-  @@unique([identifier, token])
 }
 
 model Review {

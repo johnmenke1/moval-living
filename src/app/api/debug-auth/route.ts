@@ -1,25 +1,25 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 
-// Diagnostic: call auth() directly to see what secret/URL it sees
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const session = await auth()
     return NextResponse.json({
       ok: true,
       hasSession: !!session,
-      sessionUser: session?.user ? { id: session.user.id, email: session.user.email, role: (session.user as { role?: string }).role } : null,
-      secret: '***', // don't leak
+      sessionUser: session?.user
+        ? { id: session.user.id, email: session.user.email, name: session.user.name, role: (session.user as { role?: string }).role }
+        : null,
+      secret: '***',
       secretLen: process.env.AUTH_SECRET?.length ?? 0,
-      url: process.env.AUTH_URL ?? 'MISSING',
-      emailFrom: process.env.AUTH_EMAIL_FROM ?? 'MISSING',
-      smtpHost: process.env.AWS_SES_SMTP_HOST ?? 'MISSING',
-      smtpUser: process.env.AWS_SES_SMTP_USERNAME ?? 'MISSING',
-      authEmailFrom: process.env.AUTH_EMAIL_FROM ?? 'MISSING',
-      nodeEnv: process.env.NODE_ENV ?? 'MISSING',
+      url: process.env.AUTH_URL,
+      emailFrom: process.env.AUTH_EMAIL_FROM,
+      smtpHost: process.env.AWS_SES_SMTP_HOST,
+      nodeEnv: process.env.NODE_ENV,
     })
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error)
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
   }
 }
