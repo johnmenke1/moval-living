@@ -1,9 +1,11 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import { averageRating, formatPhone } from '@/lib/utils'
 import { MapPin, Phone, Globe, Mail, Clock, Star, ChevronRight } from 'lucide-react'
 import { BusinessMapWrapper } from '@/components/map/BusinessMapWrapper'
+import { BusinessSidebar } from '@/components/business/BusinessSidebar'
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
@@ -31,8 +33,16 @@ interface BusinessPageProps {
 async function getBusiness(slug: string) {
   const business = await prisma.business.findUnique({
     where: { slug, status: 'APPROVED' },
-    include: {
+    select: {
+      id: true, slug: true, name: true, tagline: true, description: true,
+      address: true, city: true, state: true, zip: true,
+      phone: true, email: true, website: true,
+      coverImage: true, logo: true, photos: true,
+      facebook: true, instagram: true, yelp: true, googleBusiness: true,
+      hours: true, status: true, tier: true,
+      metaTitle: true, metaDescription: true,
       category: true,
+      ownerId: true,
       reviews: {
         orderBy: { createdAt: 'desc' },
         where: { flagged: false },
@@ -257,23 +267,7 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
               <ContactBusinessForm businessName={business.name} businessSlug={business.slug} />
             </div>
 
-            {/* Owner management */}
-            <div className="bg-gradient-to-br from-primary to-secondary rounded-2xl p-6 text-white">
-              <h3 className="text-lg font-bold mb-2">Manage this listing</h3>
-              <p className="text-blue-100 text-sm mb-4">Sign in with the verified owner email to update business information.</p>
-              <Link href="/login?callbackUrl=/dashboard" className="block text-center bg-white text-primary font-bold py-2.5 px-4 rounded-lg hover:bg-blue-50 transition-colors">
-                Owner Sign In
-              </Link>
-            </div>
-
-            {/* Website Upsell */}
-            <div className="bg-accent/10 border border-accent/20 rounded-2xl p-6">
-              <h3 className="text-lg font-bold text-text mb-2">Need a Website?</h3>
-              <p className="text-text-secondary text-sm mb-4">We build professional websites for local businesses. Get yours started today!</p>
-              <a href="mailto:hello@moval.living?subject=Website%20Inquiry" className="block text-center btn-accent text-sm">
-                Get a Free Quote
-              </a>
-            </div>
+            <BusinessSidebar business={business} />
           </div>
         </div>
       </div>

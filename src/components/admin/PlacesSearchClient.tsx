@@ -55,7 +55,6 @@ export default function PlacesSearchClient({ categories, onCancel }: Props) {
       const res = await fetch(`/api/admin/places/search?${params}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Search failed')
-      setResults(prev => token ? prev : data.places, data.places)
       setResults(prev => token ? prev : data.places)
       setHasMore(!!data.nextPageToken)
       setPageToken(data.nextPageToken || null)
