@@ -40,21 +40,38 @@ function toAuthUser(owner: {
 // Minimal custom adapter — implements the methods used by email magic links.
 const emailAdapter = {
   async createUser({ name, email }: { name?: string | null; email: string }) {
-    const existingOwner = await authPrisma.owner.findUnique({
-      where: { email: email.toLowerCase() },
-    })
-    if (existingOwner) return toAuthUser(existingOwner)
+    console.log('[adapter] createUser called:', { name, email })
+    try {
+      const existingOwner = await authPrisma.owner.findUnique({
+        where: { email: email.toLowerCase() },
+      })
+      if (existingOwner) {
+        console.log('[adapter] createUser: found existing owner:', existingOwner.id)
+        return toAuthUser(existingOwner)
+      }
 
-    const owner = await authPrisma.owner.create({
-      data: { name, email: email.toLowerCase() },
-    })
-    return toAuthUser(owner)
+      const owner = await authPrisma.owner.create({
+        data: { name, email: email.toLowerCase() },
+      })
+      console.log('[adapter] createUser: created new owner:', owner.id)
+      return toAuthUser(owner)
+    } catch (err) {
+      console.error('[adapter] createUser ERROR:', err)
+      throw err
+    }
   },
   async getUserByEmail(email: string) {
-    const owner = await authPrisma.owner.findUnique({
-      where: { email: email.toLowerCase() },
-    })
-    return owner ? toAuthUser(owner) : null
+    console.log('[adapter] getUserByEmail called:', email)
+    try {
+      const owner = await authPrisma.owner.findUnique({
+        where: { email: email.toLowerCase() },
+      })
+      console.log('[adapter] getUserByEmail result:', owner?.id ?? 'null')
+      return owner ? toAuthUser(owner) : null
+    } catch (err) {
+      console.error('[adapter] getUserByEmail ERROR:', err)
+      throw err
+    }
   },
   async createVerificationToken({ identifier, token, expires }: { identifier: string; token: string; expires: Date }) {
     return authPrisma.verificationToken.create({
