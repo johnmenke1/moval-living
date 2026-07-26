@@ -28,30 +28,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        console.log('[auth] authorize called, email:', credentials?.email)
-        if (!credentials?.email || !credentials?.password) {
-          console.log('[auth] missing credentials')
-          return null
-        }
+        if (!credentials?.email || !credentials?.password) return null
 
         const email = String(credentials.email).toLowerCase().trim()
         const password = String(credentials.password)
 
-        console.log('[auth] looking up:', email)
         const owner = await prisma.owner.findUnique({ where: { email } })
-        console.log('[auth] owner found:', !!owner, owner ? 'id=' + owner.id : '')
-        if (!owner || !owner.passwordHash) {
-          console.log('[auth] no owner or no password hash')
-          return null
-        }
+        if (!owner || !owner.passwordHash) return null
 
         const valid = await bcrypt.compare(password, owner.passwordHash)
-        console.log('[auth] password valid:', valid)
         if (!valid) return null
 
-        const result = { id: owner.id, email: owner.email, name: owner.name, role: owner.role }
-        console.log('[auth] returning:', JSON.stringify(result))
-        return result
+        return { id: owner.id, email: owner.email, name: owner.name, role: owner.role }
       },
     }),
   ],
