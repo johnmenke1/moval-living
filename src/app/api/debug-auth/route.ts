@@ -14,6 +14,9 @@ export async function GET() {
       url: process.env.AUTH_URL ?? 'MISSING',
       emailFrom: process.env.AUTH_EMAIL_FROM ?? 'MISSING',
       smtpHost: process.env.AWS_SES_SMTP_HOST ?? 'MISSING',
+      smtpUser: process.env.AWS_SES_SMTP_USERNAME ?? 'MISSING',
+      authEmailFrom: process.env.AUTH_EMAIL_FROM ?? 'MISSING',
+      nodeEnv: process.env.NODE_ENV ?? 'MISSING',
     })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
