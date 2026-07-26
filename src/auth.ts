@@ -45,10 +45,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id
-        token.role = (user as { role?: string }).role || 'USER'
-      }
+          if (user) {
+                  token.id = user.id
+                  token.role = ((user as { role?: string }).role || 'USER') as 'USER' | 'ADMIN'
+                }
 
       // Refresh role from DB on each token refresh
       const ownerId = typeof token.id === 'string' ? token.id : null
