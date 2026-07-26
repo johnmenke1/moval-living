@@ -30,7 +30,7 @@ export default async function DashboardPage() {
 
   // Admin: show moderation panels
   if (isAdmin) {
-    const [posts, businesses] = await Promise.all([
+    const [posts, businesses, pendingPostCount] = await Promise.all([
       prisma.socialPost.findMany({
         include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
         orderBy: { createdAt: 'desc' },
@@ -43,6 +43,8 @@ export default async function DashboardPage() {
         },
         orderBy: { createdAt: 'desc' },
       }),
+      prisma.socialPost.count({ where: { status: 'PENDING' } }),
+      prisma.business.count({ where: { status: 'PENDING' } }),
     ])
     return (
       <div className="bg-slate-50 min-h-screen">
@@ -53,6 +55,15 @@ export default async function DashboardPage() {
               <p className="text-text-secondary">Site administration</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
+              {pendingPostCount > 0 && (
+                <Link
+                  href="/dashboard/posts"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-amber-50 text-amber-800 text-sm font-semibold border border-amber-200 hover:bg-amber-100 transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  {pendingPostCount} pending {pendingPostCount === 1 ? 'post' : 'posts'}
+                </Link>
+              )}
               {owner?.business && (
                 <Link href="/dashboard/edit" className="btn-outline inline-flex items-center justify-center gap-2">
                   <Settings className="w-4 h-4" /> Edit My Listing

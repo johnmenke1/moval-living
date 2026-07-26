@@ -1,6 +1,5 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@auth/prisma-adapter'
 import { Pool } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
@@ -8,17 +7,17 @@ import bcrypt from 'bcryptjs'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
-function createAuthPrisma() {
+function createPrisma() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
 }
 
-const authPrisma = globalForPrisma.prisma || createAuthPrisma()
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = authPrisma
+const prisma = globalForPrisma.prisma || createPrisma()
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(authPrisma),
+  // No adapter — Credentials + JWT strategy is all we need
   session: { strategy: 'jwt' },
   pages: { signIn: '/login', error: '/login' },
   providers: [
@@ -34,7 +33,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const email = String(credentials.email).toLowerCase().trim()
         const password = String(credentials.password)
 
-        const owner = await authPrisma.owner.findUnique({ where: { email } })
+        const owner = await prisma.owner.findUnique({ where: { email } })
         if (!owner || !owner.passwordHash) return null
 
         const valid = await bcrypt.compare(password, owner.passwordHash)
@@ -51,17 +50,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user?.id) token.id = user.id
-      if (user?.role) token.role = user.role
+      if (user) {
+        token.id = user.id
+        token.role = (user as { role?: string }).role || 'USER'
+      }
 
+      // Refresh role from DB on each token refresh
       const ownerId = typeof token.id === 'string' ? token.id : null
-      const owner = ownerId
-        ? await authPrisma.owner.findUnique({
-            where: { id: ownerId },
-            select: { role: true },
-          })
-        : null
-      token.role = owner?.role || 'USER'
+      if (ownerId) {
+        const owner = await prisma.owner.findUnique({
+          where: { id: ownerId },
+          select: { role: true },
+        })
+        token.role = owner?.role || 'USER'
+      }
       return token
     },
     async session({ session, token }) {
