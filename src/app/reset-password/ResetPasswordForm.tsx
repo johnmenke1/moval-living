@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AlertCircle, CheckCircle, Loader2, Eye, EyeOff } from 'lucide-react'
@@ -9,7 +9,6 @@ export default function ResetPasswordForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const email = searchParams.get('email')
 
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -26,7 +25,6 @@ export default function ResetPasswordForm() {
       setError('Passwords do not match.')
       return
     }
-
     if (password.length < 8) {
       setError('Password must be at least 8 characters.')
       return
@@ -38,7 +36,7 @@ export default function ResetPasswordForm() {
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, email, password }),
+        body: JSON.stringify({ token, password }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to reset password')
@@ -50,7 +48,7 @@ export default function ResetPasswordForm() {
     }
   }
 
-  if (!token || !email) {
+  if (!token) {
     return (
       <div className="bg-slate-50 min-h-screen flex items-center justify-center">
         <div className="max-w-md w-full mx-auto px-4">
@@ -59,7 +57,7 @@ export default function ResetPasswordForm() {
               <AlertCircle className="w-6 h-6 text-red-600" />
             </div>
             <h2 className="text-lg font-bold text-text mb-2">Invalid Reset Link</h2>
-            <p className="text-sm text-text-secondary mb-5">This password reset link is missing required information. Please request a new one.</p>
+            <p className="text-sm text-text-secondary mb-5">This password reset link appears to be missing. Please request a new one.</p>
             <Link href="/forgot-password" className="text-primary text-sm hover:underline">Request new reset link →</Link>
           </div>
         </div>
@@ -82,7 +80,7 @@ export default function ResetPasswordForm() {
               <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
             <h2 className="text-lg font-bold text-text mb-2">Password Reset!</h2>
-            <p className="text-sm text-text-secondary mb-5">Your password has been updated. You can now sign in with your new password.</p>
+            <p className="text-sm text-text-secondary mb-5">Your password has been updated. You can now sign in.</p>
             <Link href="/login" className="btn-primary inline-block">Sign In</Link>
           </div>
         </div>

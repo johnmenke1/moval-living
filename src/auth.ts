@@ -5,10 +5,6 @@ import { Pool } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-import { hashPassword } from '@/lib/password'
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Nodemailer = (require('next-auth/providers/nodemailer') as typeof import('next-auth/providers/nodemailer')).default
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
@@ -26,7 +22,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: 'jwt' },
   pages: { signIn: '/login', error: '/login' },
   providers: [
-    // Password-based login
     Credentials({
       name: 'credentials',
       credentials: {
@@ -36,7 +31,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        const email = String(credentials.email).toLowerCase()
+        const email = String(credentials.email).toLowerCase().trim()
         const password = String(credentials.password)
 
         const owner = await authPrisma.owner.findUnique({ where: { email } })
@@ -53,27 +48,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       },
     }),
-
-    // Magic link — kept for claim flow only (allows owners to verify email ownership)
-    Nodemailer({
-      server: {
-        host: process.env.AWS_SES_SMTP_HOST,
-        port: 587,
-        secure: false,
-        auth: {
-          user: process.env.AWS_SES_SMTP_USERNAME,
-          pass: process.env.AWS_SES_SMTP_PASSWORD,
-        },
-      },
-      from: process.env.AUTH_EMAIL_FROM || 'MovalLiving <noreply@moval.living>',
-    }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user?.id) token.id = user.id
       if (user?.role) token.role = user.role
 
-      // Read fresh role from DB on each token refresh
       const ownerId = typeof token.id === 'string' ? token.id : null
       const owner = ownerId
         ? await authPrisma.owner.findUnique({
