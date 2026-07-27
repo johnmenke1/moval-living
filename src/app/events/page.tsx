@@ -71,15 +71,27 @@ export default async function EventsPage({ searchParams }: PageProps) {
                 key={post.id}
                 className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-md transition-shadow"
               >
-                {/* Media */}
+                {/* Media — images vs. video */}
                 {post.mediaUrl ? (
-                  <div className="aspect-square bg-slate-100 overflow-hidden">
-                    <img
-                      src={post.mediaUrl}
-                      alt={post.caption || 'Social post'}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                  /\.(mp4|webm|mov|m4v)(\?|$)/i.test(post.mediaUrl) ? (
+                    <div className="relative aspect-square bg-slate-100 overflow-hidden">
+                      <video
+                        src={post.mediaUrl}
+                        controls
+                        playsInline
+                        className="w-full h-full object-cover"
+                        preload="metadata"
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-square bg-slate-100 overflow-hidden">
+                      <img
+                        src={post.mediaUrl}
+                        alt={post.caption || 'Social post'}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )
                 ) : (
                   <div
                     className="aspect-square flex flex-col items-center justify-center gap-3"
