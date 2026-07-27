@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { extractInstagramMedia } from '@/lib/instagram-media'
 
 // PATCH /api/social-posts/[id] — approve/reject (admin only)
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -18,13 +19,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'status must be APPROVED or REJECTED' }, { status: 400 })
   }
 
-  const post = await prisma.socialPost.update({
+  // On approval, auto-extract media from the post URL if mediaUrl is missing
+  const updateData: { status: string; mediaUrl?: string | null; caption?: string | null } = { status }
+  if (status === 'APPROVED') {
+    const post = await prisma.socialPost.findUnique({ where: { id } })
+    if (post && !post.mediaUrl && post.platform === 'INSTAGRAM') {
+      const extracted = await extractInstagramMedia(post.postUrl)
+      if (extracted.mediaUrl) {
+        updateData.mediaUrl = extracted.mediaUrl
+        // Only clobber caption if we don't already have one
+        if (!post.caption && extracted.caption) {
+          updateData.caption = extracted.caption
+        }
+      }
+    }
+  }
+
+  const updated = await prisma.socialPost.update({
     where: { id },
-    data: { status },
+    data: updateData,
     include: { business: { select: { id: true, slug: true, name: true } } },
   })
 
-  return NextResponse.json(post)
+  return NextResponse.json(updated)
 }
 
 // DELETE /api/social-posts/[id] — remove post (admin only)
