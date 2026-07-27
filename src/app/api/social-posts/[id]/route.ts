@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { PostStatus } from '@prisma/client'
 import { extractInstagramMedia } from '@/lib/instagram-media'
-import type { PostStatus } from '@prisma/client'
 
 // PATCH /api/social-posts/[id] — approve/reject (admin only)
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -14,7 +14,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params
   const body = await req.json()
-  const { status }: { status: PostStatus } = body // 'APPROVED' | 'REJECTED'
+  const { status }: { status: PostStatus } = body
 
   if (!['APPROVED', 'REJECTED'].includes(status)) {
     return NextResponse.json({ error: 'status must be APPROVED or REJECTED' }, { status: 400 })

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle, XCircle, ExternalLink, Clock, Trash2 } from 'lucide-react'
+import { CheckCircle, XCircle, ExternalLink, Clock, Trash2, RefreshCw } from 'lucide-react'
 import { InstagramIcon, FacebookIcon } from '@/components/social/SocialIcons'
 
 interface Post {
@@ -36,7 +36,32 @@ export default function SocialPostsModeration({ initialPosts }: SocialPostsModer
         body: JSON.stringify({ status }),
       })
       if (res.ok) {
-        setPosts(prev => prev.map(p => p.id === id ? { ...p, status } : p))
+        const updated = await res.json()
+        setPosts(prev => prev.map(p => p.id === id ? { ...p, ...updated } : p))
+      }
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const reextract = async (id: string) => {
+    setLoading(id)
+    try {
+      // Toggle to REJECTED then back to APPROVED to trigger extraction on the server
+      const res1 = await fetch(`/api/social-posts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'REJECTED' }),
+      })
+      if (!res1.ok) { setLoading(null); return }
+      const res2 = await fetch(`/api/social-posts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'APPROVED' }),
+      })
+      if (res2.ok) {
+        const updated = await res2.json()
+        setPosts(prev => prev.map(p => p.id === id ? { ...p, ...updated } : p))
       }
     } finally {
       setLoading(null)
@@ -191,16 +216,46 @@ export default function SocialPostsModeration({ initialPosts }: SocialPostsModer
                 </div>
 
                 {/* Actions */}
-                {post.status === 'PENDING' && (
-                  <div className="flex flex-col gap-2 shrink-0">
+                <div className="flex flex-col gap-2 shrink-0">
+                  {post.status === 'PENDING' && (
+                    <>
+                      <button
+                        onClick={() => moderate(post.id, 'APPROVED')}
+                        disabled={loading === post.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-50 text-green-600 hover:bg-green-100 transition-colors disabled:opacity-50"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => moderate(post.id, 'REJECTED')}
+                        disabled={loading === post.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => remove(post.id)}
+                        disabled={loading === post.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
+                      </button>
+                    </>
+                  )}
+                  {post.status === 'APPROVED' && !post.mediaUrl && (
                     <button
-                      onClick={() => moderate(post.id, 'APPROVED')}
+                      onClick={() => reextract(post.id)}
                       disabled={loading === post.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-50 text-green-600 hover:bg-green-100 transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors disabled:opacity-50"
                     >
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      Approve
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      {loading === post.id ? 'Extracting...' : 'Re-extract media'}
                     </button>
+                  )}
+                  {post.status === 'APPROVED' && (
                     <button
                       onClick={() => moderate(post.id, 'REJECTED')}
                       disabled={loading === post.id}
@@ -209,16 +264,8 @@ export default function SocialPostsModeration({ initialPosts }: SocialPostsModer
                       <XCircle className="w-3.5 h-3.5" />
                       Reject
                     </button>
-                    <button
-                      onClick={() => remove(post.id)}
-                      disabled={loading === post.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-50"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Delete
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           ))}

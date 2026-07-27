@@ -1,114 +1,145 @@
 /**
- * Extracts og:image and og:video (or og:video:url) from an Instagram post URL.
- * Uses HTML scraping — no Meta API token required.
+ * Extracts video/image media from Instagram using the Meta Graph API.
  *
- * Returns { mediaUrl, mediaType } where mediaType is 'video' | 'image' | null
+ * Env vars required (set in Vercel):
+ *   META_ACCESS_TOKEN  — long-lived Page Access Token
+ *   IG_USER_ID         — numeric Instagram Business/creator account ID
+ *
+ * Flow:
+ *   1. Extract shortcode from the post URL (e.g. "DbOqf6JSK-V" from .../reel/DbOqf6JSK-V/)
+ *   2. Resolve shortcode → media ID  (GET /{ig-user-id}/{shortcode})
+ *   3. Fetch media details             (GET /{media-id}?fields=...)
  */
 
 export interface MediaExtractResult {
-  mediaUrl: string | null
+  mediaUrl: string | null  // video URL for VIDEO/REELS, image URL for IMAGE
+  thumbnailUrl: string | null // poster/thumbnail (always available)
   mediaType: 'video' | 'image' | null
   caption: string | null
 }
 
-/** Check if a URL is actually a video based on common CDN patterns */
-function isVideoUrl(url: string): boolean {
-  return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url)
+// ─── Shortcode utilities ────────────────────────────────────────────────────────
+
+const SHORTCODE_RE = /instagram\.com\/(?:p|reel|tv| reels?)\/([\w-]+)/
+
+/** Pull the shortcode (e.g. "AbCd123") out of an Instagram post URL */
+function extractShortcode(postUrl: string): string | null {
+  const m = postUrl.match(SHORTCODE_RE)
+  return m ? m[1] : null
 }
 
-const INSTAGRAM_POST_REGEX = /instagram\.com\/(p|reel|tv)\/([\w-]+)/
+// ─── Graph API helpers ────────────────────────────────────────────────────────
 
-/**
- * Fetch and parse og meta tags from an HTML string.
- */
-function extractOgMeta(html: string): Record<string, string> {
-  const metas: Record<string, string> = {}
-  const re = /<meta\s+(?:property|name)=["'](og:[^"']+)["']\s+content=["']([^"']+)["']/gi
-  let m: RegExpExecArray | null
-  while ((m = re.exec(html)) !== null) {
-    metas[m[1]] = m[2]
-  }
-  return metas
+function graphUrl(path: string, params: Record<string, string> = {}): string {
+  const base = `https://graph.facebook.com/v18.0${path}`
+  const qs = new URLSearchParams({ ...params, access_token: process.env.META_ACCESS_TOKEN! })
+  return `${base}?${qs}`
 }
 
-/**
- * Try oEmbed API first (no auth needed for public posts).
- * Returns thumbnail URL or null.
- */
-async function tryOembed(postUrl: string): Promise<string | null> {
+async function graphGet<T>(url: string): Promise<T | null> {
   try {
-    const oembedUrl = `https://graph.facebook.com/v18.0/instagram_oembed?url=${encodeURIComponent(postUrl)}&maxwidth=480&fields=thumbnail_url,author_name& Omitempty`
-    const res = await fetch(oembedUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible)' },
-      next: { revalidate: 3600 },
-    })
-    if (!res.ok) return null
-    const data = await res.json() as { thumbnail_url?: string }
-    return data.thumbnail_url ?? null
-  } catch {
+    const res = await fetch(url, { next: { revalidate: 3600 } })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      console.error('[instagram-media] Graph API error:', err)
+      return null
+    }
+    return res.json() as Promise<T>
+  } catch (e) {
+    console.error('[instagram-media] fetch failed:', e)
     return null
   }
 }
 
+// ─── Step 1: shortcode → numeric media ID ───────────────────────────────────
+
+/** Instagram shortcode endpoint: GET /{ig-user-id}/{shortcode} → { id } */
+async function resolveMediaId(shortcode: string): Promise<string | null> {
+  const igUserId = process.env.IG_USER_ID
+  if (!igUserId) {
+    console.error('[instagram-media] IG_USER_ID not set')
+    return null
+  }
+  const url = graphUrl(`/${igUserId}/${shortcode}`)
+  const data = await graphGet<{ id?: string; error?: { message: string } }>(url)
+  if (!data?.id) return null
+  return data.id
+}
+
+// ─── Step 2: media ID → full media object ───────────────────────────────────
+
+interface IgMedia {
+  id: string
+  media_type?: 'VIDEO' | 'IMAGE' | 'CAROUSEL_ALBUM' | 'REELS'
+  media_url?: string
+  thumbnail_url?: string
+  caption?: string
+}
+
+/** Fetch fields: media_type, media_url, thumbnail_url, caption */
+async function fetchMediaDetails(mediaId: string): Promise<IgMedia | null> {
+  const fields = 'id,media_type,media_url,thumbnail_url,caption'
+  const url = graphUrl(`/${mediaId}`, { fields })
+  return graphGet<IgMedia>(url)
+}
+
+// ─── Main extractor ────────────────────────────────────────────────────────────
+
 /**
- * Scrape og meta tags directly from the Instagram post page.
- * Instagram blocks simple bots — we use a browser-like UA and follow redirects.
+ * Extract the best available media URL + caption from an Instagram post URL.
+ * Returns thumbnail as fallback even if full media URL is unavailable.
  */
-async function tryScrape(postUrl: string): Promise<{ mediaUrl: string | null; mediaType: 'video' | 'image' | null; caption: string | null }> {
-  try {
-    const res = await fetch(postUrl, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
-      redirect: 'follow',
-    })
+export async function extractInstagramMedia(postUrl: string): Promise<MediaExtractResult> {
+  const shortcode = extractShortcode(postUrl)
+  if (!shortcode) {
+    return { mediaUrl: null, thumbnailUrl: null, mediaType: null, caption: null }
+  }
 
-    if (!res.ok && res.status !== 200) {
-      return { mediaUrl: null, mediaType: null, caption: null }
-    }
+  // Step 1: resolve shortcode → media ID
+  const mediaId = await resolveMediaId(shortcode)
+  if (!mediaId) {
+    return { mediaUrl: null, thumbnailUrl: null, mediaType: null, caption: null }
+  }
 
-    const html = await res.text()
-    const metas = extractOgMeta(html)
+  // Step 2: fetch media details
+  const media = await fetchMediaDetails(mediaId)
+  if (!media) {
+    return { mediaUrl: null, thumbnailUrl: null, mediaType: null, caption: null }
+  }
 
-    const mediaUrl =
-      metas['og:video:url'] ||
-      metas['og:video'] ||
-      metas['og:image'] ||
-      metas['og:image:url'] ||
-      null
+  // Video/reel: prefer media_url (full video), fall back to thumbnail_url
+  // Image: use media_url
+  const mediaType: 'video' | 'image' | null =
+    media.media_type === 'VIDEO' || media.media_type === 'REELS' ? 'video'
+    : media.media_type === 'IMAGE' ? 'image'
+    : null
 
-    if (!mediaUrl) return { mediaUrl: null, mediaType: null, caption: null }
+  const mediaUrl =
+    mediaType === 'video' ? (media.media_url ?? media.thumbnail_url ?? null)
+    : media.media_url ?? null
 
-    const caption = metas['og:description'] || metas['og:title'] || null
-    const mediaType: 'video' | 'image' = isVideoUrl(mediaUrl) ? 'video' : 'image'
+  const thumbnailUrl = media.thumbnail_url ?? null
 
-    return { mediaUrl, mediaType, caption }
-  } catch {
-    return { mediaUrl: null, mediaType: null, caption: null }
+  return {
+    mediaUrl,
+    thumbnailUrl,
+    mediaType,
+    caption: media.caption ?? null,
   }
 }
 
-/**
- * Extract media URL + type from an Instagram post URL.
- * Strategy: try oEmbed first (fast, reliable), fall back to HTML scraping.
- */
-export async function extractInstagramMedia(postUrl: string): Promise<MediaExtractResult> {
-  // Validate URL
-  const match = postUrl.match(INSTAGRAM_POST_REGEX)
-  if (!match) {
-    return { mediaUrl: null, mediaType: null, caption: null }
+// ─── Convenience: convert numeric media ID → oembed thumbnail (no token needed)
+// This is kept as a fallback but is now secondary to the Graph API path.
+export async function extractOembedThumbnail(postUrl: string): Promise<string | null> {
+  try {
+    const url =
+      `https://graph.facebook.com/v18.0/instagram_oembed` +
+      `?url=${encodeURIComponent(postUrl)}&maxwidth=480&fields=thumbnail_url&omit_xml=true&access_token=${process.env.META_ACCESS_TOKEN}`
+    const res = await fetch(url, { next: { revalidate: 86400 } })
+    if (!res.ok) return null
+    const data = (await res.json()) as { thumbnail_url?: string }
+    return data.thumbnail_url ?? null
+  } catch {
+    return null
   }
-
-  // Try oEmbed first
-  const thumb = await tryOembed(postUrl)
-  if (thumb) {
-    return { mediaUrl: thumb, mediaType: 'image', caption: null }
-  }
-
-  // Fall back to scraping
-  const result = await tryScrape(postUrl)
-  return result
 }
