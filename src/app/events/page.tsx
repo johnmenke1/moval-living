@@ -1,12 +1,37 @@
 import { prisma } from '@/lib/prisma'
+import { extractInstagramMedia } from '@/lib/instagram-media'
 import { ExternalLink, Calendar } from 'lucide-react'
 import { InstagramIcon, FacebookIcon } from '@/components/social/SocialIcons'
 import Link from 'next/link'
+import Script from 'next/script'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 3600 // 1 hour
 
 interface PageProps {
   searchParams: Promise<{ businessId?: string }>
+}
+
+/**
+ * Server-side: fetch the Instagram embed HTML for posts missing mediaUrl.
+ * Cached for 1 hour via Next.js fetch revalidation.
+ */
+async function getOembedHtml(postUrl: string): Promise<string | null> {
+  if (!/instagram\.com\/(?:p|reel|tv|reels?)\//.test(postUrl)) return null
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v25.0/instagram_oembed?url=${encodeURIComponent(postUrl)}&maxwidth=540&omitscript=true`,
+      {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible)' },
+        next: { revalidate: 3600 },
+      }
+    )
+    if (!res.ok) return null
+    const data = (await res.json()) as { html?: string }
+    return data.html ?? null
+  } catch {
+    return null
+  }
 }
 
 export default async function EventsPage({ searchParams }: PageProps) {
@@ -23,8 +48,31 @@ export default async function EventsPage({ searchParams }: PageProps) {
     orderBy: { createdAt: 'desc' },
   })
 
+  // For posts with no mediaUrl, fetch the oEmbed HTML server-side so we can
+  // render a real Instagram embed. Done in parallel.
+  const oembedByPostId = new Map<string, string>()
+  await Promise.all(
+    posts.map(async (post) => {
+      if (!post.mediaUrl) {
+        const html = await getOembedHtml(post.postUrl)
+        if (html) oembedByPostId.set(post.id, html)
+      }
+    })
+  )
+
+  // Track whether any post needs embed.js so we only load the script once
+  const needsEmbedScript = oembedByPostId.size > 0
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--background, #f0efeb)' }}>
+      {/* Instagram's embed.js — only loaded when we have at least one oEmbed card */}
+      {needsEmbedScript && (
+        <Script
+          src="//www.instagram.com/embed.js"
+          strategy="lazyOnload"
+        />
+      )}
+
       {/* Header */}
       <div style={{ background: 'var(--surface, #fff)', borderBottom: '1px solid #e2e8f0' }}>
         <div className="container-max py-10">
@@ -71,10 +119,10 @@ export default async function EventsPage({ searchParams }: PageProps) {
                 key={post.id}
                 className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-md transition-shadow"
               >
-                {/* Media — images vs. video */}
+                {/* Media: mediaUrl → image/video; oembed HTML → Instagram embed; fallback → gradient */}
                 {post.mediaUrl ? (
                   /\.(mp4|webm|mov|m4v)(\?|$)/i.test(post.mediaUrl) ? (
-                    <div className="relative aspect-square bg-slate-100 overflow-hidden">
+                    <div className="aspect-square bg-slate-100 overflow-hidden">
                       <video
                         src={post.mediaUrl}
                         controls
@@ -92,6 +140,12 @@ export default async function EventsPage({ searchParams }: PageProps) {
                       />
                     </div>
                   )
+                ) : oembedByPostId.has(post.id) ? (
+                  <div
+                    className="bg-white flex items-center justify-center"
+                    style={{ minHeight: '320px' }}
+                    dangerouslySetInnerHTML={{ __html: oembedByPostId.get(post.id)! }}
+                  />
                 ) : (
                   <div
                     className="aspect-square flex flex-col items-center justify-center gap-3"

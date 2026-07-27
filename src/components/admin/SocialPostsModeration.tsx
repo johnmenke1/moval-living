@@ -47,22 +47,10 @@ export default function SocialPostsModeration({ initialPosts }: SocialPostsModer
   const reextract = async (id: string) => {
     setLoading(id)
     try {
-      // Toggle to REJECTED then back to APPROVED to trigger extraction on the server
-      const res1 = await fetch(`/api/social-posts/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'REJECTED' }),
-      })
-      if (!res1.ok) { setLoading(null); return }
-      const res2 = await fetch(`/api/social-posts/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'APPROVED' }),
-      })
-      if (res2.ok) {
-        const updated = await res2.json()
-        setPosts(prev => prev.map(p => p.id === id ? { ...p, ...updated } : p))
-      }
+      const res = await fetch(`/api/social-posts/${id}/extract`, { method: 'POST' })
+      const data = await res.json()
+      // Update local state with the result
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, ...(data.post ?? data.result ?? {}), mediaUrl: data.result?.mediaUrl ?? p.mediaUrl } : p))
     } finally {
       setLoading(null)
     }

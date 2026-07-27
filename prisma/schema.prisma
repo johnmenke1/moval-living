@@ -153,6 +153,7 @@ model SocialPost {
   postUrl     String
   caption     String?      @db.Text
   mediaUrl    String?      // Primary image/video URL (extracted from post)
+  thumbnailUrl String?     // Fallback thumbnail when mediaUrl is a video (poster frame)
   authorName  String?
   authorAvatar String?
   status      PostStatus   @default(PENDING)

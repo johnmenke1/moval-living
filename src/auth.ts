@@ -16,6 +16,8 @@ function createPrisma() {
 const prisma = globalForPrisma.prisma || createPrisma()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
+type MovalRole = 'USER' | 'ADMIN'
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   // No adapter — Credentials + JWT strategy is all we need
   session: { strategy: 'jwt' },
@@ -45,10 +47,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-          if (user) {
-                  token.id = user.id
-                  token.role = ((user as { role?: string }).role || 'USER') as 'USER' | 'ADMIN'
-                }
+      if (user) {
+        token.id = user.id
+        // The augmented User type already declares role as MovalRole, but
+        // TS infers it as string in the JWT callback context. Cast to the
+        // narrowed literal union so the assignment matches JWT.role.
+        token.role = ((user as { role?: MovalRole }).role || 'USER') as MovalRole
+      }
 
       // Refresh role from DB on each token refresh
       const ownerId = typeof token.id === 'string' ? token.id : null
@@ -57,7 +62,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: { id: ownerId },
           select: { role: true },
         })
-        token.role = owner?.role || 'USER'
+        token.role = (owner?.role || 'USER') as MovalRole
       }
       return token
     },
