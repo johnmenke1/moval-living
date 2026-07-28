@@ -27,6 +27,7 @@ interface Business {
   facebook: string | null
   instagram: string | null
   yelp: string | null
+  googleBusiness: string | null
   hours: Record<string, { open: string; close: string; closed: boolean }> | null
   hasCoupon: boolean
   coupon: { headline: string; description: string; code: string | null; expiresAt: string | null } | null
@@ -122,6 +123,11 @@ export default function EditBusinessClient({ business, categories }: Props) {
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error || 'Failed to save')
+      }
+
+      // Refresh Google reviews cache if this business has a Google Business ID
+      if (business.googleBusiness) {
+        fetch(`/api/businesses/${business.slug}/google-reviews?refresh=true`, { cache: 'no-store' })
       }
 
       setSaved(true)

@@ -38,7 +38,8 @@ async function getBusiness(slug: string) {
       address: true, city: true, state: true, zip: true,
       phone: true, email: true, website: true,
       coverImage: true, logo: true, photos: true,
-      facebook: true, instagram: true, yelp: true, googleBusiness: true,
+      facebook: true, instagram: true, yelp: true,
+      googleBusiness: true, googleRating: true, googleReviewCount: true,
       hours: true, status: true, tier: true,
       metaTitle: true, metaDescription: true,
       category: true,
@@ -255,7 +256,19 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
 
             {/* Reviews */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
-              <ReviewList businessId={business.id} businessSlug={business.slug} initialReviews={business.reviews} googleBusinessId={business.googleBusiness} />
+              <ReviewList
+              businessId={business.id}
+              businessSlug={business.slug}
+              initialReviews={business.reviews}
+              googleBusinessId={business.googleBusiness}
+              googleRating={business.googleRating}
+              googleReviewCount={business.googleReviewCount}
+              googleMapsUrl={
+                business.googleBusiness
+                  ? `https://www.google.com/maps?cid=${encodeURIComponent(business.googleBusiness)}`
+                  : null
+              }
+            />
             </div>
           </div>
 
