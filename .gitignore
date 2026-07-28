@@ -10,3 +10,5 @@ node_modules/
 /p.html
 /page.html
 /page5.html
+.vercel
+.env*.local

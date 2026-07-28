@@ -25,9 +25,12 @@ interface ReviewListProps {
   businessId: string
   businessSlug: string
   initialReviews: Review[]
+  googleBusinessId?: string | null
+  overallGoogleRating?: number
+  googleReviewCount?: number
 }
 
-export function ReviewList({ businessId, businessSlug, initialReviews }: ReviewListProps) {
+export function ReviewList({ businessId, businessSlug, initialReviews, googleBusinessId, overallGoogleRating, googleReviewCount }: ReviewListProps) {
   const [reviews, setReviews] = useState<Review[]>(initialReviews)
   const [showForm, setShowForm] = useState(false)
   const [hoverRating, setHoverRating] = useState(0)
@@ -38,6 +41,11 @@ export function ReviewList({ businessId, businessSlug, initialReviews }: ReviewL
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+
+  const hasGoogleReviews = !!googleBusinessId
+  const googleMapsEmbedUrl = googleBusinessId
+    ? `https://www.google.com/maps?cid=${encodeURIComponent(googleBusinessId)}&embed`
+    : null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,9 +82,54 @@ export function ReviewList({ businessId, businessSlug, initialReviews }: ReviewL
 
   return (
     <div>
+      {/* Google Reviews */}
+      {hasGoogleReviews && googleMapsEmbedUrl && (
+        <div className="mb-8 p-6 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                {[1,2,3,4,5].map(star => (
+                  <Star
+                    key={star}
+                    className={cn(
+                      'w-4 h-4',
+                      overallGoogleRating && star <= Math.round(overallGoogleRating)
+                        ? 'text-amber-400 fill-amber-400'
+                        : 'text-slate-300'
+                    )}
+                  />
+                ))}
+              </div>
+              {overallGoogleRating && (
+                <span className="font-semibold text-text">{overallGoogleRating.toFixed(1)}</span>
+              )}
+              {googleReviewCount && (
+                <span className="text-sm text-text-secondary">· {googleReviewCount} Google Reviews</span>
+              )}
+            </div>
+            <span className="text-xs text-text-secondary">Powered by Google</span>
+          </div>
+          <div className="bg-white rounded-lg overflow-hidden border border-slate-200">
+            <iframe
+              src={googleMapsEmbedUrl}
+              width="100%"
+              height="320"
+              style={{ border: 0, display: 'block' }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Google Reviews"
+            />
+          </div>
+          <p className="text-xs text-text-secondary mt-3 text-center">
+            Reviews sourced from Google. <a href={`https://www.google.com/maps?cid=${googleBusinessId}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View on Google →</a>
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-text">
-          Reviews {reviews.length > 0 && <span className="text-text-secondary font-normal">({reviews.length})</span>}
+          Local Reviews {reviews.length > 0 && <span className="text-text-secondary font-normal">({reviews.length})</span>}
         </h2>
         {!showForm && (
           <button

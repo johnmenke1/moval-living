@@ -255,7 +255,7 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
 
             {/* Reviews */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
-              <ReviewList businessId={business.id} businessSlug={business.slug} initialReviews={business.reviews} />
+              <ReviewList businessId={business.id} businessSlug={business.slug} initialReviews={business.reviews} googleBusinessId={business.googleBusiness} />
             </div>
           </div>
 
