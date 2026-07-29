@@ -40,7 +40,9 @@ model Business {
   facebook         String?
   instagram        String?
   yelp             String?
-  googleBusiness   String?
+  googleBusiness   String?    // Google Place ID (from Google Business Profile)
+  googleRating     Float?     // Cached average rating from Google (0-5)
+  googleReviewCount Int?       // Cached review count from Google
 
   // Hours stored as JSON: { mon: { open: "9:00 AM", close: "5:00 PM", closed: false }, ... }
   hours            Json?

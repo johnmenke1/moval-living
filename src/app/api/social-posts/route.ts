@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 // POST /api/social-posts — submit a new post URL (public)
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { platform, postUrl, caption, businessId, submittedBy } = body
+  const { platform, postUrl, caption, eventDate, eventEndDate, businessId, submittedBy } = body
 
   if (!platform || !postUrl) {
     return NextResponse.json({ error: 'platform and postUrl are required' }, { status: 400 })
@@ -76,11 +76,17 @@ export async function POST(req: NextRequest) {
     if (!biz) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
   }
 
+  // Parse event dates — convert YYYY-MM-DD strings to Date objects
+  const parsedEventDate = eventDate ? new Date(eventDate) : null
+  const parsedEventEndDate = eventEndDate ? new Date(eventEndDate) : null
+
   const post = await prisma.socialPost.create({
     data: {
       platform,
       postUrl,
       caption: caption || null,
+      eventDate: parsedEventDate,
+      eventEndDate: parsedEventEndDate,
       businessId: businessId || null,
       submittedBy: submittedBy || null,
       status: 'PENDING',

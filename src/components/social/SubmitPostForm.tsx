@@ -22,6 +22,8 @@ export default function SubmitPostForm({ businesses }: SubmitPostFormProps) {
   const [platform, setPlatform] = useState<'INSTAGRAM' | 'FACEBOOK' | ''>('')
   const [postUrl, setPostUrl] = useState('')
   const [caption, setCaption] = useState('')
+  const [eventDate, setEventDate] = useState('')
+  const [eventEndDate, setEventEndDate] = useState('')
   const [businessId, setBusinessId] = useState('')
   const [submittedBy, setSubmittedBy] = useState('')
   const [urlError, setUrlError] = useState('')
@@ -68,7 +70,15 @@ export default function SubmitPostForm({ businesses }: SubmitPostFormProps) {
       const res = await fetch('/api/social-posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform, postUrl, caption: caption || null, businessId: businessId || null, submittedBy: submittedBy || null }),
+        body: JSON.stringify({
+          platform,
+          postUrl,
+          caption: caption || null,
+          eventDate: eventDate || null,
+          eventEndDate: eventEndDate || null,
+          businessId: businessId || null,
+          submittedBy: submittedBy || null,
+        }),
       })
 
       if (!res.ok) {
@@ -165,6 +175,31 @@ export default function SubmitPostForm({ businesses }: SubmitPostFormProps) {
           placeholder="Add context about this event or opportunity..."
           className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
         />
+      </div>
+
+      {/* Event Date */}
+      <div>
+        <label className="block text-sm font-medium text-text mb-1.5">
+          Event Date <span className="text-text-secondary font-normal">(optional — helps group events on the calendar)</span>
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            type="date"
+            value={eventDate}
+            onChange={e => setEventDate(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+          />
+          <input
+            type="date"
+            value={eventEndDate}
+            onChange={e => setEventEndDate(e.target.value)}
+            placeholder="End date (optional)"
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+          />
+        </div>
+        <p className="text-text-secondary text-xs mt-1.5">
+          Fill in the start date, and optionally an end date for multi-day events. Leave blank for posts without a specific date.
+        </p>
       </div>
 
       {/* Link to Business */}
