@@ -13,8 +13,8 @@ interface Post {
   thumbnailUrl?: string | null
   authorName?: string | null
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
-  eventDate?: string | null
-  eventEndDate?: string | null
+  eventDate?: string | Date | null
+  eventEndDate?: string | Date | null
   createdAt: string | Date
   business?: { id: string; slug: string; name: string; logo?: string | null } | null
 }
