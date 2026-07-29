@@ -321,7 +321,7 @@ function DateEditor({ post, onSave, onCancel, loading }: {
   onCancel: () => void
   loading: boolean
 }) {
-  const formatDateValue = (d: string | null | undefined) => {
+  const formatDateValue = (d: string | Date | null | undefined) => {
     if (!d) return ''
     const date = new Date(d)
     return date.toISOString().split('T')[0]
