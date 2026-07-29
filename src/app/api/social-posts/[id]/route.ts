@@ -14,21 +14,38 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params
   const body = await req.json()
-  const { status }: { status: PostStatus } = body
+  const { status, eventDate, eventEndDate } = body
 
-  if (!['APPROVED', 'REJECTED'].includes(status)) {
+  // Support two modes:
+  // 1. Status change (approve/reject) — requires status to be APPROVED or REJECTED
+  // 2. Date edit (any authed admin) — accepts eventDate/eventEndDate
+  const isStatusChange = status !== undefined
+  const isDateEdit = eventDate !== undefined || eventEndDate !== undefined
+
+  if (isStatusChange && !['APPROVED', 'REJECTED'].includes(status)) {
     return NextResponse.json({ error: 'status must be APPROVED or REJECTED' }, { status: 400 })
   }
 
+  const updateData: Record<string, unknown> = {}
+
+  if (isStatusChange) {
+    updateData.status = status
+  }
+
+  if (eventDate !== undefined) {
+    updateData.eventDate = eventDate ? new Date(eventDate) : null
+  }
+  if (eventEndDate !== undefined) {
+    updateData.eventEndDate = eventEndDate ? new Date(eventEndDate) : null
+  }
+
   // On approval, auto-extract media from the post URL if mediaUrl is missing
-  const updateData: { status: PostStatus; mediaUrl?: string | null; caption?: string | null } = { status }
-  if (status === 'APPROVED') {
+  if (isStatusChange && status === 'APPROVED') {
     const post = await prisma.socialPost.findUnique({ where: { id } })
     if (post && !post.mediaUrl && post.platform === 'INSTAGRAM') {
       const extracted = await extractInstagramMedia(post.postUrl)
       if (extracted.mediaUrl) {
         updateData.mediaUrl = extracted.mediaUrl
-        // Only clobber caption if we don't already have one
         if (!post.caption && extracted.caption) {
           updateData.caption = extracted.caption
         }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle, XCircle, ExternalLink, Clock, Trash2, RefreshCw } from 'lucide-react'
+import { CheckCircle, XCircle, ExternalLink, Clock, Trash2, RefreshCw, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
 import { InstagramIcon, FacebookIcon } from '@/components/social/SocialIcons'
 
 interface Post {
@@ -10,8 +10,11 @@ interface Post {
   postUrl: string
   caption?: string | null
   mediaUrl?: string | null
+  thumbnailUrl?: string | null
   authorName?: string | null
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  eventDate?: string | null
+  eventEndDate?: string | null
   createdAt: string | Date
   business?: { id: string; slug: string; name: string; logo?: string | null } | null
 }
@@ -24,6 +27,7 @@ export default function SocialPostsModeration({ initialPosts }: SocialPostsModer
   const [posts, setPosts] = useState<Post[]>(initialPosts)
   const [filter, setFilter] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL'>('PENDING')
   const [loading, setLoading] = useState<string | null>(null)
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set())
 
   const filtered = filter === 'ALL' ? posts : posts.filter(p => p.status === filter)
 
@@ -63,6 +67,36 @@ export default function SocialPostsModeration({ initialPosts }: SocialPostsModer
       const res = await fetch(`/api/social-posts/${id}`, { method: 'DELETE' })
       if (res.ok) {
         setPosts(prev => prev.filter(p => p.id !== id))
+      }
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const toggleDateEditor = (id: string) => {
+    setExpandedDates(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const saveDates = async (id: string, eventDate: string, eventEndDate: string) => {
+    setLoading(id)
+    try {
+      const res = await fetch(`/api/social-posts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventDate: eventDate || null,
+          eventEndDate: eventEndDate || null,
+        }),
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setPosts(prev => prev.map(p => p.id === id ? { ...p, eventDate: updated.eventDate, eventEndDate: updated.eventEndDate } : p))
+        setExpandedDates(prev => { const next = new Set(prev); next.delete(id); return next })
       }
     } finally {
       setLoading(null)
@@ -253,12 +287,91 @@ export default function SocialPostsModeration({ initialPosts }: SocialPostsModer
                       Reject
                     </button>
                   )}
+                  <button
+                    onClick={() => toggleDateEditor(post.id)}
+                    disabled={loading === post.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-500 hover:bg-amber-50 hover:text-amber-600 transition-colors disabled:opacity-50"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    {expandedDates.has(post.id) ? 'Cancel' : 'Set Date'}
+                  </button>
                 </div>
               </div>
+
+              {/* Date editor — inline expandable panel */}
+              {expandedDates.has(post.id) && (
+                <DateEditor
+                  post={post}
+                  onSave={(eventDate, eventEndDate) => saveDates(post.id, eventDate, eventEndDate)}
+                  onCancel={() => toggleDateEditor(post.id)}
+                  loading={loading === post.id}
+                />
+              )}
             </div>
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function DateEditor({ post, onSave, onCancel, loading }: {
+  post: Post
+  onSave: (eventDate: string, eventEndDate: string) => void
+  onCancel: () => void
+  loading: boolean
+}) {
+  const formatDateValue = (d: string | null | undefined) => {
+    if (!d) return ''
+    const date = new Date(d)
+    return date.toISOString().split('T')[0]
+  }
+
+  const [eventDate, setEventDate] = useState(formatDateValue(post.eventDate))
+  const [eventEndDate, setEventEndDate] = useState(formatDateValue(post.eventEndDate))
+
+  return (
+    <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200">
+      <p className="text-xs font-semibold text-amber-700 mb-3 flex items-center gap-1.5">
+        <Calendar className="w-3.5 h-3.5" />
+        Set Event Date(s) — determines where this post appears on the calendar
+      </p>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label className="block text-xs text-amber-600 mb-1">Start Date</label>
+          <input
+            type="date"
+            value={eventDate}
+            onChange={e => setEventDate(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-amber-200 text-sm focus:outline-none focus:border-amber-400"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-amber-600 mb-1">End Date <span className="font-normal">(optional)</span></label>
+          <input
+            type="date"
+            value={eventEndDate}
+            onChange={e => setEventEndDate(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-amber-200 text-sm focus:outline-none focus:border-amber-400"
+          />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => onSave(eventDate, eventEndDate)}
+          disabled={loading}
+          className="px-4 py-2 rounded-lg text-xs font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-colors disabled:opacity-50"
+        >
+          {loading ? 'Saving...' : 'Save Dates'}
+        </button>
+        <button
+          onClick={onCancel}
+          disabled={loading}
+          className="px-4 py-2 rounded-lg text-xs font-semibold bg-white border border-amber-200 text-amber-600 hover:bg-amber-100 transition-colors disabled:opacity-50"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   )
 }
