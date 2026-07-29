@@ -62,6 +62,7 @@ model Business {
   claimExpiresAt  DateTime?            // Token expires after 7 days
   reviews         Review[]
   socialPosts     SocialPost[]
+  bestOfEntries   BestOfEntry[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
@@ -197,4 +198,61 @@ enum Status {
   PENDING
   APPROVED
   REJECTED
+}
+
+model BestOfCategory {
+  id          String        @id @default(cuid())
+  name        String        // "Best Tacos", "Best Coffee"
+  slug        String        @unique
+  description String?
+  icon        String        // Lucide icon name e.g. "Taco", "Coffee"
+  query       String        // Google Places search query for scraping
+  entries     BestOfEntry[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([name])
+  @@index([slug])
+}
+
+model BestOfEntry {
+  id                   String        @id @default(cuid())
+  category             BestOfCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId           String
+  business             Business      @relation(fields: [businessId], references: [id])
+  businessId          String        // one entry per business per category
+  rank                Int?
+  compositeScore      Float?
+
+  // Editorial scores (0–10 each)
+  localOwnership       Int           @default(0)
+  uniqueness           Int           @default(0)
+  communityInvolvement Int           @default(0)
+  personalVisitReview  Int           @default(0)
+
+  // Cached GMB data (refreshable from Places API)
+  googleRating         Float?
+  googleReviewCount    Int?
+  yearsActive         Float?        // derived from Business.createdAt
+
+  scores              BestOfScore[]
+
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@unique([categoryId, businessId])
+  @@index([categoryId])
+  @@index([compositeScore])
+}
+
+model BestOfScore {
+  id          String      @id @default(cuid())
+  entry       BestOfEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  entryId     String
+  factor      String      // e.g. "googleRating", "uniqueness"
+  rawValue    Float       // 0–10 or 0–100 depending on factor
+  weight      Float       // weight multiplier used
+  createdAt   DateTime    @default(now())
+
+  @@index([entryId])
 }

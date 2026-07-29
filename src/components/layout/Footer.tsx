@@ -9,6 +9,7 @@ const footerLinks = {
     { label: 'Contractors', href: '/search?category=contractors' },
     { label: 'Healthcare', href: '/search?category=healthcare' },
     { label: 'Retail', href: '/search?category=retail' },
+    { label: 'Best Of', href: '/best-of' },
   ],
   businesses: [
     { label: 'List Your Business', href: '/submit' },

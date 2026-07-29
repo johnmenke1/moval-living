@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus } from 'lucide-react'
 import SocialPostsModeration from '@/components/admin/SocialPostsModeration'
 import BusinessesModeration from '@/components/admin/BusinessesModeration'
+import BestOfAdmin from '@/components/admin/BestOfAdmin'
+import { Trophy } from 'lucide-react'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -30,7 +32,7 @@ export default async function DashboardPage() {
 
   // Admin: show moderation panels
   if (isAdmin) {
-    const [posts, businesses, pendingPostCount] = await Promise.all([
+    const [posts, businesses, pendingPostCount, pendingBusinessCount, bestOfCategories] = await Promise.all([
       prisma.socialPost.findMany({
         include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
         orderBy: { createdAt: 'desc' },
@@ -45,6 +47,17 @@ export default async function DashboardPage() {
       }),
       prisma.socialPost.count({ where: { status: 'PENDING' } }),
       prisma.business.count({ where: { status: 'PENDING' } }),
+      prisma.bestOfCategory.findMany({
+        include: {
+          entries: {
+            include: {
+              business: { select: { id: true, name: true, slug: true, address: true, website: true, logo: true } },
+            },
+            orderBy: { compositeScore: 'desc' },
+          },
+        },
+        orderBy: { name: 'asc' },
+      }),
     ])
     return (
       <div className="bg-slate-50 min-h-screen">
@@ -78,6 +91,7 @@ export default async function DashboardPage() {
         <div className="container-max py-8 space-y-10">
           <BusinessesModeration initialBusinesses={businesses} />
           <SocialPostsModeration initialPosts={posts} />
+          <BestOfAdmin initialCategories={bestOfCategories} />
         </div>
       </div>
     )
