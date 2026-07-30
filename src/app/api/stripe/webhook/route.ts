@@ -32,15 +32,16 @@ export async function POST(req: NextRequest) {
           session.subscription as string,
           { expand: ['items.data.price'] }
         )
+        const sub = subscription as unknown as Record<string, unknown>
 
         await prisma.business.update({
           where: { id: businessId },
           data: {
             tier: 'FEATURED',
             stripeCustomerId: session.customer as string,
-            stripeSubscriptionId: subscription.id,
-            subscriptionStatus: subscription.status,
-            subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+            stripeSubscriptionId: sub.id as string,
+            subscriptionStatus: sub.status as string,
+            subscriptionCurrentPeriodEnd: new Date((sub.billing_period_end as number) * 1000),
           },
         })
         console.log(`[Stripe] Business ${businessId} upgraded to FEATURED via checkout.session.completed`)
@@ -48,20 +49,21 @@ export async function POST(req: NextRequest) {
       }
 
       case 'customer.subscription.updated': {
-        const sub = event.data.object as Stripe.Subscription
-        const businessId = sub.metadata?.businessId
+        const subRaw = event.data.object as Stripe.Subscription
+        const sub = subRaw as unknown as Record<string, unknown>
+        const businessId = subRaw.metadata?.businessId
         if (!businessId) break
 
-        const isActive = ['active', 'trialing'].includes(sub.status)
+        const isActive = ['active', 'trialing'].includes(subRaw.status)
         await prisma.business.update({
           where: { id: businessId },
           data: {
             tier: isActive ? 'FEATURED' : 'FREE',
-            subscriptionStatus: sub.status,
-            subscriptionCurrentPeriodEnd: new Date(sub.current_period_end * 1000),
+            subscriptionStatus: subRaw.status,
+            subscriptionCurrentPeriodEnd: new Date((sub.billing_period_end as number) * 1000),
           },
         })
-        console.log(`[Stripe] Business ${businessId} subscription updated to ${sub.status}`)
+        console.log(`[Stripe] Business ${businessId} subscription updated to ${subRaw.status}`)
         break
       }
 
