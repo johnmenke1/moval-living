@@ -14,6 +14,7 @@ const navLinks = [
   { label: 'Events', href: '/events' },
   { label: 'About MoVal', href: '/about-moreno-valley' },
   { label: 'Deals', href: '/deals', icon: Tag },
+  { label: 'Pricing', href: '/pricing' },
   { label: 'Submit Business', href: '/submit' },
 ]
 

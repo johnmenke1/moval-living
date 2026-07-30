@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus } from 'lucide-react'
+import DashboardUpgradeWidget from './DashboardUpgradeWidget'
 import SocialPostsModeration from '@/components/admin/SocialPostsModeration'
 import BusinessesModeration from '@/components/admin/BusinessesModeration'
 import BestOfAdmin from '@/components/admin/BestOfAdmin'
@@ -205,6 +206,9 @@ export default async function DashboardPage() {
                 </div>
               ))}
             </div>
+
+            {/* Upgrade Widget — only show for FREE tier */}
+            {business.tier === 'FREE' && <DashboardUpgradeWidget />}
 
             {/* Business Info Card */}
             <div className="bg-white rounded-xl border border-slate-100 p-6">

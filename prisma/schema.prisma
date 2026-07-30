@@ -55,6 +55,12 @@ model Business {
   hasCoupon        Boolean   @default(false)
   coupon          Json?     // { headline: string, description: string, code?: string, expiresAt?: string }
 
+  // Stripe
+  stripeCustomerId           String?   @unique
+  stripeSubscriptionId       String?
+  subscriptionStatus        String?    // 'active' | 'past_due' | 'canceled' | 'trialing'
+  subscriptionCurrentPeriodEnd DateTime?
+
   // Relations
   owner           Owner?     @relation(fields: [ownerId], references: [id])
   ownerId         String?    @unique
