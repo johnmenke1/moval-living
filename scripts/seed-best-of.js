@@ -15,9 +15,10 @@ const fs = require('fs')
 
 // ── Env ────────────────────────────────────────────────────────────────────────
 
-const lines = fs.readFileSync('./.env.local', 'utf8').split('\n')
-const get = k => lines.find(l => l.startsWith(k + '='))?.split('=').slice(1).join('=').trim() ?? ''
+const lines = fs.readFileSync('./.env.live', 'utf8').split('\n')
+const get = k => lines.find(l => l.startsWith(k + '='))?.split('=').slice(1).join('=').replace(/"/g, '').trim() ?? ''
 const DATABASE_URL = get('DATABASE_URL')
+const GOOGLE_PLACES_API_KEY = get('GOOGLE_PLACES_API_KEY') || get('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY') || ''
 
 if (!DATABASE_URL) {
   console.error('DATABASE_URL not found in .env.local')
