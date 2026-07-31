@@ -14,7 +14,7 @@ const footerLinks = {
   businesses: [
     { label: 'List Your Business', href: '/submit' },
     { label: 'Claim Your Listing', href: '/claim' },
-    { label: 'Pricing', href: '/#pricing' },
+    { label: 'Pricing', href: '/pricing' },
     { label: 'Owner Login', href: '/login' },
   ],
   company: [

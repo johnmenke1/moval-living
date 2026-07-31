@@ -226,7 +226,7 @@ export function HomePageClient({ featuredBusinesses }: HomePageClientProps) {
               List My Business Free
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link href="/#pricing" className="border-2 border-white text-white font-bold px-8 py-3.5 rounded-lg hover:bg-white/10 transition-colors inline-flex items-center justify-center">
+            <Link href="/pricing" className="border-2 border-white text-white font-bold px-8 py-3.5 rounded-lg hover:bg-white/10 transition-colors inline-flex items-center justify-center">
               View Pricing
             </Link>
           </div>
