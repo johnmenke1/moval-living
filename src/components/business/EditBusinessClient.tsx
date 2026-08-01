@@ -28,6 +28,8 @@ interface Business {
   instagram: string | null
   yelp: string | null
   googleBusiness: string | null
+  googleRating: number | null
+  googleReviewCount: number | null
   hours: Record<string, { open: string; close: string; closed: boolean }> | null
   hasCoupon: boolean
   coupon: { headline: string; description: string; code: string | null; expiresAt: string | null } | null
@@ -58,6 +60,9 @@ export default function EditBusinessClient({ business, categories }: Props) {
     facebook: business.facebook || '',
     instagram: business.instagram || '',
     yelp: business.yelp || '',
+    googleRating: business.googleRating ?? '',
+    googleReviewCount: business.googleReviewCount ?? '',
+    googleBusiness: business.googleBusiness || '',
     hasCoupon: business.hasCoupon,
     couponHeadline: business.coupon?.headline || '',
     couponDescription: business.coupon?.description || '',
@@ -119,6 +124,9 @@ export default function EditBusinessClient({ business, categories }: Props) {
           instagram: form.instagram || null,
           yelp: form.yelp || null,
           hours,
+          googleRating: form.googleRating ? Number(form.googleRating) : null,
+          googleReviewCount: form.googleReviewCount ? Number(form.googleReviewCount) : null,
+          googleBusiness: form.googleBusiness || null,
           hasCoupon: form.hasCoupon,
           coupon: form.hasCoupon && form.couponHeadline ? {
             headline: form.couponHeadline,
@@ -270,6 +278,21 @@ export default function EditBusinessClient({ business, categories }: Props) {
                 <div>
                   <label className="label">Website</label>
                   <input value={form.website} onChange={e => update('website', e.target.value)} className="input" placeholder="https://..." />
+                </div>
+                <div>
+                  <label className="label">Google Business Place ID <span className="text-text-secondary font-normal">(optional)</span></label>
+                  <input value={form.googleBusiness} onChange={e => update('googleBusiness', e.target.value)} className="input font-mono text-xs" placeholder="ChIJ..." />
+                  <p className="text-xs text-text-secondary mt-1">Paste from Google Places or your Business Profile URL</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Google Rating <span className="text-text-secondary font-normal">(0–5)</span></label>
+                    <input type="number" step="0.1" min="0" max="5" value={form.googleRating} onChange={e => update('googleRating', e.target.value)} className="input" placeholder="4.5" />
+                  </div>
+                  <div>
+                    <label className="label">Google Review Count</label>
+                    <input type="number" min="0" value={form.googleReviewCount} onChange={e => update('googleReviewCount', e.target.value)} className="input" placeholder="128" />
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>

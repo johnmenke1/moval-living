@@ -15,6 +15,9 @@ export async function GET() {
       category: { select: { name: true, slug: true } },
       owner: { select: { id: true, name: true, email: true } },
       _count: { select: { reviews: true } },
+      googleRating: true,
+      googleReviewCount: true,
+      googleBusiness: true,
     },
     orderBy: { createdAt: 'desc' },
   })

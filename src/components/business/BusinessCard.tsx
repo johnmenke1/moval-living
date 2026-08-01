@@ -19,6 +19,8 @@ interface BusinessCardProps {
     reviews: Array<{ rating: number }>
     _count?: { reviews: number }
     hasCoupon?: boolean
+    googleRating?: number | null
+    googleReviewCount?: number | null
     coupon?: {
       headline: string
       description?: string | null
@@ -74,9 +76,9 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
         <p className="text-xs text-primary font-medium mb-2">{business.category.name}</p>
 
-        <div className="flex items-center gap-1.5 mb-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3">
           {rating > 0 ? (
-            <>
+            <div className="flex items-center gap-1">
               <div className="flex items-center gap-0.5">
                 {[1, 2, 3, 4, 5].map(star => (
                   <Star
@@ -89,11 +91,22 @@ export function BusinessCard({ business }: BusinessCardProps) {
                 ))}
               </div>
               <span className="text-sm text-text-secondary">
-                {rating.toFixed(1)} ({reviewCount} review{reviewCount !== 1 ? 's' : ''})
+                {rating.toFixed(1)} ({reviewCount})
               </span>
-            </>
+            </div>
           ) : (
-            <span className="text-sm text-text-secondary">No reviews yet</span>
+            <span className="text-sm text-text-secondary">No site reviews</span>
+          )}
+          {business.googleRating != null && (
+            <div className="flex items-center gap-1">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 1 1 0-12.064c1.498 0 2.866.549 3.921 1.453l2.814-2.814A9.969 9.969 0 0 0 12.545 2C7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z" fill="#4285F4"/>
+              </svg>
+              <span className="text-sm font-medium text-text">{business.googleRating.toFixed(1)}</span>
+              {business.googleReviewCount != null && (
+                <span className="text-xs text-text-secondary">({business.googleReviewCount.toLocaleString()})</span>
+              )}
+            </div>
           )}
         </div>
 
