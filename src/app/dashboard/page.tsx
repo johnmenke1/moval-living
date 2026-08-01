@@ -4,9 +4,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus } from 'lucide-react'
 import DashboardUpgradeWidget from './DashboardUpgradeWidget'
-import SocialPostsModeration from '@/components/admin/SocialPostsModeration'
-import BusinessesModeration from '@/components/admin/BusinessesModeration'
-import BestOfAdmin from '@/components/admin/BestOfAdmin'
+import AdminTabs from './AdminTabs'
 import { Trophy } from 'lucide-react'
 
 export default async function DashboardPage() {
@@ -89,10 +87,12 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
-        <div className="container-max py-8 space-y-10">
-          <BusinessesModeration initialBusinesses={businesses} />
-          <SocialPostsModeration initialPosts={posts} />
-          <BestOfAdmin initialCategories={bestOfCategories} />
+        <div className="container-max py-8">
+          <AdminTabs
+            businesses={businesses}
+            posts={posts}
+            bestOfCategories={bestOfCategories}
+          />
         </div>
       </div>
     )
