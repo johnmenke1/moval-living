@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
+import { z } from 'zod'
 
-// PATCH /api/admin/businesses/[id] — approve or reject a business
+const updateSchema = z.object({
+  status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
+  tier: z.enum(['FREE', 'FEATURED']).optional(),
+  categoryId: z.string().optional(),
+  googleBusiness: z.string().nullable().optional(),
+  googleRating: z.number().min(0).max(5).nullable().optional(),
+  googleReviewCount: z.number().int().min(0).nullable().optional(),
+})
+
+// PATCH /api/admin/businesses/[id] — approve/reject/status + admin metadata (google reviews, category)
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -14,16 +24,30 @@ export async function PATCH(
   }
 
   const { id } = await params
-  const body = await req.json()
-  const { status } = body
 
-  if (!['APPROVED', 'REJECTED'].includes(status)) {
-    return NextResponse.json({ error: 'Status must be APPROVED or REJECTED' }, { status: 400 })
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
+
+  const parsed = updateSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid fields', details: parsed.error.flatten() }, { status: 400 })
+  }
+
+  const data: Record<string, unknown> = {}
+  if (parsed.data.status) data.status = parsed.data.status
+  if (parsed.data.tier) data.tier = parsed.data.tier
+  if (parsed.data.categoryId) data.category = { connect: { id: parsed.data.categoryId } }
+  if (parsed.data.googleBusiness !== undefined) data.googleBusiness = parsed.data.googleBusiness ?? null
+  if (parsed.data.googleRating !== undefined) data.googleRating = parsed.data.googleRating ?? null
+  if (parsed.data.googleReviewCount !== undefined) data.googleReviewCount = parsed.data.googleReviewCount ?? null
 
   const business = await prisma.business.update({
     where: { id },
-    data: { status },
+    data,
     include: {
       category: { select: { name: true, slug: true } },
       owner: { select: { id: true, name: true, email: true } },

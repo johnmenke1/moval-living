@@ -114,7 +114,15 @@ export async function PUT(
     return NextResponse.json(business)
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
-      return NextResponse.json({ error: 'Please check the listing fields and try again.' }, { status: 400 })
+      const zerr = error as { errors?: Array<{ path: (string | number)[]; message: string }> }
+      const fields = (zerr.errors || []).reduce<Record<string, string>>((acc, e) => {
+        acc[e.path.join('.')] = e.message
+        return acc
+      }, {})
+      return NextResponse.json(
+        { error: 'Validation failed', fields },
+        { status: 400 }
+      )
     }
     console.error('Business update error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

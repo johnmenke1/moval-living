@@ -65,6 +65,9 @@ export default function EditBusinessClient({ business, categories }: Props) {
     couponExpiresAt: business.coupon?.expiresAt || '',
   })
 
+  // Per-field validation errors from the server
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
   // Hours — stored as JSON in a hidden field so submit handler can read them
   const [hoursJson, setHoursJson] = useState(JSON.stringify(
     business.hours || {
@@ -81,7 +84,13 @@ export default function EditBusinessClient({ business, categories }: Props) {
   const update = (field: string, value: string | boolean) => {
     setForm(prev => ({ ...prev, [field]: value }))
     setSaved(false)
+    // Clear field error when user starts editing
+    if (field in fieldErrors) {
+      setFieldErrors(prev => { const n = { ...prev }; delete n[field]; return n })
+    }
   }
+
+  const fieldError = (key: string) => fieldErrors[key]
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -122,7 +131,13 @@ export default function EditBusinessClient({ business, categories }: Props) {
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || 'Failed to save')
+        if (data.fields) {
+          setFieldErrors(data.fields)
+          setError('Please fix the highlighted fields.')
+        } else {
+          throw new Error(data.error || 'Failed to save')
+        }
+        return
       }
 
       // Refresh Google reviews cache if this business has a Google Business ID
@@ -131,6 +146,7 @@ export default function EditBusinessClient({ business, categories }: Props) {
       }
 
       setSaved(true)
+      setFieldErrors({})
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -226,7 +242,15 @@ export default function EditBusinessClient({ business, categories }: Props) {
                 </div>
                 <div>
                   <label className="label">ZIP Code</label>
-                  <input value={form.zip} onChange={e => update('zip', e.target.value)} className="input" />
+                  <input
+                    value={form.zip}
+                    onChange={e => update('zip', e.target.value)}
+                    className={`input${fieldError('zip') ? ' border-red-500 ring-1 ring-red-200' : ''}`}
+                    placeholder="92553"
+                  />
+                  {fieldError('zip') && (
+                    <p className="text-xs text-red-500 mt-1">{fieldError('zip')}</p>
+                  )}
                 </div>
               </div>
             </div>
