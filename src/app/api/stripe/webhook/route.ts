@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
 import Stripe from 'stripe'
 
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
+    event = getStripe().webhooks.constructEvent(body, sig, webhookSecret)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('[Stripe Webhook] Signature verification failed:', message)
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         const businessId = session.metadata?.businessId
         if (!businessId) break
 
-        const subscription = await stripe.subscriptions.retrieve(
+        const subscription = await getStripe().subscriptions.retrieve(
           session.subscription as string,
           { expand: ['items.data.price'] }
         )

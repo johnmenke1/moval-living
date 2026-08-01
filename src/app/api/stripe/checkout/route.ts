@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(req: NextRequest) {
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   // Upsert Stripe customer
   let customerId = owner.business.stripeCustomerId
   if (!customerId) {
-    const customer = await stripe.customers.create({
+    const customer = await getStripe().customers.create({
       email: owner.email,
       name: owner.business.name,
       metadata: { businessId: owner.business.id },
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  const checkoutSession = await stripe.checkout.sessions.create({
+  const checkoutSession = await getStripe().checkout.sessions.create({
     customer: customerId,
     mode: 'subscription',
     payment_method_types: ['card'],

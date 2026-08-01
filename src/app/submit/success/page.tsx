@@ -64,6 +64,9 @@ export default async function SubmitSuccessPage({ searchParams }: Props) {
           <Link href="/search" className="btn-primary inline-flex items-center justify-center gap-2">
             Browse Businesses
           </Link>
+          <Link href="/pricing" className="btn-outline inline-flex items-center justify-center gap-2">
+            View Pricing
+          </Link>
           <Link href="/" className="btn-outline inline-flex items-center justify-center gap-2">
             Back to Home
           </Link>
