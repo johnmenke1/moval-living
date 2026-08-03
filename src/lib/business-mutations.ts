@@ -26,7 +26,11 @@ const hoursSchema = z.record(
 ).nullable().optional()
 
 const couponSchema = z.object({
-  headline: z.string().trim().min(1).max(80),
+  headline: z.union([
+    z.string().trim().min(1).max(80),
+    z.literal(''),
+    z.null(),
+  ]).optional(),
   description: z.string().trim().max(300).default(''),
   code: z.union([z.string().trim().max(20).transform(value => value || null), z.null()]).optional(),
   expiresAt: z.union([z.string().trim().max(40).transform(value => value || null), z.null()]).optional(),
