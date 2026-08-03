@@ -14,13 +14,13 @@ async function getCategories() {
     orderBy: { name: 'asc' },
     include: {
       entries: {
-        where: { compositeScore: { not: null } },
+        where: { rank: { not: null } },
         include: {
           business: {
-            select: { id: true, name: true, slug: true, logo: true, googleRating: true },
+            select: { id: true, name: true, slug: true, logo: true, googleRating: true, bestOfRank: true },
           },
         },
-        orderBy: { compositeScore: 'desc' },
+        orderBy: { rank: 'asc' },
         take: 3,
       },
     },
@@ -29,11 +29,12 @@ async function getCategories() {
 }
 
 async function getTopEntries() {
+  // Top entries = rank=1 in each category (the #1 winners)
   const all = await prisma.bestOfEntry.findMany({
-    where: { compositeScore: { not: null } },
+    where: { rank: 1 },
     include: {
       business: {
-        select: { id: true, name: true, slug: true, logo: true, address: true, googleRating: true },
+        select: { id: true, name: true, slug: true, logo: true, address: true, googleRating: true, bestOfRank: true },
       },
       category: { select: { name: true, slug: true, icon: true } },
     },
@@ -104,9 +105,13 @@ export default async function BestOfPage() {
                       href={`/best-of/${entry.category.slug}`}
                       className="flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
                     >
-                      <div className="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center text-sm font-bold shrink-0">
-                        {idx + 1}
-                      </div>
+                      {idx === 0 ? (
+                        <img src="/best-of-badge.svg" alt="#1 Best Of" className="w-9 h-9 shrink-0" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center text-sm font-bold shrink-0">
+                          {idx + 1}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-text text-sm">{entry.business.name}</p>
                         <p className="text-xs text-text-secondary">

@@ -13,18 +13,19 @@ async function getCategory(slug: string) {
     where: { slug },
     include: {
       entries: {
-        where: { compositeScore: { not: null } },
+        where: { rank: { not: null } },
         include: {
           business: {
             select: {
               id: true, name: true, slug: true, address: true, city: true, state: true, zip: true,
               logo: true, website: true, phone: true,
               googleRating: true, googleReviewCount: true,
+              bestOfRank: true,
             },
           },
           scores: { orderBy: { factor: 'asc' } },
         },
-        orderBy: { compositeScore: 'desc' },
+        orderBy: { rank: 'asc' },
       },
     },
   })
