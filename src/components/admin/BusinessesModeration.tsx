@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { CheckCircle, XCircle, Clock, Trash2, ExternalLink, Building2, Star, Pencil, ChevronDown, ChevronUp, RefreshCw, Loader2 } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { CheckCircle, XCircle, Clock, Trash2, ExternalLink, Building2, Star, Pencil, ChevronDown, ChevronUp, RefreshCw, Loader2, Search, X } from 'lucide-react'
 
 type BusinessStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -35,6 +35,7 @@ interface BusinessesModerationProps {
 export default function BusinessesModeration({ initialBusinesses }: BusinessesModerationProps) {
   const [businesses, setBusinesses] = useState<Business[]>(initialBusinesses)
   const [filter, setFilter] = useState<'ALL' | BusinessStatus>('ALL')
+  const [search, setSearch] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -53,6 +54,17 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
   }
 
   const filtered = filter === 'ALL' ? businesses : businesses.filter(b => b.status === filter)
+  const searchLower = search.toLowerCase().trim()
+  const displayed = searchLower
+    ? filtered.filter(b =>
+        b.name.toLowerCase().includes(searchLower) ||
+        b.address.toLowerCase().includes(searchLower) ||
+        b.city.toLowerCase().includes(searchLower) ||
+        b.email?.toLowerCase().includes(searchLower) ||
+        b.owner?.email?.toLowerCase().includes(searchLower) ||
+        b.category.name.toLowerCase().includes(searchLower)
+      )
+    : filtered
 
   const counts: Record<string, number> = {
     ALL: businesses.length,
@@ -192,6 +204,34 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
         </div>
       </div>
 
+      {/* Search */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by name, address, city, email, category…"
+          className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-text placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-shadow"
+        />
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch('')}
+            aria-label="Clear search"
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+      {/* Result count when searching */}
+      {searchLower && (
+        <p className="text-xs text-text-secondary mb-4">
+          {displayed.length} of {filtered.length} {filtered.length === 1 ? 'business' : 'businesses'} match “{search}”
+        </p>
+      )}
+
       {/* Filter tabs */}
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -223,16 +263,16 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
       </div>
 
       {/* Businesses list */}
-      {filtered.length === 0 ? (
+      {displayed.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl border border-slate-100">
           <Clock className="w-10 h-10 mx-auto mb-3 text-slate-300" />
           <p className="font-medium text-slate-500">
-            {filter === 'ALL' ? 'No businesses yet' : `No ${filter.toLowerCase()} businesses`}
+            {search ? `No businesses matching "${search}"` : filter === 'ALL' ? 'No businesses yet' : `No ${filter.toLowerCase()} businesses`}
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map(business => {
+          {displayed.map(business => {
             const cfg = statusConfig[business.status]
             const Icon = cfg.icon
             const isExpanded = expandedId === business.id
