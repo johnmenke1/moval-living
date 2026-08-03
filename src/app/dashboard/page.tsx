@@ -23,6 +23,7 @@ export default async function DashboardPage() {
           id: true, slug: true, name: true, tagline: true, address: true, city: true, state: true, zip: true,
           phone: true, email: true, website: true, hasCoupon: true,
           logo: true, tier: true, status: true, coverImage: true, photos: true,
+          bestOfRank: true,
           category: { select: { name: true, slug: true } },
           reviews: {
             orderBy: { createdAt: 'desc' },
@@ -66,10 +67,8 @@ export default async function DashboardPage() {
         orderBy: { name: 'asc' },
       }),
     ])
-    return (
-      <div className="bg-slate-50 min-h-screen">
-        <div className="bg-white border-b border-slate-100">
-          <div className="container-max py-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    // Annotate each business with isBestOf so the moderation panel can show the badge.
+    const businessesWithFlags = businesses.map(b => ({ ...b, isBestOf: b.bestOfRank === 1 }))
             <div>
               <h1 className="text-3xl font-bold text-text mb-1">Admin Dashboard</h1>
               <p className="text-text-secondary">Site administration</p>
@@ -97,7 +96,7 @@ export default async function DashboardPage() {
         </div>
         <div className="container-max py-8">
           <AdminTabs
-            businesses={businesses}
+            businesses={businessesWithFlags}
             posts={posts}
             bestOfCategories={bestOfCategories}
           />
@@ -223,7 +222,17 @@ export default async function DashboardPage() {
             <div className="bg-white rounded-xl border border-slate-100 p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h2 className="text-xl font-bold text-text">{business.name}</h2>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-xl font-bold text-text">{business.name}</h2>
+                    {business.bestOfRank === 1 && (
+                      <img
+                        src="/best-of-badge.svg"
+                        alt="Best Of"
+                        title="Best Of Moreno Valley"
+                        className="w-7 h-7"
+                      />
+                    )}
+                  </div>
                   <p className="text-text-secondary text-sm">{business.category.name}</p>
                 </div>
                 {business.hasCoupon && (

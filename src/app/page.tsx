@@ -8,7 +8,6 @@ async function getFeaturedBusinesses() {
   return prisma.business.findMany({
     where: {
       status: 'APPROVED',
-      tier: 'FEATURED',
     },
     include: {
       category: true,
@@ -16,29 +15,25 @@ async function getFeaturedBusinesses() {
       _count: { select: { reviews: true } },
     },
     orderBy: { createdAt: 'desc' },
-    take: 6,
-  })
-}
-
-async function getAllBusinesses() {
-  return prisma.business.findMany({
-    where: { status: 'APPROVED' },
-    include: {
-      category: true,
-      reviews: true,
-      _count: { select: { reviews: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 6,
   })
 }
 
 export default async function HomePage() {
-  // Try featured first, fall back to any approved businesses
-  let featuredBusinesses = await getFeaturedBusinesses()
-  if (featuredBusinesses.length === 0) {
-    featuredBusinesses = await getAllBusinesses()
-  }
+  const allApproved = await getFeaturedBusinesses()
+
+  // Sort: BestOf #1 first, then FEATURED, then FREE — within each tier
+  // preserve the createdAt-desc order. The bestOfRank column on Business
+  // is denormalized and indexed; it's maintained by the admin recalculate API.
+  const sorted = [...allApproved].sort((a, b) => {
+    const aBest = a.bestOfRank === 1 ? 0 : a.tier === 'FEATURED' ? 1 : 2
+    const bBest = b.bestOfRank === 1 ? 0 : b.tier === 'FEATURED' ? 1 : 2
+    return aBest - bBest
+  })
+
+  const featuredBusinesses = sorted.map(b => ({
+    ...b,
+    isBestOf: b.bestOfRank === 1,
+  }))
 
   return <HomePageClient featuredBusinesses={featuredBusinesses} />
 }

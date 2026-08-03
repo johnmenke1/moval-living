@@ -35,6 +35,7 @@ interface Business {
   category: { name: string; slug: string }
   reviews: Array<{ rating: number }>
   _count?: { reviews: number }
+  isBestOf?: boolean
 }
 
 interface HomePageClientProps {
