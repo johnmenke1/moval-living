@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/prisma'
 import { HomePageClient } from '@/components/home/HomePageClient'
 
+// Force dynamic rendering so featured businesses list is always fresh
+export const dynamic = 'force-dynamic'
+
 async function getFeaturedBusinesses() {
   return prisma.business.findMany({
     where: {
