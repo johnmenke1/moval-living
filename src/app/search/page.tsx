@@ -60,18 +60,6 @@ async function getBusinesses(params: {
     orderBy = { name: 'asc' }
   }
 
-  // Fetch BestOf entries for ranking businesses that are #1 in their category
-  const bestOfEntries = await prisma.bestOfEntry.findMany({
-    where: params.category
-      ? { category: { slug: params.category } }
-      : undefined,
-    select: {
-      businessId: true,
-      rank: true,
-      category: { select: { slug: true, name: true } },
-    },
-  })
-
   const [businesses, total] = await Promise.all([
     prisma.business.findMany({
       where,
@@ -88,12 +76,9 @@ async function getBusinesses(params: {
   ])
 
   // Sort: #1 BestOf first, then FEATURED, then FREE — within each tier apply the chosen sort
-  const bestOfSet = new Set(
-    bestOfEntries.filter(e => e.rank === 1).map(e => e.businessId)
-  )
   const sorted = [...businesses].sort((a, b) => {
-    const aBest = bestOfSet.has(a.id) ? 0 : a.tier === 'FEATURED' ? 1 : 2
-    const bBest = bestOfSet.has(b.id) ? 0 : b.tier === 'FEATURED' ? 1 : 2
+    const aBest = a.bestOfRank === 1 ? 0 : a.tier === 'FEATURED' ? 1 : 2
+    const bBest = b.bestOfRank === 1 ? 0 : b.tier === 'FEATURED' ? 1 : 2
     if (aBest !== bBest) return aBest - bBest
     // Within same tier, preserve the orderBy sort
     if (params.sort === 'rating') {
@@ -108,7 +93,7 @@ async function getBusinesses(params: {
   return {
     businesses: sorted.map(b => ({
       ...b,
-      isBestOf: bestOfSet.has(b.id),
+      isBestOf: b.bestOfRank === 1,
       coupon: b.coupon as {
         headline: string
         description?: string | null

@@ -19,6 +19,7 @@ model Business {
   category         Category  @relation(fields: [categoryId], references: [id])
   tier             Tier      @default(FREE)
   status           Status    @default(PENDING)
+  bestOfRank       Int?                // 1 = #1 BestOf in its category; null = not BestOf
 
   // Contact
   email            String?
@@ -74,6 +75,7 @@ model Business {
 
   @@index([categoryId])
   @@index([status])
+  @@index([bestOfRank])
   @@index([tier])
   @@index([city])
 }
