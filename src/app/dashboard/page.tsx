@@ -134,11 +134,11 @@ export default async function DashboardPage() {
     ? (business.reviews.reduce((sum, r) => sum + r.rating, 0) / business.reviews.length).toFixed(1)
     : null
 
-  const statusConfigMap = {
+  const statusConfigMap: Record<Status, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
     APPROVED: { label: 'Published', icon: CheckCircle, color: 'text-green-600 bg-green-50' },
     PENDING: { label: 'Pending Review', icon: Clock, color: 'text-amber-600 bg-amber-50' },
     REJECTED: { label: 'Rejected', icon: XCircle, color: 'text-red-600 bg-red-50' },
-  } as const satisfies Record<Status, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }>
+  }
   const statusConfig = statusConfigMap[business.status]
 
   return (
