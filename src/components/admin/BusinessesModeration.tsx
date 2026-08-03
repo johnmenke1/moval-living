@@ -141,6 +141,25 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     setEditGoogle(prev => { const n = { ...prev }; delete n[id]; return n })
   }
 
+  const deleteReviews = async (id: string, businessName: string) => {
+    if (!confirm(`Delete ALL reviews for "${businessName}"? This cannot be undone.`)) return
+    setLoading(id)
+    setError('')
+    try {
+      const res = await fetch(`/api/admin/businesses/${id}/reviews`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error || 'Failed to delete reviews')
+        return
+      }
+      setBusinesses(prev => prev.map(b => b.id === id ? { ...b, _count: { ...b._count, reviews: 0 } } : b))
+    } catch {
+      setError('Failed to delete reviews')
+    } finally {
+      setLoading(null)
+    }
+  }
+
   const openEdit = (b: Business) => {
     setEditGoogle(prev => ({
       ...prev,
@@ -449,6 +468,16 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                             <RefreshCw className="w-3.5 h-3.5" />
                           )}
                           Refresh from Google
+                        </button>
+                      )}
+                      {(business._count?.reviews ?? 0) > 0 && (
+                        <button
+                          onClick={() => deleteReviews(business.id, business.name)}
+                          disabled={loading === business.id}
+                          className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete {business._count.reviews} Review{(business._count.reviews ?? 0) !== 1 ? 's' : ''}
                         </button>
                       )}
                       <button
