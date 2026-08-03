@@ -62,6 +62,8 @@ export async function GET(
       instagram: business.instagram,
       yelp: business.yelp,
       googleBusiness: business.googleBusiness,
+      googleRating: business.googleRating,
+      googleReviewCount: business.googleReviewCount,
       hours: business.hours,
       metaTitle: business.metaTitle,
       metaDescription: business.metaDescription,
