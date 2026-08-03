@@ -18,14 +18,16 @@ export default async function DashboardPage() {
     where: { id: session.user.id },
     include: {
       business: {
-        include: {
-          category: true,
-          reviews: { orderBy: { createdAt: 'desc' }, take: 5 },
-          _count: { select: { reviews: true } },
-        },
         select: {
           id: true, slug: true, name: true, logo: true, tier: true,
           coverImage: true, photos: true,
+          category: { select: { name: true, slug: true } },
+          reviews: {
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+            select: { id: true, rating: true, content: true, authorName: true, createdAt: true },
+          },
+          _count: { select: { reviews: true } },
         },
       },
     },
