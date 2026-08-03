@@ -39,7 +39,7 @@ const couponSchema = z.object({
 const businessUpdateSchema = z.object({
   name: z.string().trim().min(1).max(160),
   tagline: nullableText(240),
-  description: z.string().trim().min(50).max(2000),
+  description: z.string().trim().min(10).max(2000),
   categoryId: z.string().trim().min(1).max(100),
   address: z.string().trim().min(1).max(240),
   city: z.string().trim().min(1).max(120),
