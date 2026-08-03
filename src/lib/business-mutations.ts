@@ -54,6 +54,17 @@ const businessUpdateSchema = z.object({
   hours: hoursSchema,
   hasCoupon: z.boolean().default(false),
   coupon: couponSchema,
+  googleRating: z.union([
+    z.number().min(0).max(5),
+    z.string().transform(v => v === '' ? null : Number(v)).pipe(z.number().min(0).max(5).nullable()),
+    z.null(),
+  ]).optional(),
+  googleReviewCount: z.union([
+    z.number().int().min(0),
+    z.string().transform(v => v === '' ? null : Number(v)).pipe(z.number().int().min(0).nullable()),
+    z.null(),
+  ]).optional(),
+  googleBusiness: nullableText(500),
 }).strict()
 
 export function buildBusinessUpdateData(input: unknown): Prisma.BusinessUpdateInput {
@@ -80,5 +91,8 @@ export function buildBusinessUpdateData(input: unknown): Prisma.BusinessUpdateIn
     coupon: !parsed.hasCoupon || parsed.coupon === null
       ? Prisma.JsonNull
       : parsed.coupon as Prisma.InputJsonValue | undefined,
+    googleRating: parsed.googleRating ?? null,
+    googleReviewCount: parsed.googleReviewCount ?? null,
+    googleBusiness: parsed.googleBusiness ?? null,
   }
 }
