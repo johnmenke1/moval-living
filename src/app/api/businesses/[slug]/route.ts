@@ -116,8 +116,11 @@ export async function PUT(
     return NextResponse.json(business)
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
-      const zerr = error as { errors?: Array<{ path: (string | number)[]; message: string }> }
-      const fields = (zerr.errors || []).reduce<Record<string, string>>((acc, e) => {
+      // Zod 4 exposes the issue list as `issues`, not `errors`. Reading the
+      // old field returns undefined → empty fields object → client toast with
+      // no highlighted field. Always read `.issues` (typed correctly below).
+      const zerr = error as { issues?: Array<{ path: (string | number)[]; message: string }> }
+      const fields = (zerr.issues || []).reduce<Record<string, string>>((acc, e) => {
         acc[e.path.join('.')] = e.message
         return acc
       }, {})
