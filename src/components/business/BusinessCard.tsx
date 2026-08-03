@@ -67,9 +67,12 @@ export function BusinessCard({ business }: BusinessCardProps) {
           </div>
         )}
         {business.isBestOf && (
-          <div className="absolute top-3 right-3 flex items-center gap-1 bg-amber-400 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
-            <Trophy className="w-3 h-3" />
-            #1 Best Of
+          <div className="absolute top-3 right-3 w-10 h-10">
+            <img
+              src="/best-of-badge.svg"
+              alt="#1 Best Of"
+              className="w-full h-full drop-shadow-md"
+            />
           </div>
         )}
         {business.hasCoupon && (
