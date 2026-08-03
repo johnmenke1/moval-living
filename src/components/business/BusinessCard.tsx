@@ -39,11 +39,16 @@ export function BusinessCard({ business }: BusinessCardProps) {
     <Link href={`/business/${business.slug}`} className={cn('block', isFeatured ? 'card-featured' : 'card')}>
       {/* Image */}
       <div className="relative w-full h-44 rounded-t-xl overflow-hidden bg-slate-100">
-        {business.coverImage || business.photos[0] ? (
+        {business.coverImage || business.logo || business.photos[0] ? (
           <img
-            src={business.coverImage || business.photos[0]}
+            src={business.coverImage || business.logo || business.photos[0]}
             alt={business.name}
-            className="w-full h-full object-cover"
+            className={cn(
+              'w-full h-full',
+              // If we're falling back to the logo (no cover image), center it on the
+              // background instead of cropping — logos are square, covers are wide.
+              !business.coverImage && business.logo ? 'object-contain p-6' : 'object-cover'
+            )}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">

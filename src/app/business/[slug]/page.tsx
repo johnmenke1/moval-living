@@ -64,7 +64,8 @@ export async function generateMetadata({ params }: BusinessPageProps): Promise<M
     openGraph: {
       title: business.name,
       description: business.description.slice(0, 200),
-      images: business.coverImage ? [business.coverImage] : [],
+      // Use logo as fallback for social sharing previews when no cover image exists.
+      images: business.coverImage || business.logo ? [business.coverImage || business.logo!] : [],
     },
   }
 }
@@ -102,12 +103,20 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
           <div className="lg:col-span-2 space-y-6">
             {/* Header Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-              {/* Cover Image */}
+              {/* Cover Image — falls back to logo (centered, no crop) if no cover set */}
               <div className="relative h-56 md:h-72 bg-gradient-to-br from-primary/20 to-secondary/20">
-                {business.coverImage ? (
-                  <img src={business.coverImage} alt={business.name} className="w-full h-full object-cover" />
-                ) : business.logo ? (
-                  <img src={business.logo} alt={business.name} className="w-full h-full object-cover" />
+                {business.coverImage || business.logo ? (
+                  <img
+                    src={business.coverImage || business.logo!}
+                    alt={business.name}
+                    className={
+                      // Square logo in wide hero: contain+center so it doesn't get cropped.
+                      // Cover images are wide and should fill the hero normally.
+                      !business.coverImage && business.logo
+                        ? 'w-full h-full object-contain p-8'
+                        : 'w-full h-full object-cover'
+                    }
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <span className="text-7xl font-bold text-primary/20">{business.name[0]}</span>
