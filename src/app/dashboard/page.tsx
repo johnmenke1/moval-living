@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { Status } from '@prisma/client'
 import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus } from 'lucide-react'
 import DashboardUpgradeWidget from './DashboardUpgradeWidget'
 import AdminTabs from './AdminTabs'
@@ -19,8 +20,9 @@ export default async function DashboardPage() {
     include: {
       business: {
         select: {
-          id: true, slug: true, name: true, logo: true, tier: true,
-          coverImage: true, photos: true,
+          id: true, slug: true, name: true, tagline: true, address: true, city: true, state: true, zip: true,
+          phone: true, email: true, website: true, hasCoupon: true,
+          logo: true, tier: true, status: true, coverImage: true, photos: true,
           category: { select: { name: true, slug: true } },
           reviews: {
             orderBy: { createdAt: 'desc' },
@@ -132,11 +134,12 @@ export default async function DashboardPage() {
     ? (business.reviews.reduce((sum, r) => sum + r.rating, 0) / business.reviews.length).toFixed(1)
     : null
 
-  const statusConfig = {
+  const statusConfigMap = {
     APPROVED: { label: 'Published', icon: CheckCircle, color: 'text-green-600 bg-green-50' },
     PENDING: { label: 'Pending Review', icon: Clock, color: 'text-amber-600 bg-amber-50' },
     REJECTED: { label: 'Rejected', icon: XCircle, color: 'text-red-600 bg-red-50' },
-  }[business.status]
+  } as const satisfies Record<Status, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }>
+  const statusConfig = statusConfigMap[business.status]
 
   return (
     <div className="bg-slate-50 min-h-screen">
