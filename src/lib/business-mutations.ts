@@ -40,7 +40,11 @@ const businessUpdateSchema = z.object({
   address: z.string().trim().min(1).max(240),
   city: z.string().trim().min(1).max(120),
   state: z.string().trim().length(2).transform(value => value.toUpperCase()),
-  zip: z.string().trim().regex(/^\d{5}(?:-\d{4})?$/),
+  zip: z.union([
+    z.string().trim().regex(/^\d{5}(?:-\d{4})?$/),
+    z.literal(''),
+    z.null(),
+  ]).optional(),
   phone: nullableText(50),
   email: z.union([
     z.string().trim().email().max(320).transform(value => value || null),
@@ -77,7 +81,7 @@ export function buildBusinessUpdateData(input: unknown): Prisma.BusinessUpdateIn
     address: parsed.address,
     city: parsed.city,
     state: parsed.state,
-    zip: parsed.zip,
+    zip: parsed.zip === '' || parsed.zip === null || parsed.zip === undefined ? '' : parsed.zip,
     phone: parsed.phone ?? null,
     email: parsed.email ?? null,
     website: parsed.website ?? null,
