@@ -219,12 +219,30 @@ function RankedCard({ entry, rank, emoji }: { entry: NonNullable<Awaited<ReturnT
           {/* Factor breakdown */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {entry.scores.map(score => {
-              const pct = (score.rawValue / (score.factor === 'googleRating' ? 5 : 10)) * 100
+              let pct: number
+              if (score.factor === 'googleRating') {
+                pct = (score.rawValue / 5) * 100
+              } else if (score.factor === 'yearsActive') {
+                // rawValue here is the raw years decimal (e.g. 0.013), display as "N years"
+                const years = score.rawValue
+                const maxYears = Math.max(...entry.scores.filter(s => s.factor === 'yearsActive').map(s => s.rawValue), 0.001)
+                pct = (years / maxYears) * 100
+              } else {
+                pct = (score.rawValue / 10) * 100
+              }
               return (
                 <div key={score.factor} className="bg-slate-50 rounded-xl p-2.5">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-text-secondary">{FACTOR_LABELS[score.factor] ?? score.factor}</span>
-                    <span className="text-xs font-bold text-text">{score.rawValue}{score.factor === 'googleRating' ? '' : score.factor === 'googleReviewCount' ? '' : '/10'}</span>
+                    <span className="text-xs font-bold text-text">
+                      {score.factor === 'yearsActive'
+                        ? `${score.rawValue.toFixed(2)} yrs`
+                        : score.factor === 'googleRating'
+                        ? `${score.rawValue} / 5`
+                        : score.factor === 'googleReviewCount'
+                        ? score.rawValue.toLocaleString()
+                        : `${score.rawValue} / 10`}
+                    </span>
                   </div>
                   <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                     <div
