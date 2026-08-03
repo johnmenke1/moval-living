@@ -128,7 +128,9 @@ export function BusinessSidebar({ business }: BusinessSidebarProps) {
               disabled={claiming || !email.trim()}
               className="w-full flex items-center justify-center gap-2 bg-white text-primary font-bold py-2.5 px-4 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
             >
-              {claiming ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</> : <><UserPlus className="w-4 h-4" /> Claim This Business</>}
+              {claiming
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
+                : <><UserPlus className="w-4 h-4" /> Claim This Business</>}
             </button>
           </form>
         </div>
@@ -148,24 +150,45 @@ export function BusinessSidebar({ business }: BusinessSidebarProps) {
     )
   }
 
-  // ── Logged in but not the owner ──
-  // Only show "owned by another account" if the business is actually claimed.
-  // An unclaimed business should show the claim CTA even to logged-in users.
-  if (isLoggedIn && !isOwner) {
-    if (isClaimed) {
-      return (
-        <>
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 text-center">
-            <AlertCircle className="w-8 h-8 text-text-secondary mx-auto mb-3" />
-            <h3 className="font-bold text-text mb-1">Not your listing?</h3>
-            <p className="text-text-secondary text-sm">This listing is owned by another account. Contact us if you believe this is incorrect.</p>
-          </div>
-          <WebsiteUpsell />
-        </>
-      )
-    }
-    // Unclaimed — fall through to show the claim CTA even to logged-in users
-  }
+  // ── Logged in but not the owner (unclaimed) ──
+  return (
+    <>
+      <div className="bg-gradient-to-br from-primary to-secondary rounded-2xl p-6 text-white">
+        <div className="flex items-center gap-2 mb-2">
+          <UserPlus className="w-5 h-5" />
+          <h3 className="text-lg font-bold">Claim this listing</h3>
+        </div>
+        <p className="text-blue-100 text-sm mb-4">
+          Are you the owner of {business.name}? Verify your ownership and get free access to manage your listing.
+        </p>
+        <form onSubmit={handleClaim} className="space-y-3">
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="Your business email"
+            className="w-full px-3 py-2 rounded-lg text-text text-sm bg-white"
+            required
+          />
+          {claimError && (
+            <p className="text-red-200 text-xs flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" /> {claimError}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={claiming || !email.trim()}
+            className="w-full flex items-center justify-center gap-2 bg-white text-primary font-bold py-2.5 px-4 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
+          >
+            {claiming
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
+              : <><UserPlus className="w-4 h-4" /> Claim This Business</>}
+          </button>
+        </form>
+      </div>
+      <WebsiteUpsell />
+    </>
+  )
 }
 
 function WebsiteUpsell() {
