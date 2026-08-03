@@ -120,6 +120,7 @@ export async function PUT(
       // old field returns undefined → empty fields object → client toast with
       // no highlighted field. Always read `.issues` (typed correctly below).
       const zerr = error as { issues?: Array<{ path: (string | number)[]; message: string }> }
+      console.error('Zod validation errors:', JSON.stringify(zerr.issues, null, 2))
       const fields = (zerr.issues || []).reduce<Record<string, string>>((acc, e) => {
         acc[e.path.join('.')] = e.message
         return acc
