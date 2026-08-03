@@ -68,17 +68,48 @@ export async function GET(req: NextRequest) {
       regularOpeningHours?: { periods?: { openDay?: string; openTime?: string; closeDay?: string; closeTime?: string }[] }
       photos?: { name: string }[]
       location?: { latitude: number; longitude: number }
-    }) => ({
-      placeId: p.id,
-      name: p.displayName?.text || '',
-      address: p.formattedAddress || '',
-      phone: p.nationalPhoneNumber || '',
-      website: p.website || '',
-      type: p.primaryType || '',
-      hours: parseOpeningHours(p.regularOpeningHours),
-      photos: p.photos || [],
-      location: p.location ? { lat: p.location.latitude, lng: p.location.longitude } : null,
-    }))
+      postalAddress?: {
+        streetAddress?: string[]
+        addressLines?: string[]
+        city?: string
+        administrativeArea?: string   // state, e.g. "CA"
+        postalCode?: string           // ZIP, e.g. "92553"
+        country?: string
+      }
+    }) => {
+      // Extract structured address from postalAddress (preferred) or fall back to formattedAddress
+      let street = ''
+      let city = ''
+      let state = ''
+      let zip = ''
+
+      if (p.postalAddress) {
+        const pa = p.postalAddress
+        // streetAddress is an array of line segments (e.g. ["23370 Sunny Springs Dr"])
+        street = (pa.streetAddress || pa.addressLines || []).join(', ')
+        city = pa.city || ''
+        state = pa.administrativeArea || ''
+        zip = pa.postalCode || ''
+      }
+
+      // Fall back to raw formattedAddress if postalAddress wasn't populated
+      const rawAddress = p.formattedAddress || ''
+
+      return {
+        placeId: p.id,
+        name: p.displayName?.text || '',
+        address: street || rawAddress,
+        city,
+        state,
+        zip,
+        phone: p.nationalPhoneNumber || '',
+        website: p.website || '',
+        type: p.primaryType || '',
+        hours: parseOpeningHours(p.regularOpeningHours),
+        photos: p.photos || [],
+        location: p.location ? { lat: p.location.latitude, lng: p.location.longitude } : null,
+      }
+    })
 
     return NextResponse.json({
       places,

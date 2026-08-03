@@ -4,8 +4,9 @@ import { auth } from '@/auth'
 import { nanoid } from 'nanoid'
 
 // POST /api/admin/places/import
-// Creates an APPROVED business listing from a Google Place result
-// Body: { placeId, name, address, phone, website, type, hours, photos, location, categoryId }
+// Creates an APPROVED business listing from a Google Place result.
+// Expects the search route to have already separated addressComponents into
+// { street, city, state, zip } — no string-parsing on the import side.
 export async function POST(req: NextRequest) {
   const session = await auth()
 
@@ -14,15 +15,23 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { placeId, name, address, phone, website, type, hours, photos, location, categoryId } = body
+  const { placeId, name, address, city, state, zip, phone, website, type, hours, photos, location, categoryId } = body
 
   if (!name?.trim() || !address?.trim()) {
     return NextResponse.json({ error: 'name and address are required' }, { status: 400 })
   }
 
-  // Parse address: "123 Main St, Moreno Valley, CA 92553, USA"
-  // → { street: "123 Main St", city: "Moreno Valley", state: "CA", zip: "92553" }
-  const parsed = parseAddress(address)
+  // Fall back to old parseAddress only if the search response didn't include
+  // structured city/state/zip (older callers / direct POSTs).
+  let resolvedCity = city
+  let resolvedState = state
+  let resolvedZip = zip
+  if (!resolvedCity || !resolvedState || !resolvedZip) {
+    const parsed = parseAddress(address)
+    resolvedCity = resolvedCity || parsed.city
+    resolvedState = resolvedState || parsed.state
+    resolvedZip = resolvedZip || parsed.zip
+  }
 
   // Resolve category: accept a CUID, slug, or use "other" fallback
   let resolvedCategoryId = categoryId
@@ -59,14 +68,14 @@ export async function POST(req: NextRequest) {
       slug,
       name: name.trim(),
       categoryId: resolvedCategoryId,
-      address: parsed.street,
-      city: parsed.city,
-      state: parsed.state,
-      zip: parsed.zip,
+      address: address.trim(),
+      city: resolvedCity || 'Moreno Valley',
+      state: resolvedState || 'CA',
+      zip: resolvedZip || '',
       phone: phone || null,
       email: null,
       website: website || null,
-      description: `Business information for ${name.trim()} in ${parsed.city}, ${parsed.state}.`,
+      description: `Business information for ${name.trim()} in ${resolvedCity || 'Moreno Valley'}, ${resolvedState || 'CA'}.`,
       googleBusiness: placeId || null,
       latitude: location?.lat || null,
       longitude: location?.lng || null,
@@ -80,22 +89,44 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ business: { id: business.id, slug: business.slug, name: business.name } }, { status: 201 })
 }
 
+// Legacy fallback: only used when the caller doesn't supply structured city/state/zip.
+// Splits a US-style formattedAddress like "123 Main St, Moreno Valley, CA 92553, USA".
+// Note: this is brittle for non-US addresses and for addresses with unusual punctuation.
+// The search route should now pass structured addressComponents directly.
 function parseAddress(address: string) {
   const parts = address.split(',').map((p: string) => p.trim())
-  let city = 'Moreno Valley'
-  let state = 'CA'
+  let city = ''
+  let state = ''
   let zip = ''
-  let street = address
 
   if (parts.length >= 2) {
-    const last = parts[parts.length - 1] // e.g. "CA 92553, USA"
-    const zipMatch = last.match(/\d{5}/)
-    const stateMatch = last.match(/[A-Z]{2}/)
-    if (zipMatch) zip = zipMatch[0]
-    if (stateMatch) state = stateMatch[0]
-    if (parts.length >= 3) city = parts[parts.length - 2].replace(/, USA$/, '').trim()
-    street = parts[0]
+    // Walk from the end: last segment is country (drop it), second-to-last is
+    // usually "STATE ZIP" or just "STATE" (handle both).
+    const country = parts[parts.length - 1]
+    const stateAndZip = parts[parts.length - 2] || ''
+
+    // Strip country from consideration (USA, US, United States, etc.)
+    if (/^(usa?|united states)$/i.test(country)) {
+      const stateZipMatch = stateAndZip.match(/^([A-Z]{2})\s*(\d{5}(?:-\d{4})?)?$/)
+      if (stateZipMatch) {
+        state = stateZipMatch[1]
+        zip = stateZipMatch[2] || ''
+        // City is the segment before state+zip
+        if (parts.length >= 3) city = parts[parts.length - 3]
+      } else {
+        // Last segment isn't a clean STATE ZIP — try to extract whatever we can
+        const stateOnly = stateAndZip.match(/^([A-Z]{2})/)
+        if (stateOnly) state = stateOnly[1]
+        const zipOnly = stateAndZip.match(/(\d{5}(?:-\d{4})?)/)
+        if (zipOnly) zip = zipOnly[1]
+        if (parts.length >= 3) city = parts[parts.length - 3]
+      }
+    } else {
+      // Non-US or unusual — best effort: last segment is country, second-to-last is region
+      // Leave state/zip empty so caller can edit manually.
+      if (parts.length >= 3) city = parts[parts.length - 3]
+    }
   }
 
-  return { street, city, state, zip }
+  return { city, state, zip }
 }
