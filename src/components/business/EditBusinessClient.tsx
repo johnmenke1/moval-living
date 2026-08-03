@@ -441,7 +441,10 @@ export default function EditBusinessClient({ business, categories }: Props) {
                   </div>
                   <div>
                     <label className="label">State</label>
-                    <input value={form.state} onChange={e => update('state', e.target.value)} className="input" readOnly />
+                    <input value={form.state} onChange={e => update('state', e.target.value.toUpperCase())} className={`input${fieldError('state') ? ' border-red-500 ring-1 ring-red-200' : ''}`} maxLength={2} placeholder="CA" />
+                    {fieldError('state') && (
+                      <p className="text-xs text-red-500 mt-1">{fieldError('state')}</p>
+                    )}
                   </div>
                 </div>
                 <div>

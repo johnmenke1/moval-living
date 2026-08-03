@@ -56,18 +56,40 @@ export async function GET(req: NextRequest) {
       regularOpeningHours?: { periods?: { openDay?: string; openTime?: string; closeDay?: string; closeTime?: string }[] }
       photos?: { name: string }[]
       location?: { latitude: number; longitude: number }
-    }) => ({
-      placeId: p.id,
-      name: p.displayName?.text || '',
-      address: p.formattedAddress || '',
-      phone: p.nationalPhoneNumber || '',
-      website: p.website || '',
-      type: p.primaryType || '',
-      // Opening hours as our JSON format: { mon: { open: "9:00 AM", close: "5:00 PM", closed: false }, ... }
-      hours: parseOpeningHours(p.regularOpeningHours),
-      photos: p.photos || [],
-      location: p.location ? { lat: p.location.latitude, lng: p.location.longitude } : null,
-    }))
+      addressComponents?: { longText?: string; shortText?: string; types?: string[] }[]
+    }) => {
+      // Parse structured address components (USPS / Google Places v1 format).
+      // Prefer the structured components over regex-splitting formattedAddress.
+      const components = p.addressComponents || []
+      const find = (type: string) => components.find(c => c.types?.includes(type))
+      const streetNumber = find('street_number')?.longText || find('street_number')?.shortText || ''
+      const route = find('route')?.longText || find('route')?.shortText || ''
+      const street = [streetNumber, route].filter(Boolean).join(' ').trim()
+      const city = find('locality')?.longText
+        || find('postal_town')?.longText
+        || find('sublocality_level_1')?.longText
+        || ''
+      const state = find('administrative_area_level_1')?.shortText || ''
+      const zip = find('postal_code')?.shortText || ''
+
+      return {
+        placeId: p.id,
+        name: p.displayName?.text || '',
+        // Fall back to formattedAddress for street only if structured street is empty
+        // (handles international or non-standard addresses that lack street_number/route)
+        address: street || p.formattedAddress || '',
+        phone: p.nationalPhoneNumber || '',
+        website: p.website || '',
+        type: p.primaryType || '',
+        city,
+        state,
+        zip,
+        // Opening hours as our JSON format: { mon: { open: "9:00 AM", close: "5:00 PM", closed: false }, ... }
+        hours: parseOpeningHours(p.regularOpeningHours),
+        photos: p.photos || [],
+        location: p.location ? { lat: p.location.latitude, lng: p.location.longitude } : null,
+      }
+    })
 
     return NextResponse.json({ places })
   } catch (err) {

@@ -23,6 +23,9 @@ interface GMBPlace {
   placeId: string
   name: string
   address: string
+  city: string
+  state: string
+  zip: string
   phone: string
   website: string
   type: string
@@ -87,7 +90,7 @@ export default function SubmitPage() {
   }
 
   const handleGMBImport = (place: GMBPlace) => {
-    const parsed = parseAddress(place.address)
+    // The search route now returns structured city/state/zip — no string parsing needed.
     setForm(prev => ({
       ...prev,
       name: place.name || prev.name,
@@ -97,40 +100,11 @@ export default function SubmitPage() {
       hours: place.hours || prev.hours,
       latitude: place.location?.lat || null,
       longitude: place.location?.lng || null,
-      city: parsed.city !== prev.city ? parsed.city : prev.city,
-      state: 'CA',
-      zip: parsed.zip || prev.zip,
+      city: place.city || prev.city,
+      state: place.state || prev.state,
+      zip: place.zip || prev.zip,
     }))
     setStep(1)
-  }
-
-  const parseAddress = (address: string) => {
-    // Try to extract city, state, zip from a formatted US address
-    // e.g. "123 Main St, Moreno Valley, CA 92553, USA"
-    const parts = address.split(',').map(p => p.trim())
-    let city = 'Moreno Valley'
-    let state = 'CA'
-    let zip = ''
-    let street = address
-
-    if (parts.length >= 2) {
-      // Last part is usually "CA 92553, USA" or "CA 92553"
-      const last = parts[parts.length - 1]
-      const zipMatch = last.match(/\d{5}/)
-      const stateMatch = last.match(/[A-Z]{2}/)
-      if (zipMatch) zip = zipMatch[0]
-      if (stateMatch) state = stateMatch[0]
-
-      // Second-to-last might be the city
-      if (parts.length >= 3) {
-        city = parts[parts.length - 2].replace(/, USA$/, '').trim()
-      }
-
-      // First part is usually the street
-      street = parts[0]
-    }
-
-    return { address: street, city, state, zip }
   }
 
   const canProceed = () => {
@@ -251,11 +225,11 @@ export default function SubmitPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="col-span-2">
                     <label className="label">City</label>
-                    <input value={form.city} onChange={e => update('city', e.target.value)} className="input" readOnly={form.city === 'Moreno Valley'} />
+                    <input value={form.city} onChange={e => update('city', e.target.value)} className="input" />
                   </div>
                   <div>
                     <label className="label">State</label>
-                    <input value={form.state} onChange={e => update('state', e.target.value)} className="input" readOnly />
+                    <input value={form.state} onChange={e => update('state', e.target.value.toUpperCase())} className="input" maxLength={2} placeholder="CA" />
                   </div>
                 </div>
                 <div>
