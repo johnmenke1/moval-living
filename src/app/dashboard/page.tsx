@@ -6,7 +6,6 @@ import { Status } from '@prisma/client'
 import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus } from 'lucide-react'
 import DashboardUpgradeWidget from './DashboardUpgradeWidget'
 import AdminTabs from './AdminTabs'
-import { Trophy } from 'lucide-react'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -69,6 +68,10 @@ export default async function DashboardPage() {
     ])
     // Annotate each business with isBestOf so the moderation panel can show the badge.
     const businessesWithFlags = businesses.map(b => ({ ...b, isBestOf: b.bestOfRank === 1 }))
+    return (
+      <div className="bg-slate-50 min-h-screen">
+        <div className="bg-white border-b border-slate-100">
+          <div className="container-max py-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-text mb-1">Admin Dashboard</h1>
               <p className="text-text-secondary">Site administration</p>
