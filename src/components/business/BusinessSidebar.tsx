@@ -149,16 +149,23 @@ export function BusinessSidebar({ business }: BusinessSidebarProps) {
   }
 
   // ── Logged in but not the owner ──
-  return (
-    <>
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 text-center">
-        <AlertCircle className="w-8 h-8 text-text-secondary mx-auto mb-3" />
-        <h3 className="font-bold text-text mb-1">Not your listing?</h3>
-        <p className="text-text-secondary text-sm">This listing is owned by another account. Contact us if you believe this is incorrect.</p>
-      </div>
-      <WebsiteUpsell />
-    </>
-  )
+  // Only show "owned by another account" if the business is actually claimed.
+  // An unclaimed business should show the claim CTA even to logged-in users.
+  if (isLoggedIn && !isOwner) {
+    if (isClaimed) {
+      return (
+        <>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 text-center">
+            <AlertCircle className="w-8 h-8 text-text-secondary mx-auto mb-3" />
+            <h3 className="font-bold text-text mb-1">Not your listing?</h3>
+            <p className="text-text-secondary text-sm">This listing is owned by another account. Contact us if you believe this is incorrect.</p>
+          </div>
+          <WebsiteUpsell />
+        </>
+      )
+    }
+    // Unclaimed — fall through to show the claim CTA even to logged-in users
+  }
 }
 
 function WebsiteUpsell() {
