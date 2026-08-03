@@ -106,6 +106,8 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
               <div className="relative h-56 md:h-72 bg-gradient-to-br from-primary/20 to-secondary/20">
                 {business.coverImage ? (
                   <img src={business.coverImage} alt={business.name} className="w-full h-full object-cover" />
+                ) : business.logo ? (
+                  <img src={business.logo} alt={business.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <span className="text-7xl font-bold text-primary/20">{business.name[0]}</span>
