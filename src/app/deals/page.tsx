@@ -32,8 +32,6 @@ async function getDeals(params: { sort?: string; page?: string }) {
         category: true,
         reviews: true,
         _count: { select: { reviews: true } },
-        googleRating: true,
-        googleReviewCount: true,
       },
       orderBy,
       skip,

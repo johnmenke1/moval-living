@@ -67,8 +67,6 @@ async function getBusinesses(params: {
         category: true,
         reviews: true,
         _count: { select: { reviews: true } },
-        googleRating: true,
-        googleReviewCount: true,
       },
       orderBy,
       skip,
