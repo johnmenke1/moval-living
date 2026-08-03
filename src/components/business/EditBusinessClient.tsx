@@ -44,6 +44,31 @@ interface Props {
   categories: Category[]
 }
 
+// Maps Zod field names to human-readable labels for the validation toast.
+// Used in handleSubmit when the server returns a fields object.
+const FIELD_LABELS: Record<string, string> = {
+  name: 'business name',
+  tagline: 'tagline',
+  description: 'description',
+  categoryId: 'category',
+  address: 'street address',
+  city: 'city',
+  state: 'state',
+  zip: 'ZIP code',
+  phone: 'phone',
+  email: 'email',
+  website: 'website',
+  facebook: 'Facebook URL',
+  instagram: 'Instagram URL',
+  yelp: 'Yelp URL',
+  hours: 'hours',
+  hasCoupon: 'deal toggle',
+  coupon: 'deal',
+  googleRating: 'Google rating',
+  googleReviewCount: 'Google review count',
+  googleBusiness: 'Google Business ID',
+}
+
 export default function EditBusinessClient({ business, categories }: Props) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -153,6 +178,12 @@ export default function EditBusinessClient({ business, categories }: Props) {
 
   const fieldError = (key: string) => fieldErrors[key]
 
+  // Class for an input that turns red when the server reports a validation
+  // error for that field. Use everywhere a field maps to a Zod key, otherwise
+  // a failing field stays invisible and the user just sees the toast.
+  const errClass = (key: string) =>
+    fieldError(key) ? 'border-red-500 ring-1 ring-red-200' : ''
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -197,7 +228,17 @@ export default function EditBusinessClient({ business, categories }: Props) {
         const data = await res.json()
         if (data.fields) {
           setFieldErrors(data.fields)
-          setError('Please fix the highlighted fields.')
+          // Surface the first failing field name in the toast so the user
+          // knows where to look. Without this, the toast was just "please
+          // fix" and the actual field was only highlighted if its JSX had
+          // the red-ring CSS wired up (most didn't).
+          const firstField = Object.keys(data.fields)[0]
+          const fieldLabel = firstField ? FIELD_LABELS[firstField] || firstField : null
+          setError(
+            fieldLabel
+              ? `Please fix the ${fieldLabel} field.`
+              : 'Please fix the highlighted fields.'
+          )
         } else {
           throw new Error(data.error || 'Failed to save')
         }
@@ -409,19 +450,22 @@ export default function EditBusinessClient({ business, categories }: Props) {
               <div className="space-y-4">
                 <div>
                   <label className="label">Business Name</label>
-                  <input value={form.name} onChange={e => update('name', e.target.value)} className="input" required />
+                  <input value={form.name} onChange={e => update('name', e.target.value)} className={`input ${errClass('name')}`} required />
+                  {fieldError('name') && <p className="text-xs text-red-500 mt-1">{fieldError('name')}</p>}
                 </div>
                 <div>
                   <label className="label">Tagline <span className="text-text-secondary font-normal">(optional)</span></label>
-                  <input value={form.tagline} onChange={e => update('tagline', e.target.value)} className="input" placeholder="Your trusted business tagline" />
+                  <input value={form.tagline} onChange={e => update('tagline', e.target.value)} className={`input ${errClass('tagline')}`} placeholder="Your trusted business tagline" />
+                  {fieldError('tagline') && <p className="text-xs text-red-500 mt-1">{fieldError('tagline')}</p>}
                 </div>
                 <div>
                   <label className="label">Category</label>
-                  <select value={form.categoryId} onChange={e => update('categoryId', e.target.value)} className="input">
+                  <select value={form.categoryId} onChange={e => update('categoryId', e.target.value)} className={`input ${errClass('categoryId')}`}>
                     {categories.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
+                  {fieldError('categoryId') && <p className="text-xs text-red-500 mt-1">{fieldError('categoryId')}</p>}
                 </div>
               </div>
             </div>
@@ -432,16 +476,18 @@ export default function EditBusinessClient({ business, categories }: Props) {
               <div className="space-y-4">
                 <div>
                   <label className="label">Street Address</label>
-                  <input value={form.address} onChange={e => update('address', e.target.value)} className="input" />
+                  <input value={form.address} onChange={e => update('address', e.target.value)} className={`input ${errClass('address')}`} />
+                  {fieldError('address') && <p className="text-xs text-red-500 mt-1">{fieldError('address')}</p>}
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="col-span-2">
                     <label className="label">City</label>
-                    <input value={form.city} onChange={e => update('city', e.target.value)} className="input" />
+                    <input value={form.city} onChange={e => update('city', e.target.value)} className={`input ${errClass('city')}`} />
+                    {fieldError('city') && <p className="text-xs text-red-500 mt-1">{fieldError('city')}</p>}
                   </div>
                   <div>
                     <label className="label">State</label>
-                    <input value={form.state} onChange={e => update('state', e.target.value.toUpperCase())} className={`input${fieldError('state') ? ' border-red-500 ring-1 ring-red-200' : ''}`} maxLength={2} placeholder="CA" />
+                    <input value={form.state} onChange={e => update('state', e.target.value.toUpperCase())} className={`input ${errClass('state')}`} maxLength={2} placeholder="CA" />
                     {fieldError('state') && (
                       <p className="text-xs text-red-500 mt-1">{fieldError('state')}</p>
                     )}
@@ -452,7 +498,7 @@ export default function EditBusinessClient({ business, categories }: Props) {
                   <input
                     value={form.zip}
                     onChange={e => update('zip', e.target.value)}
-                    className={`input${fieldError('zip') ? ' border-red-500 ring-1 ring-red-200' : ''}`}
+                    className={`input ${errClass('zip')}`}
                     placeholder="92553"
                   />
                   {fieldError('zip') && (
@@ -468,39 +514,47 @@ export default function EditBusinessClient({ business, categories }: Props) {
               <div className="space-y-4">
                 <div>
                   <label className="label">Phone</label>
-                  <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} className="input" placeholder="(951) 555-0100" />
+                  <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} className={`input ${errClass('phone')}`} placeholder="(951) 555-0100" />
+                  {fieldError('phone') && <p className="text-xs text-red-500 mt-1">{fieldError('phone')}</p>}
                 </div>
                 <div>
                   <label className="label">Email</label>
-                  <input type="email" value={form.email} onChange={e => update('email', e.target.value)} className="input" />
+                  <input type="email" value={form.email} onChange={e => update('email', e.target.value)} className={`input ${errClass('email')}`} />
+                  {fieldError('email') && <p className="text-xs text-red-500 mt-1">{fieldError('email')}</p>}
                 </div>
                 <div>
                   <label className="label">Website</label>
-                  <input value={form.website} onChange={e => update('website', e.target.value)} className="input" placeholder="https://..." />
+                  <input value={form.website} onChange={e => update('website', e.target.value)} className={`input ${errClass('website')}`} placeholder="https://..." />
+                  {fieldError('website') && <p className="text-xs text-red-500 mt-1">{fieldError('website')}</p>}
                 </div>
                 <div>
                   <label className="label">Google Business Place ID <span className="text-text-secondary font-normal">(optional)</span></label>
-                  <input value={form.googleBusiness} onChange={e => update('googleBusiness', e.target.value)} className="input font-mono text-xs" placeholder="ChIJ..." />
+                  <input value={form.googleBusiness} onChange={e => update('googleBusiness', e.target.value)} className={`input font-mono text-xs ${errClass('googleBusiness')}`} placeholder="ChIJ..." />
                   <p className="text-xs text-text-secondary mt-1">Paste from Google Places or your Business Profile URL</p>
+                  {fieldError('googleBusiness') && <p className="text-xs text-red-500 mt-1">{fieldError('googleBusiness')}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="label">Google Rating <span className="text-text-secondary font-normal">(0–5)</span></label>
-                    <input type="number" step="0.1" min="0" max="5" value={form.googleRating} onChange={e => update('googleRating', e.target.value)} className="input" placeholder="4.5" />
+                    <input type="number" step="0.1" min="0" max="5" value={form.googleRating} onChange={e => update('googleRating', e.target.value)} className={`input ${errClass('googleRating')}`} placeholder="4.5" />
+                    {fieldError('googleRating') && <p className="text-xs text-red-500 mt-1">{fieldError('googleRating')}</p>}
                   </div>
                   <div>
                     <label className="label">Google Review Count</label>
-                    <input type="number" min="0" value={form.googleReviewCount} onChange={e => update('googleReviewCount', e.target.value)} className="input" placeholder="128" />
+                    <input type="number" min="0" value={form.googleReviewCount} onChange={e => update('googleReviewCount', e.target.value)} className={`input ${errClass('googleReviewCount')}`} placeholder="128" />
+                    {fieldError('googleReviewCount') && <p className="text-xs text-red-500 mt-1">{fieldError('googleReviewCount')}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="label">Facebook URL</label>
-                    <input value={form.facebook} onChange={e => update('facebook', e.target.value)} className="input" placeholder="https://facebook.com/..." />
+                    <input value={form.facebook} onChange={e => update('facebook', e.target.value)} className={`input ${errClass('facebook')}`} placeholder="https://facebook.com/..." />
+                    {fieldError('facebook') && <p className="text-xs text-red-500 mt-1">{fieldError('facebook')}</p>}
                   </div>
                   <div>
                     <label className="label">Instagram URL</label>
-                    <input value={form.instagram} onChange={e => update('instagram', e.target.value)} className="input" placeholder="https://instagram.com/..." />
+                    <input value={form.instagram} onChange={e => update('instagram', e.target.value)} className={`input ${errClass('instagram')}`} placeholder="https://instagram.com/..." />
+                    {fieldError('instagram') && <p className="text-xs text-red-500 mt-1">{fieldError('instagram')}</p>}
                   </div>
                 </div>
               </div>
@@ -512,14 +566,15 @@ export default function EditBusinessClient({ business, categories }: Props) {
               <div>
                 <label className="label">
                   Business Description
-                  <span className="text-text-secondary font-normal ml-2">({form.description.length} / 2000 chars)</span>
+                  <span className="text-text-secondary font-normal ml-2">({form.description.length} / 2000 chars · min 50)</span>
                 </label>
                 <textarea
                   value={form.description}
                   onChange={e => update('description', e.target.value)}
-                  className="input min-h-[180px] resize-none"
+                  className={`input min-h-[180px] resize-none ${errClass('description')}`}
                   maxLength={2000}
                 />
+                {fieldError('description') && <p className="text-xs text-red-500 mt-1">{fieldError('description')}</p>}
               </div>
             </div>
 
@@ -583,7 +638,8 @@ export default function EditBusinessClient({ business, categories }: Props) {
                 <div className="space-y-4 bg-slate-50 rounded-xl p-5">
                   <div>
                     <label className="label">Deal Headline</label>
-                    <input value={form.couponHeadline} onChange={e => update('couponHeadline', e.target.value)} className="input" placeholder="e.g. 20% off first service" maxLength={80} />
+                    <input value={form.couponHeadline} onChange={e => update('couponHeadline', e.target.value)} className={`input ${errClass('coupon')}`} placeholder="e.g. 20% off first service" maxLength={80} />
+                    {fieldError('coupon') && <p className="text-xs text-red-500 mt-1">{fieldError('coupon')}</p>}
                   </div>
                   <div>
                     <label className="label">Details</label>
