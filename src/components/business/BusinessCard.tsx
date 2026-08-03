@@ -45,14 +45,18 @@ export function BusinessCard({ business }: BusinessCardProps) {
             alt={business.name}
             className={cn(
               'w-full h-full',
-              // If we're falling back to the logo (no cover image), center it on the
-              // background instead of cropping — logos are square, covers are wide.
               !business.coverImage && business.logo ? 'object-contain p-6' : 'object-cover'
             )}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
             <span className="text-4xl font-bold text-primary/30">{business.name[0]}</span>
+          </div>
+        )}
+        {/* Logo badge — shows on top of cover image */}
+        {business.logo && business.coverImage && (
+          <div className="absolute bottom-3 left-3 w-12 h-12 rounded-xl border-2 border-white shadow-md overflow-hidden bg-white">
+            <img src={business.logo} alt={`${business.name} logo`} className="w-full h-full object-contain" />
           </div>
         )}
         {isFeatured && (
