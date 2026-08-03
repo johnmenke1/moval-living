@@ -44,6 +44,7 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     googleBusiness: string
     googleRating: string
     googleReviewCount: string
+    tier: 'FREE' | 'FEATURED'
   }>>({})
 
   const reportFailure = async (response: Response, fallback: string) => {
@@ -133,6 +134,9 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
       const v = parseInt(edits.googleReviewCount)
       patch.googleReviewCount = isNaN(v) ? null : v
     }
+    if (edits.tier !== undefined) {
+      patch.tier = edits.tier
+    }
     await moderate(id, patch)
     setEditGoogle(prev => { const n = { ...prev }; delete n[id]; return n })
   }
@@ -144,6 +148,7 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
         googleBusiness: b.googleBusiness || '',
         googleRating: b.googleRating?.toString() || '',
         googleReviewCount: b.googleReviewCount?.toString() || '',
+        tier: b.tier || 'FREE',
       },
     }))
     setExpandedId(expandedId === b.id ? null : b.id)
@@ -407,6 +412,21 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                           placeholder="127"
                         />
                       </div>
+                      {/* Tier */}
+                      <div>
+                        <label className="label text-xs">Listing Tier</label>
+                        <select
+                          value={edits?.tier ?? business.tier ?? 'FREE'}
+                          onChange={e => setEditGoogle(prev => ({
+                            ...prev,
+                            [business.id]: { ...prev[business.id], tier: e.target.value as 'FREE' | 'FEATURED' },
+                          }))}
+                          className="input text-sm py-1.5"
+                        >
+                          <option value="FREE">Free</option>
+                          <option value="FEATURED">Featured ★</option>
+                        </select>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -415,7 +435,7 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                         disabled={loading === business.id}
                         className="btn-primary text-xs py-1.5 px-4"
                       >
-                        Save Google Info
+                        Save Changes
                       </button>
                       {business.googleBusiness && (
                         <button
