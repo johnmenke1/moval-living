@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       entries: {
         include: {
           business: {
-            select: { id: true, googleReviewCount: true },
+            select: { id: true, googleReviewCount: true, createdAt: true },
           },
         },
       },
@@ -62,22 +62,26 @@ export async function POST(request: Request) {
 
     // Compute composite scores + sort
     const scored = entries
-      .map(entry => ({
-        id: entry.id,
-        businessId: entry.businessId,
-        composite: computeScores(
-          {
-            googleRating: entry.googleRating ?? 0,
-            googleReviewCount: entry.googleReviewCount ?? 0,
-            yearsActive: entry.yearsActive ?? 0,
-            localOwnership: entry.localOwnership,
-            uniqueness: entry.uniqueness,
-            communityInvolvement: entry.communityInvolvement,
-            personalVisitReview: entry.personalVisitReview,
-          },
-          { maxReviews, maxYears }
-        ).composite,
-      }))
+      .map(entry => {
+        const yearsActive = (Date.now() - entry.business.createdAt.getTime()) / (1000 * 60 * 60 * 24 * 365)
+        return {
+          id: entry.id,
+          businessId: entry.businessId,
+          composite: computeScores(
+            {
+              googleRating: entry.googleRating ?? 0,
+              googleReviewCount: entry.googleReviewCount ?? 0,
+              yearsActive,
+              localOwnership: entry.localOwnership,
+              uniqueness: entry.uniqueness,
+              communityInvolvement: entry.communityInvolvement,
+              personalVisitReview: entry.personalVisitReview,
+            },
+            { maxReviews, maxYears }
+          ).composite,
+          yearsActive,
+        }
+      })
       .sort((a, b) => b.composite - a.composite)
 
     // Assign ranks

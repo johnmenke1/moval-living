@@ -24,14 +24,15 @@ export async function PATCH(
     personalVisitReview:  Number(personalVisitReview ?? 0),
   }
 
-  // Fetch the entry with its category's max review count and years
+  // Fetch the entry + all entries in its category (to compute category maxes)
   const entry = await prisma.bestOfEntry.findUnique({
     where: { id },
     include: {
+      business: { select: { createdAt: true } },
       category: {
         include: {
           entries: {
-            select: { googleReviewCount: true, yearsActive: true },
+            include: { business: { select: { createdAt: true } } },
           },
         },
       },
@@ -42,19 +43,26 @@ export async function PATCH(
     return NextResponse.json({ error: 'Entry not found' }, { status: 404 })
   }
 
-  const reviewCounts = entry.category.entries
-    .map(e => e.googleReviewCount ?? 0)
-    .filter(v => v > 0)
-  const yearsActive = entry.category.entries
-    .map(e => e.yearsActive ?? 0)
-    .filter(v => v > 0)
+  // Recompute yearsActive for every entry in the category from Business.createdAt
+  const now = Date.now()
+  const entriesWithYears = entry.category.entries.map(e => ({
+    ...e,
+    yearsActive: (now - e.business.createdAt.getTime()) / (1000 * 60 * 60 * 24 * 365),
+  }))
+
+  const reviewCounts = entriesWithYears.map(e => e.googleReviewCount ?? 0).filter(v => v > 0)
+  const yearsActiveList = entriesWithYears.map(e => e.yearsActive).filter(v => v > 0)
 
   const maxReviews = Math.max(...reviewCounts, 1)
-  const maxYears = Math.max(...yearsActive, 1)
+  const maxYears = Math.max(...yearsActiveList, 1)
+
+  // Recompute this entry's yearsActive from Business.createdAt
+  const currentYearsActive = (now - entry.business.createdAt.getTime()) / (1000 * 60 * 60 * 24 * 365)
 
   const { composite } = computeScores(
     {
       ...entry,
+      yearsActive: currentYearsActive,
       ...editorialScores,
     },
     { maxReviews, maxYears }
@@ -65,6 +73,7 @@ export async function PATCH(
     data: {
       ...editorialScores,
       compositeScore: composite,
+      yearsActive: currentYearsActive,
     },
     include: {
       business: {

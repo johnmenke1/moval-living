@@ -4,7 +4,7 @@ import { useState } from 'react'
 import {
   Trophy, Star, Plus, Trash2, Edit2, Save, X,
   Coffee, Flame, Heart, ShoppingBag, Sunrise, Beef, Pizza, ChefHat,
-  RefreshCw, ExternalLink, AlertCircle, CheckCircle, Search
+  RefreshCw, ExternalLink, AlertCircle, CheckCircle, Search, Calculator
 } from 'lucide-react'
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -84,6 +84,7 @@ export default function BestOfAdmin({ initialCategories }: Props) {
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [draftScores, setDraftScores] = useState<Partial<Record<string, number>>>({})
+  const [recalculating, setRecalculating] = useState(false)
 
   // Add-business search state
   const [addingToCategory, setAddingToCategory] = useState<string | null>(null)
@@ -218,6 +219,23 @@ export default function BestOfAdmin({ initialCategories }: Props) {
     }
   }
 
+  // ── Recalculate all scores + sync bestOfRank ──────────────────────────
+  const recalculateAll = async () => {
+    if (!confirm('Recalculate all BestOf scores and sync #1 winners to the Business table?')) return
+    setRecalculating(true)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/best-of/recalculate', { method: 'POST' })
+      if (!res.ok) throw new Error((await res.json()).error || 'Recalculate failed')
+      const data = await res.json()
+      // Refresh the page data by reloading
+      window.location.reload()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Recalculate failed')
+      setRecalculating(false)
+    }
+  }
+
   // ── Score badge ───────────────────────────────────────────────────────
   const ScoreBadge = ({ value, max = 10 }: { value: number; max?: number }) => {
     const pct = (value / max) * 100
@@ -256,6 +274,14 @@ export default function BestOfAdmin({ initialCategories }: Props) {
             <p className="text-xs text-text-secondary">{categories.length} categories</p>
           </div>
         </div>
+        <button
+          onClick={recalculateAll}
+          disabled={recalculating}
+          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-50"
+        >
+          <Calculator className={`w-3.5 h-3.5 ${recalculating ? 'animate-spin' : ''}`} />
+          {recalculating ? 'Recalculating...' : 'Recalculate Scores'}
+        </button>
       </div>
 
       {error && (
