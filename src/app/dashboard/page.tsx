@@ -23,6 +23,10 @@ export default async function DashboardPage() {
           reviews: { orderBy: { createdAt: 'desc' }, take: 5 },
           _count: { select: { reviews: true } },
         },
+        select: {
+          id: true, slug: true, name: true, logo: true, tier: true,
+          coverImage: true, photos: true,
+        },
       },
     },
   })

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { CheckCircle, ChevronLeft, Loader2, AlertCircle } from 'lucide-react'
+import { CheckCircle, ChevronLeft, Loader2, AlertCircle, ImagePlus, X, Star } from 'lucide-react'
 
 interface Category {
   id: string
@@ -33,6 +33,10 @@ interface Business {
   hours: Record<string, { open: string; close: string; closed: boolean }> | null
   hasCoupon: boolean
   coupon: { headline: string; description: string; code: string | null; expiresAt: string | null } | null
+  tier: 'FREE' | 'FEATURED'
+  logo: string | null
+  coverImage: string | null
+  photos: string[]
 }
 
 interface Props {
@@ -72,6 +76,58 @@ export default function EditBusinessClient({ business, categories }: Props) {
 
   // Per-field validation errors from the server
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  // Image management
+  const [logoUrl, setLogoUrl] = useState<string | null>(business.logo)
+  const [coverUrl, setCoverUrl] = useState<string | null>(business.coverImage)
+  const [photos, setPhotos] = useState<string[]>(business.photos)
+  const [uploading, setUploading] = useState<string | null>(null) // 'logo' | 'cover' | 'photo[N]'
+  const [uploadError, setUploadError] = useState('')
+
+  const isFeatured = business.tier === 'FEATURED'
+
+  const handleImageUpload = async (file: File, type: 'logo' | 'cover' | 'photo') => {
+    setUploadError('')
+    setUploading(type)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('businessId', business.id)
+      fd.append('type', type)
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      const { url } = data
+      if (type === 'logo') setLogoUrl(url)
+      else if (type === 'cover') setCoverUrl(url)
+      else if (type === 'photo') setPhotos(prev => [...prev, url])
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setUploading(null)
+    }
+  }
+
+  const handleDeletePhoto = async (url: string) => {
+    try {
+      const res = await fetch(`/api/upload?businessId=${business.id}&url=${encodeURIComponent(url)}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Delete failed')
+      setPhotos(prev => prev.filter(p => p !== url))
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Delete failed')
+    }
+  }
+
+  const uploadInput = (type: 'logo' | 'cover' | 'photo') => ({
+    type: 'file',
+    accept: 'image/jpeg,image/png,image/webp,image/gif',
+    className: 'hidden',
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) handleImageUpload(file, type)
+      e.target.value = ''
+    },
+  }) as React.InputHTMLAttributes<HTMLInputElement>
 
   // Hours — stored as JSON in a hidden field so submit handler can read them
   const [hoursJson, setHoursJson] = useState(JSON.stringify(
@@ -199,6 +255,13 @@ export default function EditBusinessClient({ business, categories }: Props) {
             </div>
           )}
 
+          {uploadError && (
+            <div className="bg-error/10 border border-error/20 text-error text-sm p-4 rounded-lg mb-6 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              {uploadError}
+            </div>
+          )}
+
           {saved && (
             <div className="bg-green-50 border border-green-200 text-green-700 text-sm p-4 rounded-lg mb-6 flex items-center gap-2">
               <CheckCircle className="w-4 h-4 shrink-0" />
@@ -207,6 +270,139 @@ export default function EditBusinessClient({ business, categories }: Props) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Images */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 md:p-8">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-bold text-text">Images</h2>
+                {!isFeatured && (
+                  <span className="text-xs text-text-secondary bg-slate-100 px-2 py-1 rounded-full">
+                    <Star className="w-3 h-3 inline mr-1 text-amber-500" />
+                    Upgrade to add photo gallery
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-6">
+                {/* Logo & Cover row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* Logo */}
+                  <div>
+                    <label className="label mb-2 block">Business Logo</label>
+                    <div className="relative w-24 h-24 rounded-xl border-2 border-dashed border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center group hover:border-primary transition-colors">
+                      {logoUrl ? (
+                        <>
+                          <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <label className="cursor-pointer text-white text-xs font-medium text-center p-2">
+                              <ImagePlus className="w-5 h-5 mx-auto mb-1" />
+                              Change
+                              <input {...uploadInput('logo')} />
+                            </label>
+                          </div>
+                        </>
+                      ) : (
+                        <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-primary transition-colors">
+                          <ImagePlus className="w-6 h-6 mb-1" />
+                          <span className="text-xs">Upload</span>
+                          <input {...uploadInput('logo')} />
+                        </label>
+                      )}
+                      {uploading === 'logo' && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 text-white animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-text-secondary mt-1.5">JPG, PNG, WebP or GIF · max 10MB</p>
+                  </div>
+
+                  {/* Cover Image */}
+                  <div>
+                    <label className="label mb-2 block">Cover Image</label>
+                    <div className="relative rounded-xl border-2 border-dashed border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center group hover:border-primary transition-colors aspect-[16/9]">
+                      {coverUrl ? (
+                        <>
+                          <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <label className="cursor-pointer text-white text-xs font-medium text-center p-2">
+                              <ImagePlus className="w-5 h-5 mx-auto mb-1" />
+                              Change
+                              <input {...uploadInput('cover')} />
+                            </label>
+                          </div>
+                        </>
+                      ) : (
+                        <label className="cursor-pointer flex flex-col items-center justify-center text-slate-400 hover:text-primary transition-colors">
+                          <ImagePlus className="w-6 h-6 mb-1" />
+                          <span className="text-xs">Upload cover</span>
+                          <input {...uploadInput('cover')} />
+                        </label>
+                      )}
+                      {uploading === 'cover' && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 text-white animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-text-secondary mt-1.5">Displayed at the top of your listing · max 10MB</p>
+                  </div>
+                </div>
+
+                {/* Photo Gallery — Featured only */}
+                {isFeatured ? (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="label mb-0">Photo Gallery</label>
+                      <span className="text-xs text-text-secondary">{photos.length} / 10</span>
+                    </div>
+
+                    {photos.length > 0 && (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-3">
+                        {photos.map((url, i) => (
+                          <div key={i} className="relative aspect-square rounded-lg border border-slate-200 overflow-hidden group">
+                            <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePhoto(url)}
+                              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {photos.length < 10 && (
+                      <label className="flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-primary hover:text-primary cursor-pointer transition-colors">
+                        <ImagePlus className="w-5 h-5" />
+                        <span className="text-sm font-medium">Add photo</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleImageUpload(file, 'photo')
+                            e.target.value = ''
+                          }}
+                        />
+                        {uploading === 'photo' && <Loader2 className="w-4 h-4 animate-spin" />}
+                      </label>
+                    )}
+                    <p className="text-xs text-text-secondary mt-1.5">Up to 10 photos · max 10MB each · JPG, PNG, WebP or GIF</p>
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-sm text-text-secondary bg-slate-50 rounded-xl">
+                    <Star className="w-4 h-4 inline mr-1 text-amber-500" />
+                    Photo gallery is available for{' '}
+                    <Link href="/pricing" className="text-primary font-medium hover:underline">Featured</Link> listings
+                    {' '}— up to 10 photos to showcase your business.
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Basic Info */}
             <div className="bg-white rounded-2xl border border-slate-100 p-6 md:p-8">
               <h2 className="text-lg font-bold text-text mb-5">Basic Information</h2>

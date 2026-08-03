@@ -146,6 +146,30 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                   <p className="text-text-secondary leading-relaxed whitespace-pre-line">{business.description}</p>
                 </div>
 
+                {/* Photo Gallery */}
+                {business.photos && business.photos.length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="font-semibold text-text mb-3">Photos</h3>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                      {business.photos.map((url, i) => (
+                        <a
+                          key={i}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-primary transition-colors group"
+                        >
+                          <img
+                            src={url}
+                            alt={`${business.name} photo ${i + 1}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Quick Info Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                   {business.address && (
