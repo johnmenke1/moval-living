@@ -88,113 +88,74 @@ function parseOHEntry(o: OpenHouseRow): OpenHouseEntry {
   }
 }
 
-// Fetch photos for a batch of listing keys
-async function fetchPhotos(token: string, keys: string[]): Promise<Map<string, string>> {
-  const photos = new Map<string, string>()
-  if (!keys.length) return photos
-
-  // Trestle limits $filter clauses; batch in groups of 50
-  const batchSize = 50
-  for (let i = 0; i < keys.length; i += batchSize) {
-    const batch = keys.slice(i, i + batchSize)
-    const filter = batch
-      .map((k) => `ResourceRecordKey eq '${k.replace(/'/g, "''")}'`)
-      .join(' or ')
-    const params = new URLSearchParams({
-      $filter: filter,
-      $select: 'MediaURL,ResourceRecordKey',
-      $top: String(batch.length * 5),
-    })
-    const res = await fetch(`${getMediaEndpoint()}?${params}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      cache: 'no-store',
-    })
-    if (!res.ok) break
-    const data = (await res.json()) as { value?: MediaRow[] }
-    for (const row of data.value ?? []) {
-      if (row.ResourceRecordKey && row.MediaURL && !photos.has(row.ResourceRecordKey)) {
-        photos.set(row.ResourceRecordKey, row.MediaURL)
-      }
-    }
-  }
-  return photos
-}
-
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
   try {
     const token = await getAccessToken()
     const searchParams = request.nextUrl.searchParams
-    const city = searchParams.get('city') ?? 'Moreno Valley'
+    const city = (searchParams.get('city') ?? 'Moreno Valley').trim()
     const today = new Date().toISOString().split('T')[0]
 
-    const ohFilterBase = [
+    // ── Step 1: Fetch ALL active OH rows (paginate through all pages) ──────────
+    const ohSelect = [
+      'OpenHouseId', 'OpenHouseKey',
+      'OpenHouseDate', 'OpenHouseStartTime', 'OpenHouseEndTime',
+      'OpenHouseStatus', 'OpenHouseType', 'OpenHouseRemarks',
+      'ListingKey', 'ListingId',
+    ].join(',')
+
+    const baseOhUrl = `${process.env.TRESTLE_BASE_URL ?? 'https://api.cotality.com/trestle/odata'}/OpenHouse`
+    const ohFilter = [
       `OpenHouseDate ge ${today}`,
       "OpenHouseStatus eq 'Active'",
     ].join(' and ')
 
-    const ohFilterWithCity = [
-      `OpenHouseDate ge ${today}`,
-      "OpenHouseStatus eq 'Active'",
-      `PropertyCity eq 'Moreno Valley'`,
-    ].join(' and ')
+    const ohRows: OpenHouseRow[] = []
+    let ohSkip = 0
+    const ohPageSize = 500
+    let totalOH = 0
 
-    async function fetchOH(filter: string) {
-      const ohParams = new URLSearchParams({
-        $filter: filter,
-        $select: [
-          'OpenHouseId', 'OpenHouseKey',
-          'OpenHouseDate', 'OpenHouseStartTime', 'OpenHouseEndTime',
-          'OpenHouseStatus', 'OpenHouseType', 'OpenHouseRemarks',
-          'ListingKey', 'ListingId',
-        ].join(','),
-        $top: '500',
+    while (true) {
+      const params = new URLSearchParams({
+        $filter: ohFilter,
+        $select: ohSelect,
+        $top: String(ohPageSize),
+        $skip: String(ohSkip),
         $count: 'true',
       })
-      const url = `${process.env.TRESTLE_BASE_URL ?? 'https://api.cotality.com/trestle/odata'}/OpenHouse?${ohParams}`
-      console.log('[trestle/open-houses] OH query URL:', url)
-      return fetch(url, {
+      const url = `${baseOhUrl}?${params}`
+      console.log(`[trestle/open-houses] fetching OH page skip=${ohSkip}...`)
+      const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
         cache: 'no-store',
       })
+      if (!res.ok) {
+        const body = await res.text()
+        console.error(`[trestle/open-houses] OH page failed skip=${ohSkip}:`, res.status, body.slice(0, 200))
+        return NextResponse.json({ listings: [], error: `Trestle ${res.status}` }, { status: 502 })
+      }
+      const data = (await res.json()) as { '@odata.count'?: number; value?: OpenHouseRow[] }
+      const rows = data.value ?? []
+      ohRows.push(...rows)
+      totalOH = data['@odata.count'] ?? 0
+      if (rows.length < ohPageSize) break
+      ohSkip += ohPageSize
+      // Safety cap: don't fetch more than 10,000 OH records
+      if (ohSkip >= 10000) break
     }
 
-    let ohRes = await fetchOH(ohFilterWithCity)
-    let usedCityFilter = true
-
-    if (!ohRes.ok) {
-      console.warn(`[trestle/open-houses] city filter ${ohRes.status}, falling back`)
-      ohRes = await fetchOH(ohFilterBase)
-      usedCityFilter = false
-    }
-
-    const ohStatus = ohRes.status
-    const ohBody = await ohRes.text()
-    console.log(`[trestle/open-houses] OH response status=${ohStatus} body=${ohBody.slice(0, 300)}`)
-
-    if (!ohRes.ok) {
-      console.error('[trestle/open-houses] OpenHouse query failed:', ohStatus, ohBody)
-      return NextResponse.json({ listings: [], error: `Trestle ${ohStatus}`, details: ohBody.slice(0, 500) }, { status: 502 })
-    }
-
-    const ohData = (await JSON.parse(ohBody)) as {
-      '@odata.count'?: number
-      value?: OpenHouseRow[]
-    }
-    const ohRows = ohData.value ?? []
-    console.log(`[trestle/open-houses] ${ohRows.length} OH rows (total: ${ohData['@odata.count']})`)
+    console.log(`[trestle/open-houses] fetched ${ohRows.length}/${totalOH} OH rows`)
 
     if (ohRows.length === 0) {
       return NextResponse.json({ listings: [], total: 0 })
     }
 
-    // ── Step 2: Extract unique listing keys ───────────────────────────────────
+    // ── Step 2: Extract unique listing keys ────────────────────────────────────
     const listingKeys = [...new Set(ohRows.map((r) => String(r.ListingKey ?? '')).filter(Boolean))]
-    console.log(`[trestle/open-houses] ${listingKeys.length} unique listings`)
+    console.log(`[trestle/open-houses] ${listingKeys.length} unique listing keys`)
 
-    // ── Step 3: Batch-fetch Property records ──────────────────────────────────
-    // Trestle Property endpoint; batch by 50 keys per request
+    // ── Step 3: Batch-fetch all Property records ───────────────────────────────
     const propSelect = [
       'ListingKey', 'ListingId',
       'StreetNumber', 'StreetDirPrefix', 'StreetName', 'StreetSuffix',
@@ -213,64 +174,69 @@ export async function GET(request: NextRequest) {
       const propFilter = batch
         .map((k) => `ListingKey eq '${k.replace(/'/g, "''")}'`)
         .join(' or ')
-      const propParams = new URLSearchParams({
-        $filter: propFilter,
-        $select: propSelect,
-        $top: String(batch.length),
-      })
-      const propRes = await fetch(`${getPropertyEndpoint()}?${propParams}`, {
+      const params = new URLSearchParams({ $filter: propFilter, $select: propSelect, $top: String(batch.length) })
+      const res = await fetch(`${getPropertyEndpoint()}?${params}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
         cache: 'no-store',
       })
-      if (propRes.ok) {
-        const propData = (await propRes.json()) as { value?: PropertyRow[] }
-        for (const p of propData.value ?? []) {
+      if (res.ok) {
+        const data = (await res.json()) as { value?: PropertyRow[] }
+        for (const p of data.value ?? []) {
           const key = String(p.ListingKey ?? '')
           if (key && !propMap.has(key)) propMap.set(key, p)
         }
       }
     }
 
-    console.log(`[trestle/open-houses] fetched ${propMap.size} property records`)
-    console.log(`[trestle/open-houses] sample keys from propMap:`, [...propMap.keys()].slice(0, 3))
-    console.log(`[trestle/open-houses] sample keys from ohRows:`, ohRows.slice(0, 3).map(r => r.ListingKey))
+    console.log(`[trestle/open-houses] fetched ${propMap.size} properties`)
 
     // ── Step 4: Fetch photos ─────────────────────────────────────────────────
-    const photos = await fetchPhotos(token, listingKeys)
+    const photoMap = new Map<string, string>()
+    for (let i = 0; i < listingKeys.length; i += 50) {
+      const batch = listingKeys.slice(i, i + 50)
+      const photoFilter = batch
+        .map((k) => `ResourceRecordKey eq '${k.replace(/'/g, "''")}'`)
+        .join(' or ')
+      const params = new URLSearchParams({ $filter: photoFilter, $select: 'MediaURL,ResourceRecordKey', $top: String(batch.length * 5) })
+      const res = await fetch(`${getMediaEndpoint()}?${params}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        cache: 'no-store',
+      })
+      if (!res.ok) break
+      const data = (await res.json()) as { value?: MediaRow[] }
+      for (const row of data.value ?? []) {
+        if (row.ResourceRecordKey && row.MediaURL && !photoMap.has(row.ResourceRecordKey)) {
+          photoMap.set(row.ResourceRecordKey, row.MediaURL)
+        }
+      }
+    }
 
-    // ── Step 5: Group OH rows by listingKey ───────────────────────────────────
+    // ── Step 5: Group OH rows → listings, filter by city ─────────────────────
+    const cityLC = city.toLowerCase()
     const listingMap = new Map<string, { base: Omit<OpenHouseListing, 'openHouses'>; ohs: OpenHouseEntry[] }>()
 
     for (const row of ohRows) {
       const key = String(row.ListingKey ?? '')
       if (!key) continue
-
       const prop = propMap.get(key)
       if (!prop) continue
 
-      // City filter in JS
-      const propCity = prop.City as string | null
-      const propState = prop.StateOrProvince as string | null
-      const cityLC = city.toLowerCase()
-      const propCityLC = propCity?.toLowerCase() ?? ''
-      // Match if propCity contains the target city, OR the target city contains propCity, OR propCity is empty/null (accept anything)
-      const cityMatch = !propCity || propCityLC.includes(cityLC) || cityLC.includes(propCityLC)
-      // Only accept CA or null/unknown
-      const stateMatch = !propState || propState === 'CA'
+      const propCity = (prop.City as string | null) ?? ''
+      const propState = (prop.StateOrProvince as string | null) ?? ''
 
-      console.log(`[trestle] key=${key} propCity=${JSON.stringify(propCity)} propState=${JSON.stringify(propState)} cityMatch=${cityMatch} stateMatch=${stateMatch}`)
-
-      if (!cityMatch || !stateMatch) continue
+      // Strict CA + city match
+      if (propState !== 'CA') continue
+      if (!propCity.toLowerCase().includes(cityLC)) continue
 
       if (!listingMap.has(key)) {
-        listingMap.set(key, { base: normalizeProperty(prop, photos.get(key) ?? null), ohs: [] })
+        listingMap.set(key, { base: normalizeProperty(prop, photoMap.get(key) ?? null), ohs: [] })
       }
       listingMap.get(key)!.ohs.push(parseOHEntry(row))
-
-    console.log(`[trestle/open-houses] after city filter: listingMap size = ${listingMap.size}`)
     }
 
-    // ── Step 6: Build final list ─────────────────────────────────────────────
+    console.log(`[trestle/open-houses] after city filter: ${listingMap.size} listings`)
+
+    // ── Step 6: Build sorted final list ──────────────────────────────────────
     const listings: OpenHouseListing[] = Array.from(listingMap.values())
       .map(({ base, ohs }) => ({ ...base, openHouses: ohs }))
       .map((l) => ({
@@ -279,11 +245,8 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => a.openHouses[0].openHouseDate.localeCompare(b.openHouses[0].openHouseDate))
 
-    console.log(`[trestle/open-houses] → ${listings.length} listings with OH data`)
-    console.log(`[trestle/open-houses] first listing:`, JSON.stringify(listings[0])?.slice(0, 300))
-
     return NextResponse.json(
-      { listings, total: listings.length, _debug: { ohRowsTotal: ohRows.length, listingKeysTotal: listingKeys.length, propMapSize: propMap.size } },
+      { listings, total: listings.length },
       { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
     )
   } catch (err) {
