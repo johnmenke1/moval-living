@@ -164,18 +164,21 @@ export async function GET(request: NextRequest) {
     let usedCityFilter = true
 
     if (!ohRes.ok) {
-      console.warn(`[trestle/open-houses] OH query with city filter failed ${ohRes.status}, retrying without...`)
+      console.warn(`[trestle/open-houses] city filter ${ohRes.status}, falling back`)
       ohRes = await fetchOH(ohFilterBase)
       usedCityFilter = false
     }
 
+    const ohStatus = ohRes.status
+    const ohBody = await ohRes.text()
+    console.log(`[trestle/open-houses] OH response status=${ohStatus} body=${ohBody.slice(0, 300)}`)
+
     if (!ohRes.ok) {
-      const body = await ohRes.text()
-      console.error('[trestle/open-houses] OpenHouse query failed:', ohRes.status, body)
-      return NextResponse.json({ listings: [], error: `Trestle ${ohRes.status}` }, { status: 502 })
+      console.error('[trestle/open-houses] OpenHouse query failed:', ohStatus, ohBody)
+      return NextResponse.json({ listings: [], error: `Trestle ${ohStatus}`, details: ohBody.slice(0, 500) }, { status: 502 })
     }
 
-    const ohData = (await ohRes.json()) as {
+    const ohData = (await JSON.parse(ohBody)) as {
       '@odata.count'?: number
       value?: OpenHouseRow[]
     }
