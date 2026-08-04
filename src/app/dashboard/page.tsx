@@ -22,7 +22,7 @@ export default async function DashboardPage() {
           id: true, slug: true, name: true, tagline: true, address: true, city: true, state: true, zip: true,
           phone: true, email: true, website: true, hasCoupon: true,
           logo: true, tier: true, status: true, coverImage: true, photos: true,
-          bestOfRank: true,
+          isBestOfWinner: true,
           category: { select: { name: true, slug: true } },
           reviews: {
             orderBy: { createdAt: 'desc' },
@@ -56,18 +56,18 @@ export default async function DashboardPage() {
       prisma.business.count({ where: { status: 'PENDING' } }),
       prisma.bestOfCategory.findMany({
         include: {
-          entries: {
+          nominees: {
             include: {
               business: { select: { id: true, name: true, slug: true, address: true, website: true, logo: true } },
             },
-            orderBy: { compositeScore: 'desc' },
+            orderBy: { winner: 'desc' },
           },
         },
         orderBy: { name: 'asc' },
       }),
     ])
     // Annotate each business with isBestOf so the moderation panel can show the badge.
-    const businessesWithFlags = businesses.map(b => ({ ...b, isBestOf: b.bestOfRank === 1 }))
+    const businessesWithFlags = businesses.map(b => ({ ...b, isBestOf: b.isBestOfWinner }))
     return (
       <div className="bg-slate-50 min-h-screen">
         <div className="bg-white border-b border-slate-100">
@@ -227,7 +227,7 @@ export default async function DashboardPage() {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <h2 className="text-xl font-bold text-text">{business.name}</h2>
-                    {business.bestOfRank === 1 && (
+                    {business.isBestOfWinner && (
                       <img
                         src="/best-of-badge.svg"
                         alt="Best Of"

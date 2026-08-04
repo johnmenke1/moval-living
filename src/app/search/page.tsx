@@ -77,8 +77,8 @@ async function getBusinesses(params: {
 
   // Sort: #1 BestOf first, then FEATURED, then FREE — within each tier apply the chosen sort
   const sorted = [...businesses].sort((a, b) => {
-    const aBest = a.bestOfRank === 1 ? 0 : a.tier === 'FEATURED' ? 1 : 2
-    const bBest = b.bestOfRank === 1 ? 0 : b.tier === 'FEATURED' ? 1 : 2
+    const aBest = a.isBestOfWinner ? 0 : a.tier === 'FEATURED' ? 1 : 2
+    const bBest = b.isBestOfWinner ? 0 : b.tier === 'FEATURED' ? 1 : 2
     if (aBest !== bBest) return aBest - bBest
     // Within same tier, preserve the orderBy sort
     if (params.sort === 'rating') {
@@ -93,7 +93,7 @@ async function getBusinesses(params: {
   return {
     businesses: sorted.map(b => ({
       ...b,
-      isBestOf: b.bestOfRank === 1,
+      isBestOf: b.isBestOfWinner,
       coupon: b.coupon as {
         headline: string
         description?: string | null

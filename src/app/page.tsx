@@ -21,18 +21,17 @@ async function getFeaturedBusinesses() {
 export default async function HomePage() {
   const allApproved = await getFeaturedBusinesses()
 
-  // Sort: BestOf #1 first, then FEATURED, then FREE — within each tier
-  // preserve the createdAt-desc order. The bestOfRank column on Business
-  // is denormalized and indexed; it's maintained by the admin recalculate API.
+  // Sort: BestOf winners first, then FEATURED, then FREE — within each tier
+  // preserve the createdAt-desc order. isBestOfWinner is a manual admin flag on Business.
   const sorted = [...allApproved].sort((a, b) => {
-    const aBest = a.bestOfRank === 1 ? 0 : a.tier === 'FEATURED' ? 1 : 2
-    const bBest = b.bestOfRank === 1 ? 0 : b.tier === 'FEATURED' ? 1 : 2
+    const aBest = a.isBestOfWinner ? 0 : a.tier === 'FEATURED' ? 1 : 2
+    const bBest = b.isBestOfWinner ? 0 : b.tier === 'FEATURED' ? 1 : 2
     return aBest - bBest
   })
 
   const featuredBusinesses = sorted.map(b => ({
     ...b,
-    isBestOf: b.bestOfRank === 1,
+    isBestOf: b.isBestOfWinner,
   }))
 
   return <HomePageClient featuredBusinesses={featuredBusinesses} />

@@ -1,25 +1,23 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// GET /api/best-of — public: list all categories
+// GET /api/best-of — list all published BestOf categories with nominee count
 export async function GET() {
   const categories = await prisma.bestOfCategory.findMany({
-    orderBy: { name: 'asc' },
-    include: {
-      entries: {
-        include: {
-          business: {
-            select: {
-              id: true, name: true, slug: true, address: true,
-              logo: true, website: true, googleRating: true, googleReviewCount: true,
-            },
-          },
-        },
-        orderBy: { compositeScore: 'desc' },
-        where: { compositeScore: { not: null } },
-      },
+    where: { published: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      icon: true,
+      tagHints: true,
+      _count: { select: { nominees: true } },
     },
+    orderBy: { name: 'asc' },
   })
 
-  return NextResponse.json(categories)
+  return NextResponse.json(
+    categories.map(c => ({ ...c, nomineeCount: c._count.nominees })),
+  )
 }

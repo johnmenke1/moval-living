@@ -1,47 +1,53 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { z } from 'zod'
 
-// GET /api/admin/best-of/categories — list all categories with entries
+const CreateCategorySchema = z.object({
+  name: z.string().min(1),
+  slug: z.string().min(1),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  tagHints: z.array(z.string()).optional(),
+  published: z.boolean().optional(),
+})
+
+// GET /api/admin/best-of/categories
 export async function GET() {
-  const session = await auth()
-  if (!session?.user || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   const categories = await prisma.bestOfCategory.findMany({
     orderBy: { name: 'asc' },
     include: {
-      entries: {
-        include: {
-          business: {
-            select: { id: true, name: true, slug: true, address: true, website: true, logo: true },
-          },
-        },
-        orderBy: { compositeScore: 'desc' },
-      },
+      _count: { select: { nominees: true } },
     },
   })
 
-  return NextResponse.json(categories)
+  return NextResponse.json(
+    categories.map(c => ({ ...c, nomineeCount: c._count.nominees })),
+  )
 }
 
-// POST /api/admin/best-of/categories — create a new category
-export async function POST(request: Request) {
-  const session = await auth()
-  if (!session?.user || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+// POST /api/admin/best-of/categories
+export async function POST(req: NextRequest) {
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const body = await request.json()
-  const { name, slug, description, icon, query } = body
+  const parsed = CreateCategorySchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.message }, { status: 400 })
+  }
 
-  if (!name || !slug || !icon || !query) {
-    return NextResponse.json({ error: 'name, slug, icon, and query are required' }, { status: 400 })
+  const { name, slug, description, icon, tagHints, published } = parsed.data
+
+  const existing = await prisma.bestOfCategory.findUnique({ where: { slug } })
+  if (existing) {
+    return NextResponse.json({ error: 'Slug already in use' }, { status: 409 })
   }
 
   const category = await prisma.bestOfCategory.create({
-    data: { name, slug, description, icon, query },
+    data: { name, slug, description, icon, tagHints: tagHints ?? [], published: published ?? false },
   })
 
   return NextResponse.json(category, { status: 201 })
