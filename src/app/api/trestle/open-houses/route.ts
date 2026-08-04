@@ -301,7 +301,7 @@ export async function GET(request: NextRequest) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[trestle/open-houses]', message)
     return NextResponse.json(
-      { listings: [], error: message, _debug: { city, today } },
+      { listings: [], error: message },
       { status: 500, headers: { 'Cache-Control': 'no-store' } }
     )
   }
