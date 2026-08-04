@@ -178,7 +178,8 @@ export async function GET() {
     }
 
     console.log('[trestle/open-houses] raw response keys:', Object.keys(data))
-    console.log('[trestle/open-houses] first row:', JSON.stringify(data.value?.[0])?.slice(0, 800))
+    console.log('[trestle/open-houses] first row keys:', Object.keys(data.value?.[0] ?? {}))
+    console.log('[trestle/open-houses] first row Property:', JSON.stringify(data.value?.[0]?.Property)?.slice(0, 500))
 
     const rows = data.value ?? []
 
