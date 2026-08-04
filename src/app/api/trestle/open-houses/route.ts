@@ -129,27 +129,45 @@ export async function GET(request: NextRequest) {
     const city = searchParams.get('city') ?? 'Moreno Valley'
     const today = new Date().toISOString().split('T')[0]
 
-    // ── Step 1: Query OpenHouse entity ───────────────────────────────────────
-    const ohParams = new URLSearchParams({
-      $filter: [
-        `OpenHouseDate ge ${today}`,
-        "OpenHouseStatus eq 'Active'",
-      ].join(' and '),
-      $select: [
-        'OpenHouseId', 'OpenHouseKey',
-        'OpenHouseDate', 'OpenHouseStartTime', 'OpenHouseEndTime',
-        'OpenHouseStatus', 'OpenHouseType', 'OpenHouseRemarks',
-        'ListingKey', 'ListingId',
-      ].join(','),
-      $top: '500',
-      $count: 'true',
-    })
+    const ohFilterBase = [
+      `OpenHouseDate ge ${today}`,
+      "OpenHouseStatus eq 'Active'",
+    ].join(' and ')
 
-    console.log('[trestle/open-houses] fetching OpenHouse...')
-    const ohRes = await fetch(
-      `${process.env.TRESTLE_BASE_URL ?? 'https://api.cotality.com/trestle/odata'}/OpenHouse?${ohParams}`,
-      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, cache: 'no-store' }
-    )
+    const ohFilterWithCity = [
+      `OpenHouseDate ge ${today}`,
+      "OpenHouseStatus eq 'Active'",
+      `PropertyCity eq 'Moreno Valley'`,
+    ].join(' and ')
+
+    async function fetchOH(filter: string) {
+      const ohParams = new URLSearchParams({
+        $filter: filter,
+        $select: [
+          'OpenHouseId', 'OpenHouseKey',
+          'OpenHouseDate', 'OpenHouseStartTime', 'OpenHouseEndTime',
+          'OpenHouseStatus', 'OpenHouseType', 'OpenHouseRemarks',
+          'ListingKey', 'ListingId',
+        ].join(','),
+        $top: '500',
+        $count: 'true',
+      })
+      const url = `${process.env.TRESTLE_BASE_URL ?? 'https://api.cotality.com/trestle/odata'}/OpenHouse?${ohParams}`
+      console.log('[trestle/open-houses] OH query URL:', url)
+      return fetch(url, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        cache: 'no-store',
+      })
+    }
+
+    let ohRes = await fetchOH(ohFilterWithCity)
+    let usedCityFilter = true
+
+    if (!ohRes.ok) {
+      console.warn(`[trestle/open-houses] OH query with city filter failed ${ohRes.status}, retrying without...`)
+      ohRes = await fetchOH(ohFilterBase)
+      usedCityFilter = false
+    }
 
     if (!ohRes.ok) {
       const body = await ohRes.text()
