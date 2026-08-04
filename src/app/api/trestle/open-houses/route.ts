@@ -219,7 +219,11 @@ export async function GET() {
     const total = data['@odata.count'] ?? listings.length
 
     return NextResponse.json(
-      { listings, total },
+      { listings, total, _debug: {
+        rowsReturned: rows.length,
+        firstOpenHouse: rows[0]?.OpenHouse,
+        firstKeys: rows[0] ? Object.keys(rows[0]) : [],
+      } },
       {
         headers: {
           'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
