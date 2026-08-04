@@ -157,7 +157,7 @@ export function OpenHouseMap({ listings, highlightedKey, apiKey }: OpenHouseMapP
               marker.addListener('click', () => {
                 const oh = listing.openHouses[0]
                 const ohDate = oh
-                  ? new Date(oh.startDate).toLocaleDateString('en-US', {
+                  ? new Date(oh.openHouseDate + 'T00:00:00').toLocaleDateString('en-US', {
                       weekday: 'short',
                       month: 'short',
                       day: 'numeric',

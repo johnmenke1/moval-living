@@ -27,20 +27,24 @@ function getTokenUrl(baseUrl: string): string {
   return `${normalized}/connect/token`.replace(/\/+/g, '/')
 }
 
-export function getPropertyEndpoint(): string {
-  const baseUrl = getBaseUrl()
-  if (baseUrl.includes('/odata')) {
-    return `${baseUrl}/Property`.replace(/\/+/g, '/')
+function buildEndpoint(baseUrl: string, entity: string): string {
+  const base = baseUrl.replace(/\/$/, '')
+  if (base.includes('/odata')) {
+    return `${base}/${entity}`.replace(/\/+/g, '/')
   }
-  return `${baseUrl}/odata/Property`.replace(/\/+/g, '/')
+  return `${base}/odata/${entity}`.replace(/\/+/g, '/')
+}
+
+export function getPropertyEndpoint(): string {
+  return buildEndpoint(getBaseUrl(), 'Property')
 }
 
 export function getMediaEndpoint(): string {
-  const baseUrl = getBaseUrl()
-  if (baseUrl.includes('/odata')) {
-    return `${baseUrl}/Media`.replace(/\/+/g, '/')
-  }
-  return `${baseUrl}/odata/Media`.replace(/\/+/g, '/')
+  return buildEndpoint(getBaseUrl(), 'Media')
+}
+
+export function getOpenHouseEndpoint(): string {
+  return buildEndpoint(getBaseUrl(), 'OpenHouse')
 }
 
 // Token cache — module-level so it persists across requests

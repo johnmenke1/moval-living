@@ -22,11 +22,21 @@ function formatSqFt(sqft: number | null): string {
   return new Intl.NumberFormat('en-US').format(sqft)
 }
 
-function formatOHDate(startDate: string): { day: string; time: string } {
-  const d = new Date(startDate)
+function formatOHDate(dateStr: string, timeStr: string | null): { day: string; time: string } {
+  const d = new Date(dateStr + 'T00:00:00')
   const dayStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-  const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-  return { day: dayStr, time: timeStr }
+  let time = ''
+  if (timeStr) {
+    // timeStr is ISO offset string like "2026-08-08T11:00:00-07:00"
+    const match = timeStr.match(/T(\d{2}:\d{2})/)
+    if (match) {
+      const [h, m] = match[1].split(':').map(Number)
+      const ampm = h >= 12 ? 'PM' : 'AM'
+      const h12 = h % 12 || 12
+      time = `${h12}:${m.toString().padStart(2, '0')} ${ampm}`
+    }
+  }
+  return { day: dayStr, time }
 }
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
@@ -61,7 +71,9 @@ export function OpenHouseCard({
   }
 
   const primaryOH = listing.openHouses[0]
-  const { day, time } = primaryOH ? formatOHDate(primaryOH.startDate) : { day: '', time: '' }
+  const { day, time } = primaryOH
+    ? formatOHDate(primaryOH.openHouseDate, primaryOH.openHouseStartTime)
+    : { day: '', time: '' }
 
   return (
     <div
@@ -150,7 +162,7 @@ export function OpenHouseCard({
             </p>
             <div className="flex flex-wrap gap-2">
               {listing.openHouses.map((oh, i) => {
-                const { day: d, time: t } = formatOHDate(oh.startDate)
+                const { day: d, time: t } = formatOHDate(oh.openHouseDate, oh.openHouseStartTime)
                 return (
                   <span
                     key={i}

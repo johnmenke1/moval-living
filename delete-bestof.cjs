@@ -1,0 +1,3 @@
+const{Pool}=require('pg');
+const p=new Pool({connectionString:'postgresql://neondb_owner:npg_RCJWsx5bg1nH@ep-summer-surf-afffty47-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require'});
+p.query('BEGIN').then(()=>p.query('DELETE FROM "BestOfScore"')).then(r=>{console.log('BestOfScore:',r.rowCount);return p.query('DELETE FROM "BestOfEntry"')}).then(r=>{console.log('BestOfEntry:',r.rowCount);return p.query('DELETE FROM "BestOfCategory"')}).then(r=>{console.log('BestOfCategory:',r.rowCount);return p.query('UPDATE "Business" SET "bestOfRank"=NULL')}).then(r=>{console.log('bestOfRank cleared:',r.rowCount);return p.query('COMMIT')}).then(()=>{console.log('All done.');p.end()}).catch(e=>{console.error(e.message.split('\n')[0]);p.query('ROLLBACK').then(()=>p.end())});
