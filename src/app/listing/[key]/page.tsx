@@ -49,7 +49,6 @@ interface ListingDetail {
   latitude: number | null
   longitude: number | null
   taxLot: string | null
-  taxMap: string | null
   zoning: string | null
   ownership: string | null
   internetDisplay: boolean | null
@@ -345,7 +344,6 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
                 {listing.zoning && <DetailRow label="Zoning" value={listing.zoning} />}
                 {listing.ownership && <DetailRow label="Ownership" value={listing.ownership} />}
                 {listing.taxLot && <DetailRow label="Tax Lot" value={listing.taxLot} />}
-                {listing.taxMap && <DetailRow label="Tax Map" value={listing.taxMap} />}
                 {listing.daysOnMarket !== null && (
                   <DetailRow label="Days on Market" value={`${listing.daysOnMarket} days`} />
                 )}

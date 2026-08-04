@@ -29,7 +29,7 @@ export async function GET(
       'ListAgentStateLicense', 'CoListAgentFullName', 'CoListOfficeName',
       'ShowingInstructions', 'PublicRemarks',
       'Latitude', 'Longitude',
-      'TaxLot', 'TaxMap', 'Zoning',
+      'TaxLot', 'Zoning',
       'Ownership', 'SyndicateTo', 'PhotosCount',
     ].join(',')
 
@@ -121,7 +121,6 @@ export async function GET(
       latitude: numberOrNull(row.Latitude),
       longitude: numberOrNull(row.Longitude),
       taxLot: row.TaxLot as string | null,
-      taxMap: row.TaxMap as string | null,
       zoning: row.Zoning as string | null,
       ownership: row.Ownership as string | null,
       internetDisplay: row.InternetAddressDisplayYN as boolean | null,
