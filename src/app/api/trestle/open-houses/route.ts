@@ -283,12 +283,26 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => a.openHouses[0].openHouseDate.localeCompare(b.openHouses[0].openHouseDate))
 
     return NextResponse.json(
-      { listings, total: listings.length },
-      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
+      {
+        listings,
+        total: listings.length,
+        _debug: {
+          city,
+          today,
+          propKeysCount: propKeys.length,
+          ohRowsCount: ohRows.length,
+          propMapSize: propMap.size,
+          photoMapSize: photoMap.size,
+        },
+      },
+      { headers: { 'Cache-Control': 'no-store, must-revalidate' } }
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[trestle/open-houses]', message)
-    return NextResponse.json({ listings: [], error: message }, { status: 500 })
+    return NextResponse.json(
+      { listings: [], error: message, _debug: { city, today } },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } }
+    )
   }
 }
