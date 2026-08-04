@@ -251,9 +251,15 @@ export async function GET(request: NextRequest) {
       // City filter in JS
       const propCity = prop.City as string | null
       const propState = prop.StateOrProvince as string | null
-      const cityMatch = propCity?.toLowerCase().includes(city.toLowerCase()) ||
-        city.toLowerCase().includes(propCity?.toLowerCase() ?? '__none__')
+      const cityLC = city.toLowerCase()
+      const propCityLC = propCity?.toLowerCase() ?? ''
+      // Match if propCity contains the target city, OR the target city contains propCity, OR propCity is empty/null (accept anything)
+      const cityMatch = !propCity || propCityLC.includes(cityLC) || cityLC.includes(propCityLC)
+      // Only accept CA or null/unknown
       const stateMatch = !propState || propState === 'CA'
+
+      console.log(`[trestle] key=${key} propCity=${JSON.stringify(propCity)} propState=${JSON.stringify(propState)} cityMatch=${cityMatch} stateMatch=${stateMatch}`)
+
       if (!cityMatch || !stateMatch) continue
 
       if (!listingMap.has(key)) {
