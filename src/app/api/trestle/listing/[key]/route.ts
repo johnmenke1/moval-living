@@ -43,12 +43,15 @@ export async function GET(
       cache: 'no-store',
     })
 
+    console.log(`[trestle/listing] key=${key} status=${propRes.status} content-type=${propRes.headers.get('content-type')}`)
+    const bodyText = await propRes.text()
+    console.log(`[trestle/listing] body preview: ${bodyText.slice(0, 300)}`)
+
     if (!propRes.ok) {
-      const body = await propRes.text()
-      return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Listing not found', detail: bodyText.slice(0, 200) }, { status: 404 })
     }
 
-    const propData = (await propRes.json()) as { value?: RawListing[] }
+    const propData = JSON.parse(bodyText) as { value?: RawListing[] }
     const row = propData.value?.[0]
 
     if (!row) {
