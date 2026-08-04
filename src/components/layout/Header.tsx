@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Menu, X, Tag, Trophy } from 'lucide-react'
+import { Menu, X, Tag, Trophy, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
   { label: 'Home', href: '/' },
   { label: 'Browse', href: '/search' },
   { label: 'Homes', href: '/homes' },
+  { label: 'Open Houses', href: '/open-houses', icon: Calendar },
   { label: 'Best Of', href: '/best-of', icon: Trophy },
   { label: 'Events', href: '/events' },
   { label: 'About MoVal', href: '/about-moreno-valley' },
