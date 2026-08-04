@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
       address: true,
       googleRating: true,
       googleReviewCount: true,
+      bestOfTags: true,
     },
     take: 20,
     orderBy: { name: 'asc' },

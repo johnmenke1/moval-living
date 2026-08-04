@@ -214,19 +214,24 @@ enum Status {
 // BestOfNominee  = a business nominated for a category (winner flag set by admin)
 
 model BestOfCategory {
-  id          String        @id @default(cuid())
-  name        String        // "Best Coffee", "Best Tacos"
-  slug        String        @unique
-  description String?
-  icon        String?       // Lucide icon name e.g. "Coffee", "Taco"
-  tagHints    String[]      // e.g. ["coffee-house", "cafe"] — admin suggestion hints only
-  published   Boolean       @default(false)
-  nominees    BestOfNominee[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id               String            @id @default(cuid())
+  name             String            // "Best Coffee", "Best Tacos"
+  slug             String            @unique
+  description      String?
+  icon             String?           // Lucide icon name e.g. "Coffee", "Taco"
+  tagHints         String[]          // e.g. ["coffee-house", "cafe"] — admin suggestion hints only
+  published        Boolean           @default(false)
+  // Parent category for sub-categories. Null = top-level parent category (e.g. "Coffee", "Real Estate")
+  parentCategoryId String?
+  parentCategory   BestOfCategory?   @relation("BestOfCategoryHierarchy", fields: [parentCategoryId], references: [id])
+  subCategories    BestOfCategory[]   @relation("BestOfCategoryHierarchy")
+  nominees         BestOfNominee[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   @@index([slug])
   @@index([published])
+  @@index([parentCategoryId])
 }
 
 model BestOfNominee {

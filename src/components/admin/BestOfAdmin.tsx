@@ -36,7 +36,9 @@ interface Category {
   icon: string | null
   tagHints: string[]
   published: boolean
+  parentCategoryId: string | null
   nominees: Nominee[]
+  subCategories: Array<{ id: string; name: string; nomineeCount: number }>
 }
 
 interface BusinessSearchResult {
@@ -45,6 +47,7 @@ interface BusinessSearchResult {
   address: string
   googleRating: number | null
   googleReviewCount: number | null
+  bestOfTags: string[]
 }
 
 interface Props {
@@ -55,11 +58,13 @@ interface Props {
 
 function CategoryModal({
   category,
+  categories,
   onSave,
   onClose,
 }: {
   category?: Category
-  onSave: (data: { name: string; slug: string; description: string; icon: string; tagHints: string; published: boolean }) => Promise<void>
+  categories: Category[]
+  onSave: (data: { name: string; slug: string; description: string; icon: string; tagHints: string; published: boolean; parentCategoryId: string | null }) => Promise<void>
   onClose: () => void
 }) {
   const [name, setName] = useState(category?.name ?? '')
@@ -68,6 +73,7 @@ function CategoryModal({
   const [icon, setIcon] = useState(category?.icon ?? 'Trophy')
   const [tagHints, setTagHints] = useState(category?.tagHints.join(', ') ?? '')
   const [published, setPublished] = useState(category?.published ?? false)
+  const [parentCategoryId, setParentCategoryId] = useState<string | null>(category?.parentCategoryId ?? null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -76,7 +82,7 @@ function CategoryModal({
     setSaving(true)
     setError('')
     try {
-      await onSave({ name: name.trim(), slug: slug.trim(), description: description.trim(), icon, tagHints, published })
+      await onSave({ name: name.trim(), slug: slug.trim(), description: description.trim(), icon, tagHints, published, parentCategoryId })
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed')
@@ -120,6 +126,27 @@ function CategoryModal({
               <option value="Trees">🌳 Trees</option>
               <option value="Building">🏢 Building</option>
               <option value="PawPrint">🐾 PawPrint</option>
+              <option value="Home">🏠 Home</option>
+              <option value="Car">🚗 Car</option>
+              <option value="Briefcase">💼 Briefcase</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-text-secondary mb-1">
+              Sub-category of{' '}
+              <span className="font-normal text-text-secondary">(leave blank to create a top-level category)</span>
+            </label>
+            <select
+              value={parentCategoryId ?? ''}
+              onChange={e => setParentCategoryId(e.target.value || null)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary"
+            >
+              <option value="">— Top-level category —</option>
+              {categories
+                .filter(c => !c.parentCategoryId && c.id !== category?.id)
+                .map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
             </select>
           </div>
           <div>
@@ -166,7 +193,7 @@ export default function BestOfAdmin({ initialCategories }: Props) {
 
   // ── Search businesses ───────────────────────────────────────────────────
 
-  const searchBusinesses = async (q: string, categoryId: string) => {
+  const searchBusinesses = async (q: string, categoryId: string, tagHints: string[]) => {
     if (!q.trim()) { setSearchResults([]); return }
     setSearching(true)
     try {
@@ -176,7 +203,16 @@ export default function BestOfAdmin({ initialCategories }: Props) {
       const existingIds = new Set(
         categories.find(c => c.id === categoryId)?.nominees.map(n => n.business.id) ?? []
       )
-      setSearchResults((data.businesses ?? []).filter((b: BusinessSearchResult) => !existingIds.has(b.id)))
+      const results = (data.businesses ?? []).filter((b: BusinessSearchResult) => !existingIds.has(b.id))
+      // Sort: tag matches first, then by rating
+      const sorted = results.sort((a: BusinessSearchResult, b: BusinessSearchResult) => {
+        const aMatch = tagHints.some(t => a.bestOfTags.includes(t))
+        const bMatch = tagHints.some(t => b.bestOfTags.includes(t))
+        if (aMatch && !bMatch) return -1
+        if (!aMatch && bMatch) return 1
+        return (b.googleRating ?? 0) - (a.googleRating ?? 0)
+      })
+      setSearchResults(sorted)
     } catch {
       setError('Search failed')
     } finally {
@@ -184,12 +220,12 @@ export default function BestOfAdmin({ initialCategories }: Props) {
     }
   }
 
-  const handleSearchInput = (q: string, categoryId: string) => {
+  const handleSearchInput = (q: string, categoryId: string, tagHints: string[]) => {
     setSearchQuery(q)
     if (!q.trim()) { setSearchResults([]); return }
     clearTimeout((window as unknown as Record<string, unknown>).__searchTimeout as number)
     ;(window as unknown as Record<string, unknown>).__searchTimeout = setTimeout(
-      () => searchBusinesses(q, categoryId), 350
+      () => searchBusinesses(q, categoryId, tagHints), 350
     ) as unknown as number
   }
 
@@ -295,7 +331,7 @@ export default function BestOfAdmin({ initialCategories }: Props) {
 
   // ── Create / update category ────────────────────────────────────────────
 
-  const saveCategory = async (data: { name: string; slug: string; description: string; icon: string; tagHints: string; published: boolean }) => {
+  const saveCategory = async (data: { name: string; slug: string; description: string; icon: string; tagHints: string; published: boolean; parentCategoryId: string | null }) => {
     const hints = data.tagHints.split(',').map(t => t.trim()).filter(Boolean)
     if (editingCategory) {
       const res = await fetch(`/api/admin/best-of/categories/${editingCategory.id}`, {
@@ -318,7 +354,7 @@ export default function BestOfAdmin({ initialCategories }: Props) {
       })
       if (!res.ok) throw new Error((await res.json()).error || 'Save failed')
       const created = await res.json()
-      setCategories(prev => [...prev, { ...created, nominees: [] }])
+      setCategories(prev => [...prev, { ...created, nominees: [], subCategories: [] }])
       setActiveCategoryId(created.id)
     }
   }
@@ -386,9 +422,15 @@ export default function BestOfAdmin({ initialCategories }: Props) {
                       : 'border-transparent text-text-secondary hover:text-text'
                   }`}
                 >
+                  {cat.parentCategoryId && <span className="text-xs text-slate-400">↳</span>}
                   {cat.name}
                   {cat.nominees.length > 0 && (
                     <span className="text-xs bg-slate-100 rounded-full px-1.5 py-0.5">{cat.nominees.length}</span>
+                  )}
+                  {cat.subCategories.length > 0 && (
+                    <span className="text-xs bg-amber-50 text-amber-600 rounded-full px-1.5 py-0.5">
+                      {cat.subCategories.length}
+                    </span>
                   )}
                   {!cat.published && <span className="text-xs text-amber-500">(draft)</span>}
                 </button>
@@ -441,7 +483,7 @@ export default function BestOfAdmin({ initialCategories }: Props) {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     value={searchQuery}
-                    onChange={e => handleSearchInput(e.target.value, activeCategory.id)}
+                    onChange={e => handleSearchInput(e.target.value, activeCategory.id, activeCategory.tagHints)}
                     placeholder="Search businesses by name..."
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                     autoFocus
@@ -653,6 +695,7 @@ export default function BestOfAdmin({ initialCategories }: Props) {
       {showCategoryModal && (
         <CategoryModal
           category={editingCategory}
+          categories={categories}
           onSave={saveCategory}
           onClose={() => { setShowCategoryModal(false); setEditingCategory(undefined) }}
         />

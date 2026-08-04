@@ -1,6 +1,5 @@
-import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
-import { Trophy } from 'lucide-react'
+import { Trophy, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 
@@ -9,28 +8,31 @@ export const metadata: Metadata = {
   description: 'Moreno Valley\'s definitive Best Of awards — curated top picks by our editors for food, coffee, services, and more.',
 }
 
+type CategoryWithSubs = Awaited<ReturnType<typeof getCategories>>[number]
+
 async function getCategories() {
   return prisma.bestOfCategory.findMany({
+    where: { published: true },
     orderBy: { name: 'asc' },
     include: {
-      _count: { select: { nominees: true } },
+      _count: { select: { nominees: true, subCategories: true } },
+      subCategories: {
+        where: { published: true },
+        orderBy: { name: 'asc' },
+        include: { _count: { select: { nominees: true } } },
+      },
     },
   })
 }
 
 async function getOverallWinners() {
-  // Businesses that are winners in at least one category
   return prisma.bestOfNominee.findMany({
     where: { winner: true },
     include: {
       business: {
         select: {
-          id: true,
-          slug: true,
-          name: true,
-          logo: true,
-          googleRating: true,
-          address: true,
+          id: true, slug: true, name: true, logo: true,
+          googleRating: true, address: true,
         },
       },
       category: { select: { name: true, slug: true, icon: true } },
@@ -41,6 +43,10 @@ async function getOverallWinners() {
 
 export default async function BestOfPage() {
   const [categories, overallWinners] = await Promise.all([getCategories(), getOverallWinners()])
+
+  // Split into parent categories and standalone (no-parent) categories
+  const parentCategories = categories.filter(c => !c.parentCategoryId)
+  const standaloneCategories = categories.filter(c => c.parentCategoryId === null && c._count.subCategories === 0)
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -66,27 +72,21 @@ export default async function BestOfPage() {
           </div>
         ) : (
           <>
-            {/* Category grid */}
-            <section>
-              <h2 className="text-2xl font-bold text-text mb-6">All Categories</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {categories.map(cat => (
-                  <Link
-                    key={cat.id}
-                    href={`/best-of/${cat.slug}`}
-                    className="group bg-white rounded-2xl border border-slate-100 p-6 hover:border-primary hover:shadow-md transition-all text-center"
-                  >
-                    <p className="text-3xl mb-2">{cat.icon ? getCategoryEmoji(cat.icon) : '⭐'}</p>
-                    <p className="font-semibold text-text text-sm group-hover:text-primary transition-colors">
-                      {cat.name}
-                    </p>
-                    <p className="text-xs text-text-secondary mt-1">
-                      {cat._count.nominees} {cat._count.nominees === 1 ? 'pick' : 'picks'}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            </section>
+            {/* Parent categories with sub-categories */}
+            {parentCategories.map(parent => (
+              <ParentCategorySection key={parent.id} parent={parent} />
+            ))}
+
+            {/* Flat categories (no parent, no sub-categories) */}
+            {standaloneCategories.length > 0 && (
+              <section>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {standaloneCategories.map(cat => (
+                    <CategoryCard key={cat.id} cat={cat} />
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* Overall winners */}
             {overallWinners.length > 0 && (
@@ -110,16 +110,14 @@ export default async function BestOfPage() {
                         <p className="font-semibold text-text text-sm">{nominee.business.name}</p>
                         <p className="text-xs text-text-secondary">{nominee.category.name}</p>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {nominee.business.googleRating != null && (
-                          <div className="flex items-center gap-1 text-xs">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-amber-400">
-                              <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>
-                            </svg>
-                            <span className="font-medium text-xs">{nominee.business.googleRating.toFixed(1)}</span>
-                          </div>
-                        )}
-                      </div>
+                      {nominee.business.googleRating != null && (
+                        <div className="flex items-center gap-1 text-xs shrink-0">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-amber-400">
+                            <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>
+                          </svg>
+                          <span className="font-medium">{nominee.business.googleRating.toFixed(1)}</span>
+                        </div>
+                      )}
                     </Link>
                   ))}
                 </div>
@@ -132,13 +130,84 @@ export default async function BestOfPage() {
   )
 }
 
+// ── Parent category with sub-categories ──────────────────────────────────────
+
+function ParentCategorySection({ parent }: { parent: CategoryWithSubs }) {
+  const hasWinner = parent.subCategories.some(sc => sc._count.nominees > 0) ||
+    parent._count.nominees > 0
+
+  return (
+    <section>
+      {/* Parent header */}
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-2xl">{getCategoryEmoji(parent.icon ?? 'Trophy')}</span>
+        <div>
+          <h2 className="text-2xl font-bold text-text">{parent.name}</h2>
+          {parent.description && (
+            <p className="text-sm text-text-secondary">{parent.description}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Sub-category cards */}
+      {parent.subCategories.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {parent.subCategories.map(sub => (
+            <CategoryCard key={sub.id} cat={sub} parentIcon={parent.icon} />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <CategoryCard cat={parent} />
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ── Single category card ──────────────────────────────────────────────────────
+
+function CategoryCard({
+  cat,
+  parentIcon,
+}: {
+  cat: CategoryWithSubs['subCategories'][number] | CategoryWithSubs
+  parentIcon?: string | null
+}) {
+  const icon = parentIcon ?? cat.icon
+  const totalNominees = cat._count.nominees
+  const hasSubCats = '_count' in cat && 'subCategories' in cat && cat.subCategories !== undefined
+
+  return (
+    <Link
+      href={`/best-of/${cat.slug}`}
+      className="group bg-white rounded-2xl border border-slate-100 p-5 hover:border-primary hover:shadow-md transition-all"
+    >
+      <div className="flex items-start justify-between mb-2">
+        <span className="text-2xl">{icon ? getCategoryEmoji(icon) : '⭐'}</span>
+        {totalNominees > 0 && (
+          <span className="text-xs bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded-full">
+            {totalNominees} {totalNominees === 1 ? 'pick' : 'picks'}
+          </span>
+        )}
+      </div>
+      <p className="font-semibold text-text text-sm group-hover:text-primary transition-colors leading-tight">
+        {cat.name}
+      </p>
+      {cat.description && (
+        <p className="text-xs text-text-secondary mt-1 line-clamp-2">{cat.description}</p>
+      )}
+    </Link>
+  )
+}
+
 function getCategoryEmoji(icon: string): string {
   const map: Record<string, string> = {
     Taco: '🌮', Coffee: '☕', Beef: '🍔', Pizza: '🍕',
     Sunrise: '🌅', Flame: '🔥', ShoppingBag: '🛍️', Heart: '💑',
     Trophy: '🏆', UtensilsCrossed: '🍽️', Wrench: '🔧', Scissors: '✂️',
     Droplets: '💧', Trees: '🌳', Building: '🏢', PawPrint: '🐾',
-    Activity: '🏃',
+    Activity: '🏃', Home: '🏠', Car: '🚗', Briefcase: '💼',
   }
   return map[icon] ?? '⭐'
 }
