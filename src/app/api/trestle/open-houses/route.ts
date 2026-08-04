@@ -160,7 +160,6 @@ export async function GET(request: NextRequest) {
       'ListingKey', 'ListingId',
     ].join(',')
 
-    const todayISO = `datetime'${today}'`
     const ohRows: OpenHouseRow[] = []
     const batchSize = 50
 
@@ -171,7 +170,7 @@ export async function GET(request: NextRequest) {
         .join(' or ')
 
       const ohFilter = [
-        `OpenHouseDate ge ${todayISO}`,
+        `OpenHouseDate ge ${today}`,
         "OpenHouseStatus eq 'Active'",
         `(${listingKeyFilter})`,
       ].join(' and ')
@@ -190,10 +189,14 @@ export async function GET(request: NextRequest) {
         }
       )
 
-      if (res.ok) {
-        const data = (await res.json()) as { value?: OpenHouseRow[] }
-        ohRows.push(...(data.value ?? []))
+      if (!res.ok) {
+        const errBody = await res.text()
+        console.error(`[trestle/open-houses] OH query failed ${res.status}: ${errBody.slice(0, 300)}`)
+        continue
       }
+
+      const data = (await res.json()) as { value?: OpenHouseRow[] }
+      ohRows.push(...(data.value ?? []))
     }
 
     console.log(`[trestle/open-houses] ${ohRows.length} OH records for ${city}`)
