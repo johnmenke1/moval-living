@@ -196,7 +196,12 @@ export async function GET() {
 
     const rows = data.value ?? []
 
-    // Fetch photos for all returned listings (batch, same as listings route)
+    // DEBUG: log the raw shape of the first row's OpenHouse field
+    if (rows.length > 0) {
+      const first = rows[0]
+      console.log('[trestle/open-houses] DEBUG first row keys:', Object.keys(first))
+      console.log('[trestle/open-houses] DEBUG OpenHouse:', JSON.stringify(first.OpenHouse)?.slice(0, 500))
+    }
     const keys = rows.map((r) => String(r.ListingKey ?? '')).filter(Boolean)
     const photos = await fetchPhotos(token, keys)
 
