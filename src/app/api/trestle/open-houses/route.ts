@@ -119,6 +119,7 @@ export async function GET() {
     const params = new URLSearchParams({ $filter: filter, $select: selectFields, $top: '200', $count: 'true' })
     const url = `${base}?${params.toString()}&%24expand=Property%28%24select%3DListingKey%2CListingId%2CStreetNumber%2CStreetDirPrefix%2CStreetName%2CStreetSuffix%2CCity%2CStateOrProvince%2CPostalCode%2CListPrice%2CBedroomsTotal%2CBathroomsTotalInteger%2CBuildingAreaTotal%2CLivingArea%2CYearBuilt%2CDaysOnMarket%2CInternetAddressDisplayYN%2CListAgentFullName%2CListOfficeName%2CPhotosCount%29`
 
+    console.log('[trestle/open-houses] URL:', url)
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -129,9 +130,9 @@ export async function GET() {
 
     if (!res.ok) {
       const body = await res.text()
-      console.error('[trestle/open-houses]', res.status, body)
+      console.error('[trestle/open-houses] API error', res.status, body)
       return NextResponse.json(
-        { listings: [], error: 'Trestle API request failed', details: body.slice(0, 500) },
+        { listings: [], error: `Trestle API error ${res.status}`, details: body.slice(0, 500) },
         { status: 502 }
       )
     }
@@ -140,6 +141,9 @@ export async function GET() {
       '@odata.count'?: number
       value?: RawOpenHouse[]
     }
+
+    console.log('[trestle/open-houses] raw response keys:', Object.keys(data))
+    console.log('[trestle/open-houses] first row:', JSON.stringify(data.value?.[0])?.slice(0, 800))
 
     const rows = data.value ?? []
 
@@ -176,7 +180,7 @@ export async function GET() {
     const total = data['@odata.count'] ?? listings.length
 
     return NextResponse.json(
-      { listings, total },
+      { listings, total, _debug: { rowsReturned: rows.length } },
       {
         headers: {
           'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
@@ -186,6 +190,9 @@ export async function GET() {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[trestle/open-houses]', message)
-    return NextResponse.json({ listings: [], error: message }, { status: 500 })
+    return NextResponse.json(
+      { listings: [], error: message, _debug: { caughtAt: 'catch block' } },
+      { status: 500 }
+    )
   }
 }
