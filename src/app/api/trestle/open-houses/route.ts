@@ -211,6 +211,8 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`[trestle/open-houses] fetched ${propMap.size} property records`)
+    console.log(`[trestle/open-houses] sample keys from propMap:`, [...propMap.keys()].slice(0, 3))
+    console.log(`[trestle/open-houses] sample keys from ohRows:`, ohRows.slice(0, 3).map(r => r.ListingKey))
 
     // ── Step 4: Fetch photos ─────────────────────────────────────────────────
     const photos = await fetchPhotos(token, listingKeys)
@@ -228,18 +230,17 @@ export async function GET(request: NextRequest) {
       // City filter in JS
       const propCity = prop.City as string | null
       const propState = prop.StateOrProvince as string | null
-      if (
-        !propCity?.toLowerCase().includes(city.toLowerCase()) &&
-        !city.toLowerCase().includes(propCity?.toLowerCase() ?? '__none__')
-      ) {
-        continue
-      }
-      if (propState && propState !== 'CA') continue
+      const cityMatch = propCity?.toLowerCase().includes(city.toLowerCase()) ||
+        city.toLowerCase().includes(propCity?.toLowerCase() ?? '__none__')
+      const stateMatch = !propState || propState === 'CA'
+      if (!cityMatch || !stateMatch) continue
 
       if (!listingMap.has(key)) {
         listingMap.set(key, { base: normalizeProperty(prop, photos.get(key) ?? null), ohs: [] })
       }
       listingMap.get(key)!.ohs.push(parseOHEntry(row))
+
+    console.log(`[trestle/open-houses] after city filter: listingMap size = ${listingMap.size}`)
     }
 
     // ── Step 6: Build final list ─────────────────────────────────────────────
@@ -252,9 +253,10 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => a.openHouses[0].openHouseDate.localeCompare(b.openHouses[0].openHouseDate))
 
     console.log(`[trestle/open-houses] → ${listings.length} listings with OH data`)
+    console.log(`[trestle/open-houses] first listing:`, JSON.stringify(listings[0])?.slice(0, 300))
 
     return NextResponse.json(
-      { listings, total: listings.length },
+      { listings, total: listings.length, _debug: { ohRowsTotal: ohRows.length, listingKeysTotal: listingKeys.length, propMapSize: propMap.size } },
       { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
     )
   } catch (err) {
