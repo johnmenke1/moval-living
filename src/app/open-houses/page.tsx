@@ -155,6 +155,7 @@ export default function OpenHousesPage() {
                   highlighted={highlightedKey === listing.listingKey}
                   onMouseEnter={() => setHighlightedKey(listing.listingKey)}
                   onMouseLeave={() => setHighlightedKey(null)}
+                  href={`/listing/${listing.listingKey}`}
                 />
               </div>
             ))}

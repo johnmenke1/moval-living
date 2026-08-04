@@ -1,5 +1,6 @@
 import { MapPin, Bed, Bath, Square, Calendar, Car } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 import type { OpenHouseListing } from '@/app/api/trestle/open-houses/route'
 
 interface OpenHouseCardProps {
@@ -7,6 +8,7 @@ interface OpenHouseCardProps {
   highlighted?: boolean
   onMouseEnter?: () => void
   onMouseLeave?: () => void
+  href?: string
 }
 
 function formatPrice(price: number): string {
@@ -64,6 +66,7 @@ export function OpenHouseCard({
   highlighted = false,
   onMouseEnter,
   onMouseLeave,
+  href,
 }: OpenHouseCardProps) {
   const statusInfo = STATUS_LABELS[listing.status] ?? {
     label: listing.status,
@@ -75,7 +78,7 @@ export function OpenHouseCard({
     ? formatOHDate(primaryOH.openHouseDate, primaryOH.openHouseStartTime)
     : { day: '', time: '' }
 
-  return (
+  const card = (
     <div
       className={cn(
         'card overflow-hidden group transition-all duration-200',
@@ -193,4 +196,14 @@ export function OpenHouseCard({
       </div>
     </div>
   )
+
+  if (href) {
+    return (
+      <Link href={href} className="block hover:opacity-95 transition-opacity">
+        {card}
+      </Link>
+    )
+  }
+
+  return card
 }
