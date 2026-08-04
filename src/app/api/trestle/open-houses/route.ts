@@ -94,20 +94,23 @@ export async function GET() {
   try {
     const token = await getAccessToken()
 
-    // Query the OpenHouse entity set directly — not a navigation property on Property.
-    // Filter: future OpenHouseDate in Moreno Valley, status = Active (not Cancelled/Ended).
-    // The OpenHouse entity links to Property via ListingKey/ListingId.
+    // Query with just date + status filters first (no cross-nav Property filters).
+    // Use any() lambda for Property since it may be collection-valued.
+    // Fallback: no Property cross-filter if any() also fails.
     const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
 
-    const filter = [
+    const filterActive = [
       `OpenHouseDate ge ${today}`,
       "OpenHouseStatus eq 'Active'",
-      "Property/StateOrProvince eq 'CA'",
-      "Property/City eq 'Moreno Valley'",
     ].join(' and ')
 
-    // Note: semicolons in $expand options are OData standard; URLSearchParams will
-    // encode them, so we append them manually after building the base query string.
+    // Try the cross-nav filter with any() lambda
+    const filterWithCity = [
+      `OpenHouseDate ge ${today}`,
+      "OpenHouseStatus eq 'Active'",
+      "Property/any(p:p/StateOrProvince eq 'CA' and contains(p/City, 'Moreno Valley'))",
+    ].join(' and ')
+
     const selectFields = [
       'OpenHouseId', 'OpenHouseKey',
       'OpenHouseDate', 'OpenHouseStartTime', 'OpenHouseEndTime',
@@ -115,12 +118,20 @@ export async function GET() {
       'ListingKey', 'ListingId',
     ].join(',')
 
-    const base = getOpenHouseEndpoint()
-    const params = new URLSearchParams({ $filter: filter, $select: selectFields, $top: '200', $count: 'true' })
-    const url = `${base}?${params.toString()}&%24expand=Property%28%24select%3DListingKey%2CListingId%2CStreetNumber%2CStreetDirPrefix%2CStreetName%2CStreetSuffix%2CCity%2CStateOrProvince%2CPostalCode%2CListPrice%2CBedroomsTotal%2CBathroomsTotalInteger%2CBuildingAreaTotal%2CLivingArea%2CYearBuilt%2CDaysOnMarket%2CInternetAddressDisplayYN%2CListAgentFullName%2CListOfficeName%2CPhotosCount%29`
+    const expandProperty = 'Property($select=ListingKey,ListingId,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,City,StateOrProvince,PostalCode,ListPrice,BedroomsTotal,BathroomsTotalInteger,BuildingAreaTotal,LivingArea,YearBuilt,DaysOnMarket,InternetAddressDisplayYN,ListAgentFullName,ListOfficeName,PhotosCount)'
 
-    console.log('[trestle/open-houses] URL:', url)
-    const res = await fetch(url, {
+    // Try with city filter first; if it fails with 400, fall back to date-only filter
+    let filter = filterWithCity
+    let usedCityFilter = true
+
+    const base = getOpenHouseEndpoint()
+    const makeUrl = (f: string) => {
+      const params = new URLSearchParams({ $filter: f, $select: selectFields, $top: '200', $count: 'true' })
+      return `${base}?${params.toString()}&%24expand=${encodeURIComponent(expandProperty)}`
+    }
+
+    console.log('[trestle/open-houses] Trying URL:', makeUrl(filter))
+    var res = await fetch(makeUrl(filter), {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
@@ -131,10 +142,34 @@ export async function GET() {
     if (!res.ok) {
       const body = await res.text()
       console.error('[trestle/open-houses] API error', res.status, body)
-      return NextResponse.json(
-        { listings: [], error: `Trestle API error ${res.status}`, details: body.slice(0, 500) },
-        { status: 502 }
-      )
+
+      // If city filter caused 400, retry with just date + status (no Property cross-nav filter)
+      if (res.status === 400 && usedCityFilter) {
+        console.log('[trestle/open-houses] Retrying with simpler filter (no city cross-nav)...')
+        filter = filterActive
+        usedCityFilter = false
+        console.log('[trestle/open-houses] Retry URL:', makeUrl(filter))
+        res = await fetch(makeUrl(filter), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+          },
+          cache: 'no-store',
+        })
+        if (!res.ok) {
+          const body2 = await res.text()
+          console.error('[trestle/open-houses] Retry also failed:', res.status, body2)
+          return NextResponse.json(
+            { listings: [], error: `Trestle API error ${res.status}`, details: body2.slice(0, 500) },
+            { status: 502 }
+          )
+        }
+      } else {
+        return NextResponse.json(
+          { listings: [], error: `Trestle API error ${res.status}`, details: body.slice(0, 500) },
+          { status: 502 }
+        )
+      }
     }
 
     const data = (await res.json()) as {
