@@ -24,10 +24,7 @@ export default async function AddBusinessPage() {
       </div>
       <div className="container-max py-8">
         <div className="max-w-2xl mx-auto">
-          <PlacesSearchClient
-            categories={categories as never[]}
-            onCancel={() => {}}
-          />
+          <PlacesSearchClient categories={categories as never[]} />
         </div>
       </div>
     </div>
