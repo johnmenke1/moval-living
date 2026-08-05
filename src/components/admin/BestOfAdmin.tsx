@@ -466,6 +466,74 @@ export default function BestOfAdmin({ initialCategories }: Props) {
       {/* Active category panel */}
       {activeCategory && (
         <div>
+          {/* Category header bar */}
+          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-3 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                {activeCategory.parentCategoryId && (
+                  <span className="text-xs text-slate-400">↳</span>
+                )}
+                <h3 className="font-semibold text-text text-base">{activeCategory.name}</h3>
+                {!activeCategory.published && (
+                  <span className="text-xs text-amber-500 font-medium">(draft)</span>
+                )}
+              </div>
+              {activeCategory.description && (
+                <p className="text-xs text-text-secondary mt-0.5 line-clamp-1">{activeCategory.description}</p>
+              )}
+            </div>
+
+            {/* Always-visible Edit + Delete for active category */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => { setEditingCategory(activeCategory); setShowCategoryModal(true) }}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-text-secondary hover:border-primary hover:text-primary transition-colors"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                Edit Category
+              </button>
+              <button
+                onClick={() => deleteCategory(activeCategory.id)}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-red-500 hover:border-red-300 hover:bg-red-50 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete
+              </button>
+            </div>
+          </div>
+
+          {/* Sub-category controls (if active category has sub-categories) */}
+          {activeCategory.subCategories.length > 0 && (
+            <div className="px-6 py-3 border-b border-slate-100 bg-amber-50/50">
+              <p className="text-xs font-semibold text-amber-700 mb-2 uppercase tracking-wider">Sub-categories</p>
+              <div className="flex flex-wrap gap-2">
+                {activeCategory.subCategories.map(sub => (
+                  <div key={sub.id} className="flex items-center gap-1 bg-white rounded-lg border border-slate-200 px-3 py-1.5">
+                    <span className="text-xs text-text font-medium">{sub.name}</span>
+                    <span className="text-xs text-slate-400 ml-1">({sub.nomineeCount})</span>
+                    <button
+                      onClick={() => {
+                        const cat = categories.find(c => c.id === sub.id)
+                        if (cat) { setEditingCategory(cat); setShowCategoryModal(true) }
+                      }}
+                      className="ml-1 p-0.5 rounded text-slate-400 hover:text-primary transition-colors"
+                      title="Edit sub-category"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => deleteCategory(sub.id)}
+                      className="p-0.5 rounded text-slate-400 hover:text-red-500 transition-colors"
+                      title="Delete sub-category"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Add business bar */}
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
             <div className="flex items-center gap-3 mb-2">
