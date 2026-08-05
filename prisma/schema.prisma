@@ -215,12 +215,14 @@ enum Status {
 
 model BestOfCategory {
   id               String            @id @default(cuid())
-  name             String            // "Best Coffee", "Best Tacos"
+  name             String            // "Best Coffee", "Best Tacos", "Food & Hospitality"
   slug             String            @unique
   description      String?
   icon             String?           // Lucide icon name e.g. "Coffee", "Taco"
   tagHints         String[]          // e.g. ["coffee-house", "cafe"] — admin suggestion hints only
   published        Boolean           @default(false)
+  isSection        Boolean           @default(false)  // true = section header (visual only, not a clickable card)
+  imageUrl         String?           // cover image for category block (or section header)
   // Parent category for sub-categories. Null = top-level parent category (e.g. "Coffee", "Real Estate")
   parentCategoryId String?
   parentCategory   BestOfCategory?   @relation("BestOfCategoryHierarchy", fields: [parentCategoryId], references: [id])
@@ -232,6 +234,7 @@ model BestOfCategory {
   @@index([slug])
   @@index([published])
   @@index([parentCategoryId])
+  @@index([isSection])
 }
 
 model BestOfNominee {

@@ -9,6 +9,8 @@ const CreateCategorySchema = z.object({
   icon: z.string().optional(),
   tagHints: z.array(z.string()).optional(),
   published: z.boolean().optional(),
+  isSection: z.boolean().optional(),
+  imageUrl: z.string().optional(),
   parentCategoryId: z.string().optional().nullable(),
 })
 
@@ -18,6 +20,8 @@ const UpdateCategorySchema = z.object({
   icon: z.string().optional(),
   tagHints: z.array(z.string()).optional(),
   published: z.boolean().optional(),
+  isSection: z.boolean().optional(),
+  imageUrl: z.string().optional(),
   parentCategoryId: z.string().optional().nullable(),
 })
 
@@ -58,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.message }, { status: 400 })
   }
 
-  const { name, slug, description, icon, tagHints, published, parentCategoryId } = parsed.data
+  const { name, slug, description, icon, tagHints, published, isSection, imageUrl, parentCategoryId } = parsed.data
 
   // Prevent circular parent
   if (parentCategoryId) {
@@ -80,6 +84,8 @@ export async function POST(req: NextRequest) {
       icon,
       tagHints: tagHints ?? [],
       published: published ?? false,
+      isSection: isSection ?? false,
+      imageUrl: imageUrl ?? null,
       parentCategoryId: parentCategoryId ?? null,
     },
     include: {

@@ -8,6 +8,8 @@ const UpdateCategorySchema = z.object({
   icon: z.string().optional(),
   tagHints: z.array(z.string()).optional(),
   published: z.boolean().optional(),
+  isSection: z.boolean().optional(),
+  imageUrl: z.string().optional(),
   parentCategoryId: z.string().optional().nullable(),
 })
 
