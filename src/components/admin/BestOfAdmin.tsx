@@ -147,18 +147,45 @@ function CategoryModal({
               Sub-category of{' '}
               <span className="font-normal text-text-secondary">(leave blank to create a top-level category)</span>
             </label>
-            <select
-              value={parentCategoryId ?? ''}
-              onChange={e => setParentCategoryId(e.target.value || null)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary"
-            >
-              <option value="">— Top-level category —</option>
-              {categories
-                .filter(c => !c.parentCategoryId && c.id !== category?.id)
-                .map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-            </select>
+            {/* Build set of all descendant IDs to prevent circular references */}
+            {(() => {
+              const descendantIds = new Set<string>()
+              if (category) {
+                const findDescendants = (catId: string) => {
+                  categories.filter(c => c.parentCategoryId === catId).forEach(c => {
+                    descendantIds.add(c.id)
+                    findDescendants(c.id)
+                  })
+                }
+                findDescendants(category.id)
+              }
+              const topLevel = categories.filter(c => !c.parentCategoryId && c.id !== category?.id && !descendantIds.has(c.id))
+              const sections = topLevel.filter(c => c.isSection)
+              const parentCategories = topLevel.filter(c => !c.isSection)
+              return (
+                <select
+                  value={parentCategoryId ?? ''}
+                  onChange={e => setParentCategoryId(e.target.value || null)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary"
+                >
+                  <option value="">— Top-level category —</option>
+                  {sections.length > 0 && (
+                    <optgroup label="Sections">
+                      {sections.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {parentCategories.length > 0 && (
+                    <optgroup label="Categories">
+                      {parentCategories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              )
+            })()}
           </div>
           <div>
             <label className="block text-xs font-semibold text-text-secondary mb-1">Tag Hints <span className="font-normal">(comma-separated, advisory only)</span></label>
