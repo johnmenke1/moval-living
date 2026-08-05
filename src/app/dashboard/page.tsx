@@ -62,10 +62,19 @@ export default async function DashboardPage() {
             },
             orderBy: { winner: 'desc' },
           },
+          subCategories: {
+            orderBy: { name: 'asc' },
+            include: { _count: { select: { nominees: true } } },
+          },
         },
         orderBy: { name: 'asc' },
       }),
     ])
+    // Map subCategories to the shape BestOfAdmin expects ({ id, name, nomineeCount })
+    const bestOfCategoriesForAdmin = bestOfCategories.map(c => ({
+      ...c,
+      subCategories: c.subCategories.map(sc => ({ id: sc.id, name: sc.name, nomineeCount: sc._count.nominees })),
+    }))
     // Annotate each business with isBestOf so the moderation panel can show the badge.
     const businessesWithFlags = businesses.map(b => ({ ...b, isBestOf: b.isBestOfWinner }))
     return (
@@ -101,7 +110,7 @@ export default async function DashboardPage() {
           <AdminTabs
             businesses={businessesWithFlags}
             posts={posts}
-            bestOfCategories={bestOfCategories}
+            bestOfCategories={bestOfCategoriesForAdmin}
           />
         </div>
       </div>
