@@ -7,6 +7,13 @@ import {
   PlusCircle, ChevronDown, ChevronUp,
 } from 'lucide-react'
 
+// Locale-stable number formatter for hydration safety. Without an explicit
+// locale, toLocaleString() can produce different output on the server (en-US)
+// vs the client (browser locale), causing React hydration mismatch (#418).
+function formatCount(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
 // ── Types ───────────────────────────────────────────────────────────────────
 
 interface Nominee {
@@ -536,7 +543,7 @@ export default function BestOfAdmin({ initialCategories }: Props) {
             </div>
           ) : (
             <div className="divide-y divide-slate-50">
-              {activeCategory.nominees
+              {[...activeCategory.nominees]
                 .sort((a, b) => {
                   if (a.winner !== b.winner) return a.winner ? -1 : 1
                   return a.displayOrder - b.displayOrder
@@ -579,7 +586,7 @@ export default function BestOfAdmin({ initialCategories }: Props) {
                               </span>
                             )}
                             {nominee.business.googleReviewCount != null && (
-                              <span className="text-xs text-text-secondary">{nominee.business.googleReviewCount.toLocaleString()} reviews</span>
+                              <span className="text-xs text-text-secondary">{formatCount(nominee.business.googleReviewCount)} reviews</span>
                             )}
                           </div>
                           {nominee.notes && (
