@@ -308,17 +308,10 @@ model GuestAuthor {
 // OUTING     = Live Curiously outing photo-essay (no GuestAuthor)
 // SPOTLIGHT  = Business video short (optional GuestAuthor)
 
-enum PostType {
-  LIFE
-  GUEST
-  OUTING
-  SPOTLIGHT
-}
-
 model GuestPost {
   id              String   @id @default(cuid())
   slug            String   @unique             // "is-now-the-right-time-to-buy-in-moreno-valley"
-  postType        PostType @default(GUEST)
+  postType        String   @default("GUEST")    // 'LIFE' | 'GUEST' | 'OUTING' | 'SPOTLIGHT'
   title           String
   excerpt         String   @db.Text            // 1-2 sentences, used in cards + meta fallback
   body            String   @db.Text            // markdown
