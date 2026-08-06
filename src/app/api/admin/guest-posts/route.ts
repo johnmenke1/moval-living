@@ -1,23 +1,16 @@
+// Migrated to shared guest-content schema on 2026-08-08.
+// The route used to inline its own Zod schema that hard-required authorId + a
+// strictly-valid ISO datetime for scheduledFor, which broke LIFE posts (no
+// authorId) and any post left "Scheduled For" blank. The shared schema
+// already declares postType + Spotify + FAQ + photo + YouTube fields.
+
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
-import { z } from 'zod'
-
-const CreateGuestPostSchema = z.object({
-  slug: z.string().min(1),
-  title: z.string().min(1),
-  excerpt: z.string(),
-  body: z.string().min(1),
-  heroImageUrl: z.string().url().optional().nullable(),
-  authorId: z.string(),
-  editorNotes: z.string().optional().nullable(),
-  metaTitle: z.string().optional().nullable(),
-  metaDescription: z.string().optional().nullable(),
-  status: z.enum(['draft', 'submitted', 'in_review', 'scheduled', 'published', 'rejected']).optional(),
-  scheduledFor: z.string().datetime().optional().nullable(),
-})
-
-const UpdateGuestPostSchema = CreateGuestPostSchema.partial()
+import {
+  guestPostCreateSchema,
+  createGuestPost,
+} from '@/lib/guest-content'
 
 // GET /api/admin/guest-posts — list all posts
 export async function GET() {
@@ -38,7 +31,7 @@ export async function GET() {
   return NextResponse.json(posts)
 }
 
-// POST /api/admin/guest-posts — create post
+// POST /api/admin/guest-posts — create a post
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id || session.user.role !== 'ADMIN') {
@@ -49,34 +42,21 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const parsed = CreateGuestPostSchema.safeParse(body)
+  const parsed = guestPostCreateSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.message }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Validation failed', issues: parsed.error.issues },
+      { status: 400 }
+    )
   }
 
-  const { slug, scheduledFor, ...data } = parsed.data
+  const created = await createGuestPost(parsed.data)
 
-  const author = await prisma.guestAuthor.findUnique({ where: { id: parsed.data.authorId } })
-  if (!author) {
-    return NextResponse.json({ error: 'Author not found' }, { status: 400 })
-  }
-
-  const existing = await prisma.guestPost.findUnique({ where: { slug } })
-  if (existing) {
-    return NextResponse.json({ error: 'Slug already in use' }, { status: 409 })
-  }
-
-  const post = await prisma.guestPost.create({
-    data: {
-      ...data,
-      slug,
-      scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
-      submittedAt: data.status && ['submitted', 'in_review', 'scheduled', 'published'].includes(data.status) ? new Date() : null,
-      publishedAt: data.status === 'published' ? new Date() : null,
-    },
+  const post = await prisma.guestPost.findUnique({
+    where: { id: created.id },
     include: {
       author: {
         select: { id: true, displayName: true, slug: true, photoUrl: true, title: true },
