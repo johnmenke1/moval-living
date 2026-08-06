@@ -18,6 +18,7 @@ const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; color: 
 interface GuestPost {
   id: string
   slug: string
+  postType: 'LIFE' | 'GUEST' | 'OUTING' | 'SPOTLIGHT'
   title: string
   excerpt: string
   heroImageUrl: string | null
@@ -85,6 +86,16 @@ function formatDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+function postTypeUrl(postType: string): string {
+  switch (postType) {
+    case 'LIFE':      return '/life'
+    case 'GUEST':     return '/insights'
+    case 'OUTING':    return '/outings'
+    case 'SPOTLIGHT': return '/spotlights'
+    default:          return '/insights'
+  }
+}
+
 export default function GuestPostsPanel({
   initialPosts,
   authors,
@@ -106,7 +117,7 @@ export default function GuestPostsPanel({
   const filtered = posts.filter(p => {
     const matchSearch =
       p.title.toLowerCase().includes(search.toLowerCase()) ||
-      p.author.displayName.toLowerCase().includes(search.toLowerCase())
+      (p.author?.displayName?.toLowerCase().includes(search.toLowerCase()) ?? false)
     const matchStatus = statusFilter === 'ALL' || p.status === statusFilter
     return matchSearch && matchStatus
   })
@@ -427,7 +438,7 @@ export default function GuestPostsPanel({
                       <p className="font-semibold text-text text-sm">{post.title}</p>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-text-secondary flex-wrap">
-                      <span>by {post.author.displayName}</span>
+                      {post.author ? <span>by {post.author.displayName}</span> : <span className="text-slate-400">John Menke</span>}
                       <span>·</span>
                       <span>{formatDate(post.createdAt)}</span>
                       {post.publishedAt && (
@@ -486,13 +497,17 @@ export default function GuestPostsPanel({
                       })}
                     </div>
                     <div className="mt-3 text-xs text-text-secondary">
-                      <a href={`/blog/${post.slug}`} target="_blank" className="inline-flex items-center gap-1 text-primary hover:underline">
+                      <a href={`/${postTypeUrl(post.postType)}/${post.slug}`} target="_blank" className="inline-flex items-center gap-1 text-primary hover:underline">
                         <Eye className="w-3.5 h-3.5" /> View live
                       </a>
-                      <span className="mx-2">·</span>
-                      <a href={`/author/${post.author.slug}`} target="_blank" className="inline-flex items-center gap-1 text-primary hover:underline">
-                        View author page
-                      </a>
+                      {post.author && (
+                        <>
+                          <span className="mx-2">·</span>
+                          <a href={`/authors/${post.author.slug}`} target="_blank" className="inline-flex items-center gap-1 text-primary hover:underline">
+                            View author page
+                          </a>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

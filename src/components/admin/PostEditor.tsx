@@ -36,8 +36,14 @@ interface PostInitial {
   metaDescription: string | null
   authorId: string | null
   author: Author | null
+  // LIFE
   spotifyTrack1: string | null
   spotifyTrack2: string | null
+  // GUEST
+  faqItems: { question: string; answer: string }[]
+  // OUTING
+  outingPhotos: string[]
+  youtubeVideoId: string | null
 }
 
 type Props =
@@ -67,8 +73,14 @@ export default function PostEditor(props: Props) {
     metaTitle: initial?.metaTitle ?? '',
     metaDescription: initial?.metaDescription ?? '',
     editorNotes: initial?.editorNotes ?? '',
+    // LIFE
     spotifyTrack1: initial?.spotifyTrack1 ?? '',
     spotifyTrack2: initial?.spotifyTrack2 ?? '',
+    // GUEST FAQ
+    faqItems: initial?.faqItems ?? [],
+    // OUTING / SPOTLIGHT
+    outingPhotos: initial?.outingPhotos ?? [],
+    youtubeVideoId: initial?.youtubeVideoId ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
@@ -273,6 +285,113 @@ export default function PostEditor(props: Props) {
               </div>
             </Field>
           )}
+
+          {/* GUEST: FAQ editor */}
+          {form.postType === 'GUEST' && (
+            <Field label="FAQ items" hint="Optional. Each Q&amp;A becomes a FAQSchema.org entry on the page.">
+              <div className="space-y-3">
+                {form.faqItems.map((item, i) => (
+                  <div key={i} className="flex gap-2 items-start bg-slate-50 rounded-lg p-3">
+                    <span className="text-xs font-medium text-slate-400 mt-6 w-4">{i + 1}.</span>
+                    <div className="flex-1 grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-medium text-text mb-1">Question</label>
+                        <input
+                          type="text"
+                          value={item.question}
+                          onChange={(e) => {
+                            const updated = [...form.faqItems]
+                            updated[i] = { ...updated[i], question: e.target.value }
+                            setField('faqItems', updated)
+                          }}
+                          placeholder="What is..."
+                          className="input text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-text mb-1">Answer</label>
+                        <input
+                          type="text"
+                          value={item.answer}
+                          onChange={(e) => {
+                            const updated = [...form.faqItems]
+                            updated[i] = { ...updated[i], answer: e.target.value }
+                            setField('faqItems', updated)
+                          }}
+                          placeholder="It is..."
+                          className="input text-sm"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setField('faqItems', form.faqItems.filter((_, j) => j !== i))}
+                      className="mt-5 text-slate-400 hover:text-red-500 text-sm"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setField('faqItems', [...form.faqItems, { question: '', answer: '' }])}
+                  className="text-sm text-primary hover:underline"
+                >
+                  + Add FAQ item
+                </button>
+              </div>
+            </Field>
+          )}
+
+          {/* OUTING: photo gallery */}
+          {form.postType === 'OUTING' && (
+            <Field label="Trip photo gallery" hint="Optional. Paste image URLs — use a comma or newline to separate.">
+              <div className="space-y-2">
+                {form.outingPhotos.map((url, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <input
+                      type="url"
+                      value={url}
+                      onChange={(e) => {
+                        const updated = [...form.outingPhotos]
+                        updated[i] = e.target.value
+                        setField('outingPhotos', updated)
+                      }}
+                      placeholder="https://..."
+                      className="input text-sm font-mono flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setField('outingPhotos', form.outingPhotos.filter((_, j) => j !== i))}
+                      className="text-slate-400 hover:text-red-500 text-sm"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setField('outingPhotos', [...form.outingPhotos, ''])}
+                  className="text-sm text-primary hover:underline"
+                >
+                  + Add photo
+                </button>
+              </div>
+            </Field>
+          )}
+
+          {/* OUTING & SPOTLIGHT: YouTube video */}
+          {(form.postType === 'OUTING' || form.postType === 'SPOTLIGHT') && (
+            <Field label="YouTube video" hint="YouTube video ID — the part after ?v= in the URL (e.g. dQw4w9WgXcQ).">
+              <input
+                type="text"
+                value={form.youtubeVideoId}
+                onChange={(e) => setField('youtubeVideoId', e.target.value)}
+                placeholder="dQw4w9WgXcQ"
+                className="input font-mono text-sm"
+              />
+            </Field>
+          )}
         </Section>
 
         {/* SEO */}
@@ -316,7 +435,7 @@ export default function PostEditor(props: Props) {
         <div className="flex items-center justify-between pt-4 border-t border-slate-100">
           {isEdit ? (
             <a
-              href={`/insights/${form.slug}`}
+              href={`/${postTypeUrl(form.postType)}/${form.slug}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-primary"
@@ -531,4 +650,14 @@ function slugify(input: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 80)
+}
+
+function postTypeUrl(postType: string): string {
+  switch (postType) {
+    case 'LIFE':      return '/life'
+    case 'GUEST':     return '/insights'
+    case 'OUTING':    return '/outings'
+    case 'SPOTLIGHT': return '/spotlights'
+    default:          return '/insights'
+  }
 }

@@ -135,12 +135,29 @@ export default async function InsightPostPage({ params }: Ctx) {
     ].filter((x): x is string => Boolean(x)),
   }
 
+  // FAQ JSON-LD — only when faqItems are present
+  type FaqItem = { question: string; answer: string }
+  const faqItems: FaqItem[] = Array.isArray(post.faqItems) ? post.faqItems as FaqItem[] : []
+  const faqSchema = faqItems.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqItems.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
+  } : null
+
   const html = renderMarkdown(post.body)
 
   return (
     <>
       <JsonLd schema={articleSchema} />
       <JsonLd schema={personSchema} />
+      {faqSchema && <JsonLd schema={faqSchema} />}
 
       <article className="bg-background min-h-screen">
         {/* Back link */}
@@ -229,6 +246,21 @@ export default async function InsightPostPage({ params }: Ctx) {
               className="prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-text prose-p:text-text prose-a:text-primary hover:prose-a:underline prose-strong:text-text prose-img:rounded-xl"
               dangerouslySetInnerHTML={{ __html: html }}
             />
+
+            {/* FAQ section — visible on page, backed by FAQPage JSON-LD */}
+            {faqItems.length > 0 && (
+              <div className="mt-12 pt-8 border-t border-slate-200">
+                <h2 className="text-2xl font-bold text-text mb-6">Frequently Asked Questions</h2>
+                <div className="space-y-4">
+                  {faqItems.map((item, i) => (
+                    <div key={i} className="bg-white border border-slate-100 rounded-xl p-5">
+                      <h3 className="font-semibold text-text mb-2">{item.question}</h3>
+                      <p className="text-text-secondary text-sm leading-relaxed">{item.answer}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Footer byline */}
             <footer className="mt-12 pt-8 border-t border-slate-200">

@@ -345,6 +345,15 @@ model GuestPost {
   spotifyTrack1   String?
   spotifyTrack2   String?
 
+  // FAQ — JSON array of { question, answer } for Guest Expert posts
+  faqItems        Json?    @default("[]")
+
+  // Photo gallery — array of photo URLs for Live Curiously outings
+  outingPhotos     String[] @default([])
+
+  // YouTube video ID (from youtube.com/watch?v=VIDEO_ID) for Outing and Spotlight
+  youtubeVideoId   String?
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

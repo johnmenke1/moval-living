@@ -81,6 +81,22 @@ export default async function SpotlightPostPage({ params }: Ctx) {
             </div>
           )}
 
+          {/* YouTube embed — shown if youtubeVideoId is set */}
+          {post.youtubeVideoId && (
+            <div className="mb-10">
+              <div className="aspect-video rounded-2xl overflow-hidden bg-black">
+                <iframe
+                  src={`https://www.youtube.com/embed/${post.youtubeVideoId}`}
+                  title={post.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  loading="lazy"
+                  className="w-full h-full"
+                />
+              </div>
+            </div>
+          )}
+
           <header className="mb-8">
             <h1 className="text-4xl sm:text-5xl font-bold text-text leading-tight mb-4">
               {post.title}

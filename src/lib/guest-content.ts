@@ -54,8 +54,18 @@ export const guestPostCreateSchema = z.object({
   authorId: z.string().trim().optional().nullable(),
   metaTitle: z.union([z.string().trim().max(200), z.literal(''), z.null()]).optional(),
   metaDescription: z.union([z.string().trim().max(320), z.literal(''), z.null()]).optional(),
+  // Life in MoVal music sidebar
   spotifyTrack1: z.union([z.string().trim().max(100), z.literal(''), z.null()]).optional(),
   spotifyTrack2: z.union([z.string().trim().max(100), z.literal(''), z.null()]).optional(),
+  // Guest Expert FAQ
+  faqItems: z.array(z.object({
+    question: z.string().trim().min(1).max(500),
+    answer: z.string().trim().min(1).max(2000),
+  })).optional(),
+  // Live Curiously photo gallery (array of URLs)
+  outingPhotos: z.array(z.string().trim().url().max(500)).optional(),
+  // YouTube video ID (the part after ?v=)
+  youtubeVideoId: z.union([z.string().trim().max(20), z.literal(''), z.null()]).optional(),
 })
 
 export const guestPostUpdateSchema = z.object({
@@ -69,8 +79,18 @@ export const guestPostUpdateSchema = z.object({
   metaTitle: z.union([z.string().trim().max(200), z.literal(''), z.null()]).optional(),
   metaDescription: z.union([z.string().trim().max(320), z.literal(''), z.null()]).optional(),
   editorNotes: z.union([z.string().trim().max(4000), z.literal(''), z.null()]).optional(),
+  // Life in MoVal music sidebar
   spotifyTrack1: z.union([z.string().trim().max(100), z.literal(''), z.null()]).optional(),
   spotifyTrack2: z.union([z.string().trim().max(100), z.literal(''), z.null()]).optional(),
+  // Guest Expert FAQ
+  faqItems: z.array(z.object({
+    question: z.string().trim().min(1).max(500),
+    answer: z.string().trim().min(1).max(2000),
+  })).optional(),
+  // Live Curiously photo gallery
+  outingPhotos: z.array(z.string().trim().url().max(500)).optional(),
+  // YouTube video ID
+  youtubeVideoId: z.union([z.string().trim().max(20), z.literal(''), z.null()]).optional(),
 })
 
 export const guestPostStatusSchema = z.object({
@@ -392,6 +412,9 @@ function normalizePostInput(input: GuestPostCreateInput) {
     metaDescription: emptyToNull(input.metaDescription),
     spotifyTrack1: emptyToNull(input.spotifyTrack1),
     spotifyTrack2: emptyToNull(input.spotifyTrack2),
+    faqItems: input.faqItems ?? undefined,
+    outingPhotos: normalizeStringArray(input.outingPhotos),
+    youtubeVideoId: emptyToNull(input.youtubeVideoId),
   }
   if (input.authorId) {
     data.author = { connect: { id: input.authorId } }
@@ -415,6 +438,9 @@ function normalizePostUpdateInput(input: GuestPostUpdateInput) {
   if (input.editorNotes !== undefined) data.editorNotes = emptyToNull(input.editorNotes)
   if (input.spotifyTrack1 !== undefined) data.spotifyTrack1 = emptyToNull(input.spotifyTrack1)
   if (input.spotifyTrack2 !== undefined) data.spotifyTrack2 = emptyToNull(input.spotifyTrack2)
+  if (input.faqItems !== undefined) data.faqItems = input.faqItems ?? undefined
+  if (input.outingPhotos !== undefined) data.outingPhotos = normalizeStringArray(input.outingPhotos)
+  if (input.youtubeVideoId !== undefined) data.youtubeVideoId = emptyToNull(input.youtubeVideoId)
   return data
 }
 
@@ -422,4 +448,11 @@ function emptyToNull<T>(v: T | '' | null | undefined): T | null {
   if (v === undefined) return undefined as T | null
   if (v === '' || v === null) return null
   return v
+}
+
+function normalizeStringArray(v: string[] | undefined): string[] | undefined {
+  if (v === undefined) return undefined
+  // Strip empty strings
+  const filtered = v.filter(Boolean)
+  return filtered.length > 0 ? filtered : undefined
 }

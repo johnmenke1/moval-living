@@ -77,6 +77,22 @@ export default async function OutingPostPage({ params }: Ctx) {
             </div>
           )}
 
+          {/* YouTube embed — shown if youtubeVideoId is set */}
+          {post.youtubeVideoId && (
+            <div className="mb-10">
+              <div className="aspect-video rounded-2xl overflow-hidden bg-black">
+                <iframe
+                  src={`https://www.youtube.com/embed/${post.youtubeVideoId}`}
+                  title={post.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  loading="lazy"
+                  className="w-full h-full"
+                />
+              </div>
+            </div>
+          )}
+
           <header className="mb-8">
             <h1 className="text-4xl sm:text-5xl font-bold text-text leading-tight mb-4">
               {post.title}
@@ -98,6 +114,26 @@ export default async function OutingPostPage({ params }: Ctx) {
             className="prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-text prose-p:text-text prose-a:text-primary hover:prose-a:underline prose-strong:text-text prose-img:rounded-xl"
             dangerouslySetInnerHTML={{ __html: html }}
           />
+
+          {/* Photo gallery — shown if outingPhotos are set */}
+          {post.outingPhotos && post.outingPhotos.length > 0 && (
+            <div className="mt-12 pt-8 border-t border-slate-200">
+              <h2 className="text-2xl font-bold text-text mb-6">Trip Photos</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {post.outingPhotos.map((photo, i) => (
+                  <div key={i} className="aspect-square rounded-xl overflow-hidden bg-slate-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo}
+                      alt={`${post.title} — photo ${i + 1}`}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <footer className="mt-12 pt-8 border-t border-slate-200">
             <div className="flex items-center gap-4">
