@@ -69,8 +69,9 @@ model Business {
   claimToken      String?    @unique  // One-time token to claim ownership
   claimExpiresAt  DateTime?            // Token expires after 7 days
   reviews         Review[]
-  socialPosts     SocialPost[]
-  bestOfNominees  BestOfNominee[]
+    socialPosts     SocialPost[]
+    bestOfNominees  BestOfNominee[]
+    guestAuthors    GuestAuthor[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
@@ -107,8 +108,9 @@ model Owner {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
-  sessions      Session[]
-  business      Business?
+    sessions      Session[]
+    business      Business?
+    guestAuthors  GuestAuthor[]
 }
 
 enum UserRole {
@@ -252,4 +254,82 @@ model BestOfNominee {
   @@unique([categoryId, businessId])
   @@index([categoryId])
   @@index([winner])
+}
+
+// ── Guest Author / Guest Post ─────────────────────────────────────────────
+// Curated editorial content from named contributors (e.g. local professionals).
+// Johnny (admin) is the only one who creates/updates author profiles and posts.
+// Authors do NOT log in — content is collected off-platform (call, email,
+// Google Doc) and entered by Johnny. This is intentional for v1: keeps the
+// curation thesis intact and avoids building a self-serve author portal.
+
+model GuestAuthor {
+  id              String   @id @default(cuid())
+  slug            String   @unique             // "chris-leeper"
+  displayName     String                       // "Chris Leeper"
+  title           String?                      // "Realtor, Leeper Realty Group"
+  bio             String   @db.Text            // 2-3 sentences, markdown ok
+  photoUrl        String?
+
+  // Web presence — every link is shown on /authors/[slug]
+  personalSiteUrl String?
+  companyName     String?
+  companyUrl      String?
+  linkedinUrl     String?
+  twitterUrl      String?
+  facebookUrl     String?
+  instagramUrl    String?
+
+  // Optional links to existing entities (handy for SEO/UX)
+  businessId      String?
+  business        Business? @relation(fields: [businessId], references: [id])
+  ownerId         String?
+  owner           Owner?    @relation(fields: [ownerId], references: [id])
+
+  // Cadence tracking — soft block at 1 post / calendar month
+  postsThisPeriod Int       @default(0)
+  periodStartedAt DateTime  @default(now())
+  lastPostedAt    DateTime?
+
+  isActive        Boolean   @default(true)     // soft-disable without delete
+
+  posts           GuestPost[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model GuestPost {
+  id              String   @id @default(cuid())
+  slug            String   @unique             // "is-now-the-right-time-to-buy-in-moreno-valley"
+  title           String
+  excerpt         String   @db.Text            // 1-2 sentences, used in cards + meta fallback
+  body            String   @db.Text            // markdown
+  heroImageUrl    String?
+
+  status          String   @default("draft")
+                  // "draft" | "submitted" | "in_review" | "scheduled" | "published" | "rejected"
+  submittedAt     DateTime?
+  scheduledFor    DateTime?
+  publishedAt     DateTime?
+  rejectionReason String?
+
+  authorId        String
+  author          GuestAuthor @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Editorial — Johnny's private notes on the post
+  editorNotes     String?  @db.Text
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([authorId, publishedAt(sort: Desc)])
 }

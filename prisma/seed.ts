@@ -164,7 +164,61 @@ We believe in honest, upfront pricing with no surprises. Every repair is explain
   }
   console.log(`✅ Created ${businesses.length} sample businesses with reviews`)
 
-  console.log('\n🎉 Seed complete!')
+    // ── Seed a guest author + sample draft post ─────────────────────────────
+    // Replace placeholder URLs/values once Johnny has real photos / real links
+    // for Chris Leeper. This is enough to walk the new admin UI.
+    const chrisAuthor = await prisma.guestAuthor.upsert({
+      where: { slug: 'chris-leeper' },
+      update: {},
+      create: {
+        slug: 'chris-leeper',
+        displayName: 'Chris Leeper',
+        title: 'Realtor, Leeper Realty Group',
+        bio: 'Chris Leeper has been helping Moreno Valley families buy and sell homes for over a decade. He specializes in first-time buyers and writes regularly about the local market for moval.living.',
+        photoUrl: '',
+        companyName: 'Leeper Realty Group',
+        companyUrl: 'https://leeperrealty.com',
+        linkedinUrl: '',
+        twitterUrl: '',
+        facebookUrl: '',
+        instagramUrl: '',
+        isActive: true,
+      },
+    })
+    console.log(`✅ Seeded guest author: ${chrisAuthor.displayName}`)
+
+    await prisma.guestPost.upsert({
+      where: { slug: 'is-now-the-right-time-to-buy-in-moreno-valley' },
+      update: {},
+      create: {
+        slug: 'is-now-the-right-time-to-buy-in-moreno-valley',
+        title: 'Is Now the Right Time to Buy in Moreno Valley?',
+        excerpt:
+          'A look at the local numbers, the rate environment, and what they actually mean for buyers weighing their options this year.',
+        body: `There is no single "right time" to buy a home — only the right time for *you*. But it helps to know what you're buying into.
+
+  ## The local picture
+
+  Moreno Valley remains one of the more affordable markets in the Inland Empire. Inventory has been steady, and well-priced homes are still closing within a few weeks of listing.
+
+  ## Rates are what they are
+
+  You can't control the Fed. What you can control is preparation: getting pre-approved, knowing your monthly number, and being ready when the right home comes up.
+
+  ## The honest answer
+
+  If you're planning to be in the home 5+ years, the timing matters less than the fit. Buy the house, not the rate.
+  `,
+        status: 'draft',
+        authorId: chrisAuthor.id,
+        editorNotes: 'Placeholder draft — replace body with Chris\'s actual draft before publishing.',
+        metaTitle: null,
+        metaDescription: null,
+      },
+    })
+    console.log('✅ Seeded draft guest post for Chris Leeper')
+
+    console.log('\n🎉 Seed complete!')
   console.log('   Database URL:', process.env.DATABASE_URL ? '✅ Set' : '❌ Missing')
 }
 

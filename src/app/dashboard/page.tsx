@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { Status } from '@prisma/client'
-import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus } from 'lucide-react'
+import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus, FileText, Users } from 'lucide-react'
 import DashboardUpgradeWidget from './DashboardUpgradeWidget'
 import AdminTabs from './AdminTabs'
 
@@ -39,7 +39,7 @@ export default async function DashboardPage() {
 
   // Admin: show moderation panels
   if (isAdmin) {
-    const [posts, businesses, pendingPostCount, pendingBusinessCount, bestOfCategories] = await Promise.all([
+    const [posts, businesses, pendingPostCount, pendingBusinessCount, bestOfCategories, guestAuthors, guestPosts] = await Promise.all([
       prisma.socialPost.findMany({
         include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
         orderBy: { createdAt: 'desc' },
@@ -58,8 +58,7 @@ export default async function DashboardPage() {
         include: {
           nominees: {
             include: {
-              business: { select: { id: true, name: true, slug: true, address: true, website: true, logo: true } },
-            },
+              business: { select: { id: true, name: true, slug: true, address: true, website: true, logo: true } } },
             orderBy: { winner: 'desc' },
           },
           subCategories: {
@@ -68,6 +67,19 @@ export default async function DashboardPage() {
           },
         },
         orderBy: { name: 'asc' },
+      }),
+      prisma.guestAuthor.findMany({
+        include: {
+          _count: { select: { posts: true } },
+          business: { select: { id: true, name: true, slug: true, logo: true } },
+        },
+        orderBy: { displayName: 'asc' },
+      }),
+      prisma.guestPost.findMany({
+        include: {
+          author: { select: { id: true, displayName: true, slug: true, photoUrl: true, title: true } },
+        },
+        orderBy: { createdAt: 'desc' },
       }),
     ])
     // Map subCategories to the shape BestOfAdmin expects ({ id, name, nomineeCount })
@@ -103,14 +115,16 @@ export default async function DashboardPage() {
               <Link href="/dashboard/add" className="btn-primary inline-flex items-center justify-center gap-2">
                 <Plus className="w-4 h-4" /> Add Business
               </Link>
-            </div>
-          </div>
-        </div>
+                          </div>
+                        </div>
+                      </div>
         <div className="container-max py-8">
           <AdminTabs
             businesses={businessesWithFlags}
             posts={posts}
             bestOfCategories={bestOfCategoriesForAdmin}
+            guestAuthors={guestAuthors.map((a: any) => ({ ...a, postCount: a._count.posts }))}
+            guestPosts={guestPosts}
           />
         </div>
       </div>
