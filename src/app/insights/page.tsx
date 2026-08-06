@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default async function InsightsIndexPage() {
   const posts = await prisma.guestPost.findMany({
-    where: { status: 'published' },
+    where: { status: 'published', postType: 'GUEST' },
     orderBy: { publishedAt: 'desc' },
     include: {
       author: {
@@ -79,20 +79,20 @@ export default async function InsightsIndexPage() {
                   </p>
 
                   <Link
-                    href={`/authors/${post.author.slug}`}
+                    href={`/authors/${post.author!.slug}`}
                     className="flex items-center gap-2 text-sm"
                   >
                     <span className="w-8 h-8 rounded-full bg-slate-100 overflow-hidden flex-shrink-0">
-                      {post.author.photoUrl ? (
+                      {post.author!.photoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={post.author.photoUrl}
-                          alt={post.author.displayName}
+                          src={post.author!.photoUrl}
+                          alt={post.author!.displayName}
                           className="w-full h-full object-cover"
                         />
                       ) : (
                         <span className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-semibold">
-                          {post.author.displayName
+                          {post.author!.displayName
                             .split(' ')
                             .map((p) => p[0])
                             .slice(0, 2)
@@ -103,11 +103,11 @@ export default async function InsightsIndexPage() {
                     </span>
                     <span className="flex flex-col">
                       <span className="font-semibold text-text">
-                        {post.author.displayName}
+                        {post.author!.displayName}
                       </span>
-                      {post.author.companyName && (
+                      {post.author!.companyName && (
                         <span className="text-xs text-text-secondary">
-                          {post.author.companyName}
+                          {post.author!.companyName}
                         </span>
                       )}
                     </span>

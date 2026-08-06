@@ -22,6 +22,7 @@ interface Author {
 interface PostInitial {
   id: string
   slug: string
+  postType: 'LIFE' | 'GUEST' | 'OUTING' | 'SPOTLIGHT'
   title: string
   excerpt: string
   body: string
@@ -33,13 +34,22 @@ interface PostInitial {
   editorNotes: string | null
   metaTitle: string | null
   metaDescription: string | null
-  authorId: string
-  author: Author
+  authorId: string | null
+  author: Author | null
+  spotifyTrack1: string | null
+  spotifyTrack2: string | null
 }
 
 type Props =
   | { mode: 'create'; authors: Author[]; initial?: undefined }
   | { mode: 'edit'; authors: Author[]; initial: PostInitial }
+
+const POST_TYPE_OPTIONS: { value: PostInitial['postType']; label: string }[] = [
+  { value: 'LIFE', label: 'Life in MoVal — John\'s editorial voice' },
+  { value: 'GUEST', label: 'Guest Expert — curated local contributor' },
+  { value: 'OUTING', label: 'Live Curiously — photo-essay outing' },
+  { value: 'SPOTLIGHT', label: 'Business Spotlight — video short' },
+]
 
 export default function PostEditor(props: Props) {
   const router = useRouter()
@@ -47,6 +57,7 @@ export default function PostEditor(props: Props) {
   const initial = isEdit ? props.initial : null
 
   const [form, setForm] = useState({
+    postType: initial?.postType ?? 'GUEST',
     title: initial?.title ?? '',
     slug: initial?.slug ?? '',
     excerpt: initial?.excerpt ?? '',
@@ -56,6 +67,8 @@ export default function PostEditor(props: Props) {
     metaTitle: initial?.metaTitle ?? '',
     metaDescription: initial?.metaDescription ?? '',
     editorNotes: initial?.editorNotes ?? '',
+    spotifyTrack1: initial?.spotifyTrack1 ?? '',
+    spotifyTrack2: initial?.spotifyTrack2 ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
@@ -146,6 +159,26 @@ export default function PostEditor(props: Props) {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Identity */}
         <Section title="Content">
+          <Field label="Post type" required>
+            <select
+              value={form.postType}
+              onChange={(e) => setField('postType', e.target.value as typeof form.postType)}
+              required
+              disabled={isEdit}
+              className="input"
+            >
+              {POST_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            {isEdit && (
+              <span className="block text-xs text-text-secondary mt-1">
+                Post type can&apos;t be changed after creation.
+              </span>
+            )}
+          </Field>
           <Field label="Title" required>
             <input
               type="text"
@@ -164,27 +197,29 @@ export default function PostEditor(props: Props) {
               className="input font-mono text-sm"
             />
           </Field>
-          <Field label="Author" required>
-            <select
-              value={form.authorId}
-              onChange={(e) => setField('authorId', e.target.value)}
-              required
-              disabled={isEdit}
-              className="input"
-            >
-              <option value="">— select author —</option>
-              {props.authors.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.displayName}
-                </option>
-              ))}
-            </select>
-            {isEdit && (
-              <span className="block text-xs text-text-secondary mt-1">
-                Author can&apos;t be changed after creation.
-              </span>
-            )}
-          </Field>
+          {form.postType === 'GUEST' && (
+            <Field label="Author" required>
+              <select
+                value={form.authorId}
+                onChange={(e) => setField('authorId', e.target.value)}
+                required
+                disabled={isEdit}
+                className="input"
+              >
+                <option value="">— select author —</option>
+                {props.authors.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.displayName}
+                  </option>
+                ))}
+              </select>
+              {isEdit && (
+                <span className="block text-xs text-text-secondary mt-1">
+                  Author can&apos;t be changed after creation.
+                </span>
+              )}
+            </Field>
+          )}
           <Field label="Excerpt" required hint="1-2 sentences. Used in cards and meta description fallback.">
             <textarea
               value={form.excerpt}
@@ -212,6 +247,32 @@ export default function PostEditor(props: Props) {
               className="input"
             />
           </Field>
+          {form.postType === 'LIFE' && (
+            <Field label="What I'm listening to" hint="Spotify track IDs — find them in the track's Share → Copy Spotify URI (e.g. 4PTG3Z6ehGkBFwjybzWkR8).">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-text mb-1">Track 1</label>
+                  <input
+                    type="text"
+                    value={form.spotifyTrack1}
+                    onChange={(e) => setField('spotifyTrack1', e.target.value)}
+                    placeholder="4PTG3Z6ehGkBFwjybzWkR8"
+                    className="input font-mono text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-text mb-1">Track 2</label>
+                  <input
+                    type="text"
+                    value={form.spotifyTrack2}
+                    onChange={(e) => setField('spotifyTrack2', e.target.value)}
+                    placeholder="4PTG3Z6ehGkBFwjybzWkR8"
+                    className="input font-mono text-sm"
+                  />
+                </div>
+              </div>
+            </Field>
+          )}
         </Section>
 
         {/* SEO */}

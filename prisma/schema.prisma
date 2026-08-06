@@ -302,9 +302,23 @@ model GuestAuthor {
   @@index([isActive])
 }
 
+// ── Post Types ────────────────────────────────────────────────────────────────
+// LIFE       = "Life in MoVal" — John's editorial voice (no GuestAuthor needed)
+// GUEST      = External expert post (requires GuestAuthor)
+// OUTING     = Live Curiously outing photo-essay (no GuestAuthor)
+// SPOTLIGHT  = Business video short (optional GuestAuthor)
+
+enum PostType {
+  LIFE
+  GUEST
+  OUTING
+  SPOTLIGHT
+}
+
 model GuestPost {
   id              String   @id @default(cuid())
   slug            String   @unique             // "is-now-the-right-time-to-buy-in-moreno-valley"
+  postType        PostType @default(GUEST)
   title           String
   excerpt         String   @db.Text            // 1-2 sentences, used in cards + meta fallback
   body            String   @db.Text            // markdown
@@ -317,8 +331,8 @@ model GuestPost {
   publishedAt     DateTime?
   rejectionReason String?
 
-  authorId        String
-  author          GuestAuthor @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId        String?
+  author          GuestAuthor? @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   // Editorial — Johnny's private notes on the post
   editorNotes     String?  @db.Text
@@ -327,9 +341,14 @@ model GuestPost {
   metaTitle       String?
   metaDescription String?
 
+  // Music sidebar — two optional Spotify track IDs for Life posts
+  spotifyTrack1   String?
+  spotifyTrack2   String?
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([status, publishedAt(sort: Desc)])
   @@index([authorId, publishedAt(sort: Desc)])
+  @@index([postType, publishedAt(sort: Desc)])
 }

@@ -42,7 +42,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 })
     }
     // Skip cadence check if post is already published (idempotent).
-    if (post.status !== 'published') {
+    // Also skip if no author (LIFE / OUTING / SPOTLIGHT posts have no guest author).
+    if (post.status !== 'published' && post.authorId) {
       const cadence = await checkPostCadence(post.authorId)
       if (!cadence.allowed) {
         return NextResponse.json(

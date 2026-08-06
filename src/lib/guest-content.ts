@@ -46,24 +46,31 @@ export const guestAuthorUpdateSchema = guestAuthorCreateSchema.partial()
 
 export const guestPostCreateSchema = z.object({
   slug: slugSchema,
+  postType: z.enum(['LIFE', 'GUEST', 'OUTING', 'SPOTLIGHT']).optional(),
   title: z.string().trim().min(1).max(200),
   excerpt: z.string().trim().min(1).max(500),
   body: z.string().trim().min(1),
   heroImageUrl: nullableUrl,
-  authorId: z.string().trim().min(1),
+  authorId: z.string().trim().optional().nullable(),
   metaTitle: z.union([z.string().trim().max(200), z.literal(''), z.null()]).optional(),
   metaDescription: z.union([z.string().trim().max(320), z.literal(''), z.null()]).optional(),
+  spotifyTrack1: z.union([z.string().trim().max(100), z.literal(''), z.null()]).optional(),
+  spotifyTrack2: z.union([z.string().trim().max(100), z.literal(''), z.null()]).optional(),
 })
 
 export const guestPostUpdateSchema = z.object({
   slug: slugSchema.optional(),
+  postType: z.enum(['LIFE', 'GUEST', 'OUTING', 'SPOTLIGHT']).optional(),
   title: z.string().trim().min(1).max(200).optional(),
   excerpt: z.string().trim().min(1).max(500).optional(),
   body: z.string().trim().min(1).optional(),
   heroImageUrl: nullableUrl,
+  authorId: z.string().trim().optional().nullable(),
   metaTitle: z.union([z.string().trim().max(200), z.literal(''), z.null()]).optional(),
   metaDescription: z.union([z.string().trim().max(320), z.literal(''), z.null()]).optional(),
   editorNotes: z.union([z.string().trim().max(4000), z.literal(''), z.null()]).optional(),
+  spotifyTrack1: z.union([z.string().trim().max(100), z.literal(''), z.null()]).optional(),
+  spotifyTrack2: z.union([z.string().trim().max(100), z.literal(''), z.null()]).optional(),
 })
 
 export const guestPostStatusSchema = z.object({
@@ -235,7 +242,7 @@ export async function getGuestAuthorBySlug(slug: string) {
     where: { slug },
     include: {
       posts: {
-        where: { status: 'published' },
+        where: { status: 'published', postType: 'GUEST' },
         orderBy: { publishedAt: 'desc' },
         select: {
           id: true,
@@ -358,15 +365,15 @@ export async function transitionPostStatus(
     data.scheduledFor = null
   }
 
-  // Side effects on publish / unpublish
+  // Side effects on publish / unpublish — only for guest-authored posts
   if (input.status === 'published' && post.status !== 'published') {
     await prisma.guestPost.update({ where: { id: postId }, data })
-    await recordPostPublish(post.authorId)
+    if (post.authorId) await recordPostPublish(post.authorId)
     return prisma.guestPost.findUnique({ where: { id: postId } })
   }
   if (post.status === 'published' && input.status !== 'published') {
     await prisma.guestPost.update({ where: { id: postId }, data })
-    await recordPostUnpublish(post.authorId)
+    if (post.authorId) await recordPostUnpublish(post.authorId)
     return prisma.guestPost.findUnique({ where: { id: postId } })
   }
 
@@ -374,28 +381,40 @@ export async function transitionPostStatus(
 }
 
 function normalizePostInput(input: GuestPostCreateInput) {
-  return {
+  const data: Prisma.GuestPostCreateInput = {
     slug: input.slug,
+    postType: (input.postType as string) as 'LIFE' | 'GUEST' | 'OUTING' | 'SPOTLIGHT',
     title: input.title,
     excerpt: input.excerpt,
     body: input.body,
     heroImageUrl: emptyToNull(input.heroImageUrl),
     metaTitle: emptyToNull(input.metaTitle),
     metaDescription: emptyToNull(input.metaDescription),
-    author: { connect: { id: input.authorId } },
-  } as Prisma.GuestPostCreateInput
+    spotifyTrack1: emptyToNull(input.spotifyTrack1),
+    spotifyTrack2: emptyToNull(input.spotifyTrack2),
+  }
+  if (input.authorId) {
+    data.author = { connect: { id: input.authorId } }
+  }
+  return data
 }
 
 function normalizePostUpdateInput(input: GuestPostUpdateInput) {
   const data: Prisma.GuestPostUpdateInput = {}
   if (input.slug !== undefined) data.slug = input.slug
+  if (input.postType !== undefined) data.postType = input.postType as 'LIFE' | 'GUEST' | 'OUTING' | 'SPOTLIGHT'
   if (input.title !== undefined) data.title = input.title
   if (input.excerpt !== undefined) data.excerpt = input.excerpt
   if (input.body !== undefined) data.body = input.body
   if (input.heroImageUrl !== undefined) data.heroImageUrl = emptyToNull(input.heroImageUrl)
+  if (input.authorId !== undefined) {
+    data.author = input.authorId ? { connect: { id: input.authorId } } : { disconnect: true }
+  }
   if (input.metaTitle !== undefined) data.metaTitle = emptyToNull(input.metaTitle)
   if (input.metaDescription !== undefined) data.metaDescription = emptyToNull(input.metaDescription)
   if (input.editorNotes !== undefined) data.editorNotes = emptyToNull(input.editorNotes)
+  if (input.spotifyTrack1 !== undefined) data.spotifyTrack1 = emptyToNull(input.spotifyTrack1)
+  if (input.spotifyTrack2 !== undefined) data.spotifyTrack2 = emptyToNull(input.spotifyTrack2)
   return data
 }
 

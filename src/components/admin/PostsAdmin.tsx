@@ -26,6 +26,7 @@ interface Author {
 interface Post {
   id: string
   slug: string
+  postType: 'LIFE' | 'GUEST' | 'OUTING' | 'SPOTLIGHT'
   title: string
   excerpt: string
   status: 'draft' | 'submitted' | 'in_review' | 'scheduled' | 'published' | 'rejected'
@@ -33,12 +34,34 @@ interface Post {
   publishedAt: string | null
   rejectionReason: string | null
   updatedAt: string | Date
-  author: Author
+  author: Author | null
 }
 
 interface Props {
   initialPosts: Post[]
   authors: Author[]
+}
+
+const POST_TYPE_TABS: { key: 'ALL' | 'LIFE' | 'GUEST' | 'OUTING' | 'SPOTLIGHT'; label: string }[] = [
+  { key: 'ALL', label: 'All types' },
+  { key: 'LIFE', label: 'Life in MoVal' },
+  { key: 'GUEST', label: 'Guest Expert' },
+  { key: 'OUTING', label: 'Live Curiously' },
+  { key: 'SPOTLIGHT', label: 'Spotlight' },
+]
+
+const POST_TYPE_BADGE: Record<string, string> = {
+  LIFE: 'bg-amber-100 text-amber-800',
+  GUEST: 'bg-blue-100 text-blue-800',
+  OUTING: 'bg-green-100 text-green-800',
+  SPOTLIGHT: 'bg-purple-100 text-purple-800',
+}
+
+const POST_TYPE_LABEL: Record<string, string> = {
+  LIFE: 'Life in MoVal',
+  GUEST: 'Guest Expert',
+  OUTING: 'Live Curiously',
+  SPOTLIGHT: 'Spotlight',
 }
 
 const STATUS_TABS: { key: 'all' | Post['status']; label: string }[] = [
@@ -63,22 +86,24 @@ const STATUS_BADGE: Record<Post['status'], string> = {
 export default function PostsAdmin({ initialPosts, authors }: Props) {
   const router = useRouter()
   const [posts, setPosts] = useState<Post[]>(initialPosts)
-  const [tab, setTab] = useState<'all' | Post['status']>('all')
+  const [typeTab, setTypeTab] = useState<'ALL' | 'LIFE' | 'GUEST' | 'OUTING' | 'SPOTLIGHT'>('ALL')
+  const [statusTab, setStatusTab] = useState<'all' | Post['status']>('all')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     return posts.filter((p) => {
-      if (tab !== 'all' && p.status !== tab) return false
+      if (typeTab !== 'ALL' && p.postType !== typeTab) return false
+      if (statusTab !== 'all' && p.status !== statusTab) return false
       if (!search.trim()) return true
       const q = search.toLowerCase()
       return (
         p.title.toLowerCase().includes(q) ||
-        p.author.displayName.toLowerCase().includes(q) ||
+        (p.author?.displayName?.toLowerCase().includes(q) ?? false) ||
         p.excerpt.toLowerCase().includes(q)
       )
     })
-  }, [posts, tab, search])
+  }, [posts, typeTab, statusTab, search])
 
   async function transition(id: string, status: Post['status'], opts?: { scheduledFor?: string; rejectionReason?: string }) {
     setLoading(id)
@@ -121,35 +146,47 @@ export default function PostsAdmin({ initialPosts, authors }: Props) {
 
   return (
     <div className="bg-white border border-slate-100 rounded-xl overflow-hidden">
-      {/* Tabs */}
-      <div className="border-b border-slate-200 overflow-x-auto">
-        <div className="flex gap-1 min-w-max px-2" role="tablist">
-          {STATUS_TABS.map(({ key, label }) => {
-            const count =
-              key === 'all'
-                ? posts.length
-                : posts.filter((p) => p.status === key).length
-            const isActive = tab === key
+      {/* Two-row tabs: type filter + status filter */}
+      <div className="border-b border-slate-200">
+        {/* Type filter */}
+        <div className="flex gap-1 px-2 pt-2 overflow-x-auto">
+          {POST_TYPE_TABS.map(({ key, label }) => {
+            const isActive = typeTab === key
+            const count = key === 'ALL' ? posts.length : posts.filter((p) => p.postType === key).length
             return (
               <button
                 key={key}
-                onClick={() => setTab(key)}
-                className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${
+                onClick={() => setTypeTab(key)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full transition-colors whitespace-nowrap ${
+                  isActive
+                    ? 'bg-primary text-white'
+                    : 'bg-slate-100 text-text-secondary hover:bg-slate-200'
+                }`}
+              >
+                {label}
+                {count > 0 && <span className="opacity-70">({count})</span>}
+              </button>
+            )
+          })}
+        </div>
+        {/* Status filter */}
+        <div className="flex gap-1 min-w-max px-2 pb-1 mt-1 overflow-x-auto" role="tablist">
+          {STATUS_TABS.map(({ key, label }) => {
+            const isActive = statusTab === key
+            const visiblePosts = typeTab === 'ALL' ? posts : posts.filter((p) => p.postType === typeTab)
+            const count = key === 'all' ? visiblePosts.length : visiblePosts.filter((p) => p.status === key).length
+            return (
+              <button
+                key={key}
+                onClick={() => setStatusTab(key)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap ${
                   isActive
                     ? 'border-primary text-primary'
                     : 'border-transparent text-text-secondary hover:text-text hover:border-slate-300'
                 }`}
               >
                 {label}
-                {count > 0 && (
-                  <span
-                    className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold ${
-                      isActive ? 'bg-primary text-white' : 'bg-slate-200 text-text-secondary'
-                    }`}
-                  >
-                    {count}
-                  </span>
-                )}
+                {count > 0 && <span className={`inline-flex items-center justify-center min-w-[1.1rem] h-4 px-1 rounded-full text-[10px] font-bold ${isActive ? 'bg-primary text-white' : 'bg-slate-200'}`}>{count}</span>}
               </button>
             )
           })}
@@ -195,7 +232,7 @@ export default function PostsAdmin({ initialPosts, authors }: Props) {
               <div className="flex items-start gap-4">
                 {/* Author avatar */}
                 <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden flex-shrink-0">
-                  {post.author.photoUrl ? (
+                  {post.author?.photoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={post.author.photoUrl}
@@ -204,12 +241,12 @@ export default function PostsAdmin({ initialPosts, authors }: Props) {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-semibold">
-                      {post.author.displayName
+                      {post.author?.displayName
                         .split(' ')
                         .map((p) => p[0])
                         .slice(0, 2)
                         .join('')
-                        .toUpperCase()}
+                        .toUpperCase() ?? 'JM'}
                     </div>
                   )}
                 </div>
@@ -217,6 +254,11 @@ export default function PostsAdmin({ initialPosts, authors }: Props) {
                 {/* Body */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-semibold ${POST_TYPE_BADGE[post.postType]}`}
+                    >
+                      {POST_TYPE_LABEL[post.postType]}
+                    </span>
                     <Link
                       href={`/dashboard/posts-queue/${post.slug}`}
                       className="font-semibold text-text hover:text-primary"
@@ -238,7 +280,7 @@ export default function PostsAdmin({ initialPosts, authors }: Props) {
                     {post.excerpt}
                   </div>
                   <div className="flex items-center gap-3 mt-2 text-xs text-text-secondary">
-                    <span>by {post.author.displayName}</span>
+                    {post.author && <span>by {post.author.displayName}</span>}
                     <span>·</span>
                     <span>updated {relativeTime(post.updatedAt)}</span>
                   </div>

@@ -20,7 +20,7 @@ async function getAuthor(slug: string) {
     where: { slug },
     include: {
       posts: {
-        where: { status: 'published' },
+        where: { status: 'published', postType: 'GUEST' },
         orderBy: { publishedAt: 'desc' },
         select: {
           id: true,

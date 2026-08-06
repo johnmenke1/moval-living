@@ -26,7 +26,8 @@ export async function generateMetadata({ params }: Ctx): Promise<Metadata> {
 
   const title = post.metaTitle ?? post.title
   const description = post.metaDescription ?? post.excerpt
-  const authorName = post.author.displayName
+  // /insights only serves GUEST posts; author is always present
+  const authorName = post.author!.displayName
   const url = `https://www.moval.living/insights/${post.slug}`
 
   return {
@@ -58,6 +59,10 @@ export default async function InsightPostPage({ params }: Ctx) {
   if (!post) notFound()
 
   const author = post.author
+  // /insights only lists GUEST posts, which must have an author — but TypeScript
+  // doesn't know that; guard defensively
+  if (!author) notFound()
+
   const url = `https://www.moval.living/insights/${post.slug}`
   const authorUrl = `https://www.moval.living/authors/${author.slug}`
 
