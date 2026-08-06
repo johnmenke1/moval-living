@@ -7,7 +7,7 @@ import { FaqSection } from '@/components/seo/FaqSection'
 export const metadata: Metadata = {
   title: 'About Moreno Valley, CA — Demographics, Lifestyle & Market Stats',
   description:
-    'Learn about Moreno Valley, CA: population, demographics, top employers, schools, lifestyle, and current real estate market statistics. Your local expert is Johnny Menke, Broker.',
+    'Learn about Moreno Valley, CA: population, demographics, top employers, schools, lifestyle, and current real estate market stats. Founded by 30-year Moreno Valley resident John Menke (DRE #01959317).',
 }
 
 export const revalidate = 3600
@@ -112,12 +112,84 @@ export default async function AboutMorenoValleyPage() {
         </div>
       </section>
 
+      {/* ── Meet the Founder ──────────────────────────────────────── */}
+      <section className="section bg-white" id="about-john">
+        <div className="container-max">
+          <div className="max-w-4xl mx-auto">
+            {/* Section label */}
+            <div className="mb-6">
+              <p className="text-sm font-semibold tracking-widest uppercase text-accent mb-2">Meet the Founder</p>
+              <h2 className="text-3xl font-bold text-text">About John Menke</h2>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-10 items-start">
+              {/* Photo */}
+              <div className="shrink-0">
+                {/* TODO: Replace with actual photo URL from Vercel Blob */}
+                {/* Placeholder: Replace NEXT_PUBLIC_JOHN_PHOTO_URL env var with your photo's public URL */}
+                <div className="w-48 h-48 rounded-2xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-sm text-center p-4">
+                  John &amp; wife at<br />Moreno Valley<br />Chamber Mixer
+                </div>
+              </div>
+
+              {/* Bio */}
+              <div className="flex-1 space-y-4">
+                <p className="text-text leading-relaxed">
+                  In June 1990, my wife was pregnant with our first son and we moved to Moreno Valley.
+                  We've been here ever since — raising our family, building our lives, and watching this
+                  city become home in a way we never expected.
+                </p>
+                <p className="text-text leading-relaxed">
+                  I'm a licensed California Real Estate Broker (DRE #01959317, NMLS #2333681) and have
+                  worked in the industry for over 30 years, currently as an Associate Broker with{' '}
+                  <strong>eXP of California Realty, Inc.</strong>
+                </p>
+                <p className="text-text leading-relaxed">
+                  Moval.living started the way most good ideas do: out of frustration. I'd lived here
+                  long enough to know which restaurants the locals loved, which contractors actually
+                  showed up, and which agents actually cared about their clients — and I watched all
+                  that knowledge stay trapped in neighborhoods and friendship circles. Great businesses
+                  were invisible to anyone who didn't already know them.
+                </p>
+                <p className="text-text leading-relaxed">
+                  So I built moval.living — not as a real estate site, but as a community directory.
+                  A way to surface the people and places that make Moreno Valley worth living in.
+                </p>
+                <p className="text-text leading-relaxed">
+                  Active in the Moreno Valley community through Chamber of Commerce events and various
+                  local volunteer initiatives. While I'd love for you to choose me as your agent — I'd
+                  rather help you find the right person for <em>your</em> situation. That's why I
+                  created the Best Of Moreno Valley program: to surface the agents, restaurants, and
+                  businesses I'd trust enough to recommend to my own family.
+                </p>
+
+                {/* Credentials */}
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
+                    DRE #01959317
+                  </span>
+                  <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
+                    NMLS #2333681
+                  </span>
+                  <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
+                    eXP of California Realty, Inc.
+                  </span>
+                  <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
+                    Moreno Valley Resident Since 1990
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="bg-secondary section text-white">
         <div className="container-max text-center">
           <h2 className="mb-4 text-3xl font-bold">Thinking of Buying or Selling in Moreno Valley?</h2>
           <p className="mx-auto mb-8 max-w-2xl text-lg text-white/70">
             With years of local market expertise and a deep understanding of the Moreno Valley
-            community, Johnny Menke is your trusted real estate broker for the Moreno Valley area.
+            community, John Menke is your trusted real estate broker for the Moreno Valley area.
             Whether you&apos;re a first-time buyer, upgrading, or investing, he&apos;s here to guide you.
           </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
@@ -125,7 +197,7 @@ export default async function AboutMorenoValleyPage() {
               Browse Active Listings <ArrowRight className="h-4 w-4" />
             </a>
             <a href="/about-moreno-valley#contact" className="btn-outline border-white/30 text-white hover:bg-white/10 hover:text-white">
-              Talk to Johnny
+              Talk to John
             </a>
           </div>
         </div>

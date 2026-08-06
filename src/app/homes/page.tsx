@@ -321,7 +321,7 @@ export default function HomesPage() {
       <div className="container-max pb-8">
         <p className="text-xs text-text-secondary italic text-center">
           Based on information from CRMLS. All data should be independently verified. Some data may be suppressed due to privacy restrictions.
-          Listing data provided by Johnny Menke, Licensed Real Estate Broker —{' '}
+          Listing data provided by John Menke, Licensed Real Estate Broker (DRE #01959317) —{' '}
           <a href="/about-moreno-valley" className="underline hover:text-primary">
             Learn about the Moreno Valley market →
           </a>
