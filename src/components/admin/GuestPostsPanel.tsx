@@ -61,6 +61,15 @@ interface FormState {
   scheduledFor: string
   metaTitle: string
   metaDescription: string
+  // LIFE
+  spotifyTrack1: string
+  spotifyTrack2: string
+  // GUEST
+  faqItems: { question: string; answer: string }[]
+  // OUTING
+  outingPhotos: string[]
+  // OUTING & SPOTLIGHT
+  youtubeVideoId: string
 }
 
 const blankForm = (): FormState => ({
@@ -75,6 +84,15 @@ const blankForm = (): FormState => ({
   scheduledFor: '',
   metaTitle: '',
   metaDescription: '',
+  // LIFE
+  spotifyTrack1: '',
+  spotifyTrack2: '',
+  // GUEST
+  faqItems: [],
+  // OUTING
+  outingPhotos: [],
+  // OUTING & SPOTLIGHT
+  youtubeVideoId: '',
 })
 
 function slugify(s: string) {
@@ -140,12 +158,27 @@ export default function GuestPostsPanel({
     setCreateError('')
     try {
       const payload = {
-        ...createForm,
+        postType: createForm.postType,
+        slug: createForm.slug,
+        title: createForm.title,
+        excerpt: createForm.excerpt,
+        body: createForm.body,
         heroImageUrl: createForm.heroImageUrl || null,
         scheduledFor: createForm.scheduledFor || null,
         metaTitle: createForm.metaTitle || null,
         metaDescription: createForm.metaDescription || null,
         authorId: createForm.postType === 'GUEST' ? createForm.authorId || undefined : undefined,
+        // LIFE
+        spotifyTrack1: createForm.postType === 'LIFE' ? (createForm.spotifyTrack1 || null) : undefined,
+        spotifyTrack2: createForm.postType === 'LIFE' ? (createForm.spotifyTrack2 || null) : undefined,
+        // GUEST
+        faqItems: createForm.postType === 'GUEST' ? (createForm.faqItems || []) : undefined,
+        // OUTING
+        outingPhotos: createForm.postType === 'OUTING' ? (createForm.outingPhotos || []) : undefined,
+        youtubeVideoId:
+          (createForm.postType === 'OUTING' || createForm.postType === 'SPOTLIGHT')
+            ? (createForm.youtubeVideoId || null)
+            : undefined,
       }
       const res = await fetch('/api/admin/guest-posts', {
         method: 'POST',
