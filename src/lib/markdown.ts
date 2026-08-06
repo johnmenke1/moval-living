@@ -38,9 +38,14 @@ export function renderMarkdown(input: string): string {
   if (!input) return ''
 
   // Configure marked
+  // breaks: false → single newlines inside a paragraph render as a space
+  // (CommonMark). Paragraphs separated by a blank line become separate <p>
+  // tags with proper spacing from Tailwind prose. We previously had
+  // breaks: true, which made every newline a <br> — that collapsed visual
+  // spacing and broke paragraph separation for pasted rich content.
   marked.setOptions({
     gfm: true,
-    breaks: true,
+    breaks: false,
     pedantic: false,
   })
 

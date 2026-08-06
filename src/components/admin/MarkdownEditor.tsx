@@ -127,6 +127,11 @@ export default function MarkdownEditor({ value, onChange, placeholder, minRows =
     // Best-effort HTML-to-markdown conversion when pasting rich content
     // (e.g. from Google Docs, Word, a website). Falls through to plain
     // text paste if the payload has no HTML.
+    //
+    // Strategy: walk the DOM tree, emitting markdown block syntax. Each
+    // block-level element (p, div, h1-6, ul, ol, blockquote, pre) emits a
+    // trailing blank line so paragraphs render as separate <p> tags in
+    // marked (which we now run with breaks:false for proper spacing).
     const html = e.clipboardData.getData('text/html')
     if (!html) return // plain text — let browser do its thing
     e.preventDefault()
@@ -249,10 +254,19 @@ export default function MarkdownEditor({ value, onChange, placeholder, minRows =
 // We deliberately keep it conservative: headings, bold/italic, links, lists,
 // blockquotes, code, paragraphs, and images. Anything fancier (tables, divs)
 // degrades to plain text rather than mangling it.
+//
+// IMPORTANT: emits CommonMark paragraph breaks (blank line) between block
+// elements. The server-side renderMarkdown() runs marked with breaks:false,
+// so a single newline collapses to a space within a paragraph; only a blank
+// line starts a new <p>. We therefore MUST emit "\n\n" between every block.
 function htmlToMarkdown(html: string): string {
   const tmp = document.createElement('div')
   tmp.innerHTML = html
-  return walk(tmp).trim() + '\n'
+  // Outer body often wraps everything in one div — flatten it.
+  const root = tmp.children.length === 1 && tmp.children[0].tagName.toLowerCase() === 'div'
+    ? tmp.children[0]
+    : tmp
+  return walk(root).replace(/\n{3,}/g, '\n\n').trim() + '\n\n'
 }
 
 function walk(node: Node): string {
@@ -263,29 +277,30 @@ function walk(node: Node): string {
   const el = node as Element
   const tag = el.tagName.toLowerCase()
   const children = Array.from(el.childNodes).map(walk).join('')
+
   switch (tag) {
-    case 'h1': return `\n# ${children}\n\n`
-    case 'h2': return `\n## ${children}\n\n`
-    case 'h3': return `\n### ${children}\n\n`
-    case 'h4': return `\n#### ${children}\n\n`
-    case 'h5': return `\n##### ${children}\n\n`
-    case 'h6': return `\n###### ${children}\n\n`
+    case 'h1': return `\n\n# ${children.trim()}\n\n`
+    case 'h2': return `\n\n## ${children.trim()}\n\n`
+    case 'h3': return `\n\n### ${children.trim()}\n\n`
+    case 'h4': return `\n\n#### ${children.trim()}\n\n`
+    case 'h5': return `\n\n##### ${children.trim()}\n\n`
+    case 'h6': return `\n\n###### ${children.trim()}\n\n`
     case 'strong':
-    case 'b': return `**${children}**`
+    case 'b': return children ? `**${children}**` : ''
     case 'em':
-    case 'i': return `*${children}*`
+    case 'i': return children ? `*${children}*` : ''
     case 'u': return children // markdown has no native underline
     case 's':
     case 'strike':
-    case 'del': return `~~${children}~~`
+    case 'del': return children ? `~~${children}~~` : ''
     case 'code': {
       if (el.parentElement?.tagName.toLowerCase() === 'pre') return children
-      return '`' + children.replace(/`/g, '') + '`'
+      return children ? '`' + children.replace(/`/g, '') + '`' : ''
     }
-    case 'pre': return `\n\`\`\`\n${children}\n\`\`\`\n\n`
+    case 'pre': return `\n\n\`\`\`\n${children}\n\`\`\`\n\n`
     case 'a': {
       const href = el.getAttribute('href') ?? ''
-      if (!href) return children
+      if (!href || !children) return children
       return `[${children}](${href})`
     }
     case 'img': {
@@ -294,23 +309,38 @@ function walk(node: Node): string {
       if (!src) return ''
       return `![${alt}](${src})`
     }
-    case 'br': return '\n'
-    case 'blockquote': return children.split('\n').map((l) => (l ? `> ${l}` : '>')).join('\n') + '\n\n'
+    case 'br': return '  \n' // markdown hard line break (two trailing spaces)
+    case 'hr': return `\n\n---\n\n`
+    case 'blockquote': {
+      const inner = children.trim()
+      if (!inner) return ''
+      return '\n\n' + inner.split('\n').map((l) => (l ? `> ${l}` : '>')).join('\n') + '\n\n'
+    }
     case 'ul': {
-      return '\n' + Array.from(el.children)
-        .map((li) => `- ${walk(li)}`)
-        .join('\n') + '\n\n'
+      const items = Array.from(el.children).filter((c) => c.tagName.toLowerCase() === 'li')
+      if (items.length === 0) return ''
+      return '\n\n' + items.map((li) => `- ${walk(li).replace(/\n+$/, '')}`).join('\n') + '\n\n'
     }
     case 'ol': {
-      return '\n' + Array.from(el.children)
-        .map((li, i) => `${i + 1}. ${walk(li)}`)
-        .join('\n') + '\n\n'
+      const items = Array.from(el.children).filter((c) => c.tagName.toLowerCase() === 'li')
+      if (items.length === 0) return ''
+      return '\n\n' + items.map((li, i) => `${i + 1}. ${walk(li).replace(/\n+$/, '')}`).join('\n') + '\n\n'
     }
     case 'li': return children
-    case 'p':
-    case 'div':
-      return `\n${children}\n\n`
+    case 'p': {
+      const inner = children.trim()
+      if (!inner) return ''
+      return `\n\n${inner}\n\n`
+    }
+    case 'div': {
+      // Treat div like a paragraph — most clipboard HTML from Google Docs
+      // uses nested divs for body structure.
+      const inner = children.trim()
+      if (!inner) return ''
+      return `\n\n${inner}\n\n`
+    }
     default:
+      // Unknown / inline tag — just pass children through.
       return children
   }
 }
