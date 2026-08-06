@@ -2,7 +2,26 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Search, MapPin, ArrowRight, ChevronRight } from 'lucide-react'
+import {
+  Search,
+  MapPin,
+  ArrowRight,
+  ChevronRight,
+  UtensilsCrossed,
+  HardHat,
+  Stethoscope,
+  ShoppingBag,
+  Car,
+  Briefcase,
+  Sparkles,
+  Wrench,
+  GraduationCap,
+  PawPrint,
+  Landmark,
+  Gauge,
+  Building,
+  type LucideIcon,
+} from 'lucide-react'
 import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
 
@@ -18,6 +37,24 @@ const categoryColors: Record<string, string> = {
   education: '#EF4444',
   pets: '#A855F7',
   finance: '#0EA5E9',
+  auto: '#3B82F6',
+  'real-estate': '#0F766E',
+}
+
+const categoryIcons: Record<string, LucideIcon> = {
+  UtensilsCrossed,
+  HardHat,
+  Stethoscope,
+  ShoppingBag,
+  Car,
+  Briefcase,
+  Sparkles,
+  Wrench,
+  GraduationCap,
+  PawPrint,
+  Landmark,
+  Gauge,
+  Building,
 }
 
 interface Business {
@@ -40,9 +77,10 @@ interface Business {
 
 interface HomePageClientProps {
   featuredBusinesses: Business[]
+  categoryCounts: Record<string, number>
 }
 
-export function HomePageClient({ featuredBusinesses }: HomePageClientProps) {
+export function HomePageClient({ featuredBusinesses, categoryCounts }: HomePageClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
 
@@ -123,16 +161,16 @@ export function HomePageClient({ featuredBusinesses }: HomePageClientProps) {
         </div>
       </section>
 
-      {/* ─── FEATURED / RECENT BUSINESSES ─── */}
+      {/* ─── FEATURED & BEST OF BUSINESSES ─── */}
       <section className="section bg-white">
         <div className="container-max">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-text mb-1">Featured Businesses</h2>
-              <p className="text-text-secondary">Top-rated local businesses in Moreno Valley</p>
+              <h2 className="text-3xl font-bold text-text mb-1">Featured &amp; Best Of Moreno Valley</h2>
+              <p className="text-text-secondary">Curated Featured businesses and Best-Of winners across the community</p>
             </div>
-            <Link href="/search" className="hidden sm:flex items-center gap-1 text-primary font-medium hover:gap-2 transition-all">
-              View all <ChevronRight className="w-4 h-4" />
+            <Link href="/best-of" className="hidden sm:flex items-center gap-1 text-primary font-medium hover:gap-2 transition-all">
+              See Best Of <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
 
@@ -160,26 +198,33 @@ export function HomePageClient({ featuredBusinesses }: HomePageClientProps) {
           </div>
           
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {categories.map(category => (
-              <Link
-                key={category.id}
-                href={`/search?category=${category.slug}`}
-                className="group bg-white rounded-xl p-4 flex flex-col items-center text-center gap-3 hover:shadow-lg hover:-translate-y-1 transition-all duration-150 border border-slate-100"
-              >
-                <div
-                  className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl"
-                  style={{
-                    background: `linear-gradient(135deg, ${categoryColors[category.id] || '#2563EB'}15, ${categoryColors[category.id] || '#2563EB'}30)`,
-                  }}
+            {categories.map(category => {
+              const Icon = categoryIcons[category.icon] ?? Building
+              const color = categoryColors[category.id] ?? '#2563EB'
+              const count = categoryCounts[category.slug] ?? categoryCounts[category.id] ?? 0
+              return (
+                <Link
+                  key={category.id}
+                  href={`/search?category=${category.slug}`}
+                  className="group bg-white rounded-xl p-4 flex flex-col items-center text-center gap-3 hover:shadow-lg hover:-translate-y-1 transition-all duration-150 border border-slate-100"
                 >
-                  🏠
-                </div>
-                <div>
-                  <p className="font-semibold text-text text-sm leading-tight">{category.name}</p>
-                  <p className="text-xs text-text-secondary mt-1">View all →</p>
-                </div>
-              </Link>
-            ))}
+                  <div
+                    className="w-14 h-14 rounded-xl flex items-center justify-center"
+                    style={{
+                      background: `linear-gradient(135deg, ${color}15, ${color}30)`,
+                    }}
+                  >
+                    <Icon className="w-7 h-7" style={{ color }} strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-text text-sm leading-tight">{category.name}</p>
+                    <p className="text-xs text-text-secondary mt-1">
+                      {count > 0 ? `${count} business${count === 1 ? '' : 'es'}` : 'Browse →'}
+                    </p>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </div>
       </section>

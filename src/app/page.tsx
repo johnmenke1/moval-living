@@ -40,29 +40,54 @@ const ORGANIZATION_SCHEMA = {
   },
 }
 
-async function getFeaturedBusinesses() {
+async function getCategoryCounts() {
+  // Single grouped query — count APPROVED businesses per category slug.
+  const rows = await prisma.business.findMany({
+    where: { status: 'APPROVED' },
+    select: { category: { select: { slug: true } } },
+  })
+  const counts: Record<string, number> = {}
+  for (const r of rows) {
+    const slug = r.category?.slug
+    if (!slug) continue
+    counts[slug] = (counts[slug] ?? 0) + 1
+  }
+  return counts
+}
+
+async function getHomepageBusinesses() {
+  // Homepage is curated, not algorithmic: only Best-Of winners and Featured listings.
+  // Order: BestOf+Featured → Featured only → BestOf-only winners. No FREE listings.
   return prisma.business.findMany({
     where: {
       status: 'APPROVED',
+      OR: [
+        { tier: 'FEATURED' },
+        { isBestOfWinner: true },
+      ],
     },
     include: {
       category: true,
       reviews: true,
       _count: { select: { reviews: true } },
     },
-    orderBy: { createdAt: 'desc' },
   })
 }
 
 export default async function HomePage() {
-  const allApproved = await getFeaturedBusinesses()
+  const [candidates, categoryCounts] = await Promise.all([
+    getHomepageBusinesses(),
+    getCategoryCounts(),
+  ])
 
-  // Sort: BestOf winners first, then FEATURED, then FREE — within each tier
-  // preserve the createdAt-desc order. isBestOfWinner is a manual admin flag on Business.
-  const sorted = [...allApproved].sort((a, b) => {
-    const aBest = a.isBestOfWinner ? 0 : a.tier === 'FEATURED' ? 1 : 2
-    const bBest = b.isBestOfWinner ? 0 : b.tier === 'FEATURED' ? 1 : 2
-    return aBest - bBest
+  // Priority: 0 = BestOf+Featured, 1 = Featured, 2 = BestOf-only
+  const priority = (b: { tier: string; isBestOfWinner: boolean }) =>
+    b.isBestOfWinner && b.tier === 'FEATURED' ? 0 : b.tier === 'FEATURED' ? 1 : 2
+
+  const sorted = [...candidates].sort((a, b) => {
+    const diff = priority(a) - priority(b)
+    // Within a tier, keep most recent first
+    return diff !== 0 ? diff : b.createdAt.getTime() - a.createdAt.getTime()
   })
 
   const featuredBusinesses = sorted.map(b => ({
@@ -74,7 +99,7 @@ export default async function HomePage() {
     <>
       <JsonLd schema={WEBSITE_SCHEMA} />
       <JsonLd schema={ORGANIZATION_SCHEMA} />
-      <HomePageClient featuredBusinesses={featuredBusinesses} />
+      <HomePageClient featuredBusinesses={featuredBusinesses} categoryCounts={categoryCounts} />
     </>
   )
 }

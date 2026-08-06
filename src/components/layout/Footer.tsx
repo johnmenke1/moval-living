@@ -34,10 +34,13 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <Image src="/logo.png" alt="Moval Living" width={120} height={48} className="object-contain" />
-              <span className="text-xl font-bold">
-                moval<span className="text-secondary">.living</span>
-              </span>
+              <Image
+                src="https://movalliving.s3.us-west-1.amazonaws.com/moval-living-logo.png"
+                alt="moval.living"
+                width={160}
+                height={160}
+                className="h-24 w-auto object-contain"
+              />
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed mb-6">
               Moreno Valley&apos;s go-to directory for discovering trusted local businesses. Connecting our community, one business at a time.

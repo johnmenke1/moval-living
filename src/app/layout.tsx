@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     images: ['/og-default.jpg'],
   },
   icons: {
-    icon: '/favicon.ico',
+    icon: 'https://movalliving.s3.us-west-1.amazonaws.com/favicon.ico',
   },
   verification: {
     google: 'S3x3tSSSnJkEWc0o7DwlAeMiH1qED6wLMkawBkaUOJ4',
@@ -83,7 +83,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <head>
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="https://movalliving.s3.us-west-1.amazonaws.com/favicon.ico" />
         {/* Geo meta tags — recognized by search engines for local intent */}
         <meta name="geo.region" content="US-CA" />
         <meta name="geo.placename" content="Moreno Valley" />
