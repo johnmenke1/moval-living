@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import { computeMorenoValleyMarketStats } from '@/lib/market-stats'
 import { MarketStats } from '@/components/real estate/MarketStats'
 import { MapPin, Users, Briefcase, GraduationCap, Landmark, TreePine, ArrowRight } from 'lucide-react'
@@ -125,11 +126,15 @@ export default async function AboutMorenoValleyPage() {
             <div className="flex flex-col md:flex-row gap-10 items-start">
               {/* Photo */}
               <div className="shrink-0">
-                {/* TODO: Replace with actual photo URL from Vercel Blob */}
-                {/* Placeholder: Replace NEXT_PUBLIC_JOHN_PHOTO_URL env var with your photo's public URL */}
-                <div className="w-48 h-48 rounded-2xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-sm text-center p-4">
-                  John &amp; wife at<br />Moreno Valley<br />Chamber Mixer
-                </div>
+                {/* John Menke — founder of moval.living */}
+                {/* Source: https://movalliving.s3.us-west-1.amazonaws.com/JohnMenke.png */}
+                <Image
+                  src="https://movalliving.s3.us-west-1.amazonaws.com/JohnMenke.png"
+                  alt="John Menke, Founder of moval.living"
+                  width={192}
+                  height={192}
+                  className="w-48 h-48 rounded-2xl object-cover shadow-md"
+                />
               </div>
 
               {/* Bio */}
