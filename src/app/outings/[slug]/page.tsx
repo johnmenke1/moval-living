@@ -51,6 +51,13 @@ export default async function OutingPostPage({ params }: Ctx) {
   if (!post) notFound()
 
   const html = renderMarkdown(post.body)
+  // outingPhotos is stored as jsonb (array of { url, caption }) or null
+  const outingPhotosArray: { url: string; caption?: string }[] = Array.isArray(post.outingPhotos)
+    ? (post.outingPhotos as { url: string; caption?: string }[]).filter(
+        (p): p is { url: string; caption?: string } =>
+          typeof p?.url === 'string' && p.url !== ''
+      )
+    : [] 
 
   return (
     <article className="bg-background min-h-screen">
@@ -116,20 +123,27 @@ export default async function OutingPostPage({ params }: Ctx) {
           />
 
           {/* Photo gallery — shown if outingPhotos are set */}
-          {post.outingPhotos && post.outingPhotos.length > 0 && (
+          {outingPhotosArray.length > 0 && (
             <div className="mt-12 pt-8 border-t border-slate-200">
               <h2 className="text-2xl font-bold text-text mb-6">Trip Photos</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {post.outingPhotos.map((photo, i) => (
-                  <div key={i} className="aspect-square rounded-xl overflow-hidden bg-slate-100">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photo}
-                      alt={`${post.title} — photo ${i + 1}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
-                  </div>
+                {outingPhotosArray.map((photo, i) => (
+                  <figure key={i} className="space-y-2">
+                    <div className="aspect-square rounded-xl overflow-hidden bg-slate-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={photo.url}
+                        alt={photo.caption || `${post.title} — photo ${i + 1}`}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                    </div>
+                    {photo.caption && (
+                      <figcaption className="text-sm text-text-secondary italic text-center px-1">
+                        {photo.caption}
+                      </figcaption>
+                    )}
+                  </figure>
                 ))}
               </div>
             </div>

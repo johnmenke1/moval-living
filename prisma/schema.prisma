@@ -336,8 +336,9 @@ model GuestPost {
   // FAQ — JSON array of { question, answer } for Guest Expert posts
   faqItems        Json?    @default("[]")
 
-  // Photo gallery — array of photo URLs for Live Curiously outings
-  outingPhotos     String[] @default([])
+  // Photo gallery — array of { url, caption } for Live Curiously outings
+  // Captions render below each photo on /outings/[slug]
+  outingPhotos     Json     @default("[]")
 
   // YouTube video ID (from youtube.com/watch?v=VIDEO_ID) for Outing and Spotlight
   youtubeVideoId   String?

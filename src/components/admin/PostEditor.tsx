@@ -42,7 +42,7 @@ interface PostInitial {
   // GUEST
   faqItems: { question: string; answer: string }[]
   // OUTING
-  outingPhotos: string[]
+  outingPhotos: { url: string; caption?: string }[] 
   youtubeVideoId: string | null
 }
 
@@ -345,33 +345,47 @@ export default function PostEditor(props: Props) {
 
           {/* OUTING: photo gallery */}
           {form.postType === 'OUTING' && (
-            <Field label="Trip photo gallery" hint="Optional. Paste image URLs — use a comma or newline to separate.">
-              <div className="space-y-2">
-                {form.outingPhotos.map((url, i) => (
-                  <div key={i} className="flex gap-2 items-center">
+            <Field label="Trip photo gallery" hint="Optional. Each photo gets its own caption below it.">
+              <div className="space-y-3">
+                {form.outingPhotos.map((photo, i) => (
+                  <div key={i} className="bg-slate-50 rounded-lg p-3 space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="url"
+                        value={photo.url}
+                        onChange={(e) => {
+                          const updated = [...form.outingPhotos]
+                          updated[i] = { ...updated[i], url: e.target.value }
+                          setField('outingPhotos', updated)
+                        }}
+                        placeholder="https://..."
+                        className="input text-sm font-mono flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setField('outingPhotos', form.outingPhotos.filter((_, j) => j !== i))}
+                        className="text-slate-400 hover:text-red-500 text-sm"
+                      >
+                        ✕
+                      </button>
+                    </div>
                     <input
-                      type="url"
-                      value={url}
+                      type="text"
+                      value={photo.caption ?? ''}
                       onChange={(e) => {
                         const updated = [...form.outingPhotos]
-                        updated[i] = e.target.value
+                        updated[i] = { ...updated[i], caption: e.target.value }
                         setField('outingPhotos', updated)
                       }}
-                      placeholder="https://..."
-                      className="input text-sm font-mono flex-1"
+                      placeholder="Caption (optional)"
+                      maxLength={280}
+                      className="input text-sm w-full"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setField('outingPhotos', form.outingPhotos.filter((_, j) => j !== i))}
-                      className="text-slate-400 hover:text-red-500 text-sm"
-                    >
-                      ✕
-                    </button>
                   </div>
                 ))}
                 <button
                   type="button"
-                  onClick={() => setField('outingPhotos', [...form.outingPhotos, ''])}
+                  onClick={() => setField('outingPhotos', [...form.outingPhotos, { url: '', caption: '' }])}
                   className="text-sm text-primary hover:underline"
                 >
                   + Add photo

@@ -64,8 +64,11 @@ export const guestPostCreateSchema = z.object({
     question: z.string().trim().min(1).max(500),
     answer: z.string().trim().min(1).max(2000),
   })).nullish(),
-  // Live Curiously photo gallery (array of URLs)
-  outingPhotos: z.array(z.string().trim().url().max(500)).nullish(),
+  // Live Curiously photo gallery (array of { url, caption? })
+  outingPhotos: z.array(z.object({
+    url: z.string().trim().url().max(500),
+    caption: z.string().trim().max(280).optional().default(''),
+  })).nullish(),
   // YouTube video ID (the part after ?v=)
   youtubeVideoId: z.union([z.string().trim().max(20), z.literal(''), z.null()]).nullish(),
 })
@@ -90,7 +93,10 @@ export const guestPostUpdateSchema = z.object({
     answer: z.string().trim().min(1).max(2000),
   })).nullish(),
   // Live Curiously photo gallery
-  outingPhotos: z.array(z.string().trim().url().max(500)).nullish(),
+  outingPhotos: z.array(z.object({
+    url: z.string().trim().url().max(500),
+    caption: z.string().trim().max(280).optional().default(''),
+  })).nullish(),
   // YouTube video ID
   youtubeVideoId: z.union([z.string().trim().max(20), z.literal(''), z.null()]).nullish(),
 })
@@ -416,7 +422,7 @@ function normalizePostInput(input: GuestPostCreateInput) {
     spotifyTrack1: emptyToNull(input.spotifyTrack1),
     spotifyTrack2: emptyToNull(input.spotifyTrack2),
     faqItems: input.faqItems ?? undefined,
-    outingPhotos: normalizeStringArray(input.outingPhotos ?? undefined),
+    outingPhotos: normalizePhotosArray(input.outingPhotos ?? undefined),
     youtubeVideoId: emptyToNull(input.youtubeVideoId),
   }
   if (input.authorId) {
@@ -442,7 +448,7 @@ function normalizePostUpdateInput(input: GuestPostUpdateInput) {
   if (input.spotifyTrack1 !== undefined) data.spotifyTrack1 = emptyToNull(input.spotifyTrack1)
   if (input.spotifyTrack2 !== undefined) data.spotifyTrack2 = emptyToNull(input.spotifyTrack2)
   if (input.faqItems !== undefined) data.faqItems = input.faqItems ?? undefined
-  if (input.outingPhotos !== undefined) data.outingPhotos = normalizeStringArray(input.outingPhotos)
+  if (input.outingPhotos !== undefined) data.outingPhotos = normalizePhotosArray(input.outingPhotos)
   if (input.youtubeVideoId !== undefined) data.youtubeVideoId = emptyToNull(input.youtubeVideoId)
   return data
 }
@@ -458,4 +464,19 @@ function normalizeStringArray(v: string[] | null | undefined): string[] | undefi
   // Strip empty strings
   const filtered = v.filter(Boolean)
   return filtered.length > 0 ? filtered : undefined
+}
+
+function normalizePhotosArray(
+  v: { url: string; caption?: string }[] | null | undefined
+): Prisma.InputJsonValue | typeof Prisma.JsonNull | undefined {
+  if (v === undefined) return undefined
+  if (v === null) return Prisma.JsonNull
+  // Strip entries with empty URLs; trim captions
+  const filtered = v
+    .filter((p) => typeof p.url === 'string' && p.url.trim() !== '')
+    .map((p) => ({
+      url: p.url.trim(),
+      caption: (p.caption ?? '').trim(),
+    }))
+  return filtered.length > 0 ? (filtered as unknown as Prisma.InputJsonValue) : Prisma.JsonNull
 }

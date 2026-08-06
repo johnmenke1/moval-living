@@ -67,7 +67,7 @@ interface FormState {
   // GUEST
   faqItems: { question: string; answer: string }[]
   // OUTING
-  outingPhotos: string[]
+  outingPhotos: { url: string; caption?: string }[] 
   // OUTING & SPOTLIGHT
   youtubeVideoId: string
 }
@@ -472,33 +472,46 @@ export default function GuestPostsPanel({
             {createForm.postType === 'OUTING' && (
               <div className="col-span-2">
                 <label className="block text-xs font-medium text-text-secondary mb-1">
-                  Trip photos <span className="text-slate-400">(image URLs, one per line)</span>
+                  Trip photos <span className="text-slate-400">(each with optional caption)</span>
                 </label>
                 <div className="space-y-2">
                   {createForm.outingPhotos.map((photo, i) => (
-                    <div key={i} className="flex gap-2">
+                    <div key={i} className="bg-slate-50 rounded-lg p-2 space-y-1.5">
+                      <div className="flex gap-2">
+                        <input
+                          value={photo.url}
+                          onChange={e => {
+                            const photos = [...createForm.outingPhotos]
+                            photos[i] = { ...photos[i], url: e.target.value }
+                            setCreateForm(f => ({ ...f, outingPhotos: photos }))
+                          }}
+                          placeholder="https://..."
+                          className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setCreateForm(f => ({ ...f, outingPhotos: f.outingPhotos.filter((_, j) => j !== i) }))}
+                          className="text-slate-400 hover:text-red-500 text-sm"
+                        >
+                          ✕
+                        </button>
+                      </div>
                       <input
-                        value={photo}
+                        value={photo.caption ?? ''}
                         onChange={e => {
                           const photos = [...createForm.outingPhotos]
-                          photos[i] = e.target.value
+                          photos[i] = { ...photos[i], caption: e.target.value }
                           setCreateForm(f => ({ ...f, outingPhotos: photos }))
                         }}
-                        placeholder="https://..."
-                        className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        placeholder="Caption (optional)"
+                        maxLength={280}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setCreateForm(f => ({ ...f, outingPhotos: f.outingPhotos.filter((_, j) => j !== i) }))}
-                        className="text-slate-400 hover:text-red-500 text-sm"
-                      >
-                        ✕
-                      </button>
                     </div>
                   ))}
                   <button
                     type="button"
-                    onClick={() => setCreateForm(f => ({ ...f, outingPhotos: [...f.outingPhotos, ''] }))}
+                    onClick={() => setCreateForm(f => ({ ...f, outingPhotos: [...f.outingPhotos, { url: '', caption: '' }] }))}
                     className="text-sm text-primary hover:underline"
                   >
                     + Add photo
