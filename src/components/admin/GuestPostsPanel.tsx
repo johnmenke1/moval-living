@@ -393,6 +393,134 @@ export default function GuestPostsPanel({
                 placeholder="Write your post content in markdown..."
               />
             </div>
+
+            {/* LIFE: Spotify tracks */}
+            {createForm.postType === 'LIFE' && (
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-text-secondary mb-1">
+                  What I'm listening to <span className="text-slate-400">(Spotify track IDs)</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    value={createForm.spotifyTrack1}
+                    onChange={e => setCreateForm(f => ({ ...f, spotifyTrack1: e.target.value }))}
+                    placeholder="Track 1 — Spotify track ID"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                  <input
+                    value={createForm.spotifyTrack2}
+                    onChange={e => setCreateForm(f => ({ ...f, spotifyTrack2: e.target.value }))}
+                    placeholder="Track 2 — Spotify track ID"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* GUEST: FAQ editor */}
+            {createForm.postType === 'GUEST' && (
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-text-secondary mb-1">
+                  FAQ items <span className="text-slate-400">(optional — emits FAQPage JSON-LD)</span>
+                </label>
+                <div className="space-y-2">
+                  {createForm.faqItems.map((item, i) => (
+                    <div key={i} className="flex gap-2 items-start">
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <input
+                          value={item.question}
+                          onChange={e => {
+                            const items = [...createForm.faqItems]
+                            items[i] = { ...items[i], question: e.target.value }
+                            setCreateForm(f => ({ ...f, faqItems: items }))
+                          }}
+                          placeholder="Question"
+                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        />
+                        <input
+                          value={item.answer}
+                          onChange={e => {
+                            const items = [...createForm.faqItems]
+                            items[i] = { ...items[i], answer: e.target.value }
+                            setCreateForm(f => ({ ...f, faqItems: items }))
+                          }}
+                          placeholder="Answer"
+                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCreateForm(f => ({ ...f, faqItems: f.faqItems.filter((_, j) => j !== i) }))}
+                        className="text-slate-400 hover:text-red-500 text-sm mt-2"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setCreateForm(f => ({ ...f, faqItems: [...f.faqItems, { question: '', answer: '' }] }))}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    + Add FAQ
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* OUTING: Photo gallery */}
+            {createForm.postType === 'OUTING' && (
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-text-secondary mb-1">
+                  Trip photos <span className="text-slate-400">(image URLs, one per line)</span>
+                </label>
+                <div className="space-y-2">
+                  {createForm.outingPhotos.map((photo, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input
+                        value={photo}
+                        onChange={e => {
+                          const photos = [...createForm.outingPhotos]
+                          photos[i] = e.target.value
+                          setCreateForm(f => ({ ...f, outingPhotos: photos }))
+                        }}
+                        placeholder="https://..."
+                        className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCreateForm(f => ({ ...f, outingPhotos: f.outingPhotos.filter((_, j) => j !== i) }))}
+                        className="text-slate-400 hover:text-red-500 text-sm"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setCreateForm(f => ({ ...f, outingPhotos: [...f.outingPhotos, ''] }))}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    + Add photo
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* OUTING & SPOTLIGHT: YouTube */}
+            {(createForm.postType === 'OUTING' || createForm.postType === 'SPOTLIGHT') && (
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-text-secondary mb-1">
+                  YouTube video ID <span className="text-slate-400">(the part after ?v=)</span>
+                </label>
+                <input
+                  value={createForm.youtubeVideoId}
+                  onChange={e => setCreateForm(f => ({ ...f, youtubeVideoId: e.target.value }))}
+                  placeholder="dQw4w9WgXcQ"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1">Hero Image URL</label>
               <input
