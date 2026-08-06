@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
+import { renderMarkdown } from '@/lib/markdown'
 import LifePostContent from './LifePostContent'
 
 export const dynamic = 'force-dynamic'
@@ -50,6 +51,11 @@ export default async function LifePostPage({ params }: Ctx) {
   const post = await getPublishedLifePost(slug)
   if (!post) notFound()
 
+  // Render markdown to HTML on the server so the prose is part of the
+  // initial paint (the previous client-side renderMarkdown in a useEffect
+  // showed an empty container until hydration completed).
+  const bodyHtml = renderMarkdown(post.body)
+
   return (
     <article className="bg-background min-h-screen">
       <div className="container-max pt-8">
@@ -62,7 +68,19 @@ export default async function LifePostPage({ params }: Ctx) {
         </Link>
       </div>
 
-      <LifePostContent post={post} />
+      <LifePostContent
+        post={{
+          slug: post.slug,
+          title: post.title,
+          excerpt: post.excerpt,
+          bodyHtml,
+          heroImageUrl: post.heroImageUrl,
+          metaTitle: post.metaTitle,
+          metaDescription: post.metaDescription,
+          spotifyTrack1: post.spotifyTrack1,
+          spotifyTrack2: post.spotifyTrack2,
+        }}
+      />
     </article>
   )
 }

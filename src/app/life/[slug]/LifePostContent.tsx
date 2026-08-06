@@ -1,6 +1,6 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
+import { renderMarkdown } from '@/lib/markdown'
 
 function SpotifyPlayer({ trackId }: { trackId: string }) {
   return (
@@ -19,10 +19,8 @@ interface LifePost {
   slug: string
   title: string
   excerpt: string
-  body: string
+  bodyHtml: string
   heroImageUrl: string | null
-  publishedAt: Date | null
-  updatedAt: Date
   metaTitle: string | null
   metaDescription: string | null
   spotifyTrack1: string | null
@@ -30,16 +28,6 @@ interface LifePost {
 }
 
 export default function LifePostContent({ post }: { post: LifePost }) {
-  const [html, setHtml] = useState<string>('')
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    import('@/lib/markdown').then(({ renderMarkdown }) => {
-      setHtml(renderMarkdown(post.body))
-    })
-  }, [post.body])
-
   const hasSpotify = post.spotifyTrack1 || post.spotifyTrack2
 
   return (
@@ -64,8 +52,8 @@ export default function LifePostContent({ post }: { post: LifePost }) {
           )}
 
           <div
-            className="prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-text prose-p:text-text prose-a:text-primary hover:prose-a:underline prose-strong:text-text prose-img:rounded-xl"
-            dangerouslySetInnerHTML={{ __html: html }}
+            className="prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-text prose-headings:mt-8 prose-headings:mb-4 prose-p:text-text prose-p:my-4 prose-a:text-primary hover:prose-a:underline prose-strong:text-text prose-img:rounded-xl prose-blockquote:border-l-primary prose-blockquote:text-text-secondary prose-ul:my-4 prose-ol:my-4 prose-li:my-1"
+            dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
           />
 
           {/* Footer */}
@@ -84,8 +72,8 @@ export default function LifePostContent({ post }: { post: LifePost }) {
           </footer>
         </div>
 
-        {/* Sidebar: music — only render after mount (SSR-safe) */}
-        {mounted && hasSpotify && (
+        {/* Sidebar: music — sticky on desktop */}
+        {hasSpotify && (
           <aside className="hidden lg:block w-72 flex-shrink-0">
             <div className="sticky top-8">
               <h3 className="text-sm font-bold text-text uppercase tracking-wide mb-4">

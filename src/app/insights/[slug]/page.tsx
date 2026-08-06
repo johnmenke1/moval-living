@@ -243,7 +243,7 @@ export default async function InsightPostPage({ params }: Ctx) {
 
             {/* Body */}
             <div
-              className="prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-text prose-p:text-text prose-a:text-primary hover:prose-a:underline prose-strong:text-text prose-img:rounded-xl"
+              className="prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-text prose-headings:mt-8 prose-headings:mb-4 prose-p:text-text prose-p:my-4 prose-a:text-primary hover:prose-a:underline prose-strong:text-text prose-img:rounded-xl prose-blockquote:border-l-primary prose-blockquote:text-text-secondary prose-ul:my-4 prose-ol:my-4 prose-li:my-1"
               dangerouslySetInnerHTML={{ __html: html }}
             />
 
