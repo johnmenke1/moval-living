@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   if (parentCategoryId) {
     const parent = await prisma.bestOfCategory.findUnique({ where: { id: parentCategoryId } })
     if (!parent) return NextResponse.json({ error: 'Parent category not found' }, { status: 400 })
-    if (parent.parentCategoryId) return NextResponse.json({ error: 'Cannot nest more than one level deep' }, { status: 400 })
+    // Circular reference guard only — parent can be any category regardless of depth
   }
 
   const existing = await prisma.bestOfCategory.findUnique({ where: { slug } })
