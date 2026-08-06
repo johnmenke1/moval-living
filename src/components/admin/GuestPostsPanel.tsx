@@ -5,6 +5,7 @@ import {
   FileText, Plus, Trash2, ChevronDown, ChevronUp,
   Loader2, Search, X, Eye, Clock, CheckCircle, XCircle, Calendar
 } from 'lucide-react'
+import MarkdownEditor from '@/components/admin/MarkdownEditor'
 
 const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; color: string; bg: string }> = {
   draft:       { label: 'Draft',       icon: FileText,  color: 'text-slate-600', bg: 'bg-slate-100' },
@@ -384,13 +385,11 @@ export default function GuestPostsPanel({
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-medium text-text-secondary mb-1">Body (Markdown) *</label>
-              <textarea
-                required
-                rows={12}
+              <MarkdownEditor
                 value={createForm.body}
-                onChange={e => setCreateForm(f => ({ ...f, body: e.target.value }))}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y font-mono"
-                placeholder="Write your post content in markdown..."
+                onChange={v => setCreateForm(f => ({ ...f, body: v }))}
+                minRows={12}
+                placeholder="Write here, or paste formatted text from Google Docs / Word…"
               />
             </div>
 

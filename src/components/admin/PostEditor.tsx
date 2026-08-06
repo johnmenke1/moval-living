@@ -11,6 +11,7 @@ import {
   XCircle,
   Calendar,
 } from 'lucide-react'
+import MarkdownEditor from '@/components/admin/MarkdownEditor'
 
 interface Author {
   id: string
@@ -241,13 +242,11 @@ export default function PostEditor(props: Props) {
               className="input"
             />
           </Field>
-          <Field label="Body" required hint="Markdown. Rendered on /insights/[slug].">
-            <textarea
+          <Field label="Body" required hint="Markdown supported. Toolbar above the editor; paste formatted text to auto-convert.">
+            <MarkdownEditor
               value={form.body}
-              onChange={(e) => setField('body', e.target.value)}
-              required
-              rows={20}
-              className="input font-mono text-sm"
+              onChange={(v) => setField('body', v)}
+              minRows={20}
             />
           </Field>
           <Field label="Hero image URL" hint="Paste a hosted image URL.">
