@@ -319,12 +319,16 @@ function walk(node: Node): string {
     case 'ul': {
       const items = Array.from(el.children).filter((c) => c.tagName.toLowerCase() === 'li')
       if (items.length === 0) return ''
-      return '\n\n' + items.map((li) => `- ${walk(li).replace(/\n+$/, '')}`).join('\n') + '\n\n'
+      // Strip leading and trailing whitespace/newlines from each item's
+      // content so the "- text" sits flush against the bullet. Without this,
+      // Google Docs HTML nests a <p> inside each <li>, which emits "\n\n"
+      // around the text — making each bullet break into a separate block.
+      return '\n\n' + items.map((li) => `- ${walk(li).trim().replace(/\n+/g, ' ')}`).join('\n') + '\n\n'
     }
     case 'ol': {
       const items = Array.from(el.children).filter((c) => c.tagName.toLowerCase() === 'li')
       if (items.length === 0) return ''
-      return '\n\n' + items.map((li, i) => `${i + 1}. ${walk(li).replace(/\n+$/, '')}`).join('\n') + '\n\n'
+      return '\n\n' + items.map((li, i) => `${i + 1}. ${walk(li).trim().replace(/\n+/g, ' ')}`).join('\n') + '\n\n'
     }
     case 'li': return children
     case 'p': {
