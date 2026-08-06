@@ -159,9 +159,10 @@ function CategoryModal({
                 }
                 findDescendants(category.id)
               }
-              const topLevel = categories.filter(c => !c.parentCategoryId && c.id !== category?.id && !descendantIds.has(c.id))
-              const sections = topLevel.filter(c => c.isSection)
-              const parentCategories = topLevel.filter(c => !c.isSection)
+              // Show ALL categories (sections + non-sections) that can be parents —
+              // only exclude the current item and its descendants (prevents circular ref).
+              // Categories that already have a parent CAN be parents of other items.
+              const topLevel = categories.filter(c => c.id !== category?.id && !descendantIds.has(c.id))
               return (
                 <select
                   value={parentCategoryId ?? ''}
@@ -169,16 +170,16 @@ function CategoryModal({
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary"
                 >
                   <option value="">— Top-level category —</option>
-                  {sections.length > 0 && (
+                  {topLevel.filter(c => c.isSection).length > 0 && (
                     <optgroup label="Sections">
-                      {sections.map(c => (
+                      {topLevel.filter(c => c.isSection).map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </optgroup>
                   )}
-                  {parentCategories.length > 0 && (
+                  {topLevel.filter(c => !c.isSection).length > 0 && (
                     <optgroup label="Categories">
-                      {parentCategories.map(c => (
+                      {topLevel.filter(c => !c.isSection).map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </optgroup>
