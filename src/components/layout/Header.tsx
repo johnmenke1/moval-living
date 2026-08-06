@@ -1,163 +1,129 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
+  BookOpen,
+  Calendar,
+  ChevronDown,
+  Compass,
+  FileText,
+  Home as HomeIcon,
+  Info,
   Menu,
-  X,
   Tag,
   Trophy,
-  Calendar,
-  FileText,
-  Sparkles,
-  Compass,
-  Home as HomeIcon,
-  MapPin,
-  CalendarDays,
-  Trees,
-  Heart,
-  Info,
-  DollarSign,
-  ChevronDown,
+  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const topLinks = [
-  { label: 'Home', href: '/' },
-  { label: 'Browse', href: '/search' },
-  { label: 'Best Of', href: '/best-of', icon: Trophy },
-]
-
-const exploreGroups = [
+const navGroups = [
   {
-    label: 'Discover',
+    label: 'Explore',
+    icon: Compass,
+    items: [
+      { label: 'Browse Businesses', href: '/search', icon: Compass },
+      { label: 'Best Of Moreno Valley', href: '/best-of', icon: Trophy },
+      { label: 'Community Events', href: '/events', icon: Calendar },
+      { label: 'Local Deals', href: '/deals', icon: Tag },
+    ],
+  },
+  {
+    label: 'Stories',
+    icon: BookOpen,
+    items: [
+      { label: 'Life in MoVal', href: '/life', icon: BookOpen },
+      { label: 'Live Curiously', href: '/outings', icon: Compass },
+      { label: 'Local Spotlights', href: '/spotlights', icon: FileText },
+      { label: 'Guest Insights', href: '/insights', icon: FileText },
+    ],
+  },
+  {
+    label: 'Homes',
+    icon: HomeIcon,
     items: [
       { label: 'Homes for Sale', href: '/homes', icon: HomeIcon },
       { label: 'Open Houses', href: '/open-houses', icon: Calendar },
-      { label: 'Events', href: '/events', icon: CalendarDays },
-      { label: 'Outings', href: '/outings', icon: Compass },
-      { label: 'Life in MoVal', href: '/life', icon: Heart },
-      { label: 'Deals', href: '/deals', icon: Tag },
     ],
   },
-  {
-    label: 'Read',
-    items: [
-      { label: 'Insights', href: '/insights', icon: FileText },
-      { label: 'Spotlights', href: '/spotlights', icon: Sparkles },
-    ],
-  },
-  {
-    label: 'About',
-    items: [
-      { label: 'About MoVal', href: '/about-moreno-valley', icon: Info },
-      { label: 'Pricing', href: '/pricing', icon: DollarSign },
-    ],
-  },
+]
+
+const standaloneNavLinks = [
+  { label: 'About MoVal', href: '/about-moreno-valley', icon: Info },
 ]
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [exploreOpen, setExploreOpen] = useState(false)
-  const exploreRef = useRef<HTMLDivElement>(null)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
 
-  // Close Explore dropdown when clicking outside or pressing Escape
-  useEffect(() => {
-    if (!exploreOpen) return
-    const onClick = (e: MouseEvent) => {
-      if (exploreRef.current && !exploreRef.current.contains(e.target as Node)) {
-        setExploreOpen(false)
-      }
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setExploreOpen(false)
-    }
-    document.addEventListener('mousedown', onClick)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onClick)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [exploreOpen])
+  const closeNavigation = () => {
+    setMobileOpen(false)
+    setOpenMenu(null)
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-100 bg-white shadow-sm">
       <div className="container-max">
-        <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="group flex items-center gap-2">
+        <div className="flex h-16 items-center justify-between gap-6">
+          <Link href="/" className="group flex shrink-0 items-center" onClick={closeNavigation}>
             <Image
               src="https://movalliving.s3.us-west-1.amazonaws.com/moval-living-logo-nav.png"
               alt="moval.living"
               width={280}
               height={40}
               priority
-              className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+              className="h-10 w-auto max-w-[52vw] object-contain transition-transform group-hover:scale-105"
             />
           </Link>
 
-          <nav className="hidden items-center gap-8 lg:flex">
-            {topLinks.map(link => (
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
+            {navGroups.map(group => (
+              <div key={group.label} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenMenu(openMenu === group.label ? null : group.label)}
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
+                  aria-expanded={openMenu === group.label}
+                  aria-haspopup="true"
+                >
+                  <group.icon className="h-4 w-4" />
+                  {group.label}
+                  <ChevronDown className={cn('h-4 w-4 transition-transform', openMenu === group.label && 'rotate-180')} />
+                </button>
+
+                {openMenu === group.label && (
+                  <div className="absolute left-0 top-full z-50 mt-2 w-56 rounded-xl border border-slate-100 bg-white p-2 shadow-xl">
+                    {group.items.map(item => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={closeNavigation}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {standaloneNavLinks.map(link => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="flex items-center gap-1.5 text-sm font-medium text-text-secondary transition-colors hover:text-primary"
+                onClick={closeNavigation}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
               >
-                {link.icon && <link.icon className="h-4 w-4" />}
+                <link.icon className="h-4 w-4" />
                 {link.label}
               </Link>
             ))}
-
-            {/* Explore dropdown */}
-            <div className="relative" ref={exploreRef}>
-              <button
-                type="button"
-                onClick={() => setExploreOpen(o => !o)}
-                aria-expanded={exploreOpen}
-                aria-haspopup="true"
-                className={cn(
-                  'flex items-center gap-1.5 text-sm font-medium transition-colors',
-                  exploreOpen ? 'text-primary' : 'text-text-secondary hover:text-primary',
-                )}
-              >
-                Explore
-                <ChevronDown
-                  className={cn('h-4 w-4 transition-transform', exploreOpen && 'rotate-180')}
-                />
-              </button>
-
-              {exploreOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 top-full mt-3 w-64 rounded-xl border border-slate-100 bg-white p-2 shadow-xl"
-                >
-                  {exploreGroups.map((group, gi) => (
-                    <div key={group.label} className={gi > 0 ? 'mt-1 border-t border-slate-100 pt-2' : ''}>
-                      <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                        {group.label}
-                      </p>
-                      <div className="flex flex-col">
-                        {group.items.map(item => (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            role="menuitem"
-                            onClick={() => setExploreOpen(false)}
-                            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
-                          >
-                            <item.icon className="h-4 w-4 text-slate-400" />
-                            {item.label}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </nav>
 
-          <div className="hidden items-center gap-3 lg:flex">
+          <div className="hidden shrink-0 items-center gap-3 lg:flex">
             <Link href="/login" className="text-sm font-medium text-text-secondary transition-colors hover:text-primary">
               Sign In
             </Link>
@@ -179,7 +145,6 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile sheet */}
       <div
         id="mobile-navigation"
         className={cn(
@@ -188,50 +153,51 @@ export function Header() {
             ? 'visible translate-y-0 opacity-100 pointer-events-auto'
             : 'invisible -translate-y-2 opacity-0 pointer-events-none',
         )}
-        style={{ backgroundColor: '#ffffff' }}
         aria-hidden={!mobileOpen}
       >
-        <nav className="flex min-h-full flex-col gap-1 bg-white p-6 text-text">
-          {topLinks.map(link => (
+        <nav className="flex min-h-full flex-col gap-5 bg-white p-6 text-text" aria-label="Mobile navigation">
+          {navGroups.map(group => (
+            <div key={group.label}>
+              <div className="mb-2 flex items-center gap-2 px-4 text-xs font-bold uppercase tracking-[0.16em] text-primary">
+                <group.icon className="h-4 w-4" />
+                {group.label}
+              </div>
+              <div className="flex flex-col gap-1">
+                {group.items.map(item => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeNavigation}
+                    className="rounded-lg px-4 py-2.5 text-base font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {standaloneNavLinks.map(link => (
             <Link
               key={link.href}
               href={link.href}
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 rounded-lg px-4 py-3 text-base font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
+              onClick={closeNavigation}
+              className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-base font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
             >
-              {link.icon && <link.icon className="h-4 w-4" />}
+              <link.icon className="h-4 w-4" />
               {link.label}
             </Link>
           ))}
 
-          {exploreGroups.map((group, gi) => (
-            <div key={group.label} className={gi > 0 ? 'mt-3 border-t border-slate-100 pt-3' : 'mt-3 border-t border-slate-100 pt-3'}>
-              <p className="px-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                {group.label}
-              </p>
-              {group.items.map(item => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2.5 rounded-lg px-4 py-2.5 text-base font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
-                >
-                  <item.icon className="h-4 w-4 text-slate-400" />
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          ))}
-
-          <hr className="my-3 border-slate-100" />
+          <hr className="border-slate-100" />
           <Link
             href="/login"
-            onClick={() => setMobileOpen(false)}
-            className="rounded-lg px-4 py-3 text-base font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
+            onClick={closeNavigation}
+            className="rounded-lg px-4 py-2.5 text-base font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
           >
             Sign In
           </Link>
-          <Link href="/submit" onClick={() => setMobileOpen(false)} className="btn-accent mt-2 text-center">
+          <Link href="/submit" onClick={closeNavigation} className="btn-accent text-center">
             List Your Business
           </Link>
         </nav>

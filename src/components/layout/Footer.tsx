@@ -1,16 +1,19 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Mail, ArrowUpRight } from 'lucide-react'
+import { MapPin, Mail } from 'lucide-react'
 
 const footerLinks = {
-  directory: [
-    { label: 'Browse All', href: '/search' },
-    { label: 'Restaurants', href: '/search?category=restaurants' },
-    { label: 'Contractors', href: '/search?category=contractors' },
-    { label: 'Healthcare', href: '/search?category=healthcare' },
-    { label: 'Retail', href: '/search?category=retail' },
-    { label: 'Open Houses', href: '/open-houses' },
+  explore: [
+    { label: 'Browse Businesses', href: '/search' },
     { label: 'Best Of', href: '/best-of' },
+    { label: 'Community Events', href: '/events' },
+    { label: 'Local Deals', href: '/deals' },
+  ],
+  stories: [
+    { label: 'Life in MoVal', href: '/life' },
+    { label: 'Live Curiously', href: '/outings' },
+    { label: 'Local Spotlights', href: '/spotlights' },
+    { label: 'Guest Insights', href: '/insights' },
   ],
   businesses: [
     { label: 'List Your Business', href: '/submit' },
@@ -18,11 +21,10 @@ const footerLinks = {
     { label: 'Pricing', href: '/pricing' },
     { label: 'Owner Login', href: '/login' },
   ],
-  company: [
-    { label: 'About Us', href: '/about' },
-    { label: 'Contact', href: '/contact' },
-    { label: 'Privacy Policy', href: '/privacy' },
-    { label: 'Terms of Service', href: '/terms' },
+  city: [
+    { label: 'About MoVal', href: '/about-moreno-valley' },
+    { label: 'Homes for Sale', href: '/homes' },
+    { label: 'Open Houses', href: '/open-houses' },
   ],
 }
 
@@ -30,7 +32,7 @@ export function Footer() {
   return (
     <footer className="bg-text text-white">
       <div className="container-max py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
@@ -42,69 +44,47 @@ export function Footer() {
                 className="h-24 w-auto object-contain"
               />
             </Link>
-            <p className="text-slate-400 text-sm leading-relaxed mb-6">
-              Moreno Valley&apos;s go-to directory for discovering trusted local businesses. Connecting our community, one business at a time.
+            <p className="mb-6 text-sm leading-relaxed text-slate-400">
+              Moreno Valley&apos;s go-to guide for discovering trusted local businesses, stories, events, and experiences.
             </p>
             <div className="space-y-2 text-sm text-slate-400">
               <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-secondary" />
+                <MapPin className="h-4 w-4 text-secondary" />
                 <span>Moreno Valley, California</span>
               </div>
               <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-secondary" />
-                <a href="mailto:hello@moval.living" className="hover:text-white transition-colors">
+                <Mail className="h-4 w-4 text-secondary" />
+                <a href="mailto:hello@moval.living" className="transition-colors hover:text-white">
                   hello@moval.living
                 </a>
               </div>
             </div>
           </div>
 
-          {/* Directory Links */}
-          <div>
-            <h4 className="font-semibold mb-4 text-white">Browse</h4>
-            <ul className="space-y-2.5">
-              {footerLinks.directory.map(link => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-slate-400 hover:text-white transition-colors">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Businesses Links */}
-          <div>
-            <h4 className="font-semibold mb-4 text-white">For Businesses</h4>
-            <ul className="space-y-2.5">
-              {footerLinks.businesses.map(link => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-slate-400 hover:text-white transition-colors">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company Links */}
-          <div>
-            <h4 className="font-semibold mb-4 text-white">Company</h4>
-            <ul className="space-y-2.5">
-              {footerLinks.company.map(link => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-slate-400 hover:text-white transition-colors">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {[
+            { title: 'Explore', links: footerLinks.explore },
+            { title: 'Stories', links: footerLinks.stories },
+            { title: 'For Businesses', links: footerLinks.businesses },
+            { title: 'MoVal', links: footerLinks.city },
+          ].map(column => (
+            <div key={column.title}>
+              <h4 className="mb-4 font-semibold text-white">{column.title}</h4>
+              <ul className="space-y-2.5">
+                {column.links.map(link => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="text-sm text-slate-400 transition-colors hover:text-white">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
-        <hr className="border-slate-700 my-10" />
+        <hr className="my-10 border-slate-700" />
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-sm text-slate-500">
             &copy; {new Date().getUTCFullYear()} moval.living — Moreno Valley Local Business Directory. All rights reserved.
           </p>
