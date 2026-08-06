@@ -140,9 +140,10 @@ export default async function AboutMorenoValleyPage() {
                   city become home in a way we never expected.
                 </p>
                 <p className="text-text leading-relaxed">
-                  I'm a licensed California Real Estate Broker (DRE #01959317, NMLS #2333681) and have
-                  worked in the industry for over 30 years, currently as an Associate Broker with{' '}
-                  <strong>eXP of California Realty, Inc.</strong>
+                  I'm a licensed California Real Estate Broker (DRE #01959317, NMLS #2333681) with
+                  eXP of California Realty, Inc. Before real estate, I spent nearly 30 years in municipal
+                  government and served in the U.S. Army — giving me a deep, long-standing connection
+                  to this community and the people who call it home.
                 </p>
                 <p className="text-text leading-relaxed">
                   Moval.living started the way most good ideas do: out of frustration. I'd lived here
@@ -173,6 +174,9 @@ export default async function AboutMorenoValleyPage() {
                   </span>
                   <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
                     eXP of California Realty, Inc.
+                  </span>
+                  <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
+                    U.S. Army Veteran
                   </span>
                   <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
                     Moreno Valley Resident Since 1990
