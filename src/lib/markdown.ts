@@ -50,8 +50,79 @@ export function renderMarkdown(input: string): string {
   })
 
   const raw = marked.parse(input, { async: false }) as string
+  return sanitize(promoteImplicitHeadings(raw))
+}
 
-  return sanitize(raw)
+// Detect implicit headings — short standalone lines that look like titles.
+// Authors commonly write section headers as:
+//
+//     Place Name
+//     Description that continues on the next line...
+//
+// without bothering to add `#` markdown. Without help, marked wraps both
+// lines into a single <p> (because CommonMark single newlines are spaces).
+// We split such paragraphs into an <h2> + <p> pair.
+//
+// Heuristics for "looks like a heading":
+//   - Length <= 80 chars
+//   - No terminal punctuation (.!?:)
+//   - <= 12 words
+//   - Doesn't start with a markdown char (#, *, -, >)
+//   - Has a continuation on a second line within the same paragraph
+//     (i.e. someone wrote name + description on consecutive lines)
+function promoteImplicitHeadings(html: string): string {
+  // Pattern A: short paragraph immediately followed by another <p>
+  // (the easy case — blank line between title and body)
+  html = html.replace(
+    /<p>([^<]{1,80})<\/p><p>([^<]{1,500})/g,
+    (match, title, body) => {
+      if (looksLikeHeading(title)) {
+        return `<h2>${escapeHeadingText(title)}</h2><p>${body}`
+      }
+      return match
+    }
+  )
+
+  // Pattern B: short first line followed by continuation within same <p>
+  // (the harder case — author wrote title and description on consecutive
+  // lines with only a single \n between them, which marked joins into one
+  // <p>). The text inside the <p> is one or more HTML-escaped words/lines.
+  html = html.replace(
+    /<p>([\s\S]{1,400}?)<\/p>/g,
+    (match, inner) => {
+      // Look for a short first "line" (no <br>) followed by more content.
+      // We split on the first literal newline character (text node inside <p>).
+      const nlIdx = inner.indexOf('\n')
+      if (nlIdx === -1) return match
+      const firstLine = inner.slice(0, nlIdx).trim()
+      const rest = inner.slice(nlIdx + 1).trim()
+      if (!firstLine || !rest) return match
+      if (!looksLikeHeading(firstLine)) return match
+      // Reject if there are inline tags inside the first line that suggest
+      // it's actual formatted content (e.g. a link or bold)
+      if (/<(strong|em|a|code|img)/i.test(firstLine)) return match
+      return `<h2>${escapeHeadingText(firstLine)}</h2><p>${rest}</p>`
+    }
+  )
+
+  return html
+}
+
+function looksLikeHeading(text: string): boolean {
+  const trimmed = text.trim()
+  if (trimmed.length === 0 || trimmed.length > 80) return false
+  // No terminal punctuation
+  if (/[.!?:,]$/.test(trimmed)) return false
+  // Not too long — headings are usually short
+  if (trimmed.split(/\s+/).length > 12) return false
+  // Doesn't start with markdown syntax
+  if (/^[#*\->]/.test(trimmed)) return false
+  return true
+}
+
+// Headings are plain text — strip any tags that snuck in and escape entities.
+function escapeHeadingText(text: string): string {
+  return text.replace(/<[^>]+>/g, '').trim()
 }
 
 function sanitize(html: string): string {

@@ -115,7 +115,7 @@ export default async function SpotlightPostPage({ params }: Ctx) {
           </header>
 
           <div
-            className="prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-text prose-headings:mt-8 prose-headings:mb-4 prose-p:text-text prose-p:my-4 prose-a:text-primary hover:prose-a:underline prose-strong:text-text prose-img:rounded-xl prose-blockquote:border-l-primary prose-blockquote:text-text-secondary prose-ul:my-4 prose-ol:my-4 prose-li:my-1"
+            className="prose prose-base max-w-none prose-headings:font-bold prose-headings:text-text prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-3 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-2 prose-p:text-text prose-p:my-3 prose-a:text-primary hover:prose-a:underline prose-strong:font-bold prose-strong:text-text prose-img:rounded-xl prose-blockquote:border-l-4 prose-blockquote:border-l-primary prose-blockquote:text-text-secondary prose-blockquote:pl-4 prose-blockquote:my-4 prose-ul:my-3 prose-ol:my-3 prose-li:my-1"
             dangerouslySetInnerHTML={{ __html: html }}
           />
 
