@@ -51,21 +51,23 @@ export const guestPostCreateSchema = z.object({
   excerpt: z.string().trim().min(1).max(500),
   body: z.string().trim().min(1),
   heroImageUrl: nullableUrl,
-  authorId: z.string().trim().optional().nullable(),
-  metaTitle: z.union([z.string().trim().max(200), z.literal(''), z.null()]).optional(),
-  metaDescription: z.union([z.string().trim().max(320), z.literal(''), z.null()]).optional(),
+  // .nullish() handles both null and undefined, including missing keys
+  // (Zod v4 quirk: .optional() alone doesn't accept missing keys)
+  authorId: z.string().trim().nullish(),
+  metaTitle: z.union([z.string().trim().max(200), z.literal(''), z.null()]).nullish(),
+  metaDescription: z.union([z.string().trim().max(320), z.literal(''), z.null()]).nullish(),
   // Life in MoVal music sidebar
-  spotifyTrack1: z.union([z.string().trim().max(100), z.literal(''), z.null()]).optional(),
-  spotifyTrack2: z.union([z.string().trim().max(100), z.literal(''), z.null()]).optional(),
+  spotifyTrack1: z.union([z.string().trim().max(100), z.literal(''), z.null()]).nullish(),
+  spotifyTrack2: z.union([z.string().trim().max(100), z.literal(''), z.null()]).nullish(),
   // Guest Expert FAQ
   faqItems: z.array(z.object({
     question: z.string().trim().min(1).max(500),
     answer: z.string().trim().min(1).max(2000),
-  })).optional(),
+  })).nullish(),
   // Live Curiously photo gallery (array of URLs)
-  outingPhotos: z.array(z.string().trim().url().max(500)).optional(),
+  outingPhotos: z.array(z.string().trim().url().max(500)).nullish(),
   // YouTube video ID (the part after ?v=)
-  youtubeVideoId: z.union([z.string().trim().max(20), z.literal(''), z.null()]).optional(),
+  youtubeVideoId: z.union([z.string().trim().max(20), z.literal(''), z.null()]).nullish(),
 })
 
 export const guestPostUpdateSchema = z.object({
@@ -75,22 +77,22 @@ export const guestPostUpdateSchema = z.object({
   excerpt: z.string().trim().min(1).max(500).optional(),
   body: z.string().trim().min(1).optional(),
   heroImageUrl: nullableUrl,
-  authorId: z.string().trim().optional().nullable(),
-  metaTitle: z.union([z.string().trim().max(200), z.literal(''), z.null()]).optional(),
-  metaDescription: z.union([z.string().trim().max(320), z.literal(''), z.null()]).optional(),
-  editorNotes: z.union([z.string().trim().max(4000), z.literal(''), z.null()]).optional(),
+  authorId: z.string().trim().nullish(),
+  metaTitle: z.union([z.string().trim().max(200), z.literal(''), z.null()]).nullish(),
+  metaDescription: z.union([z.string().trim().max(320), z.literal(''), z.null()]).nullish(),
+  editorNotes: z.union([z.string().trim().max(4000), z.literal(''), z.null()]).nullish(),
   // Life in MoVal music sidebar
-  spotifyTrack1: z.union([z.string().trim().max(100), z.literal(''), z.null()]).optional(),
-  spotifyTrack2: z.union([z.string().trim().max(100), z.literal(''), z.null()]).optional(),
+  spotifyTrack1: z.union([z.string().trim().max(100), z.literal(''), z.null()]).nullish(),
+  spotifyTrack2: z.union([z.string().trim().max(100), z.literal(''), z.null()]).nullish(),
   // Guest Expert FAQ
   faqItems: z.array(z.object({
     question: z.string().trim().min(1).max(500),
     answer: z.string().trim().min(1).max(2000),
-  })).optional(),
+  })).nullish(),
   // Live Curiously photo gallery
-  outingPhotos: z.array(z.string().trim().url().max(500)).optional(),
+  outingPhotos: z.array(z.string().trim().url().max(500)).nullish(),
   // YouTube video ID
-  youtubeVideoId: z.union([z.string().trim().max(20), z.literal(''), z.null()]).optional(),
+  youtubeVideoId: z.union([z.string().trim().max(20), z.literal(''), z.null()]).nullish(),
 })
 
 export const guestPostStatusSchema = z.object({
@@ -102,8 +104,9 @@ export const guestPostStatusSchema = z.object({
     'published',
     'rejected',
   ]),
-  scheduledFor: z.union([z.string(), z.null()]).optional(),
-  rejectionReason: z.union([z.string().trim().max(500), z.literal(''), z.null()]).optional(),
+  // Allow either an ISO datetime string, null (to clear), or missing key
+  scheduledFor: z.union([z.string().datetime(), z.null()]).nullish(),
+  rejectionReason: z.union([z.string().trim().max(500), z.literal(''), z.null()]).nullish(),
 })
 
 export type GuestAuthorCreateInput = z.infer<typeof guestAuthorCreateSchema>
@@ -413,7 +416,7 @@ function normalizePostInput(input: GuestPostCreateInput) {
     spotifyTrack1: emptyToNull(input.spotifyTrack1),
     spotifyTrack2: emptyToNull(input.spotifyTrack2),
     faqItems: input.faqItems ?? undefined,
-    outingPhotos: normalizeStringArray(input.outingPhotos),
+    outingPhotos: normalizeStringArray(input.outingPhotos ?? undefined),
     youtubeVideoId: emptyToNull(input.youtubeVideoId),
   }
   if (input.authorId) {
@@ -450,8 +453,8 @@ function emptyToNull<T>(v: T | '' | null | undefined): T | null {
   return v
 }
 
-function normalizeStringArray(v: string[] | undefined): string[] | undefined {
-  if (v === undefined) return undefined
+function normalizeStringArray(v: string[] | null | undefined): string[] | undefined {
+  if (v === undefined || v === null) return undefined
   // Strip empty strings
   const filtered = v.filter(Boolean)
   return filtered.length > 0 ? filtered : undefined
