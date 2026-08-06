@@ -9,18 +9,18 @@ const WEBSITE_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'moval.living',
-  url: 'https://moval.living',
+  url: 'https://www.moval.living',
   description: 'Discover trusted local businesses in Moreno Valley, CA.',
   publisher: {
     '@type': 'Organization',
     name: 'moval.living',
-    url: 'https://moval.living',
+    url: 'https://www.moval.living',
   },
   potentialAction: {
     '@type': 'SearchAction',
     target: {
       '@type': 'EntryPoint',
-      urlTemplate: 'https://moval.living/search?q={search_term_string}',
+      urlTemplate: 'https://www.moval.living/search?q={search_term_string}',
     },
     'query-input': 'required name=search_term_string',
   },
@@ -30,7 +30,7 @@ const ORGANIZATION_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'moval.living',
-  url: 'https://moval.living',
+  url: 'https://www.moval.living',
   description: 'Your trusted guide to local businesses in Moreno Valley, California.',
   areaServed: {
     '@type': 'City',

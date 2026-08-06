@@ -8,7 +8,7 @@ import { Footer } from '@/components/layout/Footer'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://moval.living'),
+  metadataBase: new URL('https://www.moval.living'),
   title: {
     default: 'moval.living — Moreno Valley Local Business Directory',
     template: '%s | moval.living',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     'Moreno Valley healthcare',
     'Moreno Valley shopping',
   ],
-  authors: [{ name: 'moval.living', url: 'https://moval.living' }],
+  authors: [{ name: 'moval.living', url: 'https://www.moval.living' }],
   creator: 'moval.living',
   publisher: 'moval.living',
   robots: {
@@ -40,13 +40,13 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: 'https://moval.living',
-    languages: { 'en-US': 'https://moval.living' },
+    canonical: 'https://www.moval.living',
+    languages: { 'en-US': 'https://www.moval.living' },
   },
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://moval.living',
+    url: 'https://www.moval.living',
     siteName: 'moval.living',
     title: 'moval.living — Moreno Valley Local Business Directory',
     description: 'Your trusted guide to local businesses in Moreno Valley, California.',

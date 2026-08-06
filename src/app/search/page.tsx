@@ -19,10 +19,10 @@ interface SearchPageProps {
 export const metadata: Metadata = {
   title: 'Browse Businesses',
   description: 'Search and discover local businesses in Moreno Valley, CA.',
-  alternates: { canonical: 'https://moval.living/search' },
+  alternates: { canonical: 'https://www.moval.living/search' },
   openGraph: {
     type: 'website',
-    url: 'https://moval.living/search',
+    url: 'https://www.moval.living/search',
     title: 'Browse Businesses — moval.living',
     description: 'Search and discover local businesses in Moreno Valley, CA.',
   },

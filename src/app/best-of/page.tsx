@@ -6,10 +6,10 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Best Of Moreno Valley',
   description: 'Moreno Valley\'s definitive Best Of awards — curated top picks by our editors for food, coffee, services, and more.',
-  alternates: { canonical: 'https://moval.living/best-of' },
+  alternates: { canonical: 'https://www.moval.living/best-of' },
   openGraph: {
     type: 'website',
-    url: 'https://moval.living/best-of',
+    url: 'https://www.moval.living/best-of',
     title: 'Best Of Moreno Valley',
     description: 'Moreno Valley\'s definitive Best Of awards — curated top picks by our editors for food, coffee, services, and more.',
   },

@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/', '/dashboard/', '/admin/', '/claim/', '/my-submissions/'],
       },
     ],
-    sitemap: 'https://moval.living/sitemap.xml',
-    host: 'https://moval.living',
+    sitemap: 'https://www.moval.living/sitemap.xml',
+    host: 'https://www.moval.living',
   }
 }

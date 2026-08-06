@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 
-const BASE = 'https://moval.living'
+const BASE = 'https://www.moval.living'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()

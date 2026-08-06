@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: BusinessPageProps): Promise<M
   const business = await getBusiness(slug)
   if (!business) return { title: 'Business Not Found' }
 
-  const pageUrl = `https://moval.living/business/${slug}`
+  const pageUrl = `https://www.moval.living/business/${slug}`
   const description = business.metaDescription || business.description.slice(0, 160)
 
   return {
@@ -90,10 +90,10 @@ function buildBusinessSchema(business: Awaited<ReturnType<typeof getBusiness>> &
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
-    '@id': `https://moval.living/business/${business.slug}`,
+    '@id': `https://www.moval.living/business/${business.slug}`,
     name: business.name,
     description: business.description,
-    url: `https://moval.living/business/${business.slug}`,
+    url: `https://www.moval.living/business/${business.slug}`,
   }
 
   if (business.logo) schema.logo = { '@type': 'ImageObject', url: business.logo }
@@ -169,15 +169,15 @@ function buildBreadcrumbSchema(business: { name: string; slug: string; category:
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://moval.living' },
-      { '@type': 'ListItem', position: 2, name: 'Browse', item: 'https://moval.living/search' },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.moval.living' },
+      { '@type': 'ListItem', position: 2, name: 'Browse', item: 'https://www.moval.living/search' },
       {
         '@type': 'ListItem',
         position: 3,
         name: business.category.name,
-        item: `https://moval.living/search?category=${business.category.slug}`,
+        item: `https://www.moval.living/search?category=${business.category.slug}`,
       },
-      { '@type': 'ListItem', position: 4, name: business.name, item: `https://moval.living/business/${business.slug}` },
+      { '@type': 'ListItem', position: 4, name: business.name, item: `https://www.moval.living/business/${business.slug}` },
     ],
   }
 }

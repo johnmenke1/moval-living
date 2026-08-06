@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { category: slug } = await params
   const cat = await getCategory(slug)
   if (!cat) return { title: 'Not Found' }
-  const pageUrl = `https://moval.living/best-of/${slug}`
+  const pageUrl = `https://www.moval.living/best-of/${slug}`
   const description = cat.description || `Our editor's pick for ${cat.name} in Moreno Valley.`
   return {
     title: cat.name,
@@ -56,11 +56,11 @@ function buildBestOfCategorySchema(cat: Awaited<ReturnType<typeof getCategory>>)
     '@type': 'CollectionPage',
     name: cat.name,
     description: cat.description || `Our editor's pick for ${cat.name} in Moreno Valley.`,
-    url: `https://moval.living/best-of/${cat.slug}`,
+    url: `https://www.moval.living/best-of/${cat.slug}`,
     publisher: {
       '@type': 'Organization',
       name: 'moval.living',
-      url: 'https://moval.living',
+      url: 'https://www.moval.living',
     },
   }
 }
@@ -76,7 +76,7 @@ function buildNomineesItemList(cat: Awaited<ReturnType<typeof getCategory>>) {
       '@type': 'ListItem',
       position: i + 1,
       name: nominee.business.name,
-      url: `https://moval.living/business/${nominee.business.slug}`,
+      url: `https://www.moval.living/business/${nominee.business.slug}`,
     })),
   }
 }

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Build the claim URL
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://moval.living'
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://www.moval.living'
     const claimUrl = `${baseUrl}/claim?token=${claimToken}`
 
     // TODO: Send email via SES with the claim link
