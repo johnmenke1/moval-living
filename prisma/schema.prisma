@@ -316,23 +316,18 @@ model GuestPost {
   excerpt         String   @db.Text            // 1-2 sentences, used in cards + meta fallback
   body            String   @db.Text            // markdown
   heroImageUrl    String?
-
   status          String   @default("draft")
-                  // "draft" | "submitted" | "in_review" | "scheduled" | "published" | "rejected"
   submittedAt     DateTime?
   scheduledFor    DateTime?
   publishedAt     DateTime?
   rejectionReason String?
-
+  // Guest author — required for GUEST type, optional for LIFE/OUTING/SPOTLIGHT
+  // (LIFE = John's voice, OUTING = Live Curiously, SPOTLIGHT = business video)
   authorId        String?
-  author          GuestAuthor? @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  // Editorial — Johnny's private notes on the post
-  editorNotes     String?  @db.Text
-
-  // SEO
+  editorNotes     String?
   metaTitle       String?
   metaDescription String?
+  author          GuestAuthor? @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   // Music sidebar — two optional Spotify track IDs for Life posts
   spotifyTrack1   String?
