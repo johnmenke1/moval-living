@@ -18,7 +18,15 @@ interface SearchPageProps {
 
 export const metadata: Metadata = {
   title: 'Browse Businesses',
-  description: 'Search and discover local businesses in Moreno Valley, CA',
+  description: 'Search and discover local businesses in Moreno Valley, CA.',
+  alternates: { canonical: 'https://moval.living/search' },
+  openGraph: {
+    type: 'website',
+    url: 'https://moval.living/search',
+    title: 'Browse Businesses — moval.living',
+    description: 'Search and discover local businesses in Moreno Valley, CA.',
+  },
+  twitter: { card: 'summary', title: 'Browse Businesses', description: 'Discover local businesses in Moreno Valley, CA.' },
 }
 
 const RESULTS_PER_PAGE = 20

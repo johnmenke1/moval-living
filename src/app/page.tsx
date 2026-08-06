@@ -1,8 +1,44 @@
 import { prisma } from '@/lib/prisma'
 import { HomePageClient } from '@/components/home/HomePageClient'
+import { JsonLd } from '@/components/seo/JsonLd'
 
 // Force dynamic rendering so featured businesses list is always fresh
 export const dynamic = 'force-dynamic'
+
+const WEBSITE_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'moval.living',
+  url: 'https://moval.living',
+  description: 'Discover trusted local businesses in Moreno Valley, CA.',
+  publisher: {
+    '@type': 'Organization',
+    name: 'moval.living',
+    url: 'https://moval.living',
+  },
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: 'https://moval.living/search?q={search_term_string}',
+    },
+    'query-input': 'required name=search_term_string',
+  },
+}
+
+const ORGANIZATION_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'moval.living',
+  url: 'https://moval.living',
+  description: 'Your trusted guide to local businesses in Moreno Valley, California.',
+  areaServed: {
+    '@type': 'City',
+    name: 'Moreno Valley',
+    addressRegion: 'CA',
+    addressCountry: 'US',
+  },
+}
 
 async function getFeaturedBusinesses() {
   return prisma.business.findMany({
@@ -34,5 +70,11 @@ export default async function HomePage() {
     isBestOf: b.isBestOfWinner,
   }))
 
-  return <HomePageClient featuredBusinesses={featuredBusinesses} />
+  return (
+    <>
+      <JsonLd schema={WEBSITE_SCHEMA} />
+      <JsonLd schema={ORGANIZATION_SCHEMA} />
+      <HomePageClient featuredBusinesses={featuredBusinesses} />
+    </>
+  )
 }

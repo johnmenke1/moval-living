@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { computeMorenoValleyMarketStats } from '@/lib/market-stats'
 import { MarketStats } from '@/components/real estate/MarketStats'
 import { MapPin, Users, Briefcase, GraduationCap, Landmark, TreePine, ArrowRight } from 'lucide-react'
+import { FaqSection } from '@/components/seo/FaqSection'
 
 export const metadata: Metadata = {
   title: 'About Moreno Valley, CA — Demographics, Lifestyle & Market Stats',
@@ -129,6 +130,43 @@ export default async function AboutMorenoValleyPage() {
           </div>
         </div>
       </section>
+
+      <FaqSection
+        title="Frequently Asked Questions"
+        subtitle="Common questions about Moreno Valley, real estate, and moval.living."
+        faqs={[
+          {
+            question: 'What cities does moval.living cover?',
+            answer:
+              'moval.living focuses on Moreno Valley, California, and the surrounding Inland Empire region. We feature local businesses serving Moreno Valley, Riverside, Perris, Hemet, San Jacinto, and neighboring communities.',
+          },
+          {
+            question: 'How do I list my business on moval.living?',
+            answer:
+              'Click "Submit a Business" at the top of the page, fill in your business details, and our team will review it within 1–2 business days. Featured listings get priority review and additional visibility.',
+          },
+          {
+            question: 'What is the difference between a Free and Featured listing?',
+            answer:
+              'Free listings include your business name, address, phone, website, and description. Featured listings ($29/month) add a cover image, photo gallery, Google Reviews integration, priority placement, and highlighted placement in category pages.',
+          },
+          {
+            question: 'Can I update my business information after submitting?',
+            answer:
+              'Yes. Once your listing is live, you can claim it by clicking "Claim This Listing" and gain access to update your business details, hours, photos, and respond to reviews.',
+          },
+          {
+            question: 'How does the Best Of Moreno Valley program work?',
+            answer:
+              'Our editors curate the Best Of Moreno Valley categories by researching and evaluating local businesses across categories like food, services, and professional services. Winners are featured prominently on the site and receive a Best Of badge on their listing.',
+          },
+          {
+            question: 'How do I contact moval.living support?',
+            answer:
+              'You can reach us by visiting the Contact page or emailing support@moval.living. We typically respond within 1 business day.',
+          },
+        ]}
+      />
     </div>
   )
 }

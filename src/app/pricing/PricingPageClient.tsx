@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Check, X, Star, Zap, Shield, TrendingUp, Image, Tag } from 'lucide-react'
 import { clsx } from 'clsx'
+import { FaqSection } from '@/components/seo/FaqSection'
 
 const features = [
   { label: 'Basic listing', free: true, featured: true },
@@ -159,6 +160,38 @@ export default function PricingPageClient() {
           </p>
         </div>
       </div>
+
+      <FaqSection
+        title="Pricing Questions"
+        subtitle="Everything you need to know about listing on moval.living."
+        faqs={[
+          {
+            question: 'Is there a free plan?',
+            answer:
+              'Yes. The Free plan gives you a full business listing with contact info, map, photos, and access to reviews — at no cost, forever.',
+          },
+          {
+            question: 'What happens when I upgrade to Featured?',
+            answer:
+              'Featured listings appear at the top of category pages and the homepage, include a highlighted badge, and support up to 10 photos plus coupon creation.',
+          },
+          {
+            question: 'Can I cancel my Featured subscription at any time?',
+            answer:
+              'Yes. Cancel anytime from your dashboard. Your listing remains live as a Free listing — nothing disappears, you just lose the Featured perks.',
+          },
+          {
+            question: 'What payment methods do you accept?',
+            answer:
+              'We accept all major credit and debit cards through Stripe. Payments are processed securely and billed monthly or annually depending on your plan.',
+          },
+          {
+            question: 'Can I switch from monthly to annual billing?',
+            answer:
+              'Yes. You can switch to annual billing at any time. Annual billing is $199/year (equivalent to $16.58/month) — a 43% savings versus monthly.',
+          },
+        ]}
+      />
     </div>
   )
 }

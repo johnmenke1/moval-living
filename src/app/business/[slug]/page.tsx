@@ -6,6 +6,7 @@ import { averageRating, formatPhone } from '@/lib/utils'
 import { MapPin, Phone, Globe, Mail, Clock, Star, ChevronRight } from 'lucide-react'
 import { BusinessMapWrapper } from '@/components/map/BusinessMapWrapper'
 import { BusinessSidebar } from '@/components/business/BusinessSidebar'
+import { JsonLd } from '@/components/seo/JsonLd'
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
@@ -57,16 +58,127 @@ export async function generateMetadata({ params }: BusinessPageProps): Promise<M
   const { slug } = await params
   const business = await getBusiness(slug)
   if (!business) return { title: 'Business Not Found' }
-  
+
+  const pageUrl = `https://moval.living/business/${slug}`
+  const description = business.metaDescription || business.description.slice(0, 160)
+
   return {
     title: business.metaTitle || business.name,
-    description: business.metaDescription || business.description.slice(0, 160),
+    description,
+    alternates: { canonical: pageUrl },
     openGraph: {
-      title: business.name,
-      description: business.description.slice(0, 200),
-      // Use logo as fallback for social sharing previews when no cover image exists.
+      type: 'profile',
+      url: pageUrl,
+      title: business.metaTitle || business.name,
+      description,
+      images: business.coverImage || business.logo
+        ? [{ url: business.coverImage || business.logo!, width: 1200, height: 630 }]
+        : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: business.metaTitle || business.name,
+      description,
       images: business.coverImage || business.logo ? [business.coverImage || business.logo!] : [],
     },
+  }
+}
+
+function buildBusinessSchema(business: Awaited<ReturnType<typeof getBusiness>> & { reviews: Array<{ rating: number }> }) {
+  if (!business) return null
+
+  const schema: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    '@id': `https://moval.living/business/${business.slug}`,
+    name: business.name,
+    description: business.description,
+    url: `https://moval.living/business/${business.slug}`,
+  }
+
+  if (business.logo) schema.logo = { '@type': 'ImageObject', url: business.logo }
+  if (business.coverImage) schema.image = business.coverImage
+  if (business.website) schema.url = business.website
+  if (business.email) schema.email = business.email
+  if (business.phone) schema.telephone = business.phone
+
+  // Address
+  if (business.address || business.city || business.state || business.zip) {
+    schema.address = {
+      '@type': 'PostalAddress',
+      ...(business.address && { streetAddress: business.address }),
+      ...(business.city && { addressLocality: business.city }),
+      ...(business.state && { addressRegion: business.state }),
+      ...(business.zip && { postalCode: business.zip }),
+      addressCountry: 'US',
+    }
+  }
+
+  // Aggregate rating
+  if (business.googleRating != null && business.googleReviewCount != null) {
+    schema.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: business.googleRating,
+      reviewCount: business.googleReviewCount,
+      bestRating: 5,
+      worstRating: 1,
+    }
+  }
+
+  // Same-as social links
+  const sameAs: string[] = []
+  if (business.facebook) sameAs.push(business.facebook)
+  if (business.instagram) sameAs.push(business.instagram)
+  if (business.yelp) sameAs.push(business.yelp)
+  if (business.googleBusiness) sameAs.push(`https://www.google.com/maps?cid=${business.googleBusiness}`)
+  if (sameAs.length > 0) schema.sameAs = sameAs
+
+  // Category
+  if (business.category) schema.category = business.category.name
+
+  // Area served
+  schema.areaServed = {
+    '@type': 'City',
+    name: 'Moreno Valley',
+    addressRegion: 'CA',
+    addressCountry: 'US',
+  }
+
+  // Opening hours
+  if (business.hours) {
+    const hrs = business.hours as Record<string, { open: string; close: string; closed: boolean }>
+    const dayMap: Record<string, string> = {
+      monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday',
+      thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday',
+    }
+    schema.openingHoursSpecification = Object.entries(hrs)
+      .filter(([, h]) => !h.closed)
+      .map(([day, h]) => ({
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: dayMap[day.toLowerCase()] ?? day,
+        opens: h.open,
+        closes: h.close,
+      }))
+  }
+
+  return schema
+}
+
+function buildBreadcrumbSchema(business: { name: string; slug: string; category: { name: string; slug: string } }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://moval.living' },
+      { '@type': 'ListItem', position: 2, name: 'Browse', item: 'https://moval.living/search' },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: business.category.name,
+        item: `https://moval.living/search?category=${business.category.slug}`,
+      },
+      { '@type': 'ListItem', position: 4, name: business.name, item: `https://moval.living/business/${business.slug}` },
+    ],
   }
 }
 
@@ -77,9 +189,14 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
 
   const rating = averageRating(business.reviews)
   const hours = business.hours as Record<string, { open: string; close: string; closed: boolean }> | null
+  const localBusinessSchema = buildBusinessSchema(business)
+  const breadcrumbSchema = buildBreadcrumbSchema(business)
 
   return (
-    <div className="bg-slate-50 min-h-screen">
+    <>
+      {localBusinessSchema && <JsonLd schema={localBusinessSchema} />}
+      {breadcrumbSchema && <JsonLd schema={breadcrumbSchema} />}
+      <div className="bg-slate-50 min-h-screen">
       {/* Breadcrumb */}
       <div className="bg-white border-b border-slate-100">
         <div className="container-max py-3">
@@ -320,5 +437,6 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
         </div>
       </div>
     </div>
+    </>
   )
 }

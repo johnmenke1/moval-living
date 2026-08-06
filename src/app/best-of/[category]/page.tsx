@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { Star, MapPin, Globe, Phone, ChevronLeft } from 'lucide-react'
 import type { Metadata } from 'next'
+import { JsonLd } from '@/components/seo/JsonLd'
 
 interface Props {
   params: Promise<{ category: string }>
@@ -32,9 +33,51 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { category: slug } = await params
   const cat = await getCategory(slug)
   if (!cat) return { title: 'Not Found' }
+  const pageUrl = `https://moval.living/best-of/${slug}`
+  const description = cat.description || `Our editor's pick for ${cat.name} in Moreno Valley.`
   return {
     title: cat.name,
+    description,
+    alternates: { canonical: pageUrl },
+    openGraph: {
+      type: 'website',
+      url: pageUrl,
+      title: cat.name,
+      description,
+    },
+    twitter: { card: 'summary', title: cat.name, description },
+  }
+}
+
+function buildBestOfCategorySchema(cat: Awaited<ReturnType<typeof getCategory>>) {
+  if (!cat) return null
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: cat.name,
     description: cat.description || `Our editor's pick for ${cat.name} in Moreno Valley.`,
+    url: `https://moval.living/best-of/${cat.slug}`,
+    publisher: {
+      '@type': 'Organization',
+      name: 'moval.living',
+      url: 'https://moval.living',
+    },
+  }
+}
+
+function buildNomineesItemList(cat: Awaited<ReturnType<typeof getCategory>>) {
+  if (!cat || cat.nominees.length === 0) return null
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `${cat.name} — moval.living Best Of`,
+    numberOfItems: cat.nominees.length,
+    itemListElement: cat.nominees.map((nominee, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: nominee.business.name,
+      url: `https://moval.living/business/${nominee.business.slug}`,
+    })),
   }
 }
 
@@ -45,9 +88,14 @@ export default async function BestOfCategoryPage({ params }: Props) {
 
   const nominees = cat.nominees
   const emoji = cat.icon ? getCategoryEmoji(cat.icon) : '⭐'
+  const categorySchema = buildBestOfCategorySchema(cat)
+  const itemListSchema = buildNomineesItemList(cat)
 
   return (
-    <div className="bg-slate-50 min-h-screen">
+    <>
+      {categorySchema && <JsonLd schema={categorySchema} />}
+      {itemListSchema && <JsonLd schema={itemListSchema} />}
+      <div className="bg-slate-50 min-h-screen">
       {/* Back nav */}
       <div className="bg-white border-b border-slate-100">
         <div className="container-max py-4">
@@ -84,6 +132,7 @@ export default async function BestOfCategoryPage({ params }: Props) {
         )}
       </div>
     </div>
+    </>
   )
 }
 
