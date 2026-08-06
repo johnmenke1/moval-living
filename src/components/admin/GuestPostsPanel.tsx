@@ -41,7 +41,15 @@ interface Author {
   slug: string
 }
 
+const POST_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+  LIFE:       { label: 'Life in MoVal',     color: 'text-emerald-700 bg-emerald-50' },
+  GUEST:      { label: 'Guest Expert',       color: 'text-violet-700 bg-violet-50' },
+  OUTING:     { label: 'Live Curiously',     color: 'text-amber-700 bg-amber-50' },
+  SPOTLIGHT:  { label: 'Business Spotlight',  color: 'text-blue-700 bg-blue-50' },
+}
+
 interface FormState {
+  postType: 'LIFE' | 'GUEST' | 'OUTING' | 'SPOTLIGHT'
   slug: string
   title: string
   excerpt: string
@@ -55,6 +63,7 @@ interface FormState {
 }
 
 const blankForm = (): FormState => ({
+  postType: 'LIFE',
   slug: '',
   title: '',
   excerpt: '',
@@ -125,6 +134,7 @@ export default function GuestPostsPanel({
         scheduledFor: createForm.scheduledFor || null,
         metaTitle: createForm.metaTitle || null,
         metaDescription: createForm.metaDescription || null,
+        authorId: createForm.postType === 'GUEST' ? createForm.authorId || undefined : undefined,
       }
       const res = await fetch('/api/admin/guest-posts', {
         method: 'POST',
@@ -235,8 +245,29 @@ export default function GuestPostsPanel({
       {/* Create form */}
       {showCreate && (
         <form onSubmit={handleCreate} className="mb-6 bg-white border border-primary/30 rounded-xl p-5 space-y-4">
-          <h3 className="font-semibold text-text">New Guest Post</h3>
+          <h3 className="font-semibold text-text">New Post</h3>
           {createError && <p className="text-red-600 text-sm">{createError}</p>}
+
+          {/* Post type selector */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-1.5">Post type</label>
+            <div className="flex gap-2 flex-wrap">
+              {Object.entries(POST_TYPE_CONFIG).map(([k, v]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setCreateForm(f => ({ ...f, postType: k as FormState['postType'] }))}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                    createForm.postType === k
+                      ? `${v.color} border-current`
+                      : 'border-slate-200 text-text-secondary hover:border-slate-300'
+                  }`}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
@@ -258,20 +289,23 @@ export default function GuestPostsPanel({
                 placeholder="auto-generated-from-title"
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1">Author *</label>
-              <select
-                required
-                value={createForm.authorId}
-                onChange={e => setCreateForm(f => ({ ...f, authorId: e.target.value }))}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
-              >
-                <option value="">Select author...</option>
-                {authors.map(a => (
-                  <option key={a.id} value={a.id}>{a.displayName}</option>
-                ))}
-              </select>
-            </div>
+            {createForm.postType === 'GUEST' && (
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1">Author *</label>
+                <select
+                  required
+                  value={createForm.authorId}
+                  onChange={e => setCreateForm(f => ({ ...f, authorId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                >
+                  <option value="">Select author...</option>
+                  {authors.map(a => (
+                    <option key={a.id} value={a.id}>{a.displayName}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {createForm.postType !== 'GUEST' && <div />}
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1">Status</label>
               <select
