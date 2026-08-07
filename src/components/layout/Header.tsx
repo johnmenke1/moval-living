@@ -4,14 +4,17 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-  BookOpen,
   Calendar,
+  CalendarDays,
   ChevronDown,
   Compass,
+  DollarSign,
   FileText,
+  Heart,
   Home as HomeIcon,
   Info,
   Menu,
+  Sparkles,
   Tag,
   Trophy,
   X,
