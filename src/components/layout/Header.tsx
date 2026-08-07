@@ -57,6 +57,7 @@ const navGroups = [
   },
   {
     label: 'Read',
+    icon: Compass,
     items: [
       { label: 'Insights', href: '/insights', icon: FileText },
       { label: 'Spotlights', href: '/spotlights', icon: Sparkles },
@@ -64,6 +65,7 @@ const navGroups = [
   },
   {
     label: 'About',
+    icon: Compass,
     items: [
       { label: 'About MoVal', href: '/about-moreno-valley', icon: Info },
       { label: 'Expert Partners', href: '/partners', icon: Sparkles },
