@@ -71,6 +71,11 @@ export async function GET(
       coupon: business.coupon,
       ownerId: business.ownerId,
       reviews: business.reviews,
+      isExpertPartner: business.isExpertPartner,
+      expertPartnerSlug: business.expertPartnerSlug,
+      foundingPartnerSince: business.foundingPartnerSince,
+      liveQaZoomUrl: business.liveQaZoomUrl,
+      liveQaNextDate: business.liveQaNextDate,
       createdAt: business.createdAt,
       updatedAt: business.updatedAt,
     })

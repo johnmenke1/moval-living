@@ -19,8 +19,16 @@ model Business {
   category         Category  @relation(fields: [categoryId], references: [id])
   tier             Tier      @default(FREE)
   status           Status    @default(PENDING)
-  isBestOfWinner  Boolean  @default(false)
-  bestOfTags       String[] @default([])
+  isBestOfWinner   Boolean   @default(false)
+  bestOfTags       String[]  @default([])
+
+  // Expert Partner program ($197/mo or $997/yr — one slot per category)
+  isExpertPartner      Boolean   @default(false)
+  expertPartnerSlug    String?   @unique
+  foundingPartnerSince DateTime?
+  liveQaZoomUrl        String?
+  liveQaNextDate       DateTime?
+  ghlCompanyId         String?   @unique           // GHL Companies endpoint mapping (private integration token)
 
   // Contact
   email            String?
@@ -36,17 +44,16 @@ model Business {
   // Media
   logo             String?
   coverImage       String?
-  photos           String[]  // Array of photo URLs
+  photos           String[]
 
   // Social
   facebook         String?
   instagram        String?
   yelp             String?
-  googleBusiness   String?    // Google Place ID (from Google Business Profile)
-  googleRating     Float?     // Cached average rating from Google (0-5)
-  googleReviewCount Int?       // Cached review count from Google
+  googleBusiness   String?
+  googleRating     Float?
+  googleReviewCount Int?
 
-  // Hours stored as JSON: { mon: { open: "9:00 AM", close: "5:00 PM", closed: false }, ... }
   hours            Json?
 
   // SEO
@@ -55,31 +62,34 @@ model Business {
 
   // Coupon/Deal
   hasCoupon        Boolean   @default(false)
-  coupon          Json?     // { headline: string, description: string, code?: string, expiresAt?: string }
+  coupon           Json?
 
   // Stripe
   stripeCustomerId           String?   @unique
   stripeSubscriptionId       String?
-  subscriptionStatus        String?    // 'active' | 'past_due' | 'canceled' | 'trialing'
+  subscriptionStatus         String?
   subscriptionCurrentPeriodEnd DateTime?
 
   // Relations
-  owner           Owner?     @relation(fields: [ownerId], references: [id])
-  ownerId         String?    @unique
-  claimToken      String?    @unique  // One-time token to claim ownership
-  claimExpiresAt  DateTime?            // Token expires after 7 days
-  reviews         Review[]
-    socialPosts     SocialPost[]
-    bestOfNominees  BestOfNominee[]
-    guestAuthors    GuestAuthor[]
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  owner              Owner?             @relation(fields: [ownerId], references: [id])
+  ownerId            String?            @unique
+  claimToken         String?            @unique
+  claimExpiresAt     DateTime?
+  reviews            Review[]
+  socialPosts        SocialPost[]
+  bestOfNominees     BestOfNominee[]
+  guestAuthors       GuestAuthor[]
+  expertPartnerLeads ExpertPartnerLead[]
+  expertPartnerStats ExpertPartnerStat[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   @@index([categoryId])
   @@index([status])
   @@index([isBestOfWinner])
   @@index([tier])
   @@index([city])
+  @@index([isExpertPartner])
 }
 
 model Category {
@@ -87,8 +97,8 @@ model Category {
   name        String
   slug        String     @unique
   description String?
-  icon        String  // Lucide icon name e.g. "Utensils", "Car", "Stethoscope"
-  image       String?    // Optional category hero image URL
+  icon        String
+  image       String?
   businesses  Business[]
   createdAt   DateTime   @default(now())
 
@@ -102,15 +112,15 @@ model Owner {
   email         String    @unique
   emailVerified DateTime?
   image         String?
-  passwordHash  String?   // Set when user creates/updates a password
-  resetToken    String?   @unique // Hashed token for password reset
-  resetExpires  DateTime? // Expiry time for reset token
+  passwordHash  String?
+  resetToken    String?   @unique
+  resetExpires  DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
-    sessions      Session[]
-    business      Business?
-    guestAuthors  GuestAuthor[]
+  sessions      Session[]
+  business      Business?
+  guestAuthors  GuestAuthor[]
 }
 
 enum UserRole {
@@ -125,13 +135,13 @@ model Account {
   provider          String
   providerAccountId String
   refresh_token     String? @db.Text
-  access_token     String? @db.Text
-  expires_at       Int?
-  token_type       String?
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
   scope             String?
-  id_token         String? @db.Text
-  session_state    String?
-  owner            Owner   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id_token          String? @db.Text
+  session_state     String?
+  owner             Owner   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -150,9 +160,9 @@ model Review {
   business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   authorName  String
   authorEmail String?
-  rating      Int       // 1-5
+  rating      Int
   content     String    @db.Text
-  response    String?   @db.Text  // Owner's response
+  response    String?   @db.Text
   flagged     Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -163,24 +173,19 @@ model Review {
 
 model SocialPost {
   id           String       @id @default(cuid())
-  platform     Platform     // INSTAGRAM or FACEBOOK
+  platform     Platform
   postUrl      String
   caption      String?      @db.Text
-  mediaUrl     String?      // Primary image/video URL (extracted from post)
-  thumbnailUrl String?      // Fallback thumbnail when mediaUrl is a video (poster frame)
+  mediaUrl     String?
+  thumbnailUrl String?
   authorName   String?
   authorAvatar String?
   status       PostStatus   @default(PENDING)
-  // The date of the actual event/opportunity (not when the post was submitted).
-  // Nullable so casual social posts without an event date can still be submitted.
-  // When null, the post renders in the "Posts" view but not the calendar timeline.
   eventDate    DateTime?
-  // Optional end date for multi-day events. Same semantics as eventDate.
   eventEndDate DateTime?
-  // Optional link to a business (if the event/opportunity is from that business)
   businessId   String?
   business     Business?    @relation(fields: [businessId], references: [id], onDelete: SetNull)
-  submittedBy  String?      // Owner's email or name
+  submittedBy  String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -203,6 +208,7 @@ enum PostStatus {
 enum Tier {
   FREE
   FEATURED
+  EXPERT_PARTNER
 }
 
 enum Status {
@@ -212,23 +218,20 @@ enum Status {
 }
 
 // ── Curated BestOf System (no algorithmic scoring) ──────────────────────────
-// BestOfCategory = an award title (e.g. "Best Coffee", "Best Tacos")
-// BestOfNominee  = a business nominated for a category (winner flag set by admin)
 
 model BestOfCategory {
   id               String            @id @default(cuid())
-  name             String            // "Best Coffee", "Best Tacos", "Food & Hospitality"
+  name             String
   slug             String            @unique
   description      String?
-  icon             String?           // Lucide icon name e.g. "Coffee", "Taco"
-  tagHints         String[]          // e.g. ["coffee-house", "cafe"] — admin suggestion hints only
+  icon             String?
+  tagHints         String[]
   published        Boolean           @default(false)
-  isSection        Boolean           @default(false)  // true = section header (visual only, not a clickable card)
-  imageUrl         String?           // cover image for category block (or section header)
-  // Parent category for sub-categories. Null = top-level parent category (e.g. "Coffee", "Real Estate")
+  isSection        Boolean           @default(false)
+  imageUrl         String?
   parentCategoryId String?
   parentCategory   BestOfCategory?   @relation("BestOfCategoryHierarchy", fields: [parentCategoryId], references: [id])
-  subCategories    BestOfCategory[]   @relation("BestOfCategoryHierarchy")
+  subCategories    BestOfCategory[]  @relation("BestOfCategoryHierarchy")
   nominees         BestOfNominee[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -240,16 +243,16 @@ model BestOfCategory {
 }
 
 model BestOfNominee {
-  id           String        @id @default(cuid())
+  id           String         @id @default(cuid())
   category     BestOfCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId   String
-  business     Business      @relation(fields: [businessId], references: [id])
+  business     Business       @relation(fields: [businessId], references: [id])
   businessId   String
-  winner       Boolean       @default(false)  // admin marks the #1 pick
-  notes        String?       // optional editorial note e.g. "Known for cold brew"
-  displayOrder Int           @default(0)     // admin-controlled ordering within category
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  winner       Boolean        @default(false)
+  notes        String?
+  displayOrder Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   @@unique([categoryId, businessId])
   @@index([categoryId])
@@ -257,21 +260,15 @@ model BestOfNominee {
 }
 
 // ── Guest Author / Guest Post ─────────────────────────────────────────────
-// Curated editorial content from named contributors (e.g. local professionals).
-// Johnny (admin) is the only one who creates/updates author profiles and posts.
-// Authors do NOT log in — content is collected off-platform (call, email,
-// Google Doc) and entered by Johnny. This is intentional for v1: keeps the
-// curation thesis intact and avoids building a self-serve author portal.
 
 model GuestAuthor {
   id              String   @id @default(cuid())
-  slug            String   @unique             // "chris-leeper"
-  displayName     String                       // "Chris Leeper"
-  title           String?                      // "Realtor, Leeper Realty Group"
-  bio             String   @db.Text            // 2-3 sentences, markdown ok
+  slug            String   @unique
+  displayName     String
+  title           String?
+  bio             String   @db.Text
   photoUrl        String?
 
-  // Web presence — every link is shown on /authors/[slug]
   personalSiteUrl String?
   companyName     String?
   companyUrl      String?
@@ -280,19 +277,16 @@ model GuestAuthor {
   facebookUrl     String?
   instagramUrl    String?
 
-  // Optional links to existing entities (handy for SEO/UX)
   businessId      String?
   business        Business? @relation(fields: [businessId], references: [id])
   ownerId         String?
   owner           Owner?    @relation(fields: [ownerId], references: [id])
 
-  // Cadence tracking — soft block at 1 post / calendar month
   postsThisPeriod Int       @default(0)
   periodStartedAt DateTime  @default(now())
   lastPostedAt    DateTime?
 
-  isActive        Boolean   @default(true)     // soft-disable without delete
-
+  isActive        Boolean   @default(true)
   posts           GuestPost[]
 
   createdAt       DateTime  @default(now())
@@ -310,38 +304,29 @@ model GuestAuthor {
 
 model GuestPost {
   id              String   @id @default(cuid())
-  slug            String   @unique             // "is-now-the-right-time-to-buy-in-moreno-valley"
-  postType        String   @default("GUEST")    // 'LIFE' | 'GUEST' | 'OUTING' | 'SPOTLIGHT'
+  slug            String   @unique
+  postType        String   @default("GUEST")
   title           String
-  excerpt         String   @db.Text            // 1-2 sentences, used in cards + meta fallback
-  body            String   @db.Text            // markdown
+  excerpt         String   @db.Text
+  body            String   @db.Text
   heroImageUrl    String?
   status          String   @default("draft")
   submittedAt     DateTime?
   scheduledFor    DateTime?
   publishedAt     DateTime?
   rejectionReason String?
-  // Guest author — required for GUEST type, optional for LIFE/OUTING/SPOTLIGHT
-  // (LIFE = John's voice, OUTING = Live Curiously, SPOTLIGHT = business video)
   authorId        String?
   editorNotes     String?
   metaTitle       String?
   metaDescription String?
   author          GuestAuthor? @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  // Music sidebar — two optional Spotify track IDs for Life posts
   spotifyTrack1   String?
   spotifyTrack2   String?
 
-  // FAQ — JSON array of { question, answer } for Guest Expert posts
   faqItems        Json?    @default("[]")
-
-  // Photo gallery — array of { url, caption } for Live Curiously outings
-  // Captions render below each photo on /outings/[slug]
-  outingPhotos     Json     @default("[]")
-
-  // YouTube video ID (from youtube.com/watch?v=VIDEO_ID) for Outing and Spotlight
-  youtubeVideoId   String?
+  outingPhotos    Json     @default("[]")
+  youtubeVideoId  String?
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -349,4 +334,56 @@ model GuestPost {
   @@index([status, publishedAt(sort: Desc)])
   @@index([authorId, publishedAt(sort: Desc)])
   @@index([postType, publishedAt(sort: Desc)])
+}
+
+// ── Expert Partner Program ─────────────────────────────────────────────────
+// Moreno Valley Expert Partner ($197/mo or $997/yr) — one business per
+// category. Leads captured on /partners/[slug] are stored locally AND
+// forwarded to GoHighLevel (sub-account per partner in v2).
+
+model ExpertPartnerLead {
+  id           String   @id @default(cuid())
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId   String
+
+  name         String
+  email        String
+  phone        String?
+  message      String   @db.Text
+
+  sourceIp     String?
+  userAgent    String?  @db.Text
+
+  contacted    Boolean  @default(false)
+  contactedAt  DateTime?
+  notes        String?  @db.Text
+
+  ghlContactId String?
+  ghlSyncedAt  DateTime?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([businessId, createdAt(sort: Desc)])
+  @@index([contacted])
+}
+
+model ExpertPartnerStat {
+  id              String   @id @default(cuid())
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId      String
+
+  month           DateTime
+
+  storyViews      Int      @default(0)
+  newsletterOpens Int      @default(0)
+  listingClicks   Int      @default(0)
+
+  notes           String?  @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([businessId, month])
+  @@index([businessId, month(sort: Desc)])
 }

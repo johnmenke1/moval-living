@@ -36,6 +36,12 @@ const couponSchema = z.object({
   expiresAt: z.union([z.string().trim().max(40).transform(value => value || null), z.null()]).optional(),
 }).nullable().optional()
 
+const nullableDate = z.union([
+  z.string().datetime(),
+  z.literal('').transform(() => null),
+  z.null(),
+]).optional()
+
 const businessUpdateSchema = z.object({
   name: z.string().trim().min(1).max(160),
   tagline: nullableText(240),
@@ -73,7 +79,20 @@ const businessUpdateSchema = z.object({
     z.null(),
   ]).optional(),
   googleBusiness: nullableText(500),
+  // Expert Partner program fields (admin-editable)
+  isExpertPartner: z.boolean().optional(),
+  expertPartnerSlug: nullableText(120),
+  foundingPartnerSince: nullableDate,
+  liveQaZoomUrl: nullableText(500),
+  liveQaNextDate: nullableDate,
 }).strict()
+
+function parseDateField(value: string | null | undefined): Date | null | undefined {
+  if (value === null) return null
+  if (value === undefined) return undefined
+  if (value === '') return null
+  return new Date(value)
+}
 
 export function buildBusinessUpdateData(input: unknown): Prisma.BusinessUpdateInput {
   const parsed = businessUpdateSchema.parse(input)
@@ -102,5 +121,10 @@ export function buildBusinessUpdateData(input: unknown): Prisma.BusinessUpdateIn
     googleRating: parsed.googleRating ?? null,
     googleReviewCount: parsed.googleReviewCount ?? null,
     googleBusiness: parsed.googleBusiness ?? null,
+    isExpertPartner: parsed.isExpertPartner,
+    expertPartnerSlug: parsed.expertPartnerSlug ?? null,
+    foundingPartnerSince: parseDateField(parsed.foundingPartnerSince as string | null | undefined),
+    liveQaZoomUrl: parsed.liveQaZoomUrl ?? null,
+    liveQaNextDate: parseDateField(parsed.liveQaNextDate as string | null | undefined),
   }
 }

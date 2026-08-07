@@ -19,7 +19,11 @@ ALTER TABLE "Business"
   ADD COLUMN IF NOT EXISTS "expertPartnerSlug"    TEXT,
   ADD COLUMN IF NOT EXISTS "foundingPartnerSince" TIMESTAMP(3),
   ADD COLUMN IF NOT EXISTS "liveQaZoomUrl"        TEXT,
-  ADD COLUMN IF NOT EXISTS "liveQaNextDate"       TIMESTAMP(3);
+  ADD COLUMN IF NOT EXISTS "liveQaNextDate"       TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "ghlCompanyId"         TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Business_ghlCompanyId_key"
+  ON "Business" ("ghlCompanyId");
 
 -- Unique index on expertPartnerSlug (nullable → NULLs don't conflict)
 CREATE UNIQUE INDEX IF NOT EXISTS "Business_expertPartnerSlug_key"

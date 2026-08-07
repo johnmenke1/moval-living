@@ -11,7 +11,7 @@ interface Business {
   slug: string
   tagline: string | null
   status: BusinessStatus
-  tier: 'FREE' | 'FEATURED'
+  tier: 'FREE' | 'FEATURED' | 'EXPERT_PARTNER'
   address: string
   city: string
   state: string
@@ -26,6 +26,11 @@ interface Business {
   googleBusiness: string | null
   googleRating: number | null
   googleReviewCount: number | null
+  isExpertPartner?: boolean
+  expertPartnerSlug?: string | null
+  foundingPartnerSince?: string | Date | null
+  liveQaZoomUrl?: string | null
+  liveQaNextDate?: string | Date | null
 }
 
 interface BusinessesModerationProps {
@@ -45,7 +50,7 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     googleBusiness: string
     googleRating: string
     googleReviewCount: string
-    tier: 'FREE' | 'FEATURED'
+    tier: 'FREE' | 'FEATURED' | 'EXPERT_PARTNER'
   }>>({})
 
   const reportFailure = async (response: Response, fallback: string) => {
@@ -478,12 +483,13 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                           value={edits?.tier ?? business.tier ?? 'FREE'}
                           onChange={e => setEditGoogle(prev => ({
                             ...prev,
-                            [business.id]: { ...prev[business.id], tier: e.target.value as 'FREE' | 'FEATURED' },
+                            [business.id]: { ...prev[business.id], tier: e.target.value as 'FREE' | 'FEATURED' | 'EXPERT_PARTNER' },
                           }))}
                           className="input text-sm py-1.5"
                         >
                           <option value="FREE">Free</option>
                           <option value="FEATURED">Featured ★</option>
+                            <option value="EXPERT_PARTNER">Expert Partner ✨</option>
                         </select>
                       </div>
                     </div>

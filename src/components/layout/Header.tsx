@@ -45,6 +45,25 @@ const navGroups = [
     items: [
       { label: 'Homes for Sale', href: '/homes', icon: HomeIcon },
       { label: 'Open Houses', href: '/open-houses', icon: Calendar },
+      { label: 'Events', href: '/events', icon: CalendarDays },
+      { label: 'Outings', href: '/outings', icon: Compass },
+      { label: 'Life in MoVal', href: '/life', icon: Heart },
+      { label: 'Deals', href: '/deals', icon: Tag },
+    ],
+  },
+  {
+    label: 'Read',
+    items: [
+      { label: 'Insights', href: '/insights', icon: FileText },
+      { label: 'Spotlights', href: '/spotlights', icon: Sparkles },
+    ],
+  },
+  {
+    label: 'About',
+    items: [
+      { label: 'About MoVal', href: '/about-moreno-valley', icon: Info },
+      { label: 'Expert Partners', href: '/partners', icon: Sparkles },
+      { label: 'Pricing', href: '/pricing', icon: DollarSign },
     ],
   },
 ]
