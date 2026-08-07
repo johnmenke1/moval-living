@@ -153,6 +153,9 @@ interface BusinessContext {
   businessId: string
   businessName: string
   expertPartnerSlug: string | null
+  businessEmail?: string | null
+  businessPhone?: string | null
+  businessWebsite?: string | null
   cachedGhlCompanyId?: string | null
 }
 
@@ -182,12 +185,15 @@ async function upsertPartnerCompany(
       Version: GHL_API_VERSION,
     },
     body: JSON.stringify({
-      locationId,
-      name: ctx.businessName,
-      externalId: ctx.businessId,
-      slug: ctx.expertPartnerSlug || undefined,
-      tags: ['expert-partner'],
-    }),
+          locationId,
+          name: ctx.businessName,
+          externalId: ctx.businessId,
+          slug: ctx.expertPartnerSlug || undefined,
+          email: ctx.businessEmail || undefined,
+          phone: ctx.businessPhone || undefined,
+          website: ctx.businessWebsite || undefined,
+          tags: ['expert-partner'],
+        }),
   })
 
   if (!res.ok) {

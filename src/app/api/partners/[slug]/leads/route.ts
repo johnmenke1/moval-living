@@ -73,6 +73,8 @@ export async function POST(
       id: true,
       name: true,
       email: true,
+      phone: true,
+      website: true,
       slug: true,
       expertPartnerSlug: true,
       ghlCompanyId: true,
@@ -113,6 +115,9 @@ export async function POST(
     businessId: business.id,
     businessName: business.name,
     expertPartnerSlug: business.expertPartnerSlug,
+    businessEmail: business.email,
+    businessPhone: business.phone,
+    businessWebsite: business.website,
     cachedGhlCompanyId: business.ghlCompanyId,
   })
   if (ghlResult.ok && ghlResult.contactId) {
