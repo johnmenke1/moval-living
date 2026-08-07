@@ -1,30 +1,31 @@
 /**
  * Expert Partner helpers — Moreno Valley Expert Partner program
  *
- * Single source of truth for:
- *   - Slug generation for /partners/[slug]
- *   - Partner display data (label, accent color, badge tier)
- *   - GoHighLevel lead forwarding (Companies endpoint + Private Integration token)
+ * Architecture (Aug 2026, revised after GHL API probe):
+ *   1. POST /businesses/ — creates the partner Company (idempotent via
+ *      name-match search). Accepts only: locationId, name, email, phone,
+ *      website. Does NOT accept: tags, externalId.
+ *   2. POST /contacts/ — creates the lead Contact with tags +
+ *      customFields. Does NOT accept companyId.
+ *   3. PUT /contacts/{id} — sets businessId (camelCase) on the Contact,
+ *      linking it to the Company. This is the documented pattern in the
+ *      GHL marketplace docs.
  *
- * Architecture (Aug 2026): we use the **Companies** endpoint
- * (POST /businesses/) and link Contacts → Company via companyId. This
- * requires a Private Integration token (`pit-...`) with elevated scope
- * for businesses — a standard Location API key returns 401 on that
- * endpoint. Confirmed via n8n community thread (Aug 2026).
+ * Idempotency strategy: search by `name` (case-sensitive exact match),
+ * reuse the existing Company ID if found, otherwise create. The name is
+ * stable for a given Expert Partner (it's their Business.name from
+ * moval.living). We cache the GHL companyId on Business.ghlCompanyId so
+ * we skip even the search after the first lead.
  *
- * Flow:
- *   1. When a Business becomes an Expert Partner, we upsert a Company
- *      record in GHL via POST /businesses/ (idempotent by externalId).
- *      Save the returned GHL companyId on our Business row as
- *      `ghlCompanyId` so subsequent leads skip the upsert.
- *   2. When a lead comes in via the form, we create a Contact with
- *      `companyId` pointing to the partner's Company record.
- *   3. Workflows filter on Contact's Company or on the Company tag —
- *      much cleaner than filtering on a Contact custom field.
+ * Tag strategy: tags on Companies can't be set via API. The Expert
+ * Partner workflow filter MUST target the Contact's Company (via
+ * businessId) OR be set up at the workflow level with a different filter
+ * (e.g., pipeline stage). See ghl-setup-step-by-step.md for the
+ * current workaround.
  *
- * The "Partner = GHL sub-account" model still applies at the LOCATION
- * level (one sub-account per partner business in v2), but the Companies
- * object is how we organize things WITHIN that sub-account.
+ * Authentication: Private Integration token (`pit-...`). The
+ * `businesses.write` scope is REQUIRED for POST /businesses/ — without
+ * it, you get 422 "Unprocessable Entity" on every field.
  */
 
 import { prisma } from './prisma'
@@ -136,18 +137,20 @@ export interface GhlForwardResult {
 export const GHL_API_BASE = 'https://services.leadconnectorhq.com'
 export const GHL_API_VERSION = '2021-07-28'
 
-// GHL API endpoints we call:
-//   GET    /businesses/?locationId=X&externalId=Y    — find company by externalId
-//   POST   /businesses/                             — create or upsert company
-//   POST   /contacts/                               — create contact with companyId
-//   POST   /opportunities/                          — create opportunity
-//   POST   /workflows/{id}/enroll                   — enroll contact in workflow
+// GHL API endpoints we call (verified Aug 2026 via probe):
+//   GET    /businesses/                — list all companies (used to search by name)
+//   POST   /businesses/                — create company. Accepts: locationId, name,
+//                                         email, phone, website. Rejects: tags, externalId.
+//   POST   /contacts/                  — create contact. Accepts: tags, customFields.
+//                                         Rejects: companyId.
+//   PUT    /contacts/{id}              — update contact. Accepts: businessId (sets
+//                                         the Contact's Company association).
+//   GET    /contacts/{id}              — verify contact.
+//   POST   /opportunities/             — create opportunity.
+//   POST   /workflows/{id}/enroll      — enroll contact in workflow.
 //
-// Authentication: Private Integration token (`pit-...`) with scopes:
-//   businesses.readonly, businesses.write,
-//   contacts.readonly, contacts.write,
-//   opportunities.readonly, opportunities.write,
-//   workflows.readonly, workflows.write
+// Authentication: Private Integration token (`pit-...`) with scope
+// businesses.write. Standard Location API keys 422 on POST /businesses/.
 
 interface BusinessContext {
   businessId: string
@@ -159,25 +162,56 @@ interface BusinessContext {
   cachedGhlCompanyId?: string | null
 }
 
+interface CachedCompany {
+  ok: boolean
+  companyId?: string
+  error?: string
+}
+
 /**
- * Upsert the partner's Company record in GHL. Idempotent — uses our
- * `movalliving_business_id` as the externalId so re-running won't
- * duplicate. If we already cached the GHL companyId on our Business
- * row, we skip the lookup entirely.
+ * Find or create the partner's Company record in GHL.
+ *
+ * Idempotency: searches GHL for an existing Company with the exact name
+ * within this location. If found, reuses its ID. If not, creates.
+ * Cached companyId on our Business row skips the search.
  */
-async function upsertPartnerCompany(
+async function findOrCreatePartnerCompany(
   apiKey: string,
   locationId: string,
   ctx: BusinessContext
-): Promise<{ ok: boolean; companyId?: string; error?: string }> {
+): Promise<CachedCompany> {
+  // Fast path: use cached ID
   if (ctx.cachedGhlCompanyId) {
     return { ok: true, companyId: ctx.cachedGhlCompanyId }
   }
 
-  // Try to create. With externalId populated and the private integration
-  // scope, GHL either creates or returns the existing company that
-  // matches externalId — idempotent.
-  const res = await fetch(`${GHL_API_BASE}/businesses/`, {
+  // Search for an existing Company with the same name in this location
+  try {
+    const listRes = await fetch(
+      `${GHL_API_BASE}/businesses/?locationId=${encodeURIComponent(locationId)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Version: GHL_API_VERSION,
+        },
+      }
+    )
+    if (listRes.ok) {
+      const list = await listRes.json()
+      const existing = (list.businesses || []).find(
+        (b: { name: string }) => b.name === ctx.businessName
+      )
+      if (existing?.id) {
+        return { ok: true, companyId: existing.id }
+      }
+    }
+  } catch (e) {
+    // Search failed — fall through to create
+    console.error('[GHL] Company search failed:', e)
+  }
+
+  // Create
+  const createRes = await fetch(`${GHL_API_BASE}/businesses/`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -185,40 +219,104 @@ async function upsertPartnerCompany(
       Version: GHL_API_VERSION,
     },
     body: JSON.stringify({
-          locationId,
-          name: ctx.businessName,
-          externalId: ctx.businessId,
-          slug: ctx.expertPartnerSlug || undefined,
-          email: ctx.businessEmail || undefined,
-          phone: ctx.businessPhone || undefined,
-          website: ctx.businessWebsite || undefined,
-          tags: ['expert-partner'],
-        }),
+      locationId,
+      name: ctx.businessName,
+      email: ctx.businessEmail || undefined,
+      phone: ctx.businessPhone || undefined,
+      website: ctx.businessWebsite || undefined,
+    }),
   })
 
-  if (!res.ok) {
-    const text = await res.text()
+  if (!createRes.ok) {
+    const text = await createRes.text()
     return {
       ok: false,
-      error: `GHL company create failed: ${res.status} ${text.slice(0, 200)}`,
+      error: `GHL company create failed: ${createRes.status} ${text.slice(0, 200)}`,
     }
   }
 
-  const json = await res.json()
+  const json = await createRes.json()
   const companyId: string | undefined = json.business?.id || json.id
   return { ok: true, companyId }
+}
+
+/**
+ * Create the lead Contact, then link it to the Company via PUT.
+ * The PUT-with-businessId pattern is what actually associates the
+ * Contact with the Company in GHL.
+ */
+async function createAndLinkContact(
+  apiKey: string,
+  locationId: string,
+  lead: ExpertPartnerLead,
+  companyId: string,
+  partnerSlug: string | null
+): Promise<{ ok: boolean; contactId?: string; error?: string }> {
+  // Step 1: create contact
+  const createRes = await fetch(`${GHL_API_BASE}/contacts/`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Version: GHL_API_VERSION,
+    },
+    body: JSON.stringify({
+      locationId,
+      firstName: lead.name.split(' ')[0] || lead.name,
+      lastName: lead.name.split(' ').slice(1).join(' ') || '',
+      email: lead.email,
+      phone: lead.phone || undefined,
+      source: 'movalliving.com/partners',
+      tags: ['movalliving-lead'],
+      customFields: [
+        { key: 'movalliving_lead_id', field_value: lead.id },
+        { key: 'lead_message', field_value: lead.message.slice(0, 500) },
+        { key: 'partner_slug', field_value: partnerSlug ?? '' },
+      ],
+    }),
+  })
+
+  if (!createRes.ok) {
+    const text = await createRes.text()
+    return {
+      ok: false,
+      error: `GHL contact create failed: ${createRes.status} ${text.slice(0, 200)}`,
+    }
+  }
+
+  const created = await createRes.json()
+  const contactId: string = created.contact?.id || created.id
+
+  // Step 2: link to Company via PUT businessId
+  const linkRes = await fetch(`${GHL_API_BASE}/contacts/${contactId}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Version: GHL_API_VERSION,
+    },
+    body: JSON.stringify({ businessId: companyId }),
+  })
+
+  if (!linkRes.ok) {
+    // Non-fatal — the Contact was created, just not linked. Workflow
+    // filtering by Company won't work for this lead.
+    console.error(
+      `[GHL] Contact ${contactId} created but PUT businessId failed:`,
+      linkRes.status,
+      await linkRes.text().then((t) => t.slice(0, 200))
+    )
+  }
+
+  return { ok: true, contactId }
 }
 
 /**
  * Forwards a lead to GoHighLevel.
  *
  * Returns `{ ok: true, contactId, companyId }` on success.
- * Returns `{ ok: false, skipped: true, reason }` if env vars are missing
- * (the lead is still saved to our DB and emailed via SES regardless).
+ * Returns `{ ok: false, skipped: true, reason }` if env vars are missing.
  * Returns `{ ok: false, error }` on actual API failure.
- *
- * v2 extension point: when Business has its own ghlLocationId, fetch the
- * business first and override locationId/apiKey from those fields.
  */
 export async function forwardToGHL(
   lead: ExpertPartnerLead,
@@ -239,52 +337,32 @@ export async function forwardToGHL(
   }
 
   try {
-    // 1. Upsert the partner's Company record
-    const company = await upsertPartnerCompany(apiKey, locationId, businessContext)
+    // 1. Find or create the partner's Company
+    const company = await findOrCreatePartnerCompany(apiKey, locationId, businessContext)
     if (!company.ok || !company.companyId) {
       return {
         ok: false,
         skipped: false,
-        error: company.error || 'Company upsert failed',
+        error: company.error || 'Company find/create failed',
       }
     }
 
-    // 2. Create the lead Contact, linked to the Company
-    const contactRes = await fetch(`${GHL_API_BASE}/contacts/`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        Version: GHL_API_VERSION,
-      },
-      body: JSON.stringify({
-        locationId,
-        firstName: lead.name.split(' ')[0] || lead.name,
-        lastName: lead.name.split(' ').slice(1).join(' ') || '',
-        email: lead.email,
-        phone: lead.phone || undefined,
-        source: 'movalliving.com/partners',
-        tags: ['movalliving-lead'],
-        companyId: company.companyId,
-        customFields: [
-          { key: 'movalliving_lead_id', field_value: lead.id },
-          { key: 'lead_message', field_value: lead.message.slice(0, 500) },
-          { key: 'partner_slug', field_value: businessContext.expertPartnerSlug ?? '' },
-        ],
-      }),
-    })
-
-    if (!contactRes.ok) {
-      const text = await contactRes.text()
+    // 2. Create the lead Contact and link it to the Company
+    const contactResult = await createAndLinkContact(
+      apiKey,
+      locationId,
+      lead,
+      company.companyId,
+      businessContext.expertPartnerSlug
+    )
+    if (!contactResult.ok || !contactResult.contactId) {
       return {
         ok: false,
         skipped: false,
-        error: `GHL contact create failed: ${contactRes.status} ${text.slice(0, 200)}`,
+        error: contactResult.error || 'Contact create failed',
       }
     }
-
-    const contact = await contactRes.json()
-    const contactId: string = contact.contact?.id || contact.id
+    const contactId = contactResult.contactId
 
     // 3. Add to pipeline (if configured)
     if (pipelineId && pipelineStageId) {
@@ -305,7 +383,6 @@ export async function forwardToGHL(
           source: 'movalliving.com/partners',
         }),
       }).catch((e) => {
-        // Non-fatal — contact was created; pipeline add failed
         console.error('[GHL] Pipeline add failed:', e)
       })
     }

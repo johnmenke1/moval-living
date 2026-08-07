@@ -2,6 +2,8 @@ node_modules/
 .next/
 .env.local
 *.env
+.env.ghl-temp
+.env.ghl-temp.txt
 
 # Diagnostic / one-off scratch files
 /check-db.js

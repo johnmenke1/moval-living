@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { CheckCircle, XCircle, Clock, Trash2, ExternalLink, Building2, Star, Pencil, ChevronDown, ChevronUp, RefreshCw, Loader2, Search, X } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Trash2, ExternalLink, Building2, Star, Pencil, ChevronDown, ChevronUp, RefreshCw, Loader2, Search, X, Zap } from 'lucide-react'
 
 type BusinessStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -45,6 +45,8 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
   const [error, setError] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [refreshingId, setRefreshingId] = useState<string | null>(null)
+  const [testingGhlId, setTestingGhlId] = useState<string | null>(null)
+  const [ghlTestResult, setGhlTestResult] = useState<Record<string, { ok: boolean; summary: string; nextSteps: string[] }>>({})
   // Inline edit state per business
   const [editGoogle, setEditGoogle] = useState<Record<string, {
     googleBusiness: string
@@ -137,6 +139,41 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
       setRefreshingId(null)
     }
   }
+  const testGhl = async (id: string) => {
+    setTestingGhlId(id)
+    setError('')
+    try {
+      const res = await fetch(`/api/admin/partners/${id}/test-ghl`, {
+        method: 'POST',
+      })
+      const data = await res.json().catch(() => ({})) as {
+        ok?: boolean
+        results?: Array<{ step: string; ok: boolean; detail: string }>
+        next_steps?: string[]
+        error?: string
+      }
+      const summaryParts = (data.results || []).map((r) =>
+        r.ok ? `✓ ${r.step}` : `✗ ${r.step}: ${r.detail}`
+      )
+      const summary = summaryParts.join(' | ')
+      setGhlTestResult(prev => ({
+        ...prev,
+        [id]: {
+          ok: !!data.ok,
+          summary,
+          nextSteps: data.next_steps || [],
+        },
+      }))
+      if (!res.ok && data.error) {
+        setError(data.error)
+      }
+    } catch (err) {
+      setError('Test request failed — check Vercel logs')
+    } finally {
+      setTestingGhlId(null)
+    }
+  }
+
 
   const saveGoogleFields = async (id: string) => {
     const edits = editGoogle[id]
@@ -515,6 +552,38 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                           )}
                           Refresh from Google
                         </button>
+                      )}
+                      {business.tier === 'EXPERT_PARTNER' && (
+                        <button
+                          onClick={() => testGhl(business.id)}
+                          disabled={testingGhlId === business.id}
+                          className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors disabled:opacity-50"
+                          title="Fires a synthetic lead through the full GHL pipeline (no DB write, no email)"
+                        >
+                          {testingGhlId === business.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Zap className="w-3.5 h-3.5" />
+                          )}
+                          Test GHL
+                        </button>
+                      )}
+                      {business.tier === 'EXPERT_PARTNER' && ghlTestResult[business.id] && (
+                        <div className={`w-full mt-2 text-xs rounded-lg p-3 ${
+                          ghlTestResult[business.id].ok
+                            ? 'bg-green-50 border border-green-200 text-green-800'
+                            : 'bg-red-50 border border-red-200 text-red-800'
+                        }`}>
+                          <div className="font-mono mb-1">
+                            {ghlTestResult[business.id].ok ? '✓ All steps passed' : '✗ Some steps failed'}:
+                            {' '}{ghlTestResult[business.id].summary}
+                          </div>
+                          <div className="text-[11px] opacity-80">
+                            {ghlTestResult[business.id].nextSteps.map((s, i) => (
+                              <div key={i}>• {s}</div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                       {(business._count?.reviews ?? 0) > 0 && (
                         <button
