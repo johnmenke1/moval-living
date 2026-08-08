@@ -4,6 +4,8 @@ node_modules/
 *.env
 .env.ghl-temp
 .env.ghl-temp.txt
+.env.test
+.env.stripe-prices
 
 # Diagnostic / one-off scratch files
 /check-db.js

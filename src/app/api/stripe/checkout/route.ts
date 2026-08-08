@@ -79,6 +79,28 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Validate the price ID against Stripe BEFORE creating the session.
+  // Catches stale/rotated/deleted price IDs early with a clear, actionable
+  // error message — instead of a generic Stripe 400 the user can't fix.
+  try {
+    await getStripe().prices.retrieve(priceId)
+  } catch (priceErr) {
+    const msg = priceErr instanceof Error ? priceErr.message : String(priceErr)
+    console.error(`[Stripe Checkout] Price ID ${priceId} invalid: ${msg}`)
+    return NextResponse.json(
+      {
+        error:
+          tier === 'expert'
+            ? `Expert Partner price (${priceId}) not found in Stripe. The env var STRIPE_PRICE_EXPERT_${interval === 'yearly' ? 'YEARLY' : 'MONTHLY'} is stale or wrong. Re-create the product in your Stripe Dashboard and paste the new price ID into Vercel.`
+            : `Featured price (${priceId}) not found in Stripe. The env var STRIPE_PRICE_${interval === 'yearly' ? 'YEARLY' : 'MONTHLY'} is stale or wrong. Re-create the product in your Stripe Dashboard and paste the new price ID into Vercel.`,
+        badPriceId: priceId,
+        hint:
+          'If you recently switched Stripe accounts, recreated products, or are migrating from test→live mode, the old price IDs no longer exist. Get the fresh price IDs from Stripe Dashboard → Products → click the price → copy the `price_...` ID.',
+      },
+      { status: 500 }
+    )
+  }
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.moval.living'
 
   // Upsert Stripe customer
