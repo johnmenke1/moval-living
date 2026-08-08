@@ -1,32 +1,23 @@
 /**
- * Single-business audit runner.
+ * Tavily-backed audit runner — used ONLY when the free scraper hits a
+ * WAF block (Cloudflare, etc.) and can't get through with direct HTTP.
  *
- * Combines two signal sources:
- *   1. Direct HTTP probes (HEAD/GET) — SSL, meta tags, scripts, sitemaps
- *   2. Tavily Extract (advanced) — content, emails, phones, copyright year
- *
- * Returns a complete BusinessAudit-ready payload + the score.
- *
- * Designed to be cheap to invoke: ~2 Tavily credits per business
- * (homepage + /contact) + 4 direct HTTP requests (HEAD + GET + sitemap
- * + robots). Tavily dominates the cost.
+ * Costs ~2 Tavily credits per call (homepage + /contact).
+ * Always falls through gracefully if Tavily is unavailable.
  */
 
-const TAVILY_API_KEY = process.env.TAVILY_API_KEY!;
+const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 if (!TAVILY_API_KEY) {
   throw new Error('TAVILY_API_KEY is not set in the environment');
 }
 
 // ── Regexes ─────────────────────────────────────────────────────────────
-const EMAIL_RE = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
-// Phone: must look like a real phone — North American 10-digit with
-// separators, or tel: link. NOT bare 10-digit numbers which match lat/long.
-// Negative lookbehind/ahead avoid decimal coordinates like "117.2305651".
+const EMAIL_RE = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}\b/g;
 const PHONE_RE =
   /(?<![\d.])(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}(?![\d.])/g;
 const COPYRIGHT_RE = /©\s*(\d{4})|copyright\s*\(?c\)?\s*©?\s*(\d{4})/i;
-const DEPRECATED_TAGS_RE = /<font\b|<center\b|border=["']?0["']? cellpadding=["']?0["']?/i;
-// Common GA/GTM/Pixel patterns (we'll check both raw HTML and patterns)
+const DEPRECATED_TAGS_RE =
+  /<font\b|<center\b|border=["']?0["']? cellpadding=["']?0["']?/i;
 const GA_PATTERNS = [
   /\bgtag\s*\(/,
   /\bUA-\d{4,}-\d+/,
@@ -36,7 +27,6 @@ const GA_PATTERNS = [
 const GTM_PATTERNS = [/googletagmanager\.com\/gtm\.js/, /\bGTM-[A-Z0-9]{6,8}/];
 const PIXEL_PATTERNS = [/\bfbq\s*\(/, /connect\.facebook\.net\/.*fbevents\.js/];
 
-// ── Tavily extract ──────────────────────────────────────────────────────
 async function tavilyExtract(url: string): Promise<{
   content: string;
   ok: boolean;
@@ -61,7 +51,6 @@ async function tavilyExtract(url: string): Promise<{
   }
 }
 
-// ── Direct HTTP probes ──────────────────────────────────────────────────
 async function httpProbe(url: string): Promise<{
   status: number;
   finalUrl: string;
@@ -73,18 +62,15 @@ async function httpProbe(url: string): Promise<{
     const res = await fetch(url, {
       redirect: 'follow',
       headers: {
-        // Realistic Chrome UA helps avoid 403 from Cloudflare/bot filters
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         Accept:
           'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
       },
-      signal: AbortSignal.timeout(15000), // 15s cap
+      signal: AbortSignal.timeout(15000),
     });
-    const body = res.ok
-      ? await res.text()
-      : '';
+    const body = res.ok ? await res.text() : '';
     return {
       status: res.status,
       finalUrl: res.url,
@@ -109,7 +95,6 @@ async function httpHead(url: string): Promise<{ status: number; ok: boolean }> {
   }
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────
 function deNoiseEmails(emails: string[]): string[] {
   return [...new Set(emails)].filter((e) => {
     const lower = e.toLowerCase();
@@ -119,9 +104,7 @@ function deNoiseEmails(emails: string[]): string[] {
       !lower.includes('yourdomain') &&
       !lower.includes('wixpress') &&
       !lower.includes('sentry.io') &&
-      !lower.includes('cloudflare.com') &&
-      !lower.includes('@2x.png') &&
-      !lower.includes('schema.org')
+      !lower.includes('cloudflare.com')
     );
   });
 }
@@ -130,11 +113,10 @@ function anyMatch(patterns: RegExp[], text: string): boolean {
   return patterns.some((p) => p.test(text));
 }
 
-// ── Main audit ──────────────────────────────────────────────────────────
 export interface AuditInput {
   businessId: string;
   businessName: string;
-  website: string; // already normalized (https://...)
+  website: string;
 }
 
 export interface AuditResult {
@@ -216,46 +198,39 @@ export async function auditBusiness(input: AuditInput): Promise<AuditResult> {
     rawSignals: {},
   };
 
-  // ── 1. Direct HEAD/GET homepage ───────────────────────────────────────
+  // Direct HEAD/GET homepage
   const homepage = await httpProbe(url);
   result.httpStatus = homepage.status;
   result.finalUrl = homepage.finalUrl;
   result.pageLoadMs = homepage.ms;
   result.contentLength = homepage.body.length;
   result.siteLoads = homepage.status >= 200 && homepage.status < 400;
-  result.rawHtml = homepage.body.slice(0, 50000); // cap at 50KB
+  result.rawHtml = homepage.body.slice(0, 50000);
 
-  const html = homepage.body.toLowerCase();
-  result.hasTitle = /<title[^>]*>[^<]+<\/title>/i.test(homepage.body);
-  result.hasMetaDescription = /<meta\s+name=["']description["']/i.test(
-    homepage.body
-  );
-  result.hasSingleH1 = (homepage.body.match(/<h1\b/gi) || []).length === 1;
-  result.hasOpenGraph = /<meta\s+(?:property|name)=["']og:/i.test(
-    homepage.body
-  );
-  result.hasSchemaOrg = /<script\s+type=["']application\/ld\+json["']/i.test(
-    homepage.body
-  ) || /itemtype=["']https?:\/\/schema\.org/i.test(homepage.body);
-  result.isMobileFriendly = /<meta\s+name=["']viewport["']/i.test(
-    homepage.body
-  );
+  const html = homepage.body;
+  result.hasTitle = /<title[^>]*>[^<]+<\/title>/i.test(html);
+  result.hasMetaDescription = /<meta\s+name=["']description["']/i.test(html);
+  result.hasSingleH1 = (html.match(/<h1\b/gi) || []).length === 1;
+  result.hasOpenGraph = /<meta\s+(?:property|name)=["']og:/i.test(html);
+  result.hasSchemaOrg =
+    /<script\s+type=["']application\/ld\+json["']/i.test(html) ||
+    /itemtype=["']https?:\/\/schema\.org/i.test(html);
+  result.isMobileFriendly = /<meta\s+name=["']viewport["']/i.test(html);
   result.hasContactForm =
-    /<form\b/i.test(homepage.body) &&
-    /action=["']?(https?:|\/[^"']*|mailto:)/i.test(homepage.body);
-  result.hasGoogleAnalytics = anyMatch(GA_PATTERNS, homepage.body);
-  result.hasGoogleTagManager = anyMatch(GTM_PATTERNS, homepage.body);
-  result.hasMetaPixel = anyMatch(PIXEL_PATTERNS, homepage.body);
-  result.hasDeprecatedHtml = DEPRECATED_TAGS_RE.test(homepage.body);
+    /<form\b/i.test(html) &&
+    /action=["']?(https?:|\/[^"']*|mailto:)/i.test(html);
+  result.hasGoogleAnalytics = anyMatch(GA_PATTERNS, html);
+  result.hasGoogleTagManager = anyMatch(GTM_PATTERNS, html);
+  result.hasMetaPixel = anyMatch(PIXEL_PATTERNS, html);
+  result.hasDeprecatedHtml = DEPRECATED_TAGS_RE.test(html);
 
-  // Alt-text coverage: ratio of <img> tags with non-empty alt attr
-  const imgTags = homepage.body.match(/<img\b[^>]*>/gi) || [];
+  const imgTags = html.match(/<img\b[^>]*>/gi) || [];
   if (imgTags.length > 0) {
     const withAlt = imgTags.filter((t) => /\salt=["'][^"']+["']/i.test(t)).length;
     result.hasAltTextCoverage = withAlt / imgTags.length >= 0.8;
   }
 
-  // ── 2. Sitemap + robots.txt ───────────────────────────────────────────
+  // Sitemap + robots.txt
   const origin = parsed.origin;
   const [sitemap, robots] = await Promise.all([
     httpHead(`${origin}/sitemap.xml`),
@@ -264,18 +239,12 @@ export async function auditBusiness(input: AuditInput): Promise<AuditResult> {
   result.hasSitemap = sitemap.ok;
   result.hasRobotsTxt = robots.ok;
 
-  // ── 3. Tavily extract (homepage + /contact attempt) ───────────────────
+  // Tavily Extract for content
   let tavilyContent = '';
   const homepageTavily = await tavilyExtract(url);
-  if (homepageTavily.ok) {
-    tavilyContent = homepageTavily.content;
-  }
-
-  // Try /contact for a deeper email pull
+  if (homepageTavily.ok) tavilyContent = homepageTavily.content;
   const contactTavily = await tavilyExtract(`${origin}/contact`);
-  if (contactTavily.ok) {
-    tavilyContent += '\n\n' + contactTavily.content;
-  }
+  if (contactTavily.ok) tavilyContent += '\n\n' + contactTavily.content;
 
   if (tavilyContent) {
     const emails = deNoiseEmails(tavilyContent.match(EMAIL_RE) || []);
@@ -297,32 +266,25 @@ export async function auditBusiness(input: AuditInput): Promise<AuditResult> {
       }
     }
 
-    result.hasBlog = /(\/blog\b|\/news\b|\/articles\b|\bbrowse our blog\b|\bread our blog\b)/i.test(
-      tavilyContent
-    );
+    result.hasBlog =
+      /(\/blog\b|\/news\b|\/articles\b|\bbrowse our blog\b|\bread our blog\b)/i.test(
+        tavilyContent
+      );
 
     result.rawSignals.tavilyContentLength = tavilyContent.length;
   }
 
-  // ── 4. Score computation ──────────────────────────────────────────────
-  // Weighted across 5 categories. Max 100.
-  //
-  // Cloudflare-protected sites return 403 from our direct probes but
-  // Tavily still extracts content (we got 19KB from doughbowlpizza.com).
-  // We adapt scoring: if direct HTTP failed but Tavily succeeded, we
-  // don't punish technical signals we couldn't verify — we just don't
-  // award them.
+  // Score
   const tavilySucceeded =
     (result.rawSignals.tavilyContentLength as number) > 0;
   const directBlocked = !result.siteLoads && tavilySucceeded;
 
   const infra = (() => {
     let s = 0;
-    if (result.hasSsl) s += 7; // Verified from URL, not blocked by 403
+    if (result.hasSsl) s += 7;
     if (result.isMobileFriendly) s += 7;
     if (result.siteLoads) s += 6;
-    else if (directBlocked) s += 0; // Can't verify, don't award
-    return s; // max 20
+    return s;
   })();
 
   const seo = (() => {
@@ -334,18 +296,15 @@ export async function auditBusiness(input: AuditInput): Promise<AuditResult> {
     if (result.hasRobotsTxt) s += 2;
     if (result.hasSchemaOrg) s += 3;
     if (result.hasOpenGraph) s += 2;
-    return s; // max 20
+    return s;
   })();
 
   const conversion =
-    (result.hasContactForm ? 10 : 0) +
-    (result.hasVisibleEmail ? 10 : 0); // max 20
-
+    (result.hasContactForm ? 10 : 0) + (result.hasVisibleEmail ? 10 : 0);
   const analytics =
     (result.hasGoogleAnalytics ? 10 : 0) +
     (result.hasGoogleTagManager ? 5 : 0) +
-    (result.hasMetaPixel ? 5 : 0); // max 20
-
+    (result.hasMetaPixel ? 5 : 0);
   const freshness = (() => {
     let s = 0;
     if (result.copyrightYear) {
@@ -356,7 +315,7 @@ export async function auditBusiness(input: AuditInput): Promise<AuditResult> {
     }
     if (!result.hasDeprecatedHtml) s += 6;
     if (result.hasBlog) s += 6;
-    return s; // max 20
+    return s;
   })();
 
   result.score = infra + seo + conversion + analytics + freshness;
@@ -367,6 +326,7 @@ export async function auditBusiness(input: AuditInput): Promise<AuditResult> {
     conversion,
     analytics,
     freshness,
+    directBlocked,
   };
 
   return result;

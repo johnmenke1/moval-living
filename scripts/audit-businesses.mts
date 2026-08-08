@@ -1,31 +1,36 @@
 /**
- * Audit script: runs BusinessAudit on businesses from our DB.
+ * Unified audit runner — Pass 1 (free scraper) → Pass 2 (Tavily fallback).
+ *
+ * For each candidate business:
+ *   1. Run free-scraper (direct HTTP, $0)
+ *   2. If that hit Cloudflare/WAF (needsTavilyFallback), call Tavily
+ *      Extract to get past the block. Costs ~2 Tavily credits.
+ *   3. Merge results — Tavily's content fills in signals the free scraper
+ *      couldn't get. Prefer free-scraper's email when both have one.
+ *   4. Persist one BusinessAudit row per business
+ *   5. Mirror summary + score + date back to GHL Company custom fields
  *
  * Usage:
  *   npx tsx scripts/audit-businesses.mts              # all 504
  *   npx tsx scripts/audit-businesses.mts --limit=5    # smoke test
- *   npx tsx scripts/audit-businesses.mts --limit=50   # batched
- *   npx tsx scripts/audit-businesses.mts --re-audit   # re-audit (don't skip recent)
+ *   npx tsx scripts/audit-businesses.mts --limit=50   # batch
+ *   npx tsx scripts/audit-businesses.mts --re-audit   # skip 7-day cache
  *
- * Filters out businesses that have been audited in the last 7 days
- * unless --re-audit is passed (we always want history).
- *
- * Persists one BusinessAudit row per business, plus mirrors summary +
- * score + date back to the GHL Company (if GHL_API_KEY + matching
- * ghlCompanyId is set on the Business).
+ * Skips businesses audited in the last 7 days unless --re-audit is set.
  */
 
 import { getPrisma } from '../src/lib/prisma';
+import { freeScrape } from './free-scraper.mjs';
 import { auditBusiness } from './audit-runner.mjs';
 
 const GHL_API_KEY = process.env.GHL_API_KEY;
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
+const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 
 const args = process.argv.slice(2);
 const limitArg = args.find((a) => a.startsWith('--limit='));
 const limit = limitArg ? parseInt(limitArg.split('=')[1], 10) : null;
 const forceReaudit = args.includes('--re-audit');
-const batchSize = 5; // Tavily advanced + 2 direct probes = small concurrency
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -60,8 +65,6 @@ async function ghlUpdateCompanyCustomFields(
 ) {
   if (!GHL_API_KEY) return;
   try {
-    // GHL custom fields for Companies are set via PUT /businesses/{id}
-    // (different shape than Contact custom fields).
     await fetch(
       `https://services.leadconnectorhq.com/businesses/${ghlCompanyId}`,
       {
@@ -72,8 +75,6 @@ async function ghlUpdateCompanyCustomFields(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          // These names need to match what Johnny created in GHL UI.
-          // Adjust here if he uses different field names.
           customFields: [
             { key: 'movalliving_audit_summary', value: fields.summary },
             { key: 'movalliving_audit_score', value: String(fields.score) },
@@ -93,7 +94,6 @@ async function main() {
   // Load candidates
   const where: any = { status: 'APPROVED', website: { not: null } };
   if (!forceReaudit) {
-    // Skip businesses audited in the last 7 days
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     where.audits = { none: { auditedAt: { gte: sevenDaysAgo } } };
   }
@@ -110,7 +110,10 @@ async function main() {
     take: limit ?? undefined,
   });
 
-  console.log(`\n🔍 Auditing ${candidates.length} businesses\n`);
+  console.log(`\n🔍 Auditing ${candidates.length} businesses`);
+  console.log(
+    `   Pass 1: direct HTTP (free) · Pass 2: Tavily fallback (when blocked)\n`
+  );
   if (candidates.length === 0) {
     console.log('No candidates to audit.');
     await p.$disconnect();
@@ -119,8 +122,10 @@ async function main() {
 
   let succeeded = 0;
   let failed = 0;
+  let countUsedFree = 0;
+  let countUsedTavily = 0;
   let emailsFound = 0;
-  let scores: number[] = [];
+  const scores: number[] = [];
 
   for (let i = 0; i < candidates.length; i++) {
     const c = candidates[i];
@@ -129,16 +134,42 @@ async function main() {
       ? c.website
       : `https://${c.website}`;
 
-    process.stdout.write(`[${i + 1}/${candidates.length}] ${c.name} (${url}) ... `);
+    let usedTavilyForThis = false;
+
+    process.stdout.write(`[${i + 1}/${candidates.length}] ${c.name} ... `);
 
     try {
-      const result = await auditBusiness({
+      // ── Pass 1: free scraper ─────────────────────────────────────────
+      let result = await freeScrape({
         businessId: c.id,
         businessName: c.name,
         website: url,
       });
+      countUsedFree++;
 
-      // Persist
+      // ── Pass 2: Tavily fallback for WAF-blocked sites ───────────────
+      if (result.needsTavilyFallback && TAVILY_API_KEY) {
+        try {
+          const tavilyResult = await auditBusiness({
+            businessId: c.id,
+            businessName: c.name,
+            website: url,
+          });
+          result = {
+            ...tavilyResult,
+            socials: result.socials,
+            foundEmail: result.foundEmail || tavilyResult.foundEmail,
+            foundPhone: result.foundPhone || tavilyResult.foundPhone,
+            needsTavilyFallback: result.needsTavilyFallback,
+          };
+          usedTavilyForThis = true;
+          countUsedTavily++;
+        } catch (e: any) {
+          console.log(`[Tavily fallback failed: ${e.message?.slice(0, 50)}]`, '');
+        }
+      }
+
+      // ── Persist ──────────────────────────────────────────────────────
       await p.businessAudit.create({
         data: {
           businessId: c.id,
@@ -170,16 +201,18 @@ async function main() {
           hasBlog: result.hasBlog,
           score: result.score,
           rawHtml: result.rawHtml,
-          rawSignals: result.rawSignals as any,
+          rawSignals: {
+            ...result.rawSignals,
+            usedFree: true,
+            usedTavily: usedTavilyForThis,
+          } as any,
         },
       });
 
-      // GHL mirror (best-effort, don't block)
+      // ── GHL mirror (best-effort) ─────────────────────────────────────
       if (GHL_API_KEY) {
         let ghlId = c.ghlCompanyId;
-        if (!ghlId) {
-          ghlId = await ghlGetCompanyIdByName(c.name);
-        }
+        if (!ghlId) ghlId = await ghlGetCompanyIdByName(c.name);
         if (ghlId) {
           const missing: string[] = [];
           if (!result.hasSsl) missing.push('SSL');
@@ -191,7 +224,9 @@ async function main() {
           if (!result.hasMetaDescription) missing.push('meta desc');
           const summary =
             `Score: ${result.score}/100` +
-            (missing.length > 0 ? ` · Missing: ${missing.join(', ')}` : '');
+            (missing.length > 0
+              ? ` · Missing: ${missing.join(', ')}`
+              : '');
 
           await ghlUpdateCompanyCustomFields(ghlId, {
             summary,
@@ -212,23 +247,27 @@ async function main() {
       console.log(`✗ ERROR: ${e.message?.slice(0, 80) ?? e}`);
     }
 
-    // Polite pause between batches (Tavily rate limits)
-    if ((i + 1) % batchSize === 0 && i + 1 < candidates.length) {
+    // Polite pause — Tavily is the bottleneck
+    if ((i + 1) % 5 === 0 && i + 1 < candidates.length) {
       await sleep(2000);
     } else {
-      await sleep(500);
+      await sleep(300);
     }
   }
 
   console.log(`\n─── Summary ───`);
   console.log(`Succeeded: ${succeeded}`);
   console.log(`Failed:    ${failed}`);
+  console.log(`Free scraper runs: ${countUsedFree}`);
+  console.log(`Tavily fallback runs: ${countUsedTavily}`);
   console.log(`Emails found: ${emailsFound}/${candidates.length}`);
   if (scores.length > 0) {
     const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
     const sorted = [...scores].sort((a, b) => a - b);
     const median = sorted[Math.floor(sorted.length / 2)];
-    console.log(`Score avg: ${avg} · median: ${median} · min: ${sorted[0]} · max: ${sorted[sorted.length - 1]}`);
+    console.log(
+      `Score avg: ${avg} · median: ${median} · min: ${sorted[0]} · max: ${sorted[sorted.length - 1]}`
+    );
   }
 
   await p.$disconnect();
