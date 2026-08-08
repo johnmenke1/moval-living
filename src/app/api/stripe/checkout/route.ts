@@ -5,6 +5,27 @@ import { prisma } from '@/lib/prisma'
 
 export type CheckoutTier = 'featured' | 'expert'
 
+// GET handler — diagnostic only. Returns which Stripe env vars are set
+// so admins can verify the checkout button will work.
+export async function GET(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.id || session.user.role !== 'ADMIN') {
+    return NextResponse.json(
+      { error: 'Use POST to start checkout; admin-only diagnostic on GET' },
+      { status: 401 }
+    )
+  }
+  return NextResponse.json({
+    envConfigured: {
+      stripeMonthly: !!process.env.STRIPE_PRICE_MONTHLY,
+      stripeYearly: !!process.env.STRIPE_PRICE_YEARLY,
+      expertMonthly: !!process.env.STRIPE_PRICE_EXPERT_MONTHLY,
+      expertYearly: !!process.env.STRIPE_PRICE_EXPERT_YEARLY,
+    },
+    message: 'Use POST to actually start a checkout',
+  })
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) {

@@ -55,13 +55,18 @@ export default function PricingPageClient({ initialCategory }: PricingPageClient
       | 'expert-yearly'
     setLoading(key)
     try {
-      const res = await fetch(`/api/stripe/checkout?interval=${interval}&tier=${tier}`)
-      const data = await res.json()
+      const res = await fetch(`/api/stripe/checkout?interval=${interval}&tier=${tier}`, {
+        method: 'POST',
+      })
+      const data = await res.json().catch(() => ({})) as { url?: string; error?: string }
+      if (!res.ok) throw new Error(data.error || `Checkout failed (${res.status})`)
       if (data.url) {
         window.location.href = data.url
-      } else {
-        alert(data.error || 'Could not start checkout. Please try again.')
+        return
       }
+      throw new Error('No checkout URL returned')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not start checkout. Please try again.')
     } finally {
       setLoading(null)
     }
