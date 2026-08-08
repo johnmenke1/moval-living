@@ -10,70 +10,72 @@ datasource db {
 }
 
 model Business {
-  id               String    @id @default(cuid())
-  slug             String    @unique
-  name             String
-  tagline          String?
-  description      String    @db.Text
-  categoryId       String
-  category         Category  @relation(fields: [categoryId], references: [id])
-  tier             Tier      @default(FREE)
-  status           Status    @default(PENDING)
-  isBestOfWinner   Boolean   @default(false)
-  bestOfTags       String[]  @default([])
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  tagline        String?
+  description    String   @db.Text
+  categoryId     String
+  category       Category @relation(fields: [categoryId], references: [id])
+  tier           Tier     @default(FREE)
+  status         Status   @default(PENDING)
+  isBestOfWinner Boolean  @default(false)
+  bestOfTags     String[] @default([])
 
   // Expert Partner program ($197/mo or $997/yr — one slot per category)
   isExpertPartner      Boolean   @default(false)
   expertPartnerSlug    String?   @unique
   foundingPartnerSince DateTime?
+  foundingPartnerRate  Boolean   @default(false) // locks legacy $997/yr price; live DB has 506 rows
+  ghlLocationId        String? // live DB has 0 rows; declared to prevent silent drop
   liveQaZoomUrl        String?
   liveQaNextDate       DateTime?
-  ghlCompanyId         String?   @unique           // GHL Companies endpoint mapping (private integration token)
+  ghlCompanyId         String?   @unique // GHL Companies endpoint mapping (private integration token)
 
   // Contact
-  email            String?
-  phone            String?
-  website          String?
-  address          String
-  city             String    @default("Moreno Valley")
-  state            String    @default("CA")
-  zip              String
-  latitude         Float?
-  longitude        Float?
+  email     String?
+  phone     String?
+  website   String?
+  address   String
+  city      String  @default("Moreno Valley")
+  state     String  @default("CA")
+  zip       String
+  latitude  Float?
+  longitude Float?
 
   // Media
-  logo             String?
-  coverImage       String?
-  photos           String[]
+  logo       String?
+  coverImage String?
+  photos     String[]
 
   // Social
-  facebook         String?
-  instagram        String?
-  yelp             String?
-  googleBusiness   String?
-  googleRating     Float?
+  facebook          String?
+  instagram         String?
+  yelp              String?
+  googleBusiness    String?
+  googleRating      Float?
   googleReviewCount Int?
 
-  hours            Json?
+  hours Json?
 
   // SEO
-  metaTitle        String?
-  metaDescription  String?
+  metaTitle       String?
+  metaDescription String?
 
   // Coupon/Deal
-  hasCoupon        Boolean   @default(false)
-  coupon           Json?
+  hasCoupon Boolean @default(false)
+  coupon    Json?
 
   // Stripe
-  stripeCustomerId           String?   @unique
-  stripeSubscriptionId       String?
-  subscriptionStatus         String?
+  stripeCustomerId             String?   @unique
+  stripeSubscriptionId         String?
+  subscriptionStatus           String?
   subscriptionCurrentPeriodEnd DateTime?
 
   // Relations
-  owner              Owner?             @relation(fields: [ownerId], references: [id])
-  ownerId            String?            @unique
-  claimToken         String?            @unique
+  owner              Owner?              @relation(fields: [ownerId], references: [id])
+  ownerId            String?             @unique
+  claimToken         String?             @unique
   claimExpiresAt     DateTime?
   reviews            Review[]
   socialPosts        SocialPost[]
@@ -81,8 +83,9 @@ model Business {
   guestAuthors       GuestAuthor[]
   expertPartnerLeads ExpertPartnerLead[]
   expertPartnerStats ExpertPartnerStat[]
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  audits             BusinessAudit[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   @@index([categoryId])
   @@index([status])
@@ -106,17 +109,17 @@ model Category {
 }
 
 model Owner {
-  id            String    @id @default(cuid())
-  role          UserRole  @default(USER)
+  id            String        @id @default(cuid())
+  role          UserRole      @default(USER)
   name          String?
-  email         String    @unique
+  email         String        @unique
   emailVerified DateTime?
   image         String?
   passwordHash  String?
-  resetToken    String?   @unique
+  resetToken    String?       @unique
   resetExpires  DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   accounts      Account[]
   sessions      Session[]
   business      Business?
@@ -155,39 +158,39 @@ model Session {
 }
 
 model Review {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   businessId  String
-  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   authorName  String
   authorEmail String?
   rating      Int
-  content     String    @db.Text
-  response    String?   @db.Text
-  flagged     Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  content     String   @db.Text
+  response    String?  @db.Text
+  flagged     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([businessId])
   @@index([flagged])
 }
 
 model SocialPost {
-  id           String       @id @default(cuid())
+  id           String     @id @default(cuid())
   platform     Platform
   postUrl      String
-  caption      String?      @db.Text
+  caption      String?    @db.Text
   mediaUrl     String?
   thumbnailUrl String?
   authorName   String?
   authorAvatar String?
-  status       PostStatus   @default(PENDING)
+  status       PostStatus @default(PENDING)
   eventDate    DateTime?
   eventEndDate DateTime?
   businessId   String?
-  business     Business?    @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  business     Business?  @relation(fields: [businessId], references: [id], onDelete: SetNull)
   submittedBy  String?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@index([status])
   @@index([businessId])
@@ -220,21 +223,21 @@ enum Status {
 // ── Curated BestOf System (no algorithmic scoring) ──────────────────────────
 
 model BestOfCategory {
-  id               String            @id @default(cuid())
+  id               String           @id @default(cuid())
   name             String
-  slug             String            @unique
+  slug             String           @unique
   description      String?
   icon             String?
   tagHints         String[]
-  published        Boolean           @default(false)
-  isSection        Boolean           @default(false)
+  published        Boolean          @default(false)
+  isSection        Boolean          @default(false)
   imageUrl         String?
   parentCategoryId String?
-  parentCategory   BestOfCategory?   @relation("BestOfCategoryHierarchy", fields: [parentCategoryId], references: [id])
-  subCategories    BestOfCategory[]  @relation("BestOfCategoryHierarchy")
+  parentCategory   BestOfCategory?  @relation("BestOfCategoryHierarchy", fields: [parentCategoryId], references: [id])
+  subCategories    BestOfCategory[] @relation("BestOfCategoryHierarchy")
   nominees         BestOfNominee[]
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   @@index([slug])
   @@index([published])
@@ -262,12 +265,12 @@ model BestOfNominee {
 // ── Guest Author / Guest Post ─────────────────────────────────────────────
 
 model GuestAuthor {
-  id              String   @id @default(cuid())
-  slug            String   @unique
-  displayName     String
-  title           String?
-  bio             String   @db.Text
-  photoUrl        String?
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  displayName String
+  title       String?
+  bio         String  @db.Text
+  photoUrl    String?
 
   personalSiteUrl String?
   companyName     String?
@@ -277,20 +280,20 @@ model GuestAuthor {
   facebookUrl     String?
   instagramUrl    String?
 
-  businessId      String?
-  business        Business? @relation(fields: [businessId], references: [id])
-  ownerId         String?
-  owner           Owner?    @relation(fields: [ownerId], references: [id])
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id])
+  ownerId    String?
+  owner      Owner?    @relation(fields: [ownerId], references: [id])
 
   postsThisPeriod Int       @default(0)
   periodStartedAt DateTime  @default(now())
   lastPostedAt    DateTime?
 
-  isActive        Boolean   @default(true)
-  posts           GuestPost[]
+  isActive Boolean     @default(true)
+  posts    GuestPost[]
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([slug])
   @@index([isActive])
@@ -303,14 +306,14 @@ model GuestAuthor {
 // SPOTLIGHT  = Business video short (optional GuestAuthor)
 
 model GuestPost {
-  id              String   @id @default(cuid())
-  slug            String   @unique
-  postType        String   @default("GUEST")
+  id              String       @id @default(cuid())
+  slug            String       @unique
+  postType        String       @default("GUEST")
   title           String
-  excerpt         String   @db.Text
-  body            String   @db.Text
+  excerpt         String       @db.Text
+  body            String       @db.Text
   heroImageUrl    String?
-  status          String   @default("draft")
+  status          String       @default("draft")
   submittedAt     DateTime?
   scheduledFor    DateTime?
   publishedAt     DateTime?
@@ -321,15 +324,15 @@ model GuestPost {
   metaDescription String?
   author          GuestAuthor? @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  spotifyTrack1   String?
-  spotifyTrack2   String?
+  spotifyTrack1 String?
+  spotifyTrack2 String?
 
-  faqItems        Json?    @default("[]")
-  outingPhotos    Json     @default("[]")
-  youtubeVideoId  String?
+  faqItems       Json?   @default("[]")
+  outingPhotos   Json    @default("[]")
+  youtubeVideoId String?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, publishedAt(sort: Desc)])
   @@index([authorId, publishedAt(sort: Desc)])
@@ -342,48 +345,143 @@ model GuestPost {
 // forwarded to GoHighLevel (sub-account per partner in v2).
 
 model ExpertPartnerLead {
-  id           String   @id @default(cuid())
-  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  businessId   String
+  id         String   @id @default(cuid())
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String
 
-  name         String
-  email        String
-  phone        String?
-  message      String   @db.Text
+  name    String
+  email   String
+  phone   String?
+  message String  @db.Text
 
-  sourceIp     String?
-  userAgent    String?  @db.Text
+  sourceIp  String?
+  userAgent String? @db.Text
 
-  contacted    Boolean  @default(false)
-  contactedAt  DateTime?
-  notes        String?  @db.Text
+  contacted   Boolean   @default(false)
+  contactedAt DateTime?
+  notes       String?   @db.Text
 
   ghlContactId String?
   ghlSyncedAt  DateTime?
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([businessId, createdAt(sort: Desc)])
   @@index([contacted])
 }
 
 model ExpertPartnerStat {
-  id              String   @id @default(cuid())
-  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  businessId      String
+  id         String   @id @default(cuid())
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String
 
-  month           DateTime
+  month DateTime
 
-  storyViews      Int      @default(0)
-  newsletterOpens Int      @default(0)
-  listingClicks   Int      @default(0)
+  storyViews      Int @default(0)
+  newsletterOpens Int @default(0)
+  listingClicks   Int @default(0)
 
-  notes           String?  @db.Text
+  notes String? @db.Text
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([businessId, month])
   @@index([businessId, month(sort: Desc)])
+}
+
+// ── Web Audit ────────────────────────────────────────────────────────────
+// Per-business web-presence audit data, populated by scripts/web-audit.mjs.
+// One row per business (unique businessId). Re-running the script upserts
+// and refreshes auditedAt — idempotent, designed for periodic re-audit.
+//
+// Signals extracted from the Business.website URL by parsing the HTML:
+//   - httpStatus / finalUrl: did the site respond, and where did it land
+//                            (catches http→https redirects, www→apex, etc.)
+//   - hasSsl:                 finalUrl starts with https://
+//   - hasViewportMeta:        <meta name="viewport"> present (mobile-friendly proxy)
+//   - hasH1:                  at least one <h1> on the homepage
+//   - hasMetaDescription:     <meta name="description"> with non-empty content
+//   - hasContactForm:         at least one <form> with an <input> or <textarea>
+//   - hasGoogleAnalytics:     gtag.js / analytics.js / GA snippet in HTML
+//   - hasGoogleTagManager:    googletagmanager.com script in HTML
+//   - copyrightYear:          the year in the copyright line (e.g. "© 2019 Acme")
+//                             null if no copyright found
+//   - hasStructuredData:      any <script type="application/ld+json"> or Microdata
+//   - pageLoadMs:             end-to-end fetch time, useful for "is it slow"
+//   - contentLength:          response body size in bytes
+//   - rawHtml:                first 50KB of response body (debug aid, capped)
+// ── BusinessAudit (formerly WebAudit) ─────────────────────────────────────
+// Per-audit snapshot of a Business's website health. Supports re-audit
+// history: every run inserts a new row so we can show score trends over
+// time and detect improvements after we help a business upgrade.
+//
+// Signal sources:
+//   - Direct HEAD/GET probes (SSL, meta tags, scripts, sitemaps) — fast,
+//     cheap, runs against every business
+//   - Tavily Extract (emails, phones, copyright year, content depth,
+//     deprecated-looking HTML) — paid credits, 1 per business per audit
+//
+// Drives:
+//   - Admin diagnostics panel (top/bottom scores, re-audit history)
+//   - Public site health badge on /business/[slug]
+//   - GHL mirror (3 custom fields: summary, score, date)
+//
+// Does NOT drive outreach — that requires explicit consent + a separate
+// "outreach campaign" workflow (see conversation history).
+model BusinessAudit {
+  id         String   @id @default(cuid())
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String
+
+  auditedAt DateTime @default(now())
+
+  httpStatus    Int?
+  finalUrl      String?
+  error         String? @db.Text
+  pageLoadMs    Int?
+  contentLength Int?
+
+  // ── Infrastructure (5) ────────────────────────────────────────────────
+  hasSsl           Boolean @default(false)
+  isMobileFriendly Boolean @default(false)
+  siteLoads        Boolean @default(false)
+
+  // ── SEO basics (8) ────────────────────────────────────────────────────
+  hasTitle           Boolean @default(false)
+  hasMetaDescription Boolean @default(false)
+  hasSingleH1        Boolean @default(false)
+  hasSitemap         Boolean @default(false)
+  hasRobotsTxt       Boolean @default(false)
+  hasSchemaOrg       Boolean @default(false)
+  hasOpenGraph       Boolean @default(false)
+  hasAltTextCoverage Boolean @default(false)
+
+  // ── Conversion (3) ────────────────────────────────────────────────────
+  hasContactForm  Boolean @default(false)
+  hasVisibleEmail Boolean @default(false)
+  foundEmail      String?
+  foundPhone      String?
+
+  // ── Analytics (3) ─────────────────────────────────────────────────────
+  hasGoogleAnalytics  Boolean @default(false)
+  hasGoogleTagManager Boolean @default(false)
+  hasMetaPixel        Boolean @default(false)
+
+  // ── Freshness (3) ─────────────────────────────────────────────────────
+  copyrightYear     Int?
+  hasDeprecatedHtml Boolean @default(false)
+  hasBlog           Boolean @default(false)
+
+  // ── Composite ─────────────────────────────────────────────────────────
+  score Int @default(0)
+
+  // ── Source data for re-processing ─────────────────────────────────────
+  rawHtml    String? @db.Text
+  rawSignals Json?
+
+  @@index([businessId])
+  @@index([score])
+  @@index([auditedAt])
 }
