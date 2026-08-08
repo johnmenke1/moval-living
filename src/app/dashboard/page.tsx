@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { Status } from '@prisma/client'
-import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus, FileText, Users } from 'lucide-react'
+import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus, FileText, Users, Sparkles } from 'lucide-react'
 import DashboardUpgradeWidget from './DashboardUpgradeWidget'
 import AdminTabs from './AdminTabs'
 
@@ -193,21 +193,29 @@ export default async function DashboardPage() {
                 </span>
               </div>
               <nav className="p-2">
-                <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
-                  'bg-primary/10 text-primary'
-                }`}>
-                  <Building2 className="w-4 h-4" /> Overview
-                </div>
-                <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">
-                  <Star className="w-4 h-4" /> Reviews
-                </div>
-                <Link
-                  href={`/dashboard/edit`}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
-                >
-                  <Settings className="w-4 h-4" /> Edit Listing
-                </Link>
-              </nav>
+                              <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                                'bg-primary/10 text-primary'
+                              }`}>
+                                <Building2 className="w-4 h-4" /> Overview
+                              </div>
+                              <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">
+                                <Star className="w-4 h-4" /> Reviews
+                              </div>
+                              {owner.business.tier === 'EXPERT_PARTNER' && (
+                                <Link
+                                  href="/dashboard/partner"
+                                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
+                                >
+                                  <Sparkles className="w-4 h-4" /> Partner Dashboard
+                                </Link>
+                              )}
+                              <Link
+                                href={`/dashboard/edit`}
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
+                              >
+                                <Settings className="w-4 h-4" /> Edit Listing
+                              </Link>
+                            </nav>
               <div className="p-4 border-t border-slate-100">
                 <a
                   href={`/business/${business.slug}`}

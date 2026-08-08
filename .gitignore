@@ -16,3 +16,4 @@ node_modules/
 /page5.html
 .vercel
 .env*.local
+tsconfig.tsbuildinfo
