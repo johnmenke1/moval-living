@@ -13,8 +13,11 @@ import {
   Award,
 } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import { ExpertPartnerBadge } from '@/components/business/ExpertPartnerBadge'
 import { ExpertPartnerLeadForm } from '@/components/forms/ExpertPartnerLeadForm'
+import { EmbedBadge } from '@/components/partner/EmbedBadge'
+import { SiblingPartners } from '@/components/partner/SiblingPartners'
 import { formatPhone } from '@/lib/utils'
 import { JsonLd } from '@/components/seo/JsonLd'
 
@@ -23,7 +26,7 @@ interface PartnerPageProps {
 }
 
 async function getPartnerBySlug(slug: string) {
-  return prisma.business.findFirst({
+  const partner = await prisma.business.findFirst({
     where: {
       OR: [{ expertPartnerSlug: slug }, { slug, isExpertPartner: true }],
       status: 'APPROVED',
@@ -33,6 +36,39 @@ async function getPartnerBySlug(slug: string) {
       category: { select: { name: true, slug: true } },
     },
   })
+
+  if (!partner) return null
+
+  // Fetch 4 other Expert Partners (different category) for the
+    // cross-promotion widget. One per category means we can't have
+    // duplicates, so siblings are always from different categories.
+    const siblingPartners = await prisma.business.findMany({
+      where: {
+        isExpertPartner: true,
+        status: 'APPROVED',
+        id: { not: partner.id },
+        // Different category. If partner has no category, all other Expert
+        // Partners qualify. If partner has a category, exclude the same id.
+        ...(partner.categoryId
+          ? { categoryId: { not: partner.categoryId } }
+          : {}),
+      },
+      orderBy: [{ foundingPartnerSince: { sort: 'desc', nulls: 'last' } }, { name: 'asc' }],
+      take: 4,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        expertPartnerSlug: true,
+        tagline: true,
+        logo: true,
+        isExpertPartner: true,
+        foundingPartnerSince: true,
+        category: { select: { name: true } },
+      },
+    })
+
+  return { ...partner, siblingPartners }
 }
 
 export async function generateMetadata({
@@ -102,6 +138,14 @@ export default async function PartnerProfilePage({ params }: PartnerPageProps) {
 
   const hours = formatHours(business.hours)
   const canonicalSlug = business.expertPartnerSlug || business.slug
+
+  // Only the owner sees the "embed your badge" panel — gives them a
+  // private space to copy the snippet without cluttering the public view.
+  const session = await auth()
+  const isOwner =
+    !!session?.user?.id &&
+    !!business.ownerId &&
+    session.user.id === business.ownerId
 
   const personSchema = {
     '@context': 'https://schema.org',
@@ -207,41 +251,87 @@ export default async function PartnerProfilePage({ params }: PartnerPageProps) {
             </section>
 
             {/* Live Q&A callout */}
-            {business.liveQaZoomUrl && (
-              <section className="bg-gradient-to-br from-[#007a7f]/5 to-[#00405c]/5 border border-[#007a7f]/20 rounded-xl p-6">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#007a7f]/10 flex items-center justify-center flex-shrink-0">
-                    <Video className="w-5 h-5 text-[#007a7f]" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-[#1a2e35] mb-1">
-                      Ask the Expert — Live Q&amp;A
-                    </h3>
-                    {business.liveQaNextDate && (
-                      <p className="text-sm text-[#5a6c72] flex items-center gap-1 mb-2">
-                        <Calendar className="w-3.5 h-3.5" />
-                        Next session:{' '}
-                        {new Date(business.liveQaNextDate).toLocaleString('en-US', {
-                          weekday: 'long',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    )}
-                    <a
-                      href={business.liveQaZoomUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm font-semibold text-[#007a7f] hover:underline"
-                    >
-                      Join the next session →
-                    </a>
-                  </div>
-                </div>
-              </section>
-            )}
+            {/* Live Q&A callout */}
+                        {business.liveQaZoomUrl && (() => {
+                          const nextDate = business.liveQaNextDate
+                            ? new Date(business.liveQaNextDate)
+                            : null
+                          const now = new Date()
+                          // Embed inline only during the 1-hour window around the
+                          // scheduled start (30 min before → 30 min after). Outside that
+                          // window we just show a join link — embedding all day would
+                          // feel spammy and waste Zoom session time.
+                          const minutesUntil = nextDate
+                            ? Math.round((nextDate.getTime() - now.getTime()) / 60000)
+                            : null
+                          const isLiveWindow =
+                            minutesUntil !== null && Math.abs(minutesUntil) <= 30
+                          // Extract the Zoom meeting ID from the URL if it looks like one
+                          // (handles /j/1234567890 paths). Falls back to nothing.
+                          const zoomMeetingId =
+                            business.liveQaZoomUrl.match(/\/j\/(\d+)/)?.[1] ?? null
+                          return (
+                            <section className="bg-gradient-to-br from-[#007a7f]/5 to-[#00405c]/5 border border-[#007a7f]/20 rounded-xl p-6">
+                              <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-[#007a7f]/10 flex items-center justify-center flex-shrink-0">
+                                  <Video className="w-5 h-5 text-[#007a7f]" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-bold text-[#1a2e35] mb-1">
+                                    Ask the Expert — Live Q&amp;A
+                                  </h3>
+                                  {nextDate && (
+                                    <p className="text-sm text-[#5a6c72] flex items-center gap-1 mb-2">
+                                      <Calendar className="w-3.5 h-3.5" />
+                                      {minutesUntil !== null && minutesUntil > 0 && minutesUntil <= 60
+                                        ? `Starts in ${minutesUntil} min — `
+                                        : minutesUntil !== null && minutesUntil <= 0 && minutesUntil > -60
+                                          ? 'Live now — '
+                                          : `Next session: `}
+                                      {nextDate.toLocaleString('en-US', {
+                                        weekday: 'long',
+                                        month: 'long',
+                                        day: 'numeric',
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                      })}
+                                    </p>
+                                  )}
+                                  {isLiveWindow && zoomMeetingId ? (
+                                    <div className="mt-3">
+                                      <iframe
+                                        src={`https://zoom.us/wc/join/${zoomMeetingId}`}
+                                        className="w-full h-[480px] rounded-lg border border-slate-200 bg-white"
+                                        allow="camera; microphone; fullscreen; display-capture; autoplay"
+                                        title={`Live Q&A with ${business.name}`}
+                                      />
+                                      <p className="text-xs text-[#5a6c72] mt-2">
+                                        Don't see the meeting?{' '}
+                                        <a
+                                          href={business.liveQaZoomUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-[#007a7f] hover:underline font-semibold"
+                                        >
+                                          Open in Zoom →
+                                        </a>
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <a
+                                      href={business.liveQaZoomUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-sm font-semibold text-[#007a7f] hover:underline"
+                                    >
+                                      Join the next session →
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            </section>
+                          )
+                        })()}
 
             {/* Hours */}
             {hours.length > 0 && (
@@ -264,6 +354,14 @@ export default async function PartnerProfilePage({ params }: PartnerPageProps) {
                   ))}
                 </div>
               </section>
+            )}
+
+            {/* Owner-only: Embed badge code */}
+            {isOwner && (
+              <EmbedBadge
+                partnerSlug={canonicalSlug}
+                partnerName={business.name}
+              />
             )}
           </div>
 
@@ -330,11 +428,14 @@ export default async function PartnerProfilePage({ params }: PartnerPageProps) {
             </section>
 
             {/* Lead capture form */}
-            <ExpertPartnerLeadForm
-              businessId={business.id}
-              businessName={business.name}
-            />
-          </aside>
+                        <ExpertPartnerLeadForm
+                          businessId={business.id}
+                          businessName={business.name}
+                        />
+
+                        {/* Cross-promotion: Other MoVal Experts */}
+                        <SiblingPartners partners={business.siblingPartners} />
+                      </aside>
         </div>
       </div>
     </div>
