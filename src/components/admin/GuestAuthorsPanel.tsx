@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import {
   User, Plus, Trash2, Pencil, ChevronDown, ChevronUp,
-  Loader2, Search, X, Globe
+  Loader2, Search, X, Globe, Link2, Sparkles
 } from 'lucide-react'
 import {
   LinkedinIcon,
@@ -11,6 +11,15 @@ import {
   FacebookIcon,
   InstagramIcon,
 } from '@/components/social/SocialIcons'
+
+interface BusinessOption {
+  id: string
+  name: string
+  slug: string
+  logo: string | null
+  isExpertPartner: boolean
+  category: { name: string; slug: string }
+}
 
 interface GuestAuthor {
   id: string
@@ -45,6 +54,7 @@ interface FormState {
   facebookUrl: string
   instagramUrl: string
   isActive: boolean
+  businessId: string
 }
 
 const blankForm = (): FormState => ({
@@ -61,6 +71,7 @@ const blankForm = (): FormState => ({
   facebookUrl: '',
   instagramUrl: '',
   isActive: true,
+  businessId: '',
 })
 
 function slugify(s: string) {
@@ -77,7 +88,57 @@ function LinkIcon({ url }: { url: string | null }) {
   return <Globe className="w-3.5 h-3.5 text-slate-400" />
 }
 
-export default function GuestAuthorsPanel({ initialAuthors }: { initialAuthors: GuestAuthor[] }) {
+function BusinessPicker({
+  value,
+  onChange,
+  businesses,
+  id = 'businessId',
+}: {
+  value: string
+  onChange: (id: string) => void
+  businesses: BusinessOption[]
+  id?: string
+}) {
+  const partners = businesses.filter(b => b.isExpertPartner)
+  const rest = businesses.filter(b => !b.isExpertPartner)
+
+  return (
+    <select
+      id={id}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+    >
+      <option value="">— None —</option>
+      {partners.length > 0 && (
+        <optgroup label="✨ Expert Partners">
+          {partners.map(b => (
+            <option key={b.id} value={b.id}>
+              ✨ {b.name} ({b.category.name})
+            </option>
+          ))}
+        </optgroup>
+      )}
+      {rest.length > 0 && (
+        <optgroup label="Other Businesses">
+          {rest.map(b => (
+            <option key={b.id} value={b.id}>
+              {b.name} ({b.category.name})
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </select>
+  )
+}
+
+export default function GuestAuthorsPanel({
+  initialAuthors,
+  approvedBusinesses = [],
+}: {
+  initialAuthors: GuestAuthor[]
+  approvedBusinesses?: BusinessOption[]
+}) {
   const [authors, setAuthors] = useState<GuestAuthor[]>(initialAuthors)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
@@ -114,6 +175,7 @@ export default function GuestAuthorsPanel({ initialAuthors }: { initialAuthors: 
         twitterUrl: createForm.twitterUrl || null,
         facebookUrl: createForm.facebookUrl || null,
         instagramUrl: createForm.instagramUrl || null,
+        businessId: createForm.businessId || null,
       }
       const res = await fetch('/api/admin/guest-authors', {
         method: 'POST',
@@ -188,6 +250,7 @@ export default function GuestAuthorsPanel({ initialAuthors }: { initialAuthors: 
         twitterUrl: form.twitterUrl || null,
         facebookUrl: form.facebookUrl || null,
         instagramUrl: form.instagramUrl || null,
+        businessId: form.businessId || null,
       }
       const res = await fetch(`/api/admin/guest-authors/${id}`, {
         method: 'PATCH',
@@ -298,6 +361,22 @@ export default function GuestAuthorsPanel({ initialAuthors }: { initialAuthors: 
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
               placeholder="2-3 sentences about this author..."
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-1">
+              Linked Business
+              <span className="text-text-secondary/70 font-normal"> (optional)</span>
+            </label>
+            <BusinessPicker
+              value={createForm.businessId}
+              onChange={(v) => setCreateForm(f => ({ ...f, businessId: v }))}
+              businesses={approvedBusinesses}
+              id="create-businessId"
+            />
+            <p className="text-xs text-text-secondary mt-1">
+              If the linked business is an Expert Partner, the public author page will display their Expert Partner badge.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -425,6 +504,18 @@ export default function GuestAuthorsPanel({ initialAuthors }: { initialAuthors: 
                     <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                       {author.postCount} {author.postCount === 1 ? 'post' : 'posts'}
                     </span>
+                    {author.business && (
+                      <a
+                        href={`/business/${author.business.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full hover:bg-amber-100 transition-colors"
+                        title={`Linked to ${author.business.name} — view listing`}
+                      >
+                        <Link2 className="w-3 h-3" />
+                        {author.business.name}
+                      </a>
+                    )}
                   </div>
                   {author.title && (
                     <p className="text-sm text-text-secondary">{author.title}</p>
@@ -485,6 +576,7 @@ export default function GuestAuthorsPanel({ initialAuthors }: { initialAuthors: 
               {expandedId === author.id && (
                 <InlineEditForm
                   author={author}
+                  businesses={approvedBusinesses}
                   onSave={(form) => handleEditSave(author.id, form)}
                   onCancel={() => setExpandedId(null)}
                   loading={loading === author.id}
@@ -503,11 +595,13 @@ function InlineEditForm({
   onSave,
   onCancel,
   loading,
+  businesses,
 }: {
   author: GuestAuthor
   onSave: (form: FormState) => void
   onCancel: () => void
   loading: boolean
+  businesses: BusinessOption[]
 }) {
   const [form, setForm] = useState<FormState>({
     slug: author.slug,
@@ -523,6 +617,7 @@ function InlineEditForm({
     facebookUrl: author.facebookUrl ?? '',
     instagramUrl: author.instagramUrl ?? '',
     isActive: author.isActive,
+    businessId: author.business?.id ?? '',
   })
 
   return (
@@ -603,6 +698,22 @@ function InlineEditForm({
             className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-text-secondary mb-1">
+          Linked Business
+          <span className="text-text-secondary/70 font-normal"> (optional)</span>
+        </label>
+        <BusinessPicker
+          value={form.businessId}
+          onChange={(v) => setForm(f => ({ ...f, businessId: v }))}
+          businesses={businesses}
+          id={`edit-businessId-${author.id}`}
+        />
+        <p className="text-xs text-text-secondary mt-1">
+          Pick “None” to unlink.
+        </p>
       </div>
 
       <div className="flex justify-end gap-2">

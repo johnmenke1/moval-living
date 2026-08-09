@@ -39,19 +39,32 @@ export default async function DashboardPage() {
 
   // Admin: show moderation panels
   if (isAdmin) {
-    const [posts, businesses, pendingPostCount, pendingBusinessCount, bestOfCategories, guestAuthors, guestPosts] = await Promise.all([
+    const [posts, businesses, approvedBusinesses, pendingPostCount, pendingBusinessCount, bestOfCategories, guestAuthors, guestPosts] = await Promise.all([
       prisma.socialPost.findMany({
         include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.business.findMany({
-        include: {
-          category: { select: { name: true, slug: true } },
-          owner: { select: { id: true, name: true, email: true } },
-          _count: { select: { reviews: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
+              include: {
+                category: { select: { name: true, slug: true } },
+                owner: { select: { id: true, name: true, email: true } },
+                _count: { select: { reviews: true } },
+              },
+              orderBy: { createdAt: 'desc' },
+            }),
+            // Slim list — just for the Guest Authors "Link Business" picker
+            prisma.business.findMany({
+              where: { status: 'APPROVED' },
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                logo: true,
+                category: { select: { name: true, slug: true } },
+                isExpertPartner: true,
+              },
+              orderBy: [{ isExpertPartner: 'desc' }, { name: 'asc' }],
+            }),
       prisma.socialPost.count({ where: { status: 'PENDING' } }),
       prisma.business.count({ where: { status: 'PENDING' } }),
       prisma.bestOfCategory.findMany({
@@ -113,23 +126,24 @@ export default async function DashboardPage() {
                 </Link>
               )}
               <Link href="/dashboard/add" className="btn-primary inline-flex items-center justify-center gap-2">
-                <Plus className="w-4 h-4" /> Add Business
-              </Link>
+                              <Plus className="w-4 h-4" /> Add Business
+                            </Link>
                           </div>
                         </div>
+                        <div className="container-max py-8">
+                          <AdminTabs
+                            businesses={businessesWithFlags}
+                            posts={posts}
+                            bestOfCategories={bestOfCategoriesForAdmin}
+                            guestAuthors={guestAuthors.map((a: any) => ({ ...a, postCount: a._count.posts }))}
+                            guestPosts={guestPosts}
+                            approvedBusinesses={approvedBusinesses}
+                          />
+                        </div>
                       </div>
-        <div className="container-max py-8">
-          <AdminTabs
-            businesses={businessesWithFlags}
-            posts={posts}
-            bestOfCategories={bestOfCategoriesForAdmin}
-            guestAuthors={guestAuthors.map((a: any) => ({ ...a, postCount: a._count.posts }))}
-            guestPosts={guestPosts}
-          />
-        </div>
-      </div>
-    )
-  }
+                    </div>
+                  )
+                }
 
   if (!owner || !owner.business) {
     return (
