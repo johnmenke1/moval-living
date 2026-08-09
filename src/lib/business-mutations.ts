@@ -86,8 +86,12 @@ const businessUpdateSchema = z.object({
   liveQaZoomUrl: nullableText(500),
   liveQaNextDate: nullableDate,
   // Languages & Chamber affiliations (badges). seHablaEspanol is owner-toggleable
-  // via the claim form and dashboard edit. Chamber flags are admin-only.
+  // via the claim form and dashboard edit. Chamber flags are admin-only at the
+  // UI level — /dashboard/edit/page.tsx only surfaces them when isAdmin is true,
+  // and the route handler strips them if a non-admin owner somehow sends them.
   seHablaEspanol: z.boolean().optional(),
+  chamberMember: z.boolean().optional(),
+  hispanicChamberMember: z.boolean().optional(),
 }).strict()
 
 function parseDateField(value: string | null | undefined): Date | null | undefined {
@@ -130,5 +134,7 @@ export function buildBusinessUpdateData(input: unknown): Prisma.BusinessUpdateIn
     liveQaZoomUrl: parsed.liveQaZoomUrl ?? null,
     liveQaNextDate: parseDateField(parsed.liveQaNextDate as string | null | undefined),
     seHablaEspanol: parsed.seHablaEspanol,
+    chamberMember: parsed.chamberMember,
+    hispanicChamberMember: parsed.hispanicChamberMember,
   }
 }

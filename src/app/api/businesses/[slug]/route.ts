@@ -117,6 +117,15 @@ export async function PUT(
     }
 
     const data = buildBusinessUpdateData(await request.json())
+
+    // Defense in depth: chamber affiliation flags are admin-only. The
+    // dashboard edit page already gates them with isAdmin, but if an owner
+    // crafts a request with these fields we silently strip them here.
+    if (session.user.role !== 'ADMIN') {
+      delete (data as { chamberMember?: unknown }).chamberMember
+      delete (data as { hispanicChamberMember?: unknown }).hispanicChamberMember
+    }
+
     const business = await prisma.business.update({
       where: { id: existing.id },
       data,

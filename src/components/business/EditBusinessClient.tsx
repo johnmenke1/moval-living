@@ -37,14 +37,19 @@ interface Business {
   logo: string | null
   coverImage: string | null
   photos: string[]
-  // "Se Habla Español" — owner-toggleable badge. Chamber affiliations are
-  // admin-only and not editable from this form.
+  // "Se Habla Español" — owner-toggleable badge.
+  // Chamber affiliations — admin-only, surfaced in this form when
+  // isAdmin is true (set by /dashboard/edit/page.tsx for the admin path).
   seHablaEspanol: boolean
+  chamberMember: boolean
+  hispanicChamberMember: boolean
 }
 
 interface Props {
   business: Business
   categories: Category[]
+  /** When true, surfaces admin-only chamber affiliation checkboxes. */
+  isAdmin?: boolean
 }
 
 // Maps Zod field names to human-readable labels for the validation toast.
@@ -72,7 +77,7 @@ const FIELD_LABELS: Record<string, string> = {
   googleBusiness: 'Google Business ID',
 }
 
-export default function EditBusinessClient({ business, categories }: Props) {
+export default function EditBusinessClient({ business, categories, isAdmin }: Props) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -101,6 +106,8 @@ export default function EditBusinessClient({ business, categories }: Props) {
     couponCode: business.coupon?.code || '',
     couponExpiresAt: business.coupon?.expiresAt || '',
     seHablaEspanol: business.seHablaEspanol || false,
+    chamberMember: business.chamberMember || false,
+    hispanicChamberMember: business.hispanicChamberMember || false,
   })
 
   // Per-field validation errors from the server
@@ -220,6 +227,13 @@ export default function EditBusinessClient({ business, categories }: Props) {
           googleBusiness: form.googleBusiness || null,
           hasCoupon: form.hasCoupon,
           seHablaEspanol: form.seHablaEspanol,
+          // Chamber fields are admin-only — only include them in the payload
+          // when the logged-in user is an admin so a non-admin owner can't
+          // smuggle them in via the request body.
+          ...(isAdmin && {
+            chamberMember: form.chamberMember,
+            hispanicChamberMember: form.hispanicChamberMember,
+          }),
           coupon: form.hasCoupon && form.couponHeadline ? {
             headline: form.couponHeadline,
             description: form.couponDescription,
@@ -649,6 +663,62 @@ export default function EditBusinessClient({ business, categories }: Props) {
                   </span>
                 </span>
               </label>
+
+              {/* Chamber affiliations — admin-only. Shown when the page is
+                  loaded for an admin (isAdmin=true). Owners editing their own
+                  listing never see this section; if you want owners to be
+                  able to self-claim these, flip the isAdmin prop in
+                  /dashboard/edit/page.tsx. */}
+              {isAdmin && (
+                <>
+                  <div className="mt-5 pt-5 border-t border-slate-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded">
+                        Admin only
+                      </span>
+                      <span className="text-xs text-text-secondary">
+                        Toggle chamber affiliations for this business.
+                      </span>
+                    </div>
+                  </div>
+
+                  <label className="mt-4 flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-slate-100 hover:border-primary/40 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={form.chamberMember}
+                      onChange={e => update('chamberMember', e.target.checked)}
+                      className="mt-0.5 rounded border-slate-300 text-primary focus:ring-primary"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-text">
+                        Moreno Valley Chamber of Commerce member
+                      </span>
+                      <span className="block text-xs text-text-secondary leading-relaxed mt-0.5">
+                        Display the blue “Chamber Member” badge on this
+                        listing. Toggle off to remove.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label className="mt-2 flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-slate-100 hover:border-primary/40 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={form.hispanicChamberMember}
+                      onChange={e => update('hispanicChamberMember', e.target.checked)}
+                      className="mt-0.5 rounded border-slate-300 text-primary focus:ring-primary"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-text">
+                        Moreno Valley Hispanic Chamber of Commerce member
+                      </span>
+                      <span className="block text-xs text-text-secondary leading-relaxed mt-0.5">
+                        Display the teal “Hispanic Chamber Member” badge on
+                        this listing. Toggle off to remove.
+                      </span>
+                    </span>
+                  </label>
+                </>
+              )}
             </div>
 
             {/* Deal */}

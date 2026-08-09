@@ -33,6 +33,7 @@ export default async function EditBusinessPage({
           coupon: business.coupon as { headline: string; description: string; code: string | null; expiresAt: string | null } | null,
         } as never}
         categories={categories as never}
+        isAdmin
       />
     )
   }
