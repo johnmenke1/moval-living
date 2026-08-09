@@ -73,6 +73,8 @@ interface Business {
   reviews: Array<{ rating: number }>
   _count?: { reviews: number }
   isBestOf?: boolean
+  isExpertPartner?: boolean
+  foundingPartnerSince?: string | Date | null
 }
 
 interface HomePageClientProps {

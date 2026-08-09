@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { MapPin, Star, Award, Tag, Trophy } from 'lucide-react'
+import { MapPin, Star, Award, Tag, Trophy, Sparkles } from 'lucide-react'
 import { cn, averageRating } from '@/lib/utils'
 
 interface BusinessCardProps {
@@ -28,13 +28,17 @@ interface BusinessCardProps {
       expiresAt?: string | null
     } | null
     isBestOf?: boolean
+    isExpertPartner?: boolean
+    foundingPartnerSince?: string | Date | null
   }
 }
 
 export function BusinessCard({ business }: BusinessCardProps) {
   const rating = averageRating(business.reviews)
   const reviewCount = business._count?.reviews ?? business.reviews.length
-  const isFeatured = business.tier === 'FEATURED'
+  // Expert Partner is "Featured + more" — a paid tier that includes the
+  // Featured visual treatment. Treat both as the elevated card style.
+  const isFeatured = business.tier === 'FEATURED' || business.tier === 'EXPERT_PARTNER'
 
   return (
     <Link href={`/business/${business.slug}`} className={cn('block', isFeatured ? 'card-featured' : 'card')}>
@@ -60,22 +64,15 @@ export function BusinessCard({ business }: BusinessCardProps) {
             <img src={business.logo} alt={`${business.name} logo`} className="w-full h-full object-contain" />
           </div>
         )}
+        {/* Featured pill — stays overlaid on the image, top-left */}
         {isFeatured && (
           <div className="absolute top-3 left-3 flex items-center gap-1 bg-accent text-white text-xs font-bold px-2.5 py-1 rounded-full">
             <Award className="w-3 h-3" />
             Featured
           </div>
         )}
-        {business.isBestOf && (
-          <div className="absolute top-3 right-3 w-10 h-10">
-            <img
-              src="/best-of-badge.svg"
-              alt="#1 Best Of"
-              className="w-full h-full drop-shadow-md"
-            />
-          </div>
-        )}
-        {business.hasCoupon && (
+        {/* Deal pill — stays overlaid on the image, top-right */}
+        {business.hasCoupon && !business.isBestOf && !business.isExpertPartner && (
           <div className="absolute top-3 right-3 flex items-center gap-1 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-full">
             <Tag className="w-3 h-3" />
             Deal
@@ -85,6 +82,45 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
       {/* Content */}
       <div className="p-5">
+        {/* Badge row — sits between the image and the business name.
+            Best Of and Expert Partner live here; Featured stays on the image. */}
+        {(business.isBestOf || business.isExpertPartner) && (
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {business.isBestOf && (
+              <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                <Trophy className="w-3 h-3" />
+                #1 Best Of
+              </span>
+            )}
+            {business.isExpertPartner && (
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border shadow-sm',
+                  // Founding partners (locked $997/yr price) get a richer
+                  // treatment than regular Expert Partners.
+                  business.foundingPartnerSince
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-600'
+                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                )}
+                title={business.foundingPartnerSince ? 'Founding Expert Partner' : 'Expert Partner'}
+              >
+                {business.foundingPartnerSince ? (
+                  <Sparkles className="w-3 h-3" />
+                ) : (
+                  <Award className="w-3 h-3" />
+                )}
+                {business.foundingPartnerSince ? 'Founding Expert Partner' : 'Expert Partner'}
+              </span>
+            )}
+            {business.hasCoupon && (
+              <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-primary text-white">
+                <Tag className="w-3 h-3" />
+                Deal
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="flex items-start justify-between gap-2 mb-2">
           <h3 className="font-bold text-text text-lg leading-tight">{business.name}</h3>
         </div>

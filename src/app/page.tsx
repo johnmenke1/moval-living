@@ -56,19 +56,37 @@ async function getCategoryCounts() {
 }
 
 async function getHomepageBusinesses() {
-  // Homepage is curated, not algorithmic: only Best-Of winners and Featured listings.
-  // Order: BestOf+Featured → Featured only → BestOf-only winners. No FREE listings.
+  // Homepage is curated, not algorithmic: only Best-Of winners and Featured/Expert
+  // Partner listings. Expert Partner is "Featured + more" — same elevated tier for
+  // homepage placement. Order: BestOf+Featured/EP → Featured/EP only → BestOf-only.
+  // No FREE listings.
   return prisma.business.findMany({
     where: {
       status: 'APPROVED',
       OR: [
         { tier: 'FEATURED' },
+        { tier: 'EXPERT_PARTNER' },
         { isBestOfWinner: true },
       ],
     },
-    include: {
-      category: true,
-      reviews: true,
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      tagline: true,
+      description: true,
+      address: true,
+      tier: true,
+      status: true,
+      logo: true,
+      coverImage: true,
+      photos: true,
+      createdAt: true,
+      isBestOfWinner: true,
+      isExpertPartner: true,
+      foundingPartnerSince: true,
+      category: { select: { name: true, slug: true } },
+      reviews: { select: { rating: true } },
       _count: { select: { reviews: true } },
     },
   })
@@ -80,9 +98,13 @@ export default async function HomePage() {
     getCategoryCounts(),
   ])
 
-  // Priority: 0 = BestOf+Featured, 1 = Featured, 2 = BestOf-only
-  const priority = (b: { tier: string; isBestOfWinner: boolean }) =>
-    b.isBestOfWinner && b.tier === 'FEATURED' ? 0 : b.tier === 'FEATURED' ? 1 : 2
+  // Priority: 0 = BestOf + (Featured or Expert Partner), 1 = Featured/EP only, 2 = BestOf-only
+  const priority = (b: { tier: string; isBestOfWinner: boolean }) => {
+    const elevated = b.tier === 'FEATURED' || b.tier === 'EXPERT_PARTNER'
+    if (b.isBestOfWinner && elevated) return 0
+    if (elevated) return 1
+    return 2
+  }
 
   const sorted = [...candidates].sort((a, b) => {
     const diff = priority(a) - priority(b)
