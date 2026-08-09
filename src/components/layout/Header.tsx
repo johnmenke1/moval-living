@@ -11,6 +11,7 @@ import {
   DollarSign,
   FileText,
   Home as HomeIcon,
+  Info,
   Menu,
   Sparkles,
   Tag,
@@ -52,6 +53,7 @@ const navGroups = [
     label: 'About',
     icon: Compass,
     items: [
+      { label: 'About MoVal', href: '/about-moreno-valley', icon: Info },
       { label: 'Expert Partners', href: '/partners', icon: Sparkles },
       { label: 'Pricing', href: '/pricing', icon: DollarSign },
     ],
