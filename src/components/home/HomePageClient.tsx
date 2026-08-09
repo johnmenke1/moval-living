@@ -24,9 +24,9 @@ import {
   Cannabis,
   Hotel,
   Handshake,
-  CarFront,
   Church,
-  Building2,
+  KeyRound,
+  HelpingHand,
   type LucideIcon,
 } from 'lucide-react'
 import { categories } from '@/data/categories'
@@ -41,6 +41,7 @@ const categoryColors: Record<string, string> = {
   'auto-dealers': '#1E40AF',
   churches: '#7C3AED',
   'property-management': '#0EA5E9',
+  'non-profits': '#DC2626',
   professional: '#6366F1',
   beauty: '#F59E0B',
   'home-services': '#14B8A6',
@@ -72,9 +73,9 @@ const categoryIcons: Record<string, LucideIcon> = {
   Cannabis,
   Hotel,
   Handshake,
-  CarFront,
   Church,
-  Building2,
+  KeyRound,
+  HelpingHand,
 }
 
 interface Business {
