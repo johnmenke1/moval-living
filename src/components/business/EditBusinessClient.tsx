@@ -37,6 +37,9 @@ interface Business {
   logo: string | null
   coverImage: string | null
   photos: string[]
+  // "Se Habla Español" — owner-toggleable badge. Chamber affiliations are
+  // admin-only and not editable from this form.
+  seHablaEspanol: boolean
 }
 
 interface Props {
@@ -97,6 +100,7 @@ export default function EditBusinessClient({ business, categories }: Props) {
     couponDescription: business.coupon?.description || '',
     couponCode: business.coupon?.code || '',
     couponExpiresAt: business.coupon?.expiresAt || '',
+    seHablaEspanol: business.seHablaEspanol || false,
   })
 
   // Per-field validation errors from the server
@@ -215,6 +219,7 @@ export default function EditBusinessClient({ business, categories }: Props) {
           googleReviewCount: form.googleReviewCount ? Number(form.googleReviewCount) : null,
           googleBusiness: form.googleBusiness || null,
           hasCoupon: form.hasCoupon,
+          seHablaEspanol: form.seHablaEspanol,
           coupon: form.hasCoupon && form.couponHeadline ? {
             headline: form.couponHeadline,
             description: form.couponDescription,
@@ -619,6 +624,31 @@ export default function EditBusinessClient({ business, categories }: Props) {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Languages & Badges */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 md:p-8">
+              <h2 className="text-lg font-bold text-text mb-1">Languages &amp; Badges</h2>
+              <p className="text-sm text-text-secondary mb-5">
+                Helps customers find your business when they search.
+              </p>
+              <label className="flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-slate-100 hover:border-primary/40 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={form.seHablaEspanol}
+                  onChange={e => update('seHablaEspanol', e.target.checked)}
+                  className="mt-0.5 rounded border-slate-300 text-primary focus:ring-primary"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-text">
+                    Se Habla Español
+                  </span>
+                  <span className="block text-xs text-text-secondary leading-relaxed mt-0.5">
+                    Display a “Se Habla Español” badge on your listing card so
+                    Spanish-speaking customers know you serve them in Spanish.
+                  </span>
+                </span>
+              </label>
             </div>
 
             {/* Deal */}

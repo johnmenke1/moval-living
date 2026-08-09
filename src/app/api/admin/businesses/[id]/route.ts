@@ -15,6 +15,14 @@ const updateSchema = z.object({
   // Stripe webhooks still own this in the normal subscription flow.
   isExpertPartner: z.boolean().optional(),
   expertPartnerSlug: z.string().nullable().optional(),
+  // Languages & Chamber affiliation badges
+  //   seHablaEspanol        — owner-toggleable in claim flow + dashboard edit;
+  //                            admin can override here if a dispute arises
+  //   chamberMember         — Moreno Valley Chamber of Commerce (admin-only)
+  //   hispanicChamberMember — MV Hispanic Chamber of Commerce (admin-only)
+  seHablaEspanol: z.boolean().optional(),
+  chamberMember: z.boolean().optional(),
+  hispanicChamberMember: z.boolean().optional(),
 })
 
 // PATCH /api/admin/businesses/[id] — approve/reject/status + admin metadata (google reviews, category)
@@ -51,6 +59,9 @@ export async function PATCH(
   if (parsed.data.googleReviewCount !== undefined) data.googleReviewCount = parsed.data.googleReviewCount ?? null
   if (parsed.data.isExpertPartner !== undefined) data.isExpertPartner = parsed.data.isExpertPartner
   if (parsed.data.expertPartnerSlug !== undefined) data.expertPartnerSlug = parsed.data.expertPartnerSlug ?? null
+  if (parsed.data.seHablaEspanol !== undefined) data.seHablaEspanol = parsed.data.seHablaEspanol
+  if (parsed.data.chamberMember !== undefined) data.chamberMember = parsed.data.chamberMember
+  if (parsed.data.hispanicChamberMember !== undefined) data.hispanicChamberMember = parsed.data.hispanicChamberMember
 
   const business = await prisma.business.update({
     where: { id },

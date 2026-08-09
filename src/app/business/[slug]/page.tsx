@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { averageRating, formatPhone } from '@/lib/utils'
-import { MapPin, Phone, Globe, Mail, Clock, Star, ChevronRight, Trophy, Tag, Award, Sparkles } from 'lucide-react'
+import { MapPin, Phone, Globe, Mail, Clock, Star, ChevronRight, Trophy, Tag, Award, Sparkles, Building2, Languages } from 'lucide-react'
 import { BusinessMapWrapper } from '@/components/map/BusinessMapWrapper'
 import { BusinessSidebar } from '@/components/business/BusinessSidebar'
 import { JsonLd } from '@/components/seo/JsonLd'
@@ -49,6 +49,10 @@ async function getBusiness(slug: string) {
       expertPartnerSlug: true,
       foundingPartnerSince: true,
       foundingPartnerRate: true,
+      // Languages & Chamber affiliation badges
+      seHablaEspanol: true,
+      chamberMember: true,
+      hispanicChamberMember: true,
       metaTitle: true, metaDescription: true,
       category: true,
       ownerId: true,
@@ -285,7 +289,8 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                     {(business.tier === 'FEATURED' || business.tier === 'EXPERT_PARTNER' ||
                       business.isExpertPartner || business.isBestOfWinner ||
                       (business.bestOfNominees && business.bestOfNominees.length > 0) ||
-                      business.hasCoupon) && (
+                      business.hasCoupon || business.seHablaEspanol ||
+                      business.chamberMember || business.hispanicChamberMember) && (
                       <BusinessBadgesRow
                         tier={business.tier}
                         isExpertPartner={business.isExpertPartner}
@@ -293,6 +298,9 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                         bestOfWinner={business.isBestOfWinner}
                         bestOfNominationCount={business.bestOfNominees?.length ?? 0}
                         hasCoupon={business.hasCoupon}
+                        seHablaEspanol={business.seHablaEspanol}
+                        chamberMember={business.chamberMember}
+                        hispanicChamberMember={business.hispanicChamberMember}
                       />
                     )}
 
@@ -496,6 +504,9 @@ function BusinessBadgesRow({
   bestOfWinner,
   bestOfNominationCount,
   hasCoupon,
+  seHablaEspanol,
+  chamberMember,
+  hispanicChamberMember,
 }: {
   tier: string
   isExpertPartner: boolean
@@ -503,6 +514,9 @@ function BusinessBadgesRow({
   bestOfWinner: boolean
   bestOfNominationCount: number
   hasCoupon: boolean
+  seHablaEspanol: boolean
+  chamberMember: boolean
+  hispanicChamberMember: boolean
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -540,6 +554,33 @@ function BusinessBadgesRow({
         <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-primary text-white">
           <Tag className="w-3 h-3" />
           Deal Available
+        </span>
+      )}
+      {chamberMember && (
+        <span
+          className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200"
+          title="Moreno Valley Chamber of Commerce member"
+        >
+          <Building2 className="w-3 h-3" />
+          Chamber Member
+        </span>
+      )}
+      {hispanicChamberMember && (
+        <span
+          className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200"
+          title="Moreno Valley Hispanic Chamber of Commerce member"
+        >
+          <Globe className="w-3 h-3" />
+          Hispanic Chamber Member
+        </span>
+      )}
+      {seHablaEspanol && (
+        <span
+          className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-gradient-to-r from-red-500 to-amber-400 text-white border border-red-600/20 shadow-sm"
+          title="Staff speaks Spanish"
+        >
+          <Languages className="w-3 h-3" />
+          Se Habla Español
         </span>
       )}
       {/* Note: FEATURED / EXPERT_PARTNER tier pills stay on the cover image. */}

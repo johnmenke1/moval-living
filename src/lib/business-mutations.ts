@@ -85,6 +85,9 @@ const businessUpdateSchema = z.object({
   foundingPartnerSince: nullableDate,
   liveQaZoomUrl: nullableText(500),
   liveQaNextDate: nullableDate,
+  // Languages & Chamber affiliations (badges). seHablaEspanol is owner-toggleable
+  // via the claim form and dashboard edit. Chamber flags are admin-only.
+  seHablaEspanol: z.boolean().optional(),
 }).strict()
 
 function parseDateField(value: string | null | undefined): Date | null | undefined {
@@ -126,5 +129,6 @@ export function buildBusinessUpdateData(input: unknown): Prisma.BusinessUpdateIn
     foundingPartnerSince: parseDateField(parsed.foundingPartnerSince as string | null | undefined),
     liveQaZoomUrl: parsed.liveQaZoomUrl ?? null,
     liveQaNextDate: parseDateField(parsed.liveQaNextDate as string | null | undefined),
+    seHablaEspanol: parsed.seHablaEspanol,
   }
 }

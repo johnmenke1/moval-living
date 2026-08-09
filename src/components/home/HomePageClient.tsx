@@ -75,6 +75,10 @@ interface Business {
   isBestOf?: boolean
   isExpertPartner?: boolean
   foundingPartnerSince?: string | Date | null
+  // Languages & Chamber affiliation badges
+  seHablaEspanol?: boolean
+  chamberMember?: boolean
+  hispanicChamberMember?: boolean
 }
 
 interface HomePageClientProps {

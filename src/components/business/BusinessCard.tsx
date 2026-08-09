@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { MapPin, Star, Award, Tag, Trophy, Sparkles } from 'lucide-react'
+import { MapPin, Star, Award, Tag, Trophy, Sparkles, Building2, Globe, Languages } from 'lucide-react'
 import { cn, averageRating } from '@/lib/utils'
 
 interface BusinessCardProps {
@@ -30,6 +30,10 @@ interface BusinessCardProps {
     isBestOf?: boolean
     isExpertPartner?: boolean
     foundingPartnerSince?: string | Date | null
+    // Languages & Chamber affiliation badges
+    seHablaEspanol?: boolean
+    chamberMember?: boolean
+    hispanicChamberMember?: boolean
   }
 }
 
@@ -83,8 +87,9 @@ export function BusinessCard({ business }: BusinessCardProps) {
       {/* Content */}
       <div className="p-5">
         {/* Badge row — sits between the image and the business name.
-            Best Of and Expert Partner live here; Featured stays on the image. */}
-        {(business.isBestOf || business.isExpertPartner) && (
+            Best Of, Expert Partner, Chamber, and Se Habla Español live here;
+            Featured stays on the image. */}
+        {(business.isBestOf || business.isExpertPartner || business.seHablaEspanol || business.chamberMember || business.hispanicChamberMember) && (
           <div className="flex flex-wrap items-center gap-2 mb-3">
             {business.isBestOf && (
               <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
@@ -116,6 +121,33 @@ export function BusinessCard({ business }: BusinessCardProps) {
               <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-primary text-white">
                 <Tag className="w-3 h-3" />
                 Deal
+              </span>
+            )}
+            {business.chamberMember && (
+              <span
+                className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200"
+                title="Moreno Valley Chamber of Commerce member"
+              >
+                <Building2 className="w-3 h-3" />
+                Chamber Member
+              </span>
+            )}
+            {business.hispanicChamberMember && (
+              <span
+                className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200"
+                title="Moreno Valley Hispanic Chamber of Commerce member"
+              >
+                <Globe className="w-3 h-3" />
+                Hispanic Chamber Member
+              </span>
+            )}
+            {business.seHablaEspanol && (
+              <span
+                className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-gradient-to-r from-red-500 to-amber-400 text-white border border-red-600/20 shadow-sm"
+                title="Staff speaks Spanish"
+              >
+                <Languages className="w-3 h-3" />
+                Se Habla Español
               </span>
             )}
           </div>

@@ -74,6 +74,10 @@ export async function GET(
       isExpertPartner: business.isExpertPartner,
       expertPartnerSlug: business.expertPartnerSlug,
       foundingPartnerSince: business.foundingPartnerSince,
+      // Languages & Chamber affiliation badges
+      seHablaEspanol: business.seHablaEspanol,
+      chamberMember: business.chamberMember,
+      hispanicChamberMember: business.hispanicChamberMember,
       liveQaZoomUrl: business.liveQaZoomUrl,
       liveQaNextDate: business.liveQaNextDate,
       createdAt: business.createdAt,

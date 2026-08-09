@@ -67,6 +67,11 @@ model Business {
   submitterSmsOptIn   Boolean   @default(false)
   submitterConsentAt  DateTime?
 
+  // Languages & Chamber affiliations (badges shown on listing cards)
+  seHablaEspanol        Boolean @default(false) // owner-toggleable in claim + edit
+  chamberMember         Boolean @default(false) // Moreno Valley Chamber of Commerce — admin-only
+  hispanicChamberMember Boolean @default(false) // MV Hispanic Chamber of Commerce — admin-only
+
   // Coupon/Deal
   hasCoupon Boolean @default(false)
   coupon    Json?

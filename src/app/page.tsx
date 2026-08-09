@@ -86,6 +86,10 @@ async function getHomepageBusinesses() {
       isBestOfWinner: true,
       isExpertPartner: true,
       foundingPartnerSince: true,
+      // Languages & Chamber affiliation badges
+      seHablaEspanol: true,
+      chamberMember: true,
+      hispanicChamberMember: true,
       category: { select: { name: true, slug: true } },
       reviews: { select: { rating: true } },
       _count: { select: { reviews: true } },
@@ -111,6 +115,9 @@ export default async function HomePage() {
   const featuredBusinesses = sorted.map(b => ({
     ...b,
     isBestOf: b.isBestOfWinner,
+    seHablaEspanol: b.seHablaEspanol,
+    chamberMember: b.chamberMember,
+    hispanicChamberMember: b.hispanicChamberMember,
   }))
 
   return (

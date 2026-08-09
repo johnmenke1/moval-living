@@ -24,6 +24,7 @@ export default function ClaimPageClient() {
   const [businessName, setBusinessName] = useState('')
   const [emailOptIn, setEmailOptIn] = useState(false)
   const [smsOptIn, setSmsOptIn] = useState(false)
+  const [seHablaEspanol, setSeHablaEspanol] = useState(false)
 
   // Step 1: validate token and fetch business name
   useEffect(() => {
@@ -74,6 +75,8 @@ export default function ClaimPageClient() {
           phone: phone.trim() || undefined,
           emailOptIn,
           smsOptIn,
+          claimToken: token,
+          seHablaEspanol,
         }),
       })
 
@@ -217,6 +220,27 @@ export default function ClaimPageClient() {
                         placeholder="(555) 123-4567"
                         autoComplete="tel"
                       />
+                    </div>
+
+                    {/* Languages — surfaced as a "Se Habla Español" badge on
+                        the listing card. Opt-in only; never auto-set. */}
+                    <div className="border-t border-slate-100 pt-4 space-y-3">
+                      <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                        About Your Business (optional)
+                      </p>
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={seHablaEspanol}
+                          onChange={e => setSeHablaEspanol(e.target.checked)}
+                          className="mt-0.5 rounded border-slate-300 text-primary focus:ring-primary"
+                        />
+                        <span className="text-xs text-text-secondary leading-relaxed">
+                          Check this box to display a <strong>“Se Habla Español”</strong>{' '}
+                          badge on your listing card so Spanish-speaking customers know
+                          your business serves them in Spanish.
+                        </span>
+                      </label>
                     </div>
 
                     {/* CAN-SPAM / 10DLC / TCPA consent */}

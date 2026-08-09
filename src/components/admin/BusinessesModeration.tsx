@@ -31,6 +31,10 @@ interface Business {
   foundingPartnerSince?: string | Date | null
   liveQaZoomUrl?: string | null
   liveQaNextDate?: string | Date | null
+  // Languages & Chamber affiliation badges (admin-editable)
+  seHablaEspanol?: boolean
+  chamberMember?: boolean
+  hispanicChamberMember?: boolean
 }
 
 interface BusinessesModerationProps {
@@ -55,6 +59,9 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     tier: 'FREE' | 'FEATURED' | 'EXPERT_PARTNER'
     isExpertPartner: boolean
     expertPartnerSlug: string
+    seHablaEspanol: boolean
+    chamberMember: boolean
+    hispanicChamberMember: boolean
   }>>({})
 
   const reportFailure = async (response: Response, fallback: string) => {
@@ -210,6 +217,12 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
         patch.expertPartnerSlug = edits.expertPartnerSlug.trim() || null
       }
     }
+    // Languages & Chamber badges — sent only when the panel was opened
+    // (state exists), so an admin who never expanded the row won't accidentally
+    // wipe a previously-saved value.
+    if (edits.seHablaEspanol !== undefined) patch.seHablaEspanol = edits.seHablaEspanol
+    if (edits.chamberMember !== undefined) patch.chamberMember = edits.chamberMember
+    if (edits.hispanicChamberMember !== undefined) patch.hispanicChamberMember = edits.hispanicChamberMember
     await moderate(id, patch)
     setEditGoogle(prev => { const n = { ...prev }; delete n[id]; return n })
   }
@@ -243,6 +256,9 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
         tier: b.tier || 'FREE',
         isExpertPartner: !!b.isExpertPartner,
         expertPartnerSlug: b.expertPartnerSlug || '',
+        seHablaEspanol: !!b.seHablaEspanol,
+        chamberMember: !!b.chamberMember,
+        hispanicChamberMember: !!b.hispanicChamberMember,
       },
     }))
     setExpandedId(expandedId === b.id ? null : b.id)
@@ -599,6 +615,58 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                             </p>
                           </div>
                         )}
+                      </div>
+
+                      {/* Languages & Chamber affiliation badges */}
+                      <div className="sm:col-span-3 rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
+                        <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                          Languages & Chamber Affiliations
+                        </p>
+                        <label className="flex items-center gap-2 text-sm text-text cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={edits?.seHablaEspanol ?? false}
+                            onChange={e => setEditGoogle(prev => ({
+                              ...prev,
+                              [business.id]: { ...prev[business.id], seHablaEspanol: e.target.checked },
+                            }))}
+                            className="rounded border-slate-300 text-primary focus:ring-primary"
+                          />
+                          <span>
+                            <span className="font-medium">Se Habla Español</span>
+                            <span className="ml-1 text-xs text-text-secondary">
+                              (owner-toggleable; admins can override)
+                            </span>
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-text cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={edits?.chamberMember ?? false}
+                            onChange={e => setEditGoogle(prev => ({
+                              ...prev,
+                              [business.id]: { ...prev[business.id], chamberMember: e.target.checked },
+                            }))}
+                            className="rounded border-slate-300 text-primary focus:ring-primary"
+                          />
+                          <span>
+                            <span className="font-medium">Moreno Valley Chamber of Commerce member</span>
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-text cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={edits?.hispanicChamberMember ?? false}
+                            onChange={e => setEditGoogle(prev => ({
+                              ...prev,
+                              [business.id]: { ...prev[business.id], hispanicChamberMember: e.target.checked },
+                            }))}
+                            className="rounded border-slate-300 text-primary focus:ring-primary"
+                          />
+                          <span>
+                            <span className="font-medium">Moreno Valley Hispanic Chamber of Commerce member</span>
+                          </span>
+                        </label>
                       </div>
                     </div>
 
