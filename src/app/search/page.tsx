@@ -4,6 +4,7 @@ import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
 import { SearchFilters } from '@/components/search/SearchFilters'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { businessPriority } from '@/lib/business-priority'
 import type { Metadata } from 'next'
 
 interface SearchPageProps {
@@ -83,19 +84,25 @@ async function getBusinesses(params: {
     prisma.business.count({ where }),
   ])
 
-  // Sort: #1 BestOf first, then FEATURED, then FREE — within each tier apply the chosen sort
+  // Sort matches the homepage's 4-tier priority so listings appear in
+  // a consistent, curated order everywhere:
+  //   0 = Expert Partner (wins outright)
+  //   1 = Best Of + (FEATURED or EXPERT_PARTNER tier)
+  //   2 = (FEATURED or EXPERT_PARTNER tier) only
+  //   3 = Best Of only
+  //   4 = everything else (FREE tier)
+  // Within each tier, the user-supplied sort still applies (rating, name,
+  // or default newest-first).
   const sorted = [...businesses].sort((a, b) => {
-    const aBest = a.isBestOfWinner ? 0 : a.tier === 'FEATURED' ? 1 : 2
-    const bBest = b.isBestOfWinner ? 0 : b.tier === 'FEATURED' ? 1 : 2
-    if (aBest !== bBest) return aBest - bBest
-    // Within same tier, preserve the orderBy sort
+    const diff = businessPriority(a) - businessPriority(b)
+    if (diff !== 0) return diff
     if (params.sort === 'rating') {
       return (b.googleRating ?? 0) - (a.googleRating ?? 0)
     }
     if (params.sort === 'name') {
       return a.name.localeCompare(b.name)
     }
-    return 0 // newest/default — already in createdAt desc order from DB
+    return b.createdAt.getTime() - a.createdAt.getTime() // newest first
   })
 
   return {

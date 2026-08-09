@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { HomePageClient } from '@/components/home/HomePageClient'
 import { JsonLd } from '@/components/seo/JsonLd'
+import { compareBusinesses } from '@/lib/business-priority'
 
 // Force dynamic rendering so featured businesses list is always fresh
 export const dynamic = 'force-dynamic'
@@ -98,24 +99,14 @@ export default async function HomePage() {
     getCategoryCounts(),
   ])
 
-  // Sort priority for the homepage grid:
+  // Sort priority — shared with /search and category pages so listings
+  // appear in a consistent, curated order everywhere:
   //   0 = Expert Partner (any combination — EP wins outright)
-  //   1 = Featured + Best Of (no EP)
-  //   2 = Featured only (no Best Of, no EP)
-  //   3 = Best Of only (no Featured, no EP)
-  const priority = (b: { tier: string; isBestOfWinner: boolean; isExpertPartner: boolean }) => {
-    if (b.isExpertPartner) return 0
-    const elevated = b.tier === 'FEATURED' || b.tier === 'EXPERT_PARTNER'
-    if (b.isBestOfWinner && elevated) return 1
-    if (elevated) return 2
-    return 3
-  }
-
-  const sorted = [...candidates].sort((a, b) => {
-    const diff = priority(a) - priority(b)
-    // Within a tier, keep most recent first
-    return diff !== 0 ? diff : b.createdAt.getTime() - a.createdAt.getTime()
-  })
+  //   1 = Best Of + (FEATURED or EXPERT_PARTNER tier)
+  //   2 = (FEATURED or EXPERT_PARTNER tier) only
+  //   3 = Best Of only
+  //   4 = FREE (filtered out below, never reaches the homepage grid)
+  const sorted = [...candidates].sort(compareBusinesses)
 
   const featuredBusinesses = sorted.map(b => ({
     ...b,
