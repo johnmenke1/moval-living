@@ -99,7 +99,7 @@ function levenshtein(a: string, b: string): number {
 
 interface ChamberMember {
   name: string;
-  street: string;       // Street address line (e.g. "23846 Sunnymead Blvd")
+  street: string;
   city: string;
   state: string;
   zip: string;
@@ -150,10 +150,6 @@ $cards.each((_, card) => {
   const name = $nameLink.text().trim();
   if (!href || !name) return;
 
-  // Street address — GrowthZone wraps it in <span class="gz-street-address">
-  // (schema.org streetAddress microdata). The element also exists on cards
-  // that show only a city/zip (e.g. "Suite #1" alone), so we trim and only
-  // accept non-empty values.
   const street = $card.find('.gz-street-address').first().text().trim();
   const city = $card.find('.gz-address-city').first().text().trim();
   const state = $card.find('.gz-card-address').text().match(/\bCA\b/) ? 'CA' : '';
@@ -320,15 +316,9 @@ async function main() {
   for (const match of matches) {
     const tag = match.tier === 'exact-mv' ? '✓' : match.tier === 'exact-adjacent' ? '~' : '?';
     const alreadyTagged = match.business.chamberMember ? ' [already tagged]' : '';
-    const willBackfill =
-      !match.member.street ||
-      match.business.address === match.member.street ||
-      (match.business.address && match.business.address !== 'Address pending verification')
-        ? ''
-        : ` → backfill "${match.member.street}"`;
     console.log(
       `  ${tag} ${match.member.name.padEnd(40)} ${(match.member.city || '?').padEnd(20)} ` +
-        `→ ${match.business.slug}${alreadyTagged}${willBackfill}`
+        `→ ${match.business.slug}${alreadyTagged}`
     );
   }
   console.log('');
@@ -361,44 +351,22 @@ async function main() {
   }
 
   let tagged = 0;
-  let addressBackfilled = 0;
   let skipped = 0;
   for (const match of matches) {
-    const alreadyTagged = !!match.business.chamberMember;
-
-    // Compose the update payload. We always (re-)assert chamberMember = true
-    // for safety, and we backfill the street address when:
-    //   - the existing address is empty / the placeholder, AND
-    //   - the chamber member record has a non-empty street
-    const payload: { chamberMember: true; address?: string } = {
-      chamberMember: true,
-    };
-    if (
-      match.member.street &&
-      (!match.business.address || match.business.address === 'Address pending verification')
-    ) {
-      payload.address = match.member.street;
-    }
-
-    if (alreadyTagged && payload.address === undefined) {
+    if (match.business.chamberMember) {
       skipped++;
       continue;
     }
     await prisma.business.update({
       where: { id: match.business.id },
-      data: payload,
+      data: { chamberMember: true },
     });
-    if (alreadyTagged) {
-      addressBackfilled++;
-    } else {
-      tagged++;
-    }
+    tagged++;
   }
 
   console.log(`=== DB WRITE COMPLETE ===`);
-  console.log(`  Tagged (new chamber member):    ${tagged}`);
-  console.log(`  Address backfilled (already tagged): ${addressBackfilled}`);
-  console.log(`  Skipped (already tagged, no address change): ${skipped}`);
+  console.log(`  Tagged:    ${tagged}`);
+  console.log(`  Skipped (already tagged): ${skipped}`);
   console.log('');
   console.log(`Done. Re-run --dry-run anytime to verify.`);
 }

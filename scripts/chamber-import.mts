@@ -38,7 +38,7 @@ const csvPath = csvArg ? csvArg.split('=')[1] : DEFAULT_CSV;
 
 interface CsvRow {
   name: string;
-  address: string;
+  street: string;
   city: string;
   state: string;
   zip: string;
@@ -64,7 +64,7 @@ function parseCsv(text: string): CsvRow[] {
     });
     out.push({
       name: row.name || '',
-      address: row.address || '',
+      street: row.street || '',
       city: row.city || '',
       state: row.state || '',
       zip: row.zip || '',
@@ -334,7 +334,7 @@ async function main() {
           name: plan.row.name,
           description: plan.description,
           categoryId,
-          address: plan.row.address || 'Address pending verification',
+          address: plan.row.street || 'Address pending verification',
           city: plan.row.city || 'Moreno Valley',
           state: plan.row.state || 'CA',
           zip: plan.row.zip || '92553',

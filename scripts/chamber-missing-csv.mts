@@ -49,7 +49,7 @@ function normalizeName(s: string): string {
 
 interface ChamberMember {
   name: string;
-  street: string;       // Street address line (e.g. "23846 Sunnymead Blvd")
+  street: string;
   city: string;
   state: string;
   zip: string;
@@ -75,8 +75,6 @@ async function fetchBucket(bucket: string): Promise<ChamberMember[]> {
     const name = $nameLink.text().trim();
     if (!href || !name) return;
 
-    // Street address — GrowthZone wraps it in <span class="gz-street-address">
-    // (schema.org streetAddress microdata).
     const street = $card.find('.gz-street-address').first().text().trim();
     const city = $card.find('.gz-address-city').first().text().trim();
     const state = $card.find('.gz-card-address').text().match(/\bCA\b/) ? 'CA' : '';
@@ -170,7 +168,7 @@ async function main() {
   // Build CSV
   const headers = [
     'name',
-    'address',
+    'street',
     'city',
     'state',
     'zip',
