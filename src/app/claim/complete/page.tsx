@@ -3,6 +3,52 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getAutoApprovedClaimData, isClaimValid } from '@/lib/claim-policy'
 
+async function syncGhlClaimTags(email: string, opts: { emailOptIn: boolean }) {
+  const token = process.env.GHL_API_TOKEN
+  const loc = process.env.GHL_LOCATION_ID
+  if (!token || !loc) return
+
+  try {
+    const lookup = await fetch(
+      `https://services.leadconnectorhq.com/contacts/?locationId=${loc}&email=${encodeURIComponent(email)}&limit=1`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Version: '2021-07-28',
+        },
+      }
+    )
+    if (!lookup.ok) return
+    const data = await lookup.json()
+    if (!data.contacts || data.contacts.length === 0) return
+
+    const contact = data.contacts[0]
+    const existingTags: string[] = contact.tags || []
+    const addTags = ['moval-living-listing-claimed']
+    if (opts.emailOptIn) addTags.push('moval-living-opt-in')
+    const removeTags = ['moval-living-cold-outreach']
+    const newTags = Array.from(
+      new Set([...existingTags.filter((t) => !removeTags.includes(t)), ...addTags])
+    )
+    if (newTags.length === existingTags.length && newTags.every((t, i) => t === existingTags[i])) {
+      return // no change
+    }
+
+    await fetch(`https://services.leadconnectorhq.com/contacts/${contact.id}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Version: '2021-07-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ tags: newTags }),
+    })
+  } catch (e) {
+    // GHL sync is best-effort — never block the claim on it
+    console.error('[claim-complete] GHL sync failed:', e)
+  }
+}
+
 export default async function ClaimCompletePage({
   searchParams,
 }: {
@@ -20,7 +66,7 @@ export default async function ClaimCompletePage({
 
   const business = await prisma.business.findUnique({
     where: { claimToken: token },
-    select: { id: true, ownerId: true, claimExpiresAt: true },
+    select: { id: true, ownerId: true, claimExpiresAt: true, email: true },
   })
 
   if (!business || !isClaimValid(business)) {
@@ -59,6 +105,15 @@ export default async function ClaimCompletePage({
   if (!claimed) {
     redirect('/claim?error=already-claimed')
   }
+
+  // Sync GHL tags (best-effort, fire and forget)
+  const owner = await prisma.owner.findUnique({
+    where: { id: ownerId },
+    select: { emailOptIn: true },
+  })
+  await syncGhlClaimTags(business.email || ownerEmail, {
+    emailOptIn: owner?.emailOptIn ?? false,
+  })
 
   redirect('/dashboard')
 }

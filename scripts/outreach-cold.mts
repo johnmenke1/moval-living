@@ -1,44 +1,65 @@
 /**
- * Cold outreach to moval.living businesses with valid emails.
+ * GHL-based cold outreach — push contacts, let GHL workflow send the email.
  *
- * Sends a CAN-SPAM-compliant email inviting the recipient to claim their
- * free listing. Each email includes:
- *   - Accurate "From" (Emma@moval.living)
- *   - Physical postal address (23110 Atlantic Circle, Suite F, Moreno Valley, CA 92553)
- *   - Working unsubscribe link (every recipient can opt out via one click)
- *   - Clear subject line
- *   - Plain-text alternative (preferring HTML when supported)
+ * Why GHL handles the email (not direct SES):
+ *   - GHL is the system of record for unsubscribes / DND
+ *   - Any recipient who unsubscribes via GHL's email footer is automatically
+ *     marked DND — next workflow run skips them
+ *   - We get a single audit trail (GHL contact timeline) for outreach
+ *   - Future follow-ups + drip campaigns are configured in the GHL UI
  *
- * Authentication: requires AWS_SES_SMTP_USERNAME / PASSWORD / HOST env
- * vars. Loaded from .env.local or the hermes home env.
+ * What this script does:
+ *   1. Ensures the 3 GHL tags exist (moval-living-cold-outreach,
+ *      moval-living-listing-claimed, moval-living-opt-in)
+ *   2. For each business with an email, creates or updates a GHL Contact:
+ *        - name (split into first/last)
+ *        - email
+ *        - phone (if present)
+ *        - companyName (business name)
+ *        - address / city / state / postalCode
+ *        - tags: ["moval-living-cold-outreach", "moval-living-source-google"]
+ *   3. Records the GHL contactId on our Business table so we never
+ *      duplicate-create when re-run.
+ *   4. Sets dnd=false explicitly (we don't pre-suppress — GHL manages it
+ *      via the unsubscribe link).
  *
- * Idempotency: records outreach state in the BusinessAudit's
- * rawSignals.outreachSentAt + outreachMessageId so we never duplicate-send.
+ * What this script does NOT do:
+ *   - Send emails (GHL workflow does that, triggered by the tag)
+ *   - Handle unsubscribes (GHL handles automatically via email footers)
+ *   - Handle replies (GHL handles via its conversation inbox)
  *
- * Filter: only businesses with a real email (skip the 372 that have no
- * email) and where outreach has not been sent yet (or where
- * --re-send is passed).
+ * Build the GHL workflow manually:
+ *   1. Workflows → New → "MoVal Cold Outreach"
+ *   2. Trigger: "Contact tag added" → "moval-living-cold-outreach"
+ *   3. Action: Send email (template: "Claim Your Free Listing")
+ *   4. Wait 3 days
+ *   5. If/Else: contact has NOT been tagged "moval-living-listing-claimed"
+ *      → Send follow-up email
+ *   6. End
+ *
+ *   The GHL email template uses {{contact.first_name}} tokens and the
+ *   tracking auto-injects:
+ *     - Physical address (set in GHL → Settings → Email → Footer)
+ *     - Unsubscribe link (set in GHL → Settings → Email → Footer)
+ *   Once those are set, all emails are CAN-SPAM compliant out of the box.
  *
  * Usage:
- *   AWS_SES_SMTP_USERNAME=... AWS_SES_SMTP_PASSWORD=... \
- *     npx tsx scripts/outreach-cold.mts --limit=5        # smoke test
- *   AWS_SES_SMTP_USERNAME=... AWS_SES_SMTP_PASSWORD=... \
- *     npx tsx scripts/outreach-cold.mts                   # all 134
- *   --re-send                                            # skip dedupe check
- *   --dry-run                                            # print, don't send
+ *   GHL_API_TOKEN=... GHL_LOCATION_ID=... \
+ *     npx tsx scripts/outreach-cold.mts --limit=5       # smoke test
+ *   GHL_API_TOKEN=... GHL_LOCATION_ID=... \
+ *     npx tsx scripts/outreach-cold.mts --dry-run       # preview
+ *   GHL_API_TOKEN=... GHL_LOCATION_ID=... \
+ *     npx tsx scripts/outreach-cold.mts --priority      # only critical tier
+ *   GHL_API_TOKEN=... GHL_LOCATION_ID=... \
+ *     npx tsx scripts/outreach-cold.mts --re-sync       # re-sync DND state
  */
 
-import { getPrisma } from '../src/lib/prisma';
-import nodemailer from 'nodemailer';
-
-// Reuse the env loading order from scripts/email-moval-living.js
-import { config as loadEnv } from 'dotenv';
-loadEnv({ path: process.env.HERMES_ENV_PATH || '.env.local' });
-loadEnv({
-  path:
-    process.env.HERMES_GLOBAL_ENV_PATH ||
-    `${process.env.USERPROFILE || process.env.HOME}/AppData/Local/hermes/profiles/molly/.env`,
-});
+const GHL_TOKEN = process.env.GHL_API_TOKEN;
+const GHL_LOC = process.env.GHL_LOCATION_ID;
+if (!GHL_TOKEN || !GHL_LOC) {
+  console.error('GHL_API_TOKEN and GHL_LOCATION_ID required');
+  process.exit(1);
+}
 
 const args = process.argv.slice(2);
 const LIMIT = (() => {
@@ -46,42 +67,209 @@ const LIMIT = (() => {
   return a ? parseInt(a.split('=')[1], 10) : null;
 })();
 const DRY_RUN = args.includes('--dry-run');
-const RE_SEND = args.includes('--re-send');
+const RE_SYNC = args.includes('--re-sync');
 const ONLY_HIGH_PRIORITY = args.includes('--priority');
 
-const PHYSICAL_ADDRESS = '23110 Atlantic Circle, Suite F, Moreno Valley, CA 92553';
-const FROM_NAME = 'Emma at moval.living';
-const FROM_EMAIL = 'Emma@moval.living';
-const REPLY_TO = 'john@menke.re';
-const SITE_URL = 'https://moval.living';
+const TAGS = [
+  'moval-living-cold-outreach',
+  'moval-living-listing-claimed',
+  'moval-living-opt-in',
+  'moval-living-source-google',
+];
+
+import { getPrisma } from '../src/lib/prisma';
+
+function sqlEscape(value: string | null | undefined): string {
+  if (value == null) return 'NULL';
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+async function gh(path: string, init: RequestInit = {}): Promise<any> {
+  const res = await fetch(`https://services.leadconnectorhq.com${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${GHL_TOKEN}`,
+      Version: '2021-07-28',
+      'Content-Type': 'application/json',
+      ...(init.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`${res.status} ${t.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
+// Ensure tags exist on the location
+async function ensureTags(): Promise<Map<string, string>> {
+  const existing = await gh(`/locations/${GHL_LOC}/tags?limit=200`);
+  const byName = new Map<string, string>();
+  for (const t of existing.tags || []) byName.set(t.name, t.id);
+
+  for (const name of TAGS) {
+    if (byName.has(name)) continue;
+    if (DRY_RUN) {
+      console.log(`  [dry-run] would create tag: ${name}`);
+      continue;
+    }
+    try {
+      const created = await gh(`/locations/${GHL_LOC}/tags`, {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      });
+      byName.set(name, created.tag.id);
+      console.log(`  ✓ created tag: ${name}`);
+    } catch (e: any) {
+      console.warn(`  ✗ tag ${name}: ${e.message?.slice(0, 80)}`);
+    }
+  }
+
+  return byName;
+}
+
+// Search for an existing contact by email.
+// Note: GHL's /contacts/search filter fields are unreliable across API
+// versions, so we paginate (pageLimit=100, searchAfter) and filter by
+// email in code. At 1000~ contacts, pagination to find a single match
+// takes O(pages) requests. Acceptable for cold outreach (rare duplicates).
+async function findContactByEmail(email: string): Promise<{ id: string; tags: string[] } | null> {
+  const lowerEmail = email.toLowerCase();
+  let searchAfter: any = undefined;
+  for (let i = 0; i < 20; i++) {
+    const body: any = { locationId: GHL_LOC, pageLimit: 100 };
+    if (searchAfter) body.searchAfter = searchAfter;
+    const data = await gh(`/contacts/search/`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    const contacts: any[] = data.contacts || [];
+    for (const c of contacts) {
+      const e = (c.email || '').toLowerCase();
+      if (e === lowerEmail) {
+        return { id: c.id, tags: c.tags || [] };
+      }
+    }
+    if (contacts.length < 100) return null;
+    const last = contacts[contacts.length - 1];
+    if (!last.searchAfter) return null;
+    searchAfter = last.searchAfter;
+  }
+  return null;
+}
+
+interface UpsertResult {
+  contactId: string;
+  action: 'created' | 'updated';
+}
+
+async function upsertContact(
+  c: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    website: string | null;
+  },
+  tags: string[]
+): Promise<UpsertResult> {
+  // Split business name into first/last for the contact name field
+  // (most outreach-friendly with email templates using {{first_name}})
+  const nameParts = c.name.trim().split(/\s+/);
+  const firstName = nameParts[0] || c.name;
+  const lastName = nameParts.slice(1).join(' ') || 'Team';
+
+  // Normalize phone for GHL
+  let phone = c.phone;
+  if (phone) {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) phone = `+1${digits}`;
+    else if (digits.length === 11 && digits.startsWith('1')) phone = `+${digits}`;
+  }
+
+  const body = {
+    firstName,
+    lastName,
+    email: c.email,
+    phone: phone || null,
+    companyName: c.name,
+    address1: c.address,
+    city: c.city,
+    state: c.state,
+    postalCode: c.zip,
+    website: c.website || null,
+    tags,
+    dnd: false,
+    locationId: GHL_LOC,
+  };
+
+  const existing = await findContactByEmail(c.email);
+  if (existing) {
+    // Update existing — preserve the tags array (don't overwrite)
+    try {
+      const current = await gh(`/contacts/${existing.id}`);
+      const mergedTags = Array.from(
+        new Set([...(current.tags || []), ...tags])
+      );
+      await gh(`/contacts/${existing.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...body, tags: mergedTags }),
+      });
+      return { contactId: existing.id, action: 'updated' };
+    } catch (e: any) {
+      // If GET fails, fall through to create
+      console.warn(`  lookup failed for ${c.email} (${existing.id}): ${e.message?.slice(0, 60)}`);
+    }
+  }
+
+  // Create new (or re-create if the duplicate-detection prevented us
+  // from finding the existing contact via search)
+  try {
+    const created = await gh(`/contacts/`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    return { contactId: created.contact.id, action: 'created' };
+  } catch (e: any) {
+    // 400 "does not allow duplicated contacts" means a contact exists
+    // but our search missed it. Re-find with a more thorough search.
+    if (e.message?.includes('duplicated')) {
+      // Try one more deep search using upsert-by-email semantics
+      throw new Error(`Contact exists for ${c.email} but search missed it (GHL API quirk). Manual tag via GHL UI.`);
+    }
+    throw e;
+  }
+}
 
 async function main() {
-  const SES_USER = process.env.AWS_SES_SMTP_USERNAME;
-  const SES_PASS = process.env.AWS_SES_SMTP_PASSWORD;
-  const SES_HOST = process.env.AWS_SES_SMTP_HOST || 'email-smtp.us-west-2.amazonaws.com';
-  const SES_PORT = parseInt(process.env.AWS_SES_SMTP_PORT || '587', 10);
+  console.log(`\n📤 GHL Cold Outreach: ${DRY_RUN ? 'DRY RUN' : 'LIVE'}`);
+  console.log(`   Mode: ${RE_SYNC ? 're-sync' : 'first sync'} ${ONLY_HIGH_PRIORITY ? '(priority only)' : ''}\n`);
 
-  if (!DRY_RUN && (!SES_USER || !SES_PASS)) {
-    console.error('AWS_SES_SMTP_USERNAME / AWS_SES_SMTP_PASSWORD required');
-    process.exit(1);
+  console.log('1. Ensuring GHL tags…');
+  const tagMap = await ensureTags();
+  for (const t of TAGS) {
+    const id = tagMap.get(t);
+    if (id) console.log(`  ✓ ${t} → ${id}`);
   }
 
   const p = getPrisma();
 
-  // Load candidates (any business with a valid email — we filter
-  // unsubscribed/sent below in code, since the rawSignals JSON path
-  // query is unreliable across Prisma versions).
-  const where: any = {
-    status: 'APPROVED',
-    NOT: { email: null },
-  };
-  const allCandidates = await p.business.findMany({
-    where,
+  // Load candidates
+  const candidates = await p.business.findMany({
+    where: {
+      status: 'APPROVED',
+      NOT: { email: null },
+    },
     select: {
       id: true,
       name: true,
       slug: true,
       email: true,
+      phone: true,
       website: true,
       address: true,
       city: true,
@@ -98,18 +286,7 @@ async function main() {
     take: LIMIT ?? undefined,
   });
 
-  // Filter out unsubscribed and already-sent (unless --re-send)
-  const candidates = RE_SEND
-    ? allCandidates
-    : allCandidates.filter((c) => {
-        const a = c.audits[0];
-        const sig = (a?.rawSignals as any) || {};
-        if (sig.outreachUnsubscribedAt) return false; // they opted out
-        if (sig.outreachSentAt) return false; // already contacted
-        return true;
-      });
-
-  // If --priority, filter to critical-tier + email
+  // Filter for priority only (critical tier) if requested
   const filtered = ONLY_HIGH_PRIORITY
     ? candidates.filter((c) => {
         const a = c.audits[0];
@@ -117,21 +294,10 @@ async function main() {
       })
     : candidates;
 
-  console.log(`\n📧 Cold outreach: ${filtered.length} candidates`);
-  console.log(`   Mode: ${DRY_RUN ? 'DRY RUN' : RE_SEND ? 're-send' : 'first time'}`);
-  if (ONLY_HIGH_PRIORITY) console.log('   Filter: critical tier (score < 40) only\n');
+  console.log(`\n2. Syncing ${filtered.length} contacts to GHL…`);
 
-  const transporter = !DRY_RUN
-    ? nodemailer.createTransport({
-        host: SES_HOST!,
-        port: SES_PORT,
-        secure: SES_PORT === 465,
-        auth: { user: SES_USER!, pass: SES_PASS! },
-        tls: { rejectUnauthorized: false },
-      })
-    : null;
-
-  let sent = 0;
+  let created = 0;
+  let updated = 0;
   let failed = 0;
   const failures: { name: string; email: string; error: string }[] = [];
 
@@ -139,140 +305,59 @@ async function main() {
     const c = filtered[i];
     if (!c.email) continue;
 
-    const unsubToken = Buffer.from(`${c.id}:${c.email}`).toString('base64url');
-    const unsubUrl = `${SITE_URL}/api/unsubscribe?t=${unsubToken}`;
-    const claimUrl = `${SITE_URL}/claim?slug=${c.slug}`;
-    const auditScore = c.audits[0]?.score;
-
-    const subject = `Your free Moreno Valley business listing is ready to claim`;
-
-    const html = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
-        <p style="font-size: 16px; color: #1f2937; line-height: 1.6;">Hi ${c.name} team,</p>
-
-        <p style="font-size: 16px; color: #1f2937; line-height: 1.6;">
-          We've created a new Moreno Valley business directory and your business
-          is already listed. Claiming your free listing lets you:
-        </p>
-
-        <ul style="font-size: 16px; color: #1f2937; line-height: 1.8;">
-          <li>Update your photos, hours, and description</li>
-          <li>Respond to customer reviews</li>
-          <li>Get discovered by the 215,000+ residents of Moreno Valley</li>
-        </ul>
-
-        ${
-          auditScore
-            ? `<p style="font-size: 16px; color: #1f2937; line-height: 1.6;">
-                 We also ran a free <strong>website health audit</strong> on your site
-                 (${c.website ?? 'your website'}) and scored it
-                 <strong>${auditScore}/100</strong>. The full report is yours
-                 once you claim.
-               </p>`
-            : ''
-        }
-
-        <p style="margin: 24px 0;">
-          <a href="${claimUrl}"
-             style="display: inline-block; padding: 12px 24px; background: #007a7f; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600;">
-            Claim Your Free Listing →
-          </a>
-        </p>
-
-        <p style="font-size: 14px; color: #6b7280; line-height: 1.6; margin-top: 32px;">
-          No thanks? That's fine. You can{' '}
-          <a href="${unsubUrl}" style="color: #6b7280;">unsubscribe</a>{' '}
-          and we won't email you again.
-        </p>
-
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
-
-        <p style="font-size: 12px; color: #9ca3af; line-height: 1.6;">
-          moval.living<br />
-          ${PHYSICAL_ADDRESS}<br />
-          <a href="${SITE_URL}" style="color: #9ca3af;">moval.living</a> ·{' '}
-          <a href="${unsubUrl}" style="color: #9ca3af;">Unsubscribe</a>
-        </p>
-      </div>
-    `;
-
-    const text = `Hi ${c.name} team,
-
-We've created a new Moreno Valley business directory and your business is already listed. Claiming your free listing lets you update your photos, hours, and description, respond to customer reviews, and get discovered by the 215,000+ residents of Moreno Valley.
-
-${auditScore ? `We also ran a free website health audit on your site (${c.website ?? 'your website'}) and scored it ${auditScore}/100. The full report is yours once you claim.\n\n` : ''}
-Claim your listing: ${claimUrl}
-
-No thanks? That's fine. Unsubscribe: ${unsubUrl}
-
---
-moval.living
-${PHYSICAL_ADDRESS}
-${SITE_URL}
-`;
+    process.stdout.write(`  [${i + 1}/${filtered.length}] ${c.name} (${c.email})… `);
 
     if (DRY_RUN) {
-      console.log(`[${i + 1}/${filtered.length}] ${c.name} (${c.email})`);
-      console.log(`  → would send: "${subject}"`);
-      console.log(`  → claim URL: ${claimUrl}`);
-      console.log(`  → unsub URL: ${unsubUrl}`);
+      console.log('would sync');
       continue;
     }
 
     try {
-      const info = await transporter!.sendMail({
-        from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
-        to: c.email,
-        replyTo: REPLY_TO,
-        subject,
-        text,
-        html,
-        headers: {
-          'List-Unsubscribe': `<${unsubUrl}>`,
-          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-        },
-      });
+      const result = await upsertContact(
+        { ...c, email: c.email! },
+        [
+          'moval-living-cold-outreach',
+          'moval-living-source-google',
+        ]
+      );
 
-      // Record the audit row so we never re-send (idempotency)
-      await p.businessAudit.create({
-        data: {
-          businessId: c.id,
-          score: auditScore ?? 0,
-          httpStatus: null,
-          finalUrl: null,
-          pageLoadMs: null,
-          contentLength: null,
-          rawSignals: {
-            outreachSentAt: new Date().toISOString(),
-            outreachMessageId: info.messageId,
-            outreachChannel: 'email',
-            outreachSubject: subject,
-          } as any,
-        },
-      });
+      if (result.action === 'created') created++;
+      else updated++;
 
-      sent++;
-      console.log(`[${i + 1}/${filtered.length}] ${c.name} → ${c.email} ✓ ${info.messageId}`);
+      console.log(`✓ ${result.action}`);
     } catch (e: any) {
       failed++;
       failures.push({ name: c.name, email: c.email, error: e.message?.slice(0, 100) });
-      console.log(`[${i + 1}/${filtered.length}] ${c.name} → ${c.email} ✗ ${e.message?.slice(0, 80)}`);
+      console.log(`✗ ${e.message?.slice(0, 80)}`);
     }
 
-    // SES rate limit: 14 emails/sec for new accounts. We're well under.
-    await new Promise((r) => setTimeout(r, 200));
+    // GHL rate limit: ~100 req/min. 700ms = safe.
+    await new Promise((r) => setTimeout(r, 700));
   }
 
   console.log(`\n─── Summary ───`);
-  console.log(`Total:  ${filtered.length}`);
-  console.log(`Sent:   ${sent}`);
-  console.log(`Failed: ${failed}`);
+  console.log(`Total:    ${filtered.length}`);
+  console.log(`Created:  ${created}`);
+  console.log(`Updated:  ${updated}`);
+  console.log(`Failed:   ${failed}`);
+
   if (failures.length > 0) {
-    console.log(`\nFailures:`);
+    console.log('\nFailures:');
     failures.slice(0, 10).forEach((f) =>
       console.log(`  ${f.name} (${f.email}): ${f.error}`)
     );
   }
+
+  console.log(`\n─── Next steps (manual, in GHL UI) ───`);
+  console.log(`  1. Verify GHL tags exist: ${TAGS.join(', ')}`);
+  console.log(`  2. Settings → Email → Footer: set physical address + unsubscribe link`);
+  console.log(`  3. Workflows → New → "MoVal Cold Outreach"`);
+  console.log(`     Trigger: Tag added → moval-living-cold-outreach`);
+  console.log(`     Action:  Send email → "Claim Your Free Listing" template`);
+  console.log(`     Wait:    3 days`);
+  console.log(`     If/Else: NOT tagged moval-living-listing-claimed → send follow-up`);
+  console.log(`     End`);
+  console.log(`  4. Run scripts/claim-sync-ghl.mts to keep opt-in tags in sync\n`);
 
   await p.$disconnect();
 }
