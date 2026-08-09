@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronRight, MapPin, Bed, Bath, Square, Calendar, Car, Phone, Mail, Home, ArrowLeft, Trees } from 'lucide-react'
+import { ChevronRight, MapPin, Bed, Bath, Square, Calendar, Car, Phone, Mail, ArrowLeft, Trees } from 'lucide-react'
 import type { Metadata } from 'next'
 import { ListingMapWrapper } from '@/components/map/ListingMapWrapper'
+import { PhotoGallery } from '@/components/real estate/PhotoGallery'
 
 interface ListingDetailPageProps {
   params: Promise<{ key: string }>
@@ -161,28 +162,7 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
       {/* Photo Gallery */}
       <div className="container-max pb-8">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          {listing.photoUrls.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-1 p-1">
-              {/* Main large photo */}
-              <div className="md:col-span-2 md:row-span-2 relative aspect-square md:aspect-auto overflow-hidden rounded-xl">
-                <img
-                  src={listing.photoUrls[0]}
-                  alt={`Home at ${listing.address}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              {/* Thumbnail grid */}
-              {listing.photoUrls.slice(1, 5).map((url, i) => (
-                <div key={i} className="relative aspect-square overflow-hidden rounded-xl hidden md:block">
-                  <img src={url} alt={`Photo ${i + 2}`} className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="w-full h-72 bg-slate-100 flex items-center justify-center">
-              <Home className="w-12 h-12 text-slate-300" />
-            </div>
-          )}
+          <PhotoGallery photos={listing.photoUrls} address={listing.address} />
         </div>
       </div>
 
