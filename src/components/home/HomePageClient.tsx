@@ -20,6 +20,8 @@ import {
   Landmark,
   Gauge,
   Building,
+  ShieldCheck,
+  Cannabis,
   type LucideIcon,
 } from 'lucide-react'
 import { categories } from '@/data/categories'
@@ -39,6 +41,8 @@ const categoryColors: Record<string, string> = {
   finance: '#0EA5E9',
   auto: '#3B82F6',
   'real-estate': '#0F766E',
+  insurance: '#0EA5E9',
+  dispensaries: '#16A34A',
 }
 
 const categoryIcons: Record<string, LucideIcon> = {
@@ -55,6 +59,8 @@ const categoryIcons: Record<string, LucideIcon> = {
   Landmark,
   Gauge,
   Building,
+  ShieldCheck,
+  Cannabis,
 }
 
 interface Business {
