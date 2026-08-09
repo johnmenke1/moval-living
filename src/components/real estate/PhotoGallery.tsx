@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { X, ChevronLeft, ChevronRight, Home, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Home, ZoomIn, ZoomOut, RotateCcw, Hand } from 'lucide-react'
 
 interface PhotoGalleryProps {
   photos: string[]
@@ -35,42 +35,76 @@ const SWIPE_THRESHOLD = 50 // px of horizontal travel to count as a swipe
 export function PhotoGallery({ photos, address }: PhotoGalleryProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
+  // ─── Swipe hint ───────────────────────────────────────────────────
+  //
+  // Mobile/tablet users see a small "swipe to navigate / pinch to zoom"
+  // overlay the first time they open the lightbox. It auto-dismisses
+  // when they perform either gesture (or any zoom action). We gate the
+  // hint itself behind a coarse-pointer media query so desktop users
+  // never see it — they have a mouse, keyboard, and on-screen arrows.
+  const [showSwipeHint, setShowSwipeHint] = useState(false)
+  const [swipeHintFadingOut, setSwipeHintFadingOut] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const isCoarse = window.matchMedia('(pointer: coarse)').matches
+    setShowSwipeHint(isCoarse)
+    setSwipeHintFadingOut(false)
+  }, [lightboxIndex])
+
+  // Helper that dismisses the hint with a brief fade. Triggered once
+  // per lightbox open.
+  const dismissSwipeHint = useCallback(() => {
+    setSwipeHintFadingOut(true)
+    setTimeout(() => {
+      setShowSwipeHint(false)
+      setSwipeHintFadingOut(false)
+    }, 350)
+  }, [])
+
   const open = (idx: number) => setLightboxIndex(idx)
   const close = useCallback(() => setLightboxIndex(null), [])
 
   const next = useCallback(() => {
+    dismissSwipeHint()
     setLightboxIndex((cur) => (cur === null ? null : (cur + 1) % photos.length))
-  }, [photos.length])
+  }, [photos.length, dismissSwipeHint])
   const prev = useCallback(() => {
+    dismissSwipeHint()
     setLightboxIndex((cur) =>
       cur === null ? null : (cur - 1 + photos.length) % photos.length,
     )
-  }, [photos.length])
+  }, [photos.length, dismissSwipeHint])
 
   // ─── Zoom & pan state ─────────────────────────────────────────────
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
 
   const resetZoom = useCallback(() => {
+    dismissSwipeHint()
     setZoom(1)
     setPan({ x: 0, y: 0 })
-  }, [])
+  }, [dismissSwipeHint])
 
   // Reset zoom whenever the displayed photo changes
   useEffect(() => {
     resetZoom()
   }, [lightboxIndex, resetZoom])
 
-  const zoomIn = useCallback(() => setZoom((z) => Math.min(MAX_ZOOM, z + 0.5)), [])
+  const zoomIn = useCallback(() => {
+    dismissSwipeHint()
+    setZoom((z) => Math.min(MAX_ZOOM, z + 0.5))
+  }, [dismissSwipeHint])
   const zoomOut = useCallback(
     () =>
       setZoom((z) => {
+        dismissSwipeHint()
         const next_ = Math.max(MIN_ZOOM, z - 0.5)
         // Snap back to centered when fully zoomed out
         if (next_ === 1) setPan({ x: 0, y: 0 })
         return next_
       }),
-    [],
+    [dismissSwipeHint],
   )
 
   // ─── Keyboard navigation while lightbox is open ───────────────────
@@ -171,6 +205,8 @@ export function PhotoGallery({ photos, address }: PhotoGalleryProps) {
     if (e.touches.length === 2 && g.initialDistance !== null) {
       // Pinch zoom — ratio = current distance / initial distance
       e.preventDefault() // stop native page-zoom
+      // First pinch dismisses the hint
+      if (zoom === 1) dismissSwipeHint()
       const t1 = e.touches[0]
       const t2 = e.touches[1]
       const ratio = distance(t1, t2) / g.initialDistance
@@ -320,6 +356,27 @@ export function PhotoGallery({ photos, address }: PhotoGalleryProps) {
           <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/90 text-sm font-medium bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm z-20">
             {lightboxIndex + 1} / {photos.length}
           </div>
+
+          {/* First-time swipe hint — only renders on touch devices and
+              fades out the moment the user pinches or swipes. */}
+          {showSwipeHint && (
+            <div
+              className={`absolute bottom-20 left-1/2 -translate-x-1/2 z-20 pointer-events-none transition-opacity duration-300 ${
+                swipeHintFadingOut ? 'opacity-0' : 'opacity-100'
+              }`}
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex items-center gap-3 bg-black/60 text-white text-sm font-medium px-4 py-2.5 rounded-full backdrop-blur-sm shadow-lg">
+                <span className="flex items-center gap-1">
+                  <ChevronLeft className="w-4 h-4" />
+                  <Hand className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4" />
+                </span>
+                <span>Swipe to navigate · Pinch to zoom</span>
+              </div>
+            </div>
+          )}
 
           {/* Zoom controls — bottom center on touch, top-right stack on desktop */}
           <div
