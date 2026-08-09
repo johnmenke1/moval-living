@@ -3,10 +3,11 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { averageRating, formatPhone } from '@/lib/utils'
-import { MapPin, Phone, Globe, Mail, Clock, Star, ChevronRight } from 'lucide-react'
+import { MapPin, Phone, Globe, Mail, Clock, Star, ChevronRight, Trophy, Tag, Award, Sparkles } from 'lucide-react'
 import { BusinessMapWrapper } from '@/components/map/BusinessMapWrapper'
 import { BusinessSidebar } from '@/components/business/BusinessSidebar'
 import { JsonLd } from '@/components/seo/JsonLd'
+import { cn } from '@/lib/utils'
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
@@ -42,12 +43,28 @@ async function getBusiness(slug: string) {
       facebook: true, instagram: true, yelp: true,
       googleBusiness: true, googleRating: true, googleReviewCount: true,
       hours: true, status: true, tier: true,
+      hasCoupon: true, coupon: true,
+      isBestOfWinner: true,
+      isExpertPartner: true,
+      expertPartnerSlug: true,
+      foundingPartnerSince: true,
+      foundingPartnerRate: true,
       metaTitle: true, metaDescription: true,
       category: true,
       ownerId: true,
       reviews: {
         orderBy: { createdAt: 'desc' },
         where: { flagged: false },
+      },
+      // All Best Of categories this business has been nominated in
+      // (winners AND runner-ups). Drives the Best Of badge on the listing.
+      bestOfNominees: {
+        select: {
+          winner: true,
+          category: {
+            select: { name: true, slug: true },
+          },
+        },
       },
     },
   })
@@ -254,7 +271,25 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                   <div className="flex-1">
                     <h1 className="text-2xl md:text-3xl font-bold text-text mb-1">{business.name}</h1>
                     {business.tagline && <p className="text-accent font-medium text-lg mb-2">{business.tagline}</p>}
-                    <div className="flex flex-wrap items-center gap-3 text-sm text-text-secondary">
+
+                    {/* Badge row — mirrors the home card layout you liked.
+                        Featured pill stays overlaid on the cover image;
+                        Best Of, Expert Partner, and Deal live here. */}
+                    {(business.tier === 'FEATURED' || business.tier === 'EXPERT_PARTNER' ||
+                      business.isExpertPartner || business.isBestOfWinner ||
+                      (business.bestOfNominees && business.bestOfNominees.length > 0) ||
+                      business.hasCoupon) && (
+                      <BusinessBadgesRow
+                        tier={business.tier}
+                        isExpertPartner={business.isExpertPartner}
+                        foundingPartnerSince={business.foundingPartnerSince}
+                        bestOfWinner={business.isBestOfWinner}
+                        bestOfNominationCount={business.bestOfNominees?.length ?? 0}
+                        hasCoupon={business.hasCoupon}
+                      />
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-text-secondary mt-3">
                       <span className="bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">{business.category.name}</span>
                       {rating > 0 && (
                         <div className="flex items-center gap-1">
@@ -438,5 +473,75 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
       </div>
     </div>
     </>
+  )
+}
+
+// ── Badge row below the business name ───────────────────────────────────────
+//
+// Mirrors the layout used on the home page BusinessCard: Featured pill
+// stays overlaid on the cover; Best Of, Expert Partner, and Deal live
+// in this row. Founding Expert Partners get the richer amber treatment.
+
+function BusinessBadgesRow({
+  tier,
+  isExpertPartner,
+  foundingPartnerSince,
+  bestOfWinner,
+  bestOfNominationCount,
+  hasCoupon,
+}: {
+  tier: string
+  isExpertPartner: boolean
+  foundingPartnerSince: string | Date | null
+  bestOfWinner: boolean
+  bestOfNominationCount: number
+  hasCoupon: boolean
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 mt-3">
+      {bestOfWinner && (
+        <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+          <Trophy className="w-3 h-3" />
+          #1 Best Of Winner
+        </span>
+      )}
+      {!bestOfWinner && bestOfNominationCount > 0 && (
+        <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-text-secondary border border-slate-200">
+          <Trophy className="w-3 h-3" />
+          Best Of Nominee
+        </span>
+      )}
+      {isExpertPartner && (
+        <span
+          className={cn(
+            'inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border shadow-sm',
+            foundingPartnerSince
+              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-600'
+              : 'bg-amber-50 text-amber-800 border-amber-200'
+          )}
+          title={foundingPartnerSince ? 'Founding Expert Partner' : 'Expert Partner'}
+        >
+          {foundingPartnerSince ? (
+            <Sparkles className="w-3 h-3" />
+          ) : (
+            <Award className="w-3 h-3" />
+          )}
+          {foundingPartnerSince ? 'Founding Expert Partner' : 'Expert Partner'}
+        </span>
+      )}
+      {hasCoupon && (
+        <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-primary text-white">
+          <Tag className="w-3 h-3" />
+          Deal Available
+        </span>
+      )}
+      {/* Note: FEATURED / EXPERT_PARTNER tier pills stay on the cover image. */}
+      {(tier === 'EXPERT_PARTNER' || tier === 'FEATURED') && !isExpertPartner && (
+        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-accent/10 text-accent border border-accent/20">
+          <Award className="w-3 h-3" />
+          {tier === 'EXPERT_PARTNER' ? 'Expert Partner Tier' : 'Featured Tier'}
+        </span>
+      )}
+    </div>
   )
 }

@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { Star, MapPin, Globe, Phone, ChevronLeft } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 import { JsonLd } from '@/components/seo/JsonLd'
+import { BusinessCard } from '@/components/business/BusinessCard'
 
 interface Props {
   params: Promise<{ category: string }>
@@ -14,40 +15,48 @@ async function getCategory(slug: string) {
     where: { slug, published: true },
     include: {
       nominees: {
+        orderBy: [{ winner: 'desc' }, { displayOrder: 'asc' }],
         include: {
           business: {
+            // Shape mirrors BusinessCard's props so we can drop the
+            // business straight into the home-style card component.
             select: {
-              id: true, name: true, slug: true, address: true, city: true, state: true,
-              logo: true, website: true, phone: true,
+              id: true, name: true, slug: true, tagline: true, description: true,
+              address: true, city: true, state: true, zip: true,
+              logo: true, coverImage: true, photos: true,
+              tier: true, status: true, hasCoupon: true,
+              isBestOfWinner: true, isExpertPartner: true, foundingPartnerSince: true,
+              website: true, phone: true, email: true,
               googleRating: true, googleReviewCount: true,
+              category: { select: { name: true, slug: true } },
+              reviews: { select: { rating: true } },
+              _count: { select: { reviews: true } },
             },
           },
         },
-        orderBy: [{ winner: 'desc' }, { displayOrder: 'asc' }],
       },
-      // Parent categories (e.g. best-real-estate) group sub-categories
-      // (best-overall-real-estate-agent, best-agent-rancho-belago, etc.)
-      // whose individual winners make up the parent's picks.
-      //
-      // We pull the FULL nominee list (not just winners) so the parent
-      // page can render each sub-category as a titled section with full
-      // business cards inline — avoiding an extra click before the user
-      // sees the actual listing.
       subCategories: {
         where: { published: true },
         orderBy: { name: 'asc' },
         include: {
           nominees: {
+            orderBy: [{ winner: 'desc' }, { displayOrder: 'asc' }],
             include: {
               business: {
                 select: {
-                  id: true, name: true, slug: true, address: true, city: true, state: true,
-                  logo: true, website: true, phone: true,
+                  id: true, name: true, slug: true, tagline: true, description: true,
+                  address: true, city: true, state: true, zip: true,
+                  logo: true, coverImage: true, photos: true,
+                  tier: true, status: true, hasCoupon: true,
+                  isBestOfWinner: true, isExpertPartner: true, foundingPartnerSince: true,
+                  website: true, phone: true, email: true,
                   googleRating: true, googleReviewCount: true,
+                  category: { select: { name: true, slug: true } },
+                  reviews: { select: { rating: true } },
+                  _count: { select: { reviews: true } },
                 },
               },
             },
-            orderBy: [{ winner: 'desc' }, { displayOrder: 'asc' }],
           },
           _count: { select: { nominees: true } },
         },
@@ -55,6 +64,7 @@ async function getCategory(slug: string) {
     },
   })
 }
+
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { category: slug } = await params
@@ -146,7 +156,7 @@ export default async function BestOfCategoryPage({ params }: Props) {
       <div className="container-max py-10">
         {cat.subCategories.length > 0 ? (
           // Parent category — show each sub-category as a titled section
-          // with the full nominee cards listed inline below.
+          // with home-style business cards listed inline below.
           <SubCategorySections subCategories={cat.subCategories} />
         ) : nominees.length === 0 ? (
           <div className="text-center py-16">
@@ -155,9 +165,13 @@ export default async function BestOfCategoryPage({ params }: Props) {
             <p className="text-text-secondary">Our editors are working on this pick. Check back soon!</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {nominees.map((nominee, idx) => (
-              <NomineeCard key={nominee.id} nominee={nominee} rank={idx + 1} emoji={emoji} />
+              <BestOfCardWrapper
+                key={nominee.id}
+                nominee={nominee}
+                rank={idx + 1}
+              />
             ))}
           </div>
         )}
@@ -166,6 +180,9 @@ export default async function BestOfCategoryPage({ params }: Props) {
     </>
   )
 }
+
+// Shape needed to feed BusinessCard. Mirrors BusinessCard's prop shape
+// closely so we can drop a `nominee.business` straight into it.
 
 type Nominee = {
   id: string
@@ -180,116 +197,62 @@ type Nominee = {
     id: string
     slug: string
     name: string
+    tagline: string | null
+    description: string
     address: string
     city: string
     state: string
+    zip: string
     logo: string | null
+    coverImage: string | null
+    photos: string[]
+    tier: string
+    status: string
+    hasCoupon: boolean
+    isBestOfWinner: boolean
+    isExpertPartner: boolean
+    foundingPartnerSince: string | Date | null
     website: string | null
     phone: string | null
+    email: string | null
     googleRating: number | null
     googleReviewCount: number | null
+    category: { name: string; slug: string }
+    reviews: Array<{ rating: number }>
+    _count: { reviews: number }
   }
 }
 
-function NomineeCard({
-  nominee,
-  rank,
-  emoji,
-}: {
-  nominee: Nominee
-  rank: number
-  emoji: string
-}) {
+// Wrapper that drops the home-style BusinessCard onto a nominee and
+// overlays a small winner / rank ribbon so winners stay visually distinct
+// from runner-ups.
+
+function BestOfCardWrapper({ nominee, rank }: { nominee: Nominee; rank: number }) {
   const { business } = nominee
-  const isWinner = nominee.winner
-
   return (
-    <div className={`bg-white rounded-2xl border overflow-hidden ${
-      isWinner ? 'border-2 border-amber-300' : 'border-slate-100'
-    }`}>
-      <div className="flex items-start gap-0">
-        {/* Rank badge */}
-        <div className={`w-16 shrink-0 flex flex-col items-center justify-center py-6 ${
-          isWinner
-            ? 'bg-amber-100 text-amber-800'
-            : 'bg-slate-50 text-slate-400'
-        }`}>
-          {isWinner ? (
-            <span className="text-2xl">🏆</span>
-          ) : (
-            <span className="text-lg font-bold">#{rank}</span>
-          )}
+    <div className="relative">
+      <BusinessCard business={business} />
+
+      {/* Winner ribbon (top-right) */}
+      {nominee.winner && (
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-gradient-to-br from-amber-400 to-amber-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg border border-amber-300">
+          🏆 Winner
         </div>
+      )}
 
-        {/* Main content */}
-        <div className="flex-1 p-5">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="flex items-start gap-3">
-              {business.logo ? (
-                <img src={business.logo} alt={business.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
-              ) : (
-                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-2xl shrink-0">
-                  {emoji}
-                </div>
-              )}
-              <div>
-                <h3 className="font-bold text-text text-lg leading-tight">{business.name}</h3>
-                <div className="flex items-center gap-3 mt-1">
-                  {business.googleRating != null && (
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                      <span className="text-sm font-medium">{business.googleRating.toFixed(1)}</span>
-                    </div>
-                  )}
-                  {business.googleReviewCount != null && (
-                    <span className="text-sm text-text-secondary">
-                      {business.googleReviewCount.toLocaleString()} reviews
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Address + contact */}
-          <div className="flex flex-wrap items-center gap-4 mb-4 text-sm text-text-secondary">
-            <div className="flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5" />
-              <span>{business.address}, {business.city} {business.state}</span>
-            </div>
-            {business.phone && (
-              <div className="flex items-center gap-1">
-                <Phone className="w-3.5 h-3.5" />
-                <span>{business.phone}</span>
-              </div>
-            )}
-            {business.website && (
-              <a
-                href={business.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-primary hover:underline"
-              >
-                <Globe className="w-3.5 h-3.5" />
-                Website
-              </a>
-            )}
-            <Link
-              href={`/business/${business.slug}`}
-              className="ml-auto text-sm font-medium text-primary hover:underline"
-            >
-              View Listing →
-            </Link>
-          </div>
-
-          {/* Editorial notes */}
-          {nominee.notes && (
-            <p className="text-sm text-text-secondary italic border-t border-slate-100 pt-3 mt-3">
-              {nominee.notes}
-            </p>
-          )}
+      {/* Runner-up rank ribbon (top-left, only when there's a winner above) */}
+      {!nominee.winner && rank > 1 && (
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-slate-800/85 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">
+          #{rank}
         </div>
-      </div>
+      )}
+
+      {/* Editorial notes — show below the card if present */}
+      {nominee.notes && (
+        <p className="mt-2 text-sm text-text-secondary italic px-1">
+          &ldquo;{nominee.notes}&rdquo;
+        </p>
+      )}
     </div>
   )
 }
@@ -305,12 +268,7 @@ function getCategoryEmoji(icon: string): string {
   return map[icon] ?? '⭐'
 }
 
-// ── Parent category: titled sections with full nominee cards inline ──────────
-//
-// Each sub-category gets a section header (e.g. "Best Overall Real Estate
-// Agent") and the full NomineeCard list right underneath. The user goes
-// directly from /best-of/[parent] → /business/[slug] without an extra click
-// in between.
+// ── Parent category: titled sections with home-style business cards ─────────
 
 type SubCategoryRow = {
   id: string
@@ -337,19 +295,18 @@ function SubCategorySections({ subCategories }: { subCategories: SubCategoryRow[
             )}
           </div>
 
-          {/* Nominees inline */}
+          {/* Cards inline */}
           {sub.nominees.length === 0 ? (
             <div className="bg-white border border-slate-100 rounded-2xl p-6 text-center text-text-secondary">
               No winner assigned yet.
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sub.nominees.map((nominee, idx) => (
-                <NomineeCard
+                <BestOfCardWrapper
                   key={nominee.id}
                   nominee={nominee}
                   rank={idx + 1}
-                  emoji={sub.icon ? getCategoryEmoji(sub.icon) : '🏆'}
                 />
               ))}
             </div>
