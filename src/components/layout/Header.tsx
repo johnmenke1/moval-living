@@ -6,14 +6,11 @@ import Link from 'next/link'
 import {
   BookOpen,
   Calendar,
-  CalendarDays,
   ChevronDown,
   Compass,
   DollarSign,
   FileText,
-  Heart,
   Home as HomeIcon,
-  Info,
   Menu,
   Sparkles,
   Tag,
@@ -31,6 +28,7 @@ const navGroups = [
       { label: 'Best Of Moreno Valley', href: '/best-of', icon: Trophy },
       { label: 'Community Events', href: '/events', icon: Calendar },
       { label: 'Local Deals', href: '/deals', icon: Tag },
+      { label: 'Local Spotlights', href: '/spotlights', icon: Sparkles },
     ],
   },
   {
@@ -39,7 +37,6 @@ const navGroups = [
     items: [
       { label: 'Life in MoVal', href: '/life', icon: BookOpen },
       { label: 'Live Curiously', href: '/outings', icon: Compass },
-      { label: 'Local Spotlights', href: '/spotlights', icon: FileText },
       { label: 'Guest Insights', href: '/insights', icon: FileText },
     ],
   },
@@ -49,34 +46,19 @@ const navGroups = [
     items: [
       { label: 'Homes for Sale', href: '/homes', icon: HomeIcon },
       { label: 'Open Houses', href: '/open-houses', icon: Calendar },
-      { label: 'Events', href: '/events', icon: CalendarDays },
-      { label: 'Outings', href: '/outings', icon: Compass },
-      { label: 'Life in MoVal', href: '/life', icon: Heart },
-      { label: 'Deals', href: '/deals', icon: Tag },
-    ],
-  },
-  {
-    label: 'Read',
-    icon: Compass,
-    items: [
-      { label: 'Insights', href: '/insights', icon: FileText },
-      { label: 'Spotlights', href: '/spotlights', icon: Sparkles },
     ],
   },
   {
     label: 'About',
     icon: Compass,
     items: [
-      { label: 'About MoVal', href: '/about-moreno-valley', icon: Info },
       { label: 'Expert Partners', href: '/partners', icon: Sparkles },
       { label: 'Pricing', href: '/pricing', icon: DollarSign },
     ],
   },
 ]
 
-const standaloneNavLinks = [
-  { label: 'About MoVal', href: '/about-moreno-valley', icon: Info },
-]
+const standaloneNavLinks: { label: string; href: string; icon: typeof Compass }[] = []
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
