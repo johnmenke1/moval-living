@@ -1,4 +1,5 @@
 import { MapPin, Bed, Bath, Square, Calendar, Car } from 'lucide-react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
 interface Listing {
@@ -27,6 +28,10 @@ interface Listing {
 
 interface ListingCardProps {
   listing: Listing
+  /** When set, the card becomes a link to this URL (e.g. /listing/[key]).
+   *  Matches the OpenHouseCard pattern — the detail page at /listing/[key]
+   *  renders the full photo gallery, property details, map, etc. */
+  href?: string
 }
 
 function formatPrice(price: number): string {
@@ -64,13 +69,13 @@ const PLACEHOLDER_SVG =
       '</svg>'
   )
 
-export function ListingCard({ listing }: ListingCardProps) {
+export function ListingCard({ listing, href }: ListingCardProps) {
   const statusInfo = STATUS_LABELS[listing.status] ?? {
     label: listing.status,
     className: 'bg-slate-500 text-white',
   }
 
-  return (
+  const card = (
     <div className="card overflow-hidden group">
       {/* Image */}
       <div className="relative w-full h-52 overflow-hidden bg-slate-100">
@@ -159,4 +164,14 @@ export function ListingCard({ listing }: ListingCardProps) {
       </div>
     </div>
   )
+
+  if (href) {
+    return (
+      <Link href={href} className="block hover:opacity-95 transition-opacity">
+        {card}
+      </Link>
+    )
+  }
+
+  return card
 }
