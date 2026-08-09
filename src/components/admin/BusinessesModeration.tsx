@@ -53,6 +53,8 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     googleRating: string
     googleReviewCount: string
     tier: 'FREE' | 'FEATURED' | 'EXPERT_PARTNER'
+    isExpertPartner: boolean
+    expertPartnerSlug: string
   }>>({})
 
   const reportFailure = async (response: Response, fallback: string) => {
@@ -191,6 +193,23 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     if (edits.tier !== undefined) {
       patch.tier = edits.tier
     }
+    // Only send Expert Partner fields when the user opened the panel and
+    // the checkbox is set. The checkbox is always seeded from the DB in
+    // openEdit(), so this always fires when the panel was opened — but it
+    // is correctly a no-op for anyone who doesn't touch it because the
+    // state value equals the existing DB value.
+    if (edits.isExpertPartner !== undefined) {
+      patch.isExpertPartner = edits.isExpertPartner
+      if (!edits.isExpertPartner) {
+        // Toggling the badge off — clear the slug too so /partners/[slug]
+        // doesn't keep resolving an orphaned Expert Partner page.
+        patch.expertPartnerSlug = null
+      } else {
+        // Toggling on — slug is required for /partners/[slug] and JSON-LD.
+        // Send whatever the admin typed; empty clears it.
+        patch.expertPartnerSlug = edits.expertPartnerSlug.trim() || null
+      }
+    }
     await moderate(id, patch)
     setEditGoogle(prev => { const n = { ...prev }; delete n[id]; return n })
   }
@@ -222,6 +241,8 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
         googleRating: b.googleRating?.toString() || '',
         googleReviewCount: b.googleReviewCount?.toString() || '',
         tier: b.tier || 'FREE',
+        isExpertPartner: !!b.isExpertPartner,
+        expertPartnerSlug: b.expertPartnerSlug || '',
       },
     }))
     setExpandedId(expandedId === b.id ? null : b.id)
@@ -526,8 +547,58 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                         >
                           <option value="FREE">Free</option>
                           <option value="FEATURED">Featured ★</option>
-                            <option value="EXPERT_PARTNER">Expert Partner ✨</option>
+                          <option value="EXPERT_PARTNER">Expert Partner ✨</option>
                         </select>
+                      </div>
+
+                      {/* Expert Partner toggle + slug */}
+                      <div className="sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50/40 p-3 space-y-3">
+                        <label className="flex items-center gap-2 text-sm font-medium text-text cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={edits?.isExpertPartner ?? false}
+                            onChange={e => setEditGoogle(prev => ({
+                              ...prev,
+                              [business.id]: {
+                                ...prev[business.id],
+                                isExpertPartner: e.target.checked,
+                                // When enabling, default the slug to the
+                                // business slug so the public URL works out
+                                // of the box. Johnny can rename it freely.
+                                ...(e.target.checked && !prev[business.id]?.expertPartnerSlug
+                                  ? { expertPartnerSlug: business.slug }
+                                  : {}),
+                              },
+                            }))}
+                            className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                          />
+                          <span>
+                            ✨ Expert Partner
+                            <span className="ml-1 text-xs font-normal text-text-secondary">
+                              (manual override — normally set by Stripe)
+                            </span>
+                          </span>
+                        </label>
+                        {edits?.isExpertPartner && (
+                          <div>
+                            <label className="block text-xs font-medium text-text-secondary mb-1">
+                              Expert Partner Slug
+                              <span className="text-text-secondary/70 font-normal"> (used in /partners/[slug])</span>
+                            </label>
+                            <input
+                              value={edits?.expertPartnerSlug ?? ''}
+                              onChange={e => setEditGoogle(prev => ({
+                                ...prev,
+                                [business.id]: { ...prev[business.id], expertPartnerSlug: e.target.value },
+                              }))}
+                              className="input text-sm py-1.5"
+                              placeholder="leeper-realty-group"
+                            />
+                            <p className="text-xs text-text-secondary mt-1">
+                              Must be unique. Lowercase, hyphens, no spaces. Changing this breaks any existing /partners/[slug] links.
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
 
