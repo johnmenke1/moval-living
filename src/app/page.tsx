@@ -98,12 +98,17 @@ export default async function HomePage() {
     getCategoryCounts(),
   ])
 
-  // Priority: 0 = BestOf + (Featured or Expert Partner), 1 = Featured/EP only, 2 = BestOf-only
-  const priority = (b: { tier: string; isBestOfWinner: boolean }) => {
+  // Sort priority for the homepage grid:
+  //   0 = Expert Partner (any combination — EP wins outright)
+  //   1 = Featured + Best Of (no EP)
+  //   2 = Featured only (no Best Of, no EP)
+  //   3 = Best Of only (no Featured, no EP)
+  const priority = (b: { tier: string; isBestOfWinner: boolean; isExpertPartner: boolean }) => {
+    if (b.isExpertPartner) return 0
     const elevated = b.tier === 'FEATURED' || b.tier === 'EXPERT_PARTNER'
-    if (b.isBestOfWinner && elevated) return 0
-    if (elevated) return 1
-    return 2
+    if (b.isBestOfWinner && elevated) return 1
+    if (elevated) return 2
+    return 3
   }
 
   const sorted = [...candidates].sort((a, b) => {
