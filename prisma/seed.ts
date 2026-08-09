@@ -15,6 +15,8 @@ const categories = [
   { name: 'Professional Services', slug: 'professional', description: 'Attorneys, accountants, marketing, business consulting', icon: 'Briefcase' },
   { name: 'Insurance Services', slug: 'insurance', description: 'Auto, home, life, health, and commercial insurance agents', icon: 'ShieldCheck' },
   { name: 'Dispensaries', slug: 'dispensaries', description: 'Licensed cannabis dispensaries and delivery services', icon: 'Cannabis' },
+  { name: 'Hospitality', slug: 'hospitality', description: 'Hotels, motels, inns, and extended-stay lodging', icon: 'Hotel' },
+  { name: 'Service Clubs', slug: 'service-clubs', description: 'Rotary, Lions, Kiwanis, Optimist, Elks, and similar community service clubs', icon: 'Handshake' },
   { name: 'Beauty & Wellness', slug: 'beauty', description: 'Salons, spas, gyms, yoga, nails, barbers', icon: 'Sparkles' },
   { name: 'Home Services', slug: 'home-services', description: 'Landscaping, cleaning, pest control, HVAC, painting', icon: 'Wrench' },
   { name: 'Education & Tutoring', slug: 'education', description: 'Schools, tutors, music lessons, driving instructors', icon: 'GraduationCap' },

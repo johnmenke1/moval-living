@@ -74,6 +74,22 @@ export const categories: Category[] = [
     image: 'https://images.unsplash.com/photo-1603908915927-3b72e9c2c4b1?w=800&q=80',
   },
   {
+    id: 'hospitality',
+    name: 'Hospitality',
+    slug: 'hospitality',
+    description: 'Hotels, motels, inns, and extended-stay lodging',
+    icon: 'Hotel',
+    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
+  },
+  {
+    id: 'service-clubs',
+    name: 'Service Clubs',
+    slug: 'service-clubs',
+    description: 'Rotary, Lions, Kiwanis, Optimist, Elks, and similar community service clubs',
+    icon: 'Handshake',
+    image: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80',
+  },
+  {
     id: 'beauty',
     name: 'Beauty & Wellness',
     slug: 'beauty',

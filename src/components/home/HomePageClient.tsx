@@ -22,6 +22,8 @@ import {
   Building,
   ShieldCheck,
   Cannabis,
+  Hotel,
+  Handshake,
   type LucideIcon,
 } from 'lucide-react'
 import { categories } from '@/data/categories'
@@ -34,6 +36,10 @@ const categoryColors: Record<string, string> = {
   retail: '#EC4899',
   automotive: '#3B82F6',
   professional: '#6366F1',
+  insurance: '#0EA5E9',
+  dispensaries: '#16A34A',
+  hospitality: '#7C3AED',
+  'service-clubs': '#CA8A04',
   beauty: '#F59E0B',
   'home-services': '#14B8A6',
   education: '#EF4444',
@@ -41,8 +47,6 @@ const categoryColors: Record<string, string> = {
   finance: '#0EA5E9',
   auto: '#3B82F6',
   'real-estate': '#0F766E',
-  insurance: '#0EA5E9',
-  dispensaries: '#16A34A',
 }
 
 const categoryIcons: Record<string, LucideIcon> = {
@@ -61,6 +65,8 @@ const categoryIcons: Record<string, LucideIcon> = {
   Building,
   ShieldCheck,
   Cannabis,
+  Hotel,
+  Handshake,
 }
 
 interface Business {
