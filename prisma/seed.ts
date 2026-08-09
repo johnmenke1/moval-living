@@ -11,7 +11,10 @@ const categories = [
   { name: 'Contractors & Construction', slug: 'contractors', description: 'Home builders, remodelers, plumbers, electricians', icon: 'HardHat' },
   { name: 'Healthcare & Medical', slug: 'healthcare', description: 'Doctors, dentists, clinics, pharmacies, specialists', icon: 'Stethoscope' },
   { name: 'Retail & Shopping', slug: 'retail', description: 'Boutiques, shops, stores, and e-commerce locals', icon: 'ShoppingBag' },
-  { name: 'Auto & Transportation', slug: 'auto', description: 'Auto repair, tires, auto parts, body shops, transportation services', icon: 'Car' },
+  { name: 'Auto Repair', slug: 'auto-repair', description: 'Auto repair shops, mechanics, tire shops, smog, oil change, body shops', icon: 'Wrench' },
+  { name: 'Auto Dealers', slug: 'auto-dealers', description: 'New and used car dealerships and auto sales', icon: 'CarFront' },
+  { name: 'Churches', slug: 'churches', description: 'Churches, chapels, places of worship, and religious congregations', icon: 'Church' },
+  { name: 'Property Management', slug: 'property-management', description: 'Rental management for apartments, condos, shopping centers, and commercial properties', icon: 'Building2' },
   { name: 'Professional Services', slug: 'professional', description: 'Attorneys, accountants, marketing, business consulting', icon: 'Briefcase' },
   { name: 'Insurance Services', slug: 'insurance', description: 'Auto, home, life, health, and commercial insurance agents', icon: 'ShieldCheck' },
   { name: 'Dispensaries', slug: 'dispensaries', description: 'Licensed cannabis dispensaries and delivery services', icon: 'Cannabis' },
@@ -116,7 +119,7 @@ We accept most insurance plans and offer flexible payment options to make dental
 Our ASE-certified technicians handle everything from oil changes and brake service to complete engine repair and transmission work. We also stock a wide selection of tires from top brands at competitive prices, with free rotation and alignment with every purchase.
 
 We believe in honest, upfront pricing with no surprises. Every repair is explained in plain language, and we never recommend work you don't need. Our goal is to build lasting relationships with our customers based on trust and quality workmanship.`,
-      categorySlug: 'automotive',
+      categorySlug: 'auto-repair',
       tier: 'FREE' as const,
       status: 'APPROVED' as const,
       address: '25520 Alessandro Blvd',
