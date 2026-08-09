@@ -58,8 +58,21 @@ async function getBusinesses(params: {
     where.category = { slug: params.category }
   }
 
-  if (params.tier) {
-    where.tier = params.tier.toUpperCase()
+  if (params.tier === 'CHAMBER') {
+    // Show businesses affiliated with either chamber — covers the Chamber
+    // Members filter chip in the search dropdown. We AND this with any
+    // existing search query rather than overwriting it.
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : []),
+      {
+        OR: [
+          { chamberMember: true },
+          { hispanicChamberMember: true },
+        ],
+      },
+    ];
+  } else if (params.tier) {
+    where.tier = params.tier.toUpperCase();
   }
 
   let orderBy: Record<string, unknown> = { createdAt: 'desc' }

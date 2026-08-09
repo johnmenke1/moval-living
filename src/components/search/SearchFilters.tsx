@@ -12,6 +12,7 @@ interface SearchFiltersProps {
     category?: string
     tier?: string
     sort?: string
+    chamber?: string
   }
   resultCount: number
 }
@@ -96,6 +97,7 @@ export function SearchFilters({ categories, currentParams, resultCount }: Search
             <option value="">All Listings</option>
             <option value="FEATURED">Featured Only</option>
             <option value="FREE">Free Only</option>
+            <option value="CHAMBER">Chamber Members</option>
           </select>
 
           <select
@@ -140,7 +142,8 @@ export function SearchFilters({ categories, currentParams, resultCount }: Search
               className="input flex-1"
             >
               <option value="">All Listings</option>
-              <option value="FEATURED">Featured Only</option>
+              <option value="FEATURED">Featured</option>
+              <option value="CHAMBER">Chamber</option>
             </select>
             <select
               value={currentParams.sort || ''}

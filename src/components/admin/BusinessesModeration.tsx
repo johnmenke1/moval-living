@@ -43,7 +43,7 @@ interface BusinessesModerationProps {
 
 export default function BusinessesModeration({ initialBusinesses }: BusinessesModerationProps) {
   const [businesses, setBusinesses] = useState<Business[]>(initialBusinesses)
-  const [filter, setFilter] = useState<'ALL' | BusinessStatus>('ALL')
+  const [filter, setFilter] = useState<'ALL' | BusinessStatus | 'CHAMBER'>('ALL')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -69,7 +69,12 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     setError(data.error || fallback)
   }
 
-  const filtered = filter === 'ALL' ? businesses : businesses.filter(b => b.status === filter)
+  const filtered =
+    filter === 'ALL'
+      ? businesses
+      : filter === 'CHAMBER'
+      ? businesses.filter(b => b.chamberMember || b.hispanicChamberMember)
+      : businesses.filter(b => b.status === filter)
   const searchLower = search.toLowerCase().trim()
   const displayed = searchLower
     ? filtered.filter(b =>
@@ -87,6 +92,7 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     PENDING: businesses.filter(b => b.status === 'PENDING').length,
     APPROVED: businesses.filter(b => b.status === 'APPROVED').length,
     REJECTED: businesses.filter(b => b.status === 'REJECTED').length,
+    CHAMBER: businesses.filter(b => b.chamberMember || b.hispanicChamberMember).length,
   }
 
   const moderate = async (id: string, patch: Record<string, unknown>) => {
@@ -318,7 +324,7 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
         </div>
       )}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-        {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(f => (
+        {(['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CHAMBER'] as const).map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -328,7 +334,7 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
               color: filter === f ? '#fff' : 'var(--text-secondary, #5a6c72)',
             }}
           >
-            {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+            {f === 'ALL' ? 'All' : f === 'CHAMBER' ? 'Chamber Imports' : f.charAt(0) + f.slice(1).toLowerCase()}
             <span
               className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
               style={{
