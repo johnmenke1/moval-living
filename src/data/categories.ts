@@ -171,6 +171,14 @@ export const categories: Category[] = [
     icon: 'Building',
     image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&q=80',
   },
+  {
+    id: 'supply-logistics',
+    name: 'Supply & Logistics',
+    slug: 'supply-logistics',
+    description: 'Trucking, warehousing, distribution, foreign trade zones, material handling, and wholesale supply',
+    icon: 'Truck',
+    image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&q=80',
+  },
 ]
 
 export function getCategoryBySlug(slug: string): Category | undefined {

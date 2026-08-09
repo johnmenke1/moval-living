@@ -27,6 +27,7 @@ const categories = [
   { name: 'Pets & Veterinary', slug: 'pets', description: 'Vets, pet stores, grooming, dog walking, boarding', icon: 'PawPrint' },
   { name: 'Banks & Financial', slug: 'finance', description: 'Banks, credit unions, loan officers, financial advisors', icon: 'Landmark' },
   { name: 'Real Estate & Mortgage', slug: 'real-estate', description: 'Realtors, mortgage brokers, title companies, property managers', icon: 'Building' },
+  { name: 'Supply & Logistics', slug: 'supply-logistics', description: 'Trucking, warehousing, distribution, foreign trade zones, material handling, and wholesale supply', icon: 'Truck' },
 ]
 
 async function main() {
