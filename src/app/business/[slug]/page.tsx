@@ -266,7 +266,14 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
               <div className="p-6 md:p-8">
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4 mb-6">
                   {business.logo && (
-                    <img src={business.logo} alt={`${business.name} logo`} className="w-20 h-20 rounded-xl object-cover border-2 border-white shadow-md -mt-14 sm:-mt-16 mb-2 sm:mb-0" />
+                    // relative + z-10 keeps the logo above the cover image,
+                    // since both render in normal flow and the cover image
+                    // would otherwise paint over the negative-margin logo.
+                    <img
+                      src={business.logo}
+                      alt={`${business.name} logo`}
+                      className="relative z-10 w-20 h-20 rounded-xl object-cover border-2 border-white shadow-md -mt-14 sm:-mt-16 mb-2 sm:mb-0 bg-white"
+                    />
                   )}
                   <div className="flex-1">
                     <h1 className="text-2xl md:text-3xl font-bold text-text mb-1">{business.name}</h1>
