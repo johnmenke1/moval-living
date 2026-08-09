@@ -5,11 +5,16 @@ import { z } from 'zod'
 
 const updateSchema = z.object({
   status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
-  tier: z.enum(['FREE', 'FEATURED']).optional(),
+  tier: z.enum(['FREE', 'FEATURED', 'EXPERT_PARTNER']).optional(),
   categoryId: z.string().optional(),
   googleBusiness: z.string().nullable().optional(),
   googleRating: z.number().min(0).max(5).nullable().optional(),
   googleReviewCount: z.number().int().min(0).nullable().optional(),
+  // Admin-only escape hatch: lets Johnny toggle the Expert Partner flag
+  // manually for grace periods / comp accounts without round-tripping Stripe.
+  // Stripe webhooks still own this in the normal subscription flow.
+  isExpertPartner: z.boolean().optional(),
+  expertPartnerSlug: z.string().nullable().optional(),
 })
 
 // PATCH /api/admin/businesses/[id] — approve/reject/status + admin metadata (google reviews, category)
@@ -44,6 +49,8 @@ export async function PATCH(
   if (parsed.data.googleBusiness !== undefined) data.googleBusiness = parsed.data.googleBusiness ?? null
   if (parsed.data.googleRating !== undefined) data.googleRating = parsed.data.googleRating ?? null
   if (parsed.data.googleReviewCount !== undefined) data.googleReviewCount = parsed.data.googleReviewCount ?? null
+  if (parsed.data.isExpertPartner !== undefined) data.isExpertPartner = parsed.data.isExpertPartner
+  if (parsed.data.expertPartnerSlug !== undefined) data.expertPartnerSlug = parsed.data.expertPartnerSlug ?? null
 
   const business = await prisma.business.update({
     where: { id },
