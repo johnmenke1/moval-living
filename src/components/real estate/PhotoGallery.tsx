@@ -61,6 +61,24 @@ export function PhotoGallery({ photos, address }: PhotoGalleryProps) {
     }
   }, [lightboxIndex])
 
+  // Touch swipe state for the lightbox image. We track horizontal
+  // distance only — vertical swipes do nothing (lets users scroll the
+  // page if it ever scrolls, and avoids accidental triggers). Threshold
+  // of 50px is the standard "definitely a swipe, not a tap" distance.
+  const [touchStartX, setTouchStartX] = useState<number | null>(null)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX)
+  }
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return
+    const delta = e.changedTouches[0].clientX - touchStartX
+    if (Math.abs(delta) > 50) {
+      if (delta < 0) next()
+      else prev()
+    }
+    setTouchStartX(null)
+  }
+
   if (photos.length === 0) {
     return (
       <div className="w-full h-72 bg-slate-100 flex items-center justify-center">
@@ -180,13 +198,17 @@ export function PhotoGallery({ photos, address }: PhotoGalleryProps) {
           )}
 
           {/* Main image — click stops propagation so clicking the image
-              itself doesn't close the modal. */}
+              itself doesn't close the modal. Touch events enable swipe
+              navigation on mobile. */}
           <img
             key={lightboxIndex /* force re-render between photos */}
             src={photos[lightboxIndex]}
             alt={`${address} — photo ${lightboxIndex + 1}`}
-            className="max-w-[95vw] max-h-[90vh] object-contain select-none"
+            className="max-w-[95vw] max-h-[90vh] object-contain select-none touch-pan-y"
+            draggable={false}
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           />
         </div>
       )}
