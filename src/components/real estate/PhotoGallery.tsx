@@ -11,6 +11,7 @@ interface PhotoGalleryProps {
 const MIN_ZOOM = 1
 const MAX_ZOOM = 4
 const SWIPE_THRESHOLD = 50 // px of horizontal travel to count as a swipe
+const SWIPE_DOWN_TO_CLOSE_THRESHOLD = 80 // px of downward vertical travel
 
 /**
  * Photo gallery for the listing detail page.
@@ -25,6 +26,7 @@ const SWIPE_THRESHOLD = 50 // px of horizontal travel to count as a swipe
  *  - Arrow keys + on-screen buttons to navigate between photos
  *  - Esc closes; click on backdrop closes
  *  - Touch swipe left/right to navigate (when not zoomed)
+ *  - Touch swipe down to close (when not zoomed)
  *  - Pinch with two fingers to zoom (1x–4x); drag with one finger to pan
  *    while zoomed
  *  - Ctrl/Cmd + scroll wheel to zoom on desktop
@@ -245,9 +247,15 @@ export function PhotoGallery({ photos, address }: PhotoGalleryProps) {
     if (g.swipeStartX !== null && e.changedTouches.length === 1) {
       const deltaX = e.changedTouches[0].clientX - g.swipeStartX
       const deltaY = e.changedTouches[0].clientY - (g.swipeStartY ?? 0)
-      // Only horizontal swipes count — vertical swipes might be a
-      // scroll attempt, leave alone.
-      if (Math.abs(deltaX) > SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
+      // Vertical-only downward swipe → close the lightbox (mobile UX
+      // convention; matches Instagram, Twitter, etc). Horizontal swipe
+      // → next/prev as before.
+      if (
+        deltaY > SWIPE_DOWN_TO_CLOSE_THRESHOLD &&
+        Math.abs(deltaY) > Math.abs(deltaX)
+      ) {
+        close()
+      } else if (Math.abs(deltaX) > SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
         if (deltaX < 0) next()
         else prev()
       }
@@ -367,13 +375,16 @@ export function PhotoGallery({ photos, address }: PhotoGalleryProps) {
               role="status"
               aria-live="polite"
             >
-              <div className="flex items-center gap-3 bg-black/60 text-white text-sm font-medium px-4 py-2.5 rounded-full backdrop-blur-sm shadow-lg">
-                <span className="flex items-center gap-1">
+              <div className="flex flex-col items-center gap-1 bg-black/60 text-white text-xs font-medium px-4 py-2.5 rounded-2xl backdrop-blur-sm shadow-lg">
+                <span className="flex items-center gap-2">
                   <ChevronLeft className="w-4 h-4" />
                   <Hand className="w-4 h-4" />
                   <ChevronRight className="w-4 h-4" />
+                  <span>Swipe to navigate · Pinch to zoom</span>
                 </span>
-                <span>Swipe to navigate · Pinch to zoom</span>
+                <span className="text-white/70 text-[10px] uppercase tracking-wide">
+                  Swipe down to close
+                </span>
               </div>
             </div>
           )}
