@@ -28,18 +28,26 @@ async function getCategory(slug: string) {
       // Parent categories (e.g. best-real-estate) group sub-categories
       // (best-overall-real-estate-agent, best-agent-rancho-belago, etc.)
       // whose individual winners make up the parent's picks.
+      //
+      // We pull the FULL nominee list (not just winners) so the parent
+      // page can render each sub-category as a titled section with full
+      // business cards inline — avoiding an extra click before the user
+      // sees the actual listing.
       subCategories: {
         where: { published: true },
         orderBy: { name: 'asc' },
         include: {
           nominees: {
-            where: { winner: true },
             include: {
               business: {
-                select: { id: true, name: true, slug: true, logo: true },
+                select: {
+                  id: true, name: true, slug: true, address: true, city: true, state: true,
+                  logo: true, website: true, phone: true,
+                  googleRating: true, googleReviewCount: true,
+                },
               },
             },
-            take: 1,
+            orderBy: [{ winner: 'desc' }, { displayOrder: 'asc' }],
           },
           _count: { select: { nominees: true } },
         },
@@ -137,8 +145,9 @@ export default async function BestOfCategoryPage({ params }: Props) {
 
       <div className="container-max py-10">
         {cat.subCategories.length > 0 ? (
-          // Parent category — show its sub-categories with their winners
-          <SubCategoryList subCategories={cat.subCategories} emoji={emoji} />
+          // Parent category — show each sub-category as a titled section
+          // with the full nominee cards listed inline below.
+          <SubCategorySections subCategories={cat.subCategories} />
         ) : nominees.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-5xl mb-4">{emoji}</p>
@@ -296,75 +305,57 @@ function getCategoryEmoji(icon: string): string {
   return map[icon] ?? '⭐'
 }
 
-// ── Parent category: list of sub-categories with winners ─────────────────────
+// ── Parent category: titled sections with full nominee cards inline ──────────
+//
+// Each sub-category gets a section header (e.g. "Best Overall Real Estate
+// Agent") and the full NomineeCard list right underneath. The user goes
+// directly from /best-of/[parent] → /business/[slug] without an extra click
+// in between.
 
 type SubCategoryRow = {
   id: string
   slug: string
   name: string
   icon: string | null
-  nominees: Array<{
-    business: { id: string; name: string; slug: string; logo: string | null }
-  }>
+  nominees: Nominee[]
   _count: { nominees: number }
 }
 
-function SubCategoryList({
-  subCategories,
-  emoji,
-}: {
-  subCategories: SubCategoryRow[]
-  emoji: string
-}) {
+function SubCategorySections({ subCategories }: { subCategories: SubCategoryRow[] }) {
   return (
-    <div className="space-y-3 max-w-3xl mx-auto">
-      {subCategories.map(sub => {
-        const winner = sub.nominees[0]?.business
-        const hasWinner = !!winner
-        return (
-          <Link
-            key={sub.id}
-            href={`/best-of/${sub.slug}`}
-            className="flex items-center gap-4 bg-white border border-slate-100 rounded-2xl p-5 hover:border-primary hover:shadow-md transition-all group"
-          >
-            {/* Rank / emoji */}
-            <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0 ${
-              hasWinner ? 'bg-amber-50' : 'bg-slate-50'
-            }`}>
-              {sub.icon ? getCategoryEmoji(sub.icon) : emoji}
-            </div>
-
-            {/* Name + winner */}
-            <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-text text-lg leading-tight group-hover:text-primary transition-colors">
-                {sub.name}
-              </h3>
-              {hasWinner ? (
-                <p className="text-sm text-text-secondary mt-0.5">
-                  🏆 Winner: <span className="font-medium text-text">{winner!.name}</span>
-                </p>
-              ) : (
-                <p className="text-sm text-text-secondary mt-0.5">No winner assigned yet</p>
-              )}
-              {sub._count.nominees > 1 && (
-                <p className="text-xs text-text-secondary mt-0.5">
-                  + {sub._count.nominees - 1} more {sub._count.nominees - 1 === 1 ? 'pick' : 'picks'}
-                </p>
-              )}
-            </div>
-
-            {/* Winner logo + arrow */}
-            {hasWinner && winner!.logo && (
-              <div className="w-12 h-12 rounded-xl border border-slate-100 overflow-hidden bg-white shrink-0 hidden sm:block">
-                <img src={winner!.logo} alt={winner!.name} className="w-full h-full object-contain" />
-              </div>
+    <div className="space-y-12">
+      {subCategories.map(sub => (
+        <section key={sub.id}>
+          {/* Sub-category title */}
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-2xl">{sub.icon ? getCategoryEmoji(sub.icon) : '🏆'}</span>
+            <h2 className="text-xl sm:text-2xl font-bold text-text">{sub.name}</h2>
+            {sub._count.nominees > 0 && (
+              <span className="text-xs bg-slate-100 text-text-secondary px-2 py-0.5 rounded-full">
+                {sub._count.nominees} {sub._count.nominees === 1 ? 'pick' : 'picks'}
+              </span>
             )}
-            <span className="text-text-secondary group-hover:text-primary text-sm shrink-0">
-              View →
-            </span>
-          </Link>
-        )
-      })}
+          </div>
+
+          {/* Nominees inline */}
+          {sub.nominees.length === 0 ? (
+            <div className="bg-white border border-slate-100 rounded-2xl p-6 text-center text-text-secondary">
+              No winner assigned yet.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {sub.nominees.map((nominee, idx) => (
+                <NomineeCard
+                  key={nominee.id}
+                  nominee={nominee}
+                  rank={idx + 1}
+                  emoji={sub.icon ? getCategoryEmoji(sub.icon) : '🏆'}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
     </div>
   )
 }
