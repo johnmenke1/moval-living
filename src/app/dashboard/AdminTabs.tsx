@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, MessageSquare, Trophy, Users, FileText, Activity } from 'lucide-react'
+import { Building2, MessageSquare, Trophy, Users, FileText, Activity, Shield } from 'lucide-react'
 import BusinessesModeration from '@/components/admin/BusinessesModeration'
 import SocialPostsModeration from '@/components/admin/SocialPostsModeration'
 import BestOfAdmin from '@/components/admin/BestOfAdmin'
 import GuestAuthorsPanel from '@/components/admin/GuestAuthorsPanel'
 import GuestPostsPanel from '@/components/admin/GuestPostsPanel'
 import DiagnosticsPanel from '@/components/admin/DiagnosticsPanel'
+import AuditsPanel from '@/components/admin/AuditsPanel'
 import { clsx } from 'clsx'
 
 interface AdminTabsProps {
@@ -19,7 +20,7 @@ interface AdminTabsProps {
   approvedBusinesses: any[]
 }
 
-type TabKey = 'businesses' | 'social' | 'bestof' | 'guestauthors' | 'guestposts' | 'diagnostics'
+type TabKey = 'businesses' | 'social' | 'bestof' | 'guestauthors' | 'guestposts' | 'audits' | 'diagnostics'
 
 const TABS: { key: TabKey; label: string; icon: typeof Building2; count?: (p: AdminTabsProps) => number }[] = [
   { key: 'businesses', label: 'Businesses', icon: Building2,
@@ -32,6 +33,7 @@ const TABS: { key: TabKey; label: string; icon: typeof Building2; count?: (p: Ad
     count: (p) => p.guestAuthors.filter((a: any) => a.isActive).length },
   { key: 'guestposts', label: 'Posts', icon: FileText,
     count: (p) => p.guestPosts.filter((x: any) => x.status === 'draft').length },
+  { key: 'audits', label: 'Audits', icon: Shield },
   { key: 'diagnostics', label: 'Diagnostics', icon: Activity },
 ]
 
@@ -86,6 +88,7 @@ export default function AdminTabs({ businesses, posts, bestOfCategories, guestAu
         {active === 'bestof' && <BestOfAdmin initialCategories={bestOfCategories} />}
         {active === 'guestauthors' && <GuestAuthorsPanel initialAuthors={guestAuthors} approvedBusinesses={approvedBusinesses} />}
         {active === 'guestposts' && <GuestPostsPanel initialPosts={guestPosts} authors={guestAuthors.map((a: any) => ({ id: a.id, displayName: a.displayName, slug: a.slug }))} />}
+        {active === 'audits' && <AuditsPanel />}
         {active === 'diagnostics' && <DiagnosticsPanel />}
       </div>
     </div>

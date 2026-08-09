@@ -63,29 +63,11 @@ async function ghlUpdateCompanyCustomFields(
   ghlCompanyId: string,
   fields: { summary: string; score: number; date: string }
 ) {
-  if (!GHL_API_KEY) return;
-  try {
-    await fetch(
-      `https://services.leadconnectorhq.com/businesses/${ghlCompanyId}`,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${GHL_API_KEY}`,
-          Version: '2021-07-28',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          customFields: [
-            { key: 'movalliving_audit_summary', value: fields.summary },
-            { key: 'movalliving_audit_score', value: String(fields.score) },
-            { key: 'movalliving_audit_date', value: fields.date },
-          ],
-        }),
-      }
-    );
-  } catch {
-    // Best-effort mirror — never fail the audit on GHL errors
-  }
+  // GHL's Companies endpoint does NOT support writing custom fields
+  // (only Contacts does). The audit data is the source of truth in
+  // the moval DB and the admin UI; this function is a no-op kept for
+  // future contact-level integration.
+  return;
 }
 
 async function main() {
