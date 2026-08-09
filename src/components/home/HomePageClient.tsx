@@ -22,6 +22,8 @@ import {
   Building,
   ShieldCheck,
   Cannabis,
+  Hotel,
+  Handshake,
   type LucideIcon,
 } from 'lucide-react'
 import { categories } from '@/data/categories'
@@ -43,6 +45,8 @@ const categoryColors: Record<string, string> = {
   'real-estate': '#0F766E',
   insurance: '#0EA5E9',
   dispensaries: '#16A34A',
+  hospitality: '#0F766E',
+  'service-clubs': '#DC2626',
 }
 
 const categoryIcons: Record<string, LucideIcon> = {
@@ -61,6 +65,8 @@ const categoryIcons: Record<string, LucideIcon> = {
   Building,
   ShieldCheck,
   Cannabis,
+  Hotel,
+  Handshake,
 }
 
 interface Business {
