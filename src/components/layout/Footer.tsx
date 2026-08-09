@@ -48,9 +48,12 @@ export function Footer() {
               Moreno Valley&apos;s go-to guide for discovering trusted local businesses, stories, events, and experiences.
             </p>
             <div className="space-y-2 text-sm text-slate-400">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-secondary" />
-                <span>Moreno Valley, California</span>
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-secondary mt-0.5 flex-shrink-0" />
+                <span>
+                  23110 Atlantic Circle, Suite F<br />
+                  Moreno Valley, CA 92553
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-secondary" />
@@ -88,9 +91,11 @@ export function Footer() {
           <p className="text-sm text-slate-500">
             &copy; {new Date().getUTCFullYear()} moval.living — Moreno Valley Local Business Directory. All rights reserved.
           </p>
-          <p className="text-sm text-slate-500">
-            Built with ❤️ for Moreno Valley
-          </p>
+          <div className="flex items-center gap-4 text-xs text-slate-500">
+            <Link href="/terms" className="transition-colors hover:text-white">Terms of Service</Link>
+            <Link href="/privacy" className="transition-colors hover:text-white">Privacy Policy</Link>
+            <span>Built with ❤️ for Moreno Valley</span>
+          </div>
         </div>
       </div>
     </footer>

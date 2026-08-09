@@ -62,6 +62,11 @@ model Business {
   metaTitle       String?
   metaDescription String?
 
+  // CAN-SPAM / 10DLC / TCPA consent (recorded at submit-time, before claim)
+  submitterEmailOptIn Boolean   @default(false)
+  submitterSmsOptIn   Boolean   @default(false)
+  submitterConsentAt  DateTime?
+
   // Coupon/Deal
   hasCoupon Boolean @default(false)
   coupon    Json?
@@ -109,21 +114,28 @@ model Category {
 }
 
 model Owner {
-  id            String        @id @default(cuid())
-  role          UserRole      @default(USER)
-  name          String?
-  email         String        @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?
-  resetToken    String?       @unique
-  resetExpires  DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  accounts      Account[]
-  sessions      Session[]
-  business      Business?
-  guestAuthors  GuestAuthor[]
+  id               String    @id @default(cuid())
+  role             UserRole  @default(USER)
+  name             String?
+  email            String    @unique
+  emailVerified    DateTime?
+  image            String?
+  passwordHash     String?
+  resetToken       String?   @unique
+  resetExpires     DateTime?
+  phone            String? // for future SMS opt-in
+  // CAN-SPAM / 10DLC / TCPA consent tracking
+  emailOptIn       Boolean   @default(false)
+  smsOptIn         Boolean   @default(false)
+  emailConsentAt   DateTime?
+  smsConsentAt     DateTime?
+  smsConsentSource String? // e.g. 'claim-form', 'submit-form', 'landing-page'
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  accounts         Account[]
+  sessions         Session[]
+  business         Business?
+  guestAuthors     GuestAuthor[]
 }
 
 enum UserRole {

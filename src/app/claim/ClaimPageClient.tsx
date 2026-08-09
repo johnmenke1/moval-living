@@ -15,12 +15,15 @@ export default function ClaimPageClient() {
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [phone, setPhone] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
   const [validating, setValidating] = useState(false)
   const [businessName, setBusinessName] = useState('')
+  const [emailOptIn, setEmailOptIn] = useState(false)
+  const [smsOptIn, setSmsOptIn] = useState(false)
 
   // Step 1: validate token and fetch business name
   useEffect(() => {
@@ -68,6 +71,9 @@ export default function ClaimPageClient() {
           email: email.trim().toLowerCase(),
           password,
           name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' ') || undefined,
+          phone: phone.trim() || undefined,
+          emailOptIn,
+          smsOptIn,
         }),
       })
 
@@ -200,6 +206,61 @@ export default function ClaimPageClient() {
                       </div>
                       <p className="text-xs text-text-secondary mt-1">Used for all future sign-ins. Minimum 8 characters.</p>
                     </div>
+
+                    <div>
+                      <label className="label">Phone (optional — for SMS updates)</label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                        className="input"
+                        placeholder="(555) 123-4567"
+                        autoComplete="tel"
+                      />
+                    </div>
+
+                    {/* CAN-SPAM / 10DLC / TCPA consent */}
+                    <div className="border-t border-slate-100 pt-4 space-y-3">
+                      <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                        Communications Consent (optional)
+                      </p>
+
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={emailOptIn}
+                          onChange={e => setEmailOptIn(e.target.checked)}
+                          className="mt-0.5 rounded border-slate-300 text-primary focus:ring-primary"
+                        />
+                        <span className="text-xs text-text-secondary leading-relaxed">
+                          Yes, send me emails about my listing, claim status, and tips for
+                          getting more customers. Unsubscribe anytime. Required for
+                          transactional emails only.
+                        </span>
+                      </label>
+
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={smsOptIn}
+                          onChange={e => setSmsOptIn(e.target.checked)}
+                          className="mt-0.5 rounded border-slate-300 text-primary focus:ring-primary"
+                        />
+                        <span className="text-xs text-text-secondary leading-relaxed">
+                          I consent to receive SMS messages from moval.living. Message
+                          frequency varies. Standard rates may apply. Reply STOP to
+                          unsubscribe. See our{' '}
+                          <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
+                        </span>
+                      </label>
+                    </div>
+
+                    <p className="text-xs text-text-secondary leading-relaxed">
+                      By creating an account, you agree to our{' '}
+                      <a href="/terms" className="text-primary hover:underline">Terms of Service</a>{' '}
+                      and{' '}
+                      <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
+                    </p>
 
                     {error && (
                       <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

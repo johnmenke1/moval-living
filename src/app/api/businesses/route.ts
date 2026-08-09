@@ -31,7 +31,11 @@ export async function POST(req: NextRequest) {
     phone, email, website, description, facebook, instagram, yelp,
     hasCoupon, couponHeadline, couponDescription, couponCode, couponExpiresAt,
     hours, latitude, longitude,
+    emailOptIn = false,
+    smsOptIn = false,
   } = body
+  const hasEmailConsent = Boolean(emailOptIn)
+  const hasSmsConsent = Boolean(smsOptIn) 
 
   if (!name || !categoryId || !address || !zip || !description) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -105,6 +109,19 @@ export async function POST(req: NextRequest) {
       status: 'PENDING',
     },
   })
+
+  // Persist consent at submit-time (audit trail for 10DLC).
+  // Mirrored to the Owner when they claim the listing.
+  if (hasEmailConsent || hasSmsConsent) {
+    await prisma.business.update({
+      where: { id: business.id },
+      data: {
+        submitterEmailOptIn: hasEmailConsent,
+        submitterSmsOptIn: hasSmsConsent,
+        submitterConsentAt: new Date(),
+      },
+    })
+  }
 
   return NextResponse.json({ slug: business.slug, claimToken, name: business.name }, { status: 201 })
 }

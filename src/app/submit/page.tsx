@@ -83,6 +83,8 @@ export default function SubmitPage() {
     couponDescription: '',
     couponCode: '',
     couponExpiresAt: '',
+    emailOptIn: false,
+    smsOptIn: false,
   })
 
   const update = (field: string, value: string | boolean | Record<string, unknown>) => {
@@ -127,6 +129,8 @@ export default function SubmitPage() {
           hours: form.hours || undefined,
           latitude: form.latitude,
           longitude: form.longitude,
+          emailOptIn: form.emailOptIn,
+          smsOptIn: form.smsOptIn,
         }),
       })
       if (!res.ok) {
@@ -413,6 +417,47 @@ export default function SubmitPage() {
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-sm">
                   ✅ Your listing will be reviewed within 1–2 business days. You&apos;ll receive an email once it&apos;s live.
                 </div>
+
+                {/* CAN-SPAM / 10DLC / TCPA consent */}
+                <div className="border-t border-slate-100 pt-4 space-y-3">
+                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    Communications Consent (optional)
+                  </p>
+
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.emailOptIn}
+                      onChange={e => update('emailOptIn', e.target.checked)}
+                      className="mt-0.5 rounded border-slate-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-xs text-text-secondary leading-relaxed">
+                      Yes, send me emails about my listing status and tips for getting more
+                      customers. Unsubscribe anytime. Required for transactional emails only.
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.smsOptIn}
+                      onChange={e => update('smsOptIn', e.target.checked)}
+                      className="mt-0.5 rounded border-slate-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-xs text-text-secondary leading-relaxed">
+                      I consent to receive SMS messages from moval.living. Message frequency
+                      varies. Standard rates may apply. Reply STOP to unsubscribe. See our{' '}
+                      <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
+                    </span>
+                  </label>
+                </div>
+
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  By submitting, you agree to our{' '}
+                  <a href="/terms" className="text-primary hover:underline">Terms of Service</a>{' '}
+                  and{' '}
+                  <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
+                </p>
               </div>
             )}
 
