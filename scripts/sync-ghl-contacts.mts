@@ -23,9 +23,12 @@
  * Usage:
  *   GHL_API_TOKEN=... GHL_LOCATION_ID=... DATABASE_URL=... \
  *     npx tsx scripts/sync-ghl-contacts.mts
- *   [--limit=10]    # smoke test
- *   [--dry-run]     # show what would happen, no API calls
- *   [--skip-update] # only create missing, don't touch existing
+ *   [--limit=10]                 # smoke test
+ *   [--dry-run]                  # show what would happen, no API calls
+ *   [--skip-update]              # only create missing, don't touch existing
+ *   [--backfill-listing-url]     # only update the listing URL custom field on
+ *                                # contacts that are already linked. Used to
+ *                                # push URLs after the field is created in UI.
  */
 
 const TOKEN = process.env.GHL_API_TOKEN;
@@ -38,6 +41,11 @@ const limitArg = args.find((a) => a.startsWith('--limit='));
 const LIMIT = limitArg ? parseInt(limitArg.split('=')[1], 10) : null;
 const DRY_RUN = args.includes('--dry-run');
 const SKIP_UPDATE = args.includes('--skip-update');
+const BACKFILL_LISTING_URL = args.includes('--backfill-listing-url');
+
+// Field ID for `movalliving_listing_url` (TEXT) — created in GHL UI on 2026-08-10.
+// Read at runtime via the custom-fields endpoint so we don't hardcode.
+let LISTING_URL_FIELD_ID: string | null = null;
 
 const TAG = 'movalliving-cold-outreach';
 const API = 'https://services.leadconnectorhq.com';
@@ -173,19 +181,67 @@ async function getContactTags(contactId: string): Promise<string[]> {
   return tags ?? [];
 }
 
+// Discover the listing-URL custom field id at runtime.
+// Returns null if the field doesn't exist (so caller can skip the write).
+async function discoverListingUrlFieldId(): Promise<string | null> {
+  const res = await fetch(`${API}/locations/${LOC}/customFields`, { headers: HEADERS });
+  if (!res.ok) return null;
+  const data = await res.json() as { customFields?: { id: string; fieldKey: string }[] };
+  const f = (data.customFields ?? []).find((x) => x.fieldKey === 'contact.movalliving_listing_url');
+  return f?.id ?? null;
+}
+
+function listingUrlFor(slug: string): string {
+  return `https://www.moval.living/businesses/${slug}`;
+}
+
+// Write the listing URL to a contact's custom field. No-op if field id unknown.
+async function writeListingUrl(contactId: string, slug: string): Promise<void> {
+  if (!LISTING_URL_FIELD_ID) return;
+  const url = listingUrlFor(slug);
+  const res = await fetch(`${API}/contacts/${contactId}`, {
+    method: 'PUT',
+    headers: HEADERS,
+    body: JSON.stringify({
+      customFields: [{ id: LISTING_URL_FIELD_ID, value: url }],
+    }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`PUT listingUrl ${res.status}: ${txt.slice(0, 200)}`);
+  }
+}
+
 async function main() {
+  // Resolve the listing-URL field id at startup (best-effort — missing field
+  // doesn't block the sync, it just skips that step).
+  LISTING_URL_FIELD_ID = await discoverListingUrlFieldId();
+  if (LISTING_URL_FIELD_ID) {
+    console.log(`🔗 Listing URL field id: ${LISTING_URL_FIELD_ID}`);
+  } else {
+    console.log(`⚠️  No 'contact.movalliving_listing_url' field at this location — skipping URL writes`);
+  }
+
   const p = getPrisma();
+
+  // Two query modes:
+  //   default: businesses with email + ghlCompanyId but no ghlContactId (need full create+link)
+  //   --backfill-listing-url: businesses with ghlContactId already set (just write the URL)
+  const where: any = BACKFILL_LISTING_URL
+    ? { status: 'APPROVED', ghlContactId: { not: null }, slug: { not: '' } }
+    : {
+        status: 'APPROVED',
+        email: { not: null },
+        ghlCompanyId: { not: null },
+        ghlContactId: null,
+      };
+
   const candidates = await p.business.findMany({
-    where: {
-      status: 'APPROVED',
-      email: { not: null },
-      ghlCompanyId: { not: null },
-      // Skip if already linked
-      ghlContactId: null,
-    },
+    where,
     select: {
       id: true,
       name: true,
+      slug: true,
       email: true,
       phone: true,
       ghlCompanyId: true,
@@ -196,11 +252,12 @@ async function main() {
   });
 
   console.log(`\n📤 GHL Contacts sync: ${candidates.length} businesses`);
-  console.log(`   Mode: ${DRY_RUN ? 'DRY RUN' : SKIP_UPDATE ? 'create-only' : 'create + update'}\n`);
+  console.log(`   Mode: ${DRY_RUN ? 'DRY RUN' : BACKFILL_LISTING_URL ? 'backfill listing URL only' : SKIP_UPDATE ? 'create-only' : 'create + update'}\n`);
 
   let created = 0;
   let linkedExisting = 0;
   let taggedExisting = 0;
+  let urlWritten = 0;
   let failed = 0;
   const failures: { name: string; error: string }[] = [];
 
@@ -210,13 +267,34 @@ async function main() {
     process.stdout.write(`[${i + 1}/${candidates.length}] ${c.name.padEnd(40)} `);
 
     if (DRY_RUN) {
-      console.log(`would sync ${c.email}`);
+      if (BACKFILL_LISTING_URL) {
+        console.log(`would write URL ${listingUrlFor(c.slug ?? '')}`);
+      } else {
+        console.log(`would sync ${c.email}`);
+      }
       continue;
     }
 
     try {
+      // For backfill mode, we already know the contactId from the DB.
+      let contactId: string | null = BACKFILL_LISTING_URL ? c.ghlContactId : null;
+
+      if (BACKFILL_LISTING_URL) {
+        // Just write the URL — that's the whole job.
+        if (c.slug && LISTING_URL_FIELD_ID && contactId) {
+          await writeListingUrl(contactId, c.slug);
+          console.log(`🔗 URL ${listingUrlFor(c.slug)}`);
+          urlWritten++;
+        } else {
+          console.log(`(skip — no slug or no field)`);
+        }
+        continue;
+      }
+
       // 1. Look for existing contact at our location with this email
-      let contactId = await findContactByEmail(c.email);
+      if (!contactId) {
+        contactId = await findContactByEmail(c.email);
+      }
 
       if (contactId) {
         console.log(`♻️  exists ${contactId}`);
@@ -244,6 +322,12 @@ async function main() {
           await updateContactTags(contactId, currentTags);
           taggedExisting++;
         }
+      }
+
+      // 4b. Write the MoVal.living listing URL to the contact custom field
+      //     (so email templates can use {{contact.movalliving_listing_url}})
+      if (LISTING_URL_FIELD_ID && c.slug) {
+        await writeListingUrl(contactId, c.slug);
       }
 
       // 5. Save contactId to our DB — but if it's a duplicate business row
@@ -277,6 +361,7 @@ async function main() {
   console.log(`Created:      ${created}`);
   console.log(`Linked (existing): ${linkedExisting}`);
   console.log(`Tagged (existing): ${taggedExisting}`);
+  console.log(`URLs written: ${urlWritten}`);
   console.log(`Failed:       ${failed}`);
 
   if (failures.length > 0) {

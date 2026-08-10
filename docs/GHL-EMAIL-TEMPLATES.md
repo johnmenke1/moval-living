@@ -60,11 +60,19 @@ Paste each HTML block into the GHL email template editor (Marketing → Emails �
                 <li>Be featured in our weekly "Best of MoVal" newsletter</li>
               </ul>
 
+              <p style="color: #1f2937; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
+                Here's the page we created for <strong>{{contact.last_name}}</strong>:
+              </p>
+
               <p style="margin: 0 0 24px 0;">
-                <a href="https://moval.living/claim?email={{contact.email | urlencode}}"
-                   style="display: inline-block; padding: 14px 28px; background: #007a7f; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                  Claim Your Free Listing →
+                <a href="{{contact.movalliving_listing_url}}"
+                   style="display: inline-block; padding: 14px 28px; background: #ffffff; color: #007a7f; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; border: 2px solid #007a7f;">
+                  View Your Listing →
                 </a>
+              </p>
+
+              <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
+                Already looks good? <a href="https://moval.living/claim?email={{contact.email | urlencode}}" style="color: #007a7f; font-weight: 600;">Claim it in 2 minutes →</a>
               </p>
 
               <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0 0 8px 0;">
@@ -130,6 +138,10 @@ Paste each HTML block into the GHL email template editor (Marketing → Emails �
                 <li><strong>Reviews work both ways</strong> — you can respond to feedback publicly</li>
               </ul>
 
+              <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
+                First time seeing this? <a href="{{contact.movalliving_listing_url}}" style="color: #007a7f; font-weight: 600;">Take a quick look at your page →</a>
+              </p>
+
               <p style="margin: 0 0 24px 0;">
                 <a href="https://moval.living/claim?email={{contact.email | urlencode}}"
                    style="display: inline-block; padding: 14px 28px; background: #007a7f; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
@@ -188,6 +200,10 @@ Paste each HTML block into the GHL email template editor (Marketing → Emails �
                 on moval.living, but your competitors are claiming their spots
                 (32 of them in the last week). If you'd like to keep your listing
                 accurate and answer customer reviews, claim it now:
+              </p>
+
+              <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
+                Curious what it looks like? <a href="{{contact.movalliving_listing_url}}" style="color: #007a7f; font-weight: 600;">See your page here →</a>
               </p>
 
               <p style="margin: 0 0 16px 0;">
