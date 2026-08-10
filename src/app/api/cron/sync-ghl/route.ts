@@ -11,22 +11,27 @@
  * The body of the request is logged but not consumed.
  *
  * Returns:
- *   { ok: true, total, created, updated, failed, failures?, processed? }
+ *   { ok: true, companies: {...}, contacts: {...} }
  *   { ok: false, error: 'Unauthorized' } (401)
  *   { ok: false, error: '...' } (500)
  *
- * For the cron run we only care about NEW businesses (onlyMissing: true)
- * since regular full-syncs are still run manually via scripts/sync-ghl.mts.
- * The cron job is the "catch the new ones" safety net.
+ * Two passes per run:
+ *   1. Companies: pick up businesses that lack a ghlCompanyId (the
+ *      "new business was just created" case). Cheap when nothing new.
+ *   2. Contacts: pick up businesses-with-email that lack a ghlContactId
+ *      (the "newly created business has an email" case AND the
+ *      "claim flow didn't create a contact" case). Both are handled
+ *      by the same filter.
  *
- * Time: a typical run with 0-3 new businesses finishes in <5s. Larger
- * backlogs (e.g. after a long GHL downtime) cap at the Vercel function
- * timeout (default 10s on Hobby, 60s on Pro). Worst case: a few lag
- * cycles to catch up.
+ * Both passes are pure catchup work — they only operate on missing
+ * records. Regular full-syncs are still run manually via the scripts/.
+ *
+ * Time: typical run with 0-3 new records finishes in 2-5s. Worst
+ * case is bounded by Vercel function timeout (maxDuration below).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { syncBusinessesToGhl } from '@/lib/ghl-sync';
+import { syncBusinessesToGhl, syncContactsToGhl } from '@/lib/ghl-sync';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Vercel Pro: 60s. Hobby: 10s (Vercel will warn).
@@ -45,18 +50,45 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
+  const t0 = Date.now();
+
   try {
-    const result = await syncBusinessesToGhl({ onlyMissing: true });
+    // Pass 1: New Companies
+    const companies = await syncBusinessesToGhl({ onlyMissing: true });
+
+    // Pass 2: New Contacts (catches both new submissions AND claims)
+    const contacts = await syncContactsToGhl({ onlyMissing: true });
+
     const summary: any = {
       ok: true,
-      total: result.total,
-      created: result.created,
-      updated: result.updated,
-      failed: result.failed,
+      elapsedMs: Date.now() - t0,
+      companies: {
+        total: companies.total,
+        created: companies.created,
+        updated: companies.updated,
+        failed: companies.failed,
+      },
+      contacts: {
+        total: contacts.total,
+        created: contacts.created,
+        linkedExisting: contacts.linkedExisting,
+        taggedExisting: contacts.taggedExisting,
+        urlsWritten: contacts.urlsWritten,
+        failed: contacts.failed,
+      },
     };
-    if (result.failed > 0) {
-      summary.failures = result.failures.slice(0, 10);
+
+    const failures: any[] = [];
+    if (companies.failed > 0) {
+      failures.push(...companies.failures.slice(0, 10).map((f) => ({ kind: 'company', ...f })));
     }
+    if (contacts.failed > 0) {
+      failures.push(...contacts.failures.slice(0, 10).map((f) => ({ kind: 'contact', ...f })));
+    }
+    if (failures.length > 0) {
+      summary.failures = failures;
+    }
+
     return NextResponse.json(summary);
   } catch (e: any) {
     return NextResponse.json(

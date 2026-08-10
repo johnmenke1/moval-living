@@ -1,34 +1,27 @@
 /**
- * Push our DB businesses-with-email as Contacts into GoHighLevel.
+ * Push DB businesses-with-email as GHL Contacts via the shared
+ * syncContactsToGhl() function in src/lib/ghl-sync.ts.
  *
- * For each business in our DB that has both an email AND a ghlCompanyId:
- *   1. Check GHL if a contact with that email already exists at our location.
- *   2. If yes — PUT to update tags + businessId link.
- *   3. If no — POST to create, then PUT to link businessId.
+ * For each business with email + ghlCompanyId but no ghlContactId:
+ *   1. Search GHL by email — reuse if found
+ *   2. POST to create a new Contact (firstName="Team", lastName=<business>)
+ *   3. PUT to link businessId
+ *   4. PUT to ensure tag 'movalliving-cold-outreach' is set
+ *   5. PUT to set movalliving_listing_url custom field
+ *   6. Save GHL contactId back to Business.ghlContactId
  *
- * Contact shape:
- *   firstName:   "Team"
- *   lastName:    <business name>
- *   email:       <our stored email>
- *   phone:       <business phone, if any>
- *   locationId:  GHL_LOCATION_ID
- *   tags:        ["movalliving-cold-outreach"]
- *
- * After creation, save the GHL contactId back to our DB on
- * Business.ghlContactId so we have a permanent link for future syncs.
- *
- * Idempotent: re-running does not create duplicates — we look up by
- * email first and reuse the existing contact if found.
+ * Idempotent. Re-running does not create duplicates.
  *
  * Usage:
  *   GHL_API_TOKEN=... GHL_LOCATION_ID=... DATABASE_URL=... \
  *     npx tsx scripts/sync-ghl-contacts.mts
  *   [--limit=10]                 # smoke test
- *   [--dry-run]                  # show what would happen, no API calls
- *   [--skip-update]              # only create missing, don't touch existing
- *   [--backfill-listing-url]     # only update the listing URL custom field on
- *                                # contacts that are already linked. Used to
- *                                # push URLs after the field is created in UI.
+ *   [--only-missing]             # only sync businesses without ghlContactId
+ *   [--backfill-listing-url]     # only update the listing URL custom field
+ *                                # on contacts that already have a ghlContactId
+ *
+ * The same syncContactsToGhl() function is used by the Vercel Cron
+ * at src/app/api/cron/sync-ghl/route.ts.
  */
 
 const TOKEN = process.env.GHL_API_TOKEN;
@@ -39,342 +32,45 @@ if (!LOC) { console.error('GHL_LOCATION_ID not set'); process.exit(1); }
 const args = process.argv.slice(2);
 const limitArg = args.find((a) => a.startsWith('--limit='));
 const LIMIT = limitArg ? parseInt(limitArg.split('=')[1], 10) : null;
-const DRY_RUN = args.includes('--dry-run');
-const SKIP_UPDATE = args.includes('--skip-update');
+const ONLY_MISSING = args.includes('--only-missing');
 const BACKFILL_LISTING_URL = args.includes('--backfill-listing-url');
 
-// Field ID for `movalliving_listing_url` (TEXT) — created in GHL UI on 2026-08-10.
-// Read at runtime via the custom-fields endpoint so we don't hardcode.
-let LISTING_URL_FIELD_ID: string | null = null;
-
-const TAG = 'movalliving-cold-outreach';
-const API = 'https://services.leadconnectorhq.com';
-const HEADERS = {
-  Authorization: `Bearer ${TOKEN}`,
-  Version: '2021-07-28',
-  'Content-Type': 'application/json',
-};
-
 import { getPrisma } from '../src/lib/prisma';
-import { Client } from 'pg';
-
-function sqlEscape(v: string | null | undefined): string {
-  if (v == null) return 'NULL';
-  return `'${String(v).replace(/'/g, "''")}'`;
-}
-
-async function saveGhlContactId(businessId: string, ghlContactId: string) {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL not set');
-  const client = new Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
-  await client.connect();
-  try {
-    await client.query(
-      `UPDATE "Business" SET "ghlContactId" = ${sqlEscape(ghlContactId)}, "updatedAt" = NOW() WHERE id = ${sqlEscape(businessId)}`
-    );
-  } finally {
-    await client.end();
-  }
-}
-
-function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
-
-// Search GHL for an existing contact by email at our location.
-// Returns the contact id, or null if not found.
-async function findContactByEmail(email: string): Promise<string | null> {
-  // POST /contacts/search with a JSON body containing an email filter
-  const res = await fetch(`${API}/contacts/search`, {
-    method: 'POST',
-    headers: HEADERS,
-    body: JSON.stringify({
-      locationId: LOC,
-      page: 0,
-      pageLimit: 5,
-      filters: [{ field: 'email', operator: 'eq', value: email }],
-    }),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`search POST failed: ${res.status} ${txt.slice(0, 200)}`);
-  }
-  const data = await res.json() as { contacts?: { id: string; email?: string }[] };
-  const hit = data.contacts?.find((c) => c.email?.toLowerCase() === email.toLowerCase());
-  return hit?.id ?? null;
-}
-
-async function createContact(b: {
-  name: string;
-  email: string;
-  phone: string | null;
-}): Promise<string> {
-  // GHL rejects literal 'email' values that contain '/' or other URL-ish chars.
-  // Country Kitchen bug surfaced: 'kristiinefinley@gmail.com/contact/' got a 422.
-  const cleanEmail = b.email.includes('@') && !b.email.includes('/') ? b.email : null;
-  if (!cleanEmail) {
-    throw new Error(`POST /contacts/ invalid email: ${JSON.stringify(b.email)}`);
-  }
-  const body = {
-    locationId: LOC,
-    firstName: 'Team',
-    lastName: b.name,
-    email: cleanEmail,
-    phone: b.phone ?? undefined,
-    tags: [TAG],
-    source: 'movalliving bulk import',
-  };
-  const res = await fetch(`${API}/contacts/`, {
-    method: 'POST',
-    headers: HEADERS,
-    body: JSON.stringify(body),
-  });
-  if (res.status === 400) {
-    // "This location does not allow duplicated contacts" — the contact exists
-    // but our pre-search missed it (search index lag). Re-search and reuse.
-    const txt = await res.text();
-    if (/duplicated contacts/i.test(txt)) {
-      const existing = await findContactByEmail(cleanEmail);
-      if (existing) return existing;
-      throw new Error(`POST /contacts/ 400 dup but re-search found nothing: ${txt.slice(0, 200)}`);
-    }
-    throw new Error(`POST /contacts/ 400: ${txt.slice(0, 200)}`);
-  }
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`POST /contacts/ ${res.status}: ${txt.slice(0, 200)}`);
-  }
-  const data = await res.json() as { contact?: { id: string } } | { id?: string };
-  if ('contact' in data && data.contact?.id) return data.contact.id;
-  if ('id' in data && data.id) return data.id;
-  throw new Error(`createContact: no id in response: ${JSON.stringify(data).slice(0, 200)}`);
-}
-
-async function linkContactToCompany(contactId: string, companyId: string): Promise<void> {
-  const res = await fetch(`${API}/contacts/${contactId}`, {
-    method: 'PUT',
-    headers: HEADERS,
-    body: JSON.stringify({ businessId: companyId }),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`PUT /contacts/${contactId} businessId ${res.status}: ${txt.slice(0, 200)}`);
-  }
-}
-
-async function updateContactTags(contactId: string, currentTags: string[]): Promise<void> {
-  if (currentTags.includes(TAG)) return; // already tagged
-  const res = await fetch(`${API}/contacts/${contactId}`, {
-    method: 'PUT',
-    headers: HEADERS,
-    body: JSON.stringify({ tags: [...currentTags, TAG] }),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`PUT /contacts/${contactId} tags ${res.status}: ${txt.slice(0, 200)}`);
-  }
-}
-
-async function getContactTags(contactId: string): Promise<string[]> {
-  const res = await fetch(`${API}/contacts/${contactId}?locationId=${LOC}`, { headers: HEADERS });
-  if (!res.ok) return [];
-  const data = await res.json() as { contact?: { tags?: string[] }; tags?: string[] };
-  const tags = data.contact?.tags ?? data.tags;
-  return tags ?? [];
-}
-
-// Discover the listing-URL custom field id at runtime.
-// Returns null if the field doesn't exist (so caller can skip the write).
-async function discoverListingUrlFieldId(): Promise<string | null> {
-  const res = await fetch(`${API}/locations/${LOC}/customFields`, { headers: HEADERS });
-  if (!res.ok) return null;
-  const data = await res.json() as { customFields?: { id: string; fieldKey: string }[] };
-  const f = (data.customFields ?? []).find((x) => x.fieldKey === 'contact.movalliving_listing_url');
-  return f?.id ?? null;
-}
-
-function listingUrlFor(slug: string): string {
-  return `https://www.moval.living/business/${slug}`;
-}
-
-// Write the listing URL to a contact's custom field. No-op if field id unknown.
-async function writeListingUrl(contactId: string, slug: string): Promise<void> {
-  if (!LISTING_URL_FIELD_ID) return;
-  const url = listingUrlFor(slug);
-  const res = await fetch(`${API}/contacts/${contactId}`, {
-    method: 'PUT',
-    headers: HEADERS,
-    body: JSON.stringify({
-      customFields: [{ id: LISTING_URL_FIELD_ID, value: url }],
-    }),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`PUT listingUrl ${res.status}: ${txt.slice(0, 200)}`);
-  }
-}
+import { syncContactsToGhl } from '../src/lib/ghl-sync';
 
 async function main() {
-  // Resolve the listing-URL field id at startup (best-effort — missing field
-  // doesn't block the sync, it just skips that step).
-  LISTING_URL_FIELD_ID = await discoverListingUrlFieldId();
-  if (LISTING_URL_FIELD_ID) {
-    console.log(`🔗 Listing URL field id: ${LISTING_URL_FIELD_ID}`);
-  } else {
-    console.log(`⚠️  No 'contact.movalliving_listing_url' field at this location — skipping URL writes`);
+  if (BACKFILL_LISTING_URL) {
+    // The listing URL is now written automatically by syncContactsToGhl() on
+    // every run. This legacy flag is preserved for backwards-compat.
+    console.log('ℹ️  --backfill-listing-url is now a no-op: every syncContactsToGhl() run writes the listing URL.');
   }
 
-  const p = getPrisma();
+  console.log(`\n📤 GHL Contacts sync — flags: ${ONLY_MISSING ? '--only-missing ' : ''}${LIMIT ? `--limit=${LIMIT} ` : ''}`);
 
-  // Two query modes:
-  //   default: businesses with email + ghlCompanyId but no ghlContactId (need full create+link)
-  //   --backfill-listing-url: businesses with ghlContactId already set (just write the URL)
-  const where: any = BACKFILL_LISTING_URL
-    ? { status: 'APPROVED', ghlContactId: { not: null }, slug: { not: '' } }
-    : {
-        status: 'APPROVED',
-        email: { not: null },
-        ghlCompanyId: { not: null },
-        ghlContactId: null,
-      };
-
-  const candidates = await p.business.findMany({
-    where,
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      email: true,
-      phone: true,
-      ghlCompanyId: true,
-      ghlContactId: true,
-    },
-    orderBy: { name: 'asc' },
-    take: LIMIT ?? undefined,
+  const result = await syncContactsToGhl({
+    onlyMissing: ONLY_MISSING,
+    limit: LIMIT,
   });
 
-  console.log(`\n📤 GHL Contacts sync: ${candidates.length} businesses`);
-  console.log(`   Mode: ${DRY_RUN ? 'DRY RUN' : BACKFILL_LISTING_URL ? 'backfill listing URL only' : SKIP_UPDATE ? 'create-only' : 'create + update'}\n`);
-
-  let created = 0;
-  let linkedExisting = 0;
-  let taggedExisting = 0;
-  let urlWritten = 0;
-  let failed = 0;
-  const failures: { name: string; error: string }[] = [];
-
-  for (let i = 0; i < candidates.length; i++) {
-    const c = candidates[i];
-    if (!c.email || !c.ghlCompanyId) continue;
-    process.stdout.write(`[${i + 1}/${candidates.length}] ${c.name.padEnd(40)} `);
-
-    if (DRY_RUN) {
-      if (BACKFILL_LISTING_URL) {
-        console.log(`would write URL ${listingUrlFor(c.slug ?? '')}`);
-      } else {
-        console.log(`would sync ${c.email}`);
-      }
-      continue;
-    }
-
-    try {
-      // For backfill mode, we already know the contactId from the DB.
-      let contactId: string | null = BACKFILL_LISTING_URL ? c.ghlContactId : null;
-
-      if (BACKFILL_LISTING_URL) {
-        // Just write the URL — that's the whole job.
-        if (c.slug && LISTING_URL_FIELD_ID && contactId) {
-          await writeListingUrl(contactId, c.slug);
-          console.log(`🔗 URL ${listingUrlFor(c.slug)}`);
-          urlWritten++;
-        } else {
-          console.log(`(skip — no slug or no field)`);
-        }
-        continue;
-      }
-
-      // 1. Look for existing contact at our location with this email
-      if (!contactId) {
-        contactId = await findContactByEmail(c.email);
-      }
-
-      if (contactId) {
-        console.log(`♻️  exists ${contactId}`);
-        linkedExisting++;
-      } else {
-        // 2. Create new contact
-        contactId = await createContact({
-          name: c.name,
-          email: c.email,
-          phone: c.phone,
-        });
-        console.log(`✓ created ${contactId}`);
-        created++;
-        // small pause — GHL needs a beat to index the new contact before linking
-        await sleep(300);
-      }
-
-      // 3. Link contact to company (PUT businessId) — even if contact pre-existed
-      await linkContactToCompany(contactId, c.ghlCompanyId);
-
-      // 4. Ensure the tag is set
-      if (!SKIP_UPDATE) {
-        const currentTags = await getContactTags(contactId);
-        if (!currentTags.includes(TAG)) {
-          await updateContactTags(contactId, currentTags);
-          taggedExisting++;
-        }
-      }
-
-      // 4b. Write the MoVal.living listing URL to the contact custom field
-      //     (so email templates can use {{contact.movalliving_listing_url}})
-      if (LISTING_URL_FIELD_ID && c.slug) {
-        await writeListingUrl(contactId, c.slug);
-      }
-
-      // 5. Save contactId to our DB — but if it's a duplicate business row
-      // sharing the same email (e.g. 15 schools at klewis@mvusd.net),
-      // we must NOT write the same contactId into multiple Business rows
-      // (ghlContactId is @unique). Catch unique-violation, log, continue.
-      try {
-        await saveGhlContactId(c.id, contactId);
-      } catch (e: any) {
-        if (/duplicate key/i.test(e.message ?? '')) {
-          // Already linked from another business row sharing this email — fine.
-          // Mark this row's contactId as set anyway by clearing the constraint
-          // would be wrong; instead, just leave ghlContactId NULL on this row
-          // (the contact still exists in GHL and is still linked to ONE company)
-          console.log(`(skip dup writeback)`);
-        } else throw e;
-      }
-    } catch (e: any) {
-      failed++;
-      const msg = e.message?.slice(0, 120) ?? String(e);
-      failures.push({ name: c.name, error: msg });
-      console.log(`✗ ${msg}`);
-    }
-
-    // Rate limit: ~600ms between operations (search + post + put chain)
-    if (i + 1 < candidates.length) await sleep(700);
-  }
-
   console.log(`\n─── Summary ───`);
-  console.log(`Total:        ${candidates.length}`);
-  console.log(`Created:      ${created}`);
-  console.log(`Linked (existing): ${linkedExisting}`);
-  console.log(`Tagged (existing): ${taggedExisting}`);
-  console.log(`URLs written: ${urlWritten}`);
-  console.log(`Failed:       ${failed}`);
+  console.log(`Total:              ${result.total}`);
+  console.log(`Created:            ${result.created}`);
+  console.log(`Linked (existing):  ${result.linkedExisting}`);
+  console.log(`Tagged (existing):  ${result.taggedExisting}`);
+  console.log(`URLs written:       ${result.urlsWritten}`);
+  console.log(`Failed:             ${result.failed}`);
 
-  if (failures.length > 0) {
+  if (result.failures.length > 0) {
     console.log(`\n⚠️  Failures:`);
-    failures.slice(0, 20).forEach((f) =>
+    result.failures.slice(0, 20).forEach((f) =>
       console.log(`   ${f.name.padEnd(40)} ${f.error}`)
     );
-    if (failures.length > 20) {
-      console.log(`   ... and ${failures.length - 20} more`);
+    if (result.failures.length > 20) {
+      console.log(`   ... and ${result.failures.length - 20} more`);
     }
   }
 
-  await p.$disconnect();
+  await getPrisma().$disconnect();
 }
 
 main().catch((e) => { console.error('FATAL:', e); process.exit(1); });
