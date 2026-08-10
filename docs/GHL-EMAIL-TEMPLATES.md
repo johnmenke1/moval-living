@@ -35,8 +35,12 @@ Paste each HTML block into the GHL email template editor (Marketing â†’ Emails â
           <!-- Header -->
           <tr>
             <td style="padding: 32px 32px 16px 32px; text-align: center;">
-              <div style="display: inline-block; width: 48px; height: 48px; background: linear-gradient(135deg, #007a7f 0%, #00405c 100%); border-radius: 10px; line-height: 48px; color: white; font-weight: bold; font-size: 24px;">m</div>
-              <h1 style="margin: 16px 0 0 0; color: #1f2937; font-size: 24px; font-weight: 700;">moval.living</h1>
+              <img src="https://movalliving.s3.us-west-1.amazonaws.com/moval-living-logo.png"
+                   alt="moval.living"
+                   width="120"
+                   height="auto"
+                   style="display: block; margin: 0 auto 12px auto;" />
+              <h1 style="margin: 0; color: #1f2937; font-size: 24px; font-weight: 700;">moval.living</h1>
             </td>
           </tr>
 
@@ -84,6 +88,25 @@ Paste each HTML block into the GHL email template editor (Marketing â†’ Emails â
                 Not the right person? Forward this to whoever manages your marketing
                 and we'll never email you again.
               </p>
+
+              <!-- Signature -->
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 32px 0 0 0; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                <tr>
+                  <td>
+                    <img src="https://movalliving.s3.us-west-1.amazonaws.com/john-signature.png"
+                         alt="John Menke"
+                         width="160"
+                         height="auto"
+                         style="display: block; margin: 0 0 4px 0;" />
+                    <p style="margin: 0; color: #1f2937; font-size: 15px; font-weight: 600; line-height: 1.4;">
+                      John Menke
+                    </p>
+                    <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.4;">
+                      Founder, moval.living
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
@@ -117,7 +140,18 @@ Paste each HTML block into the GHL email template editor (Marketing â†’ Emails â
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
 
           <tr>
-            <td style="padding: 32px 32px 16px 32px;">
+            <td style="padding: 32px 32px 16px 32px; text-align: center;">
+              <img src="https://movalliving.s3.us-west-1.amazonaws.com/moval-living-logo.png"
+                   alt="moval.living"
+                   width="120"
+                   height="auto"
+                   style="display: block; margin: 0 auto 12px auto;" />
+              <h1 style="margin: 0; color: #1f2937; font-size: 24px; font-weight: 700;">moval.living</h1>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding: 16px 32px 32px 32px;">
               <p style="color: #1f2937; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
                 Hi {{contact.first_name}},
               </p>
@@ -153,6 +187,25 @@ Paste each HTML block into the GHL email template editor (Marketing â†’ Emails â
                 Not interested? <a href="{{unsubscribe_link}}" style="color: #6b7280;">Unsubscribe</a>
                 and we won't email again.
               </p>
+
+              <!-- Signature -->
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 32px 0 0 0; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                <tr>
+                  <td>
+                    <img src="https://movalliving.s3.us-west-1.amazonaws.com/john-signature.png"
+                         alt="John Menke"
+                         width="160"
+                         height="auto"
+                         style="display: block; margin: 0 0 4px 0;" />
+                    <p style="margin: 0; color: #1f2937; font-size: 15px; font-weight: 600; line-height: 1.4;">
+                      John Menke
+                    </p>
+                    <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.4;">
+                      Founder, moval.living
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
@@ -186,7 +239,18 @@ Paste each HTML block into the GHL email template editor (Marketing â†’ Emails â
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
 
           <tr>
-            <td style="padding: 32px 32px 16px 32px;">
+            <td style="padding: 32px 32px 16px 32px; text-align: center;">
+              <img src="https://movalliving.s3.us-west-1.amazonaws.com/moval-living-logo.png"
+                   alt="moval.living"
+                   width="120"
+                   height="auto"
+                   style="display: block; margin: 0 auto 12px auto;" />
+              <h1 style="margin: 0; color: #1f2937; font-size: 24px; font-weight: 700;">moval.living</h1>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding: 16px 32px 32px 32px;">
               <p style="color: #1f2937; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
                 Hi {{contact.first_name}},
               </p>
@@ -216,6 +280,25 @@ Paste each HTML block into the GHL email template editor (Marketing â†’ Emails â
               <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 24px 0 0 0;">
                 Don't want this listing at all? Reply STOP and we'll remove it.
               </p>
+
+              <!-- Signature -->
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 32px 0 0 0; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                <tr>
+                  <td>
+                    <img src="https://movalliving.s3.us-west-1.amazonaws.com/john-signature.png"
+                         alt="John Menke"
+                         width="160"
+                         height="auto"
+                         style="display: block; margin: 0 0 4px 0;" />
+                    <p style="margin: 0; color: #1f2937; font-size: 15px; font-weight: 600; line-height: 1.4;">
+                      John Menke
+                    </p>
+                    <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.4;">
+                      Founder, moval.living
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
