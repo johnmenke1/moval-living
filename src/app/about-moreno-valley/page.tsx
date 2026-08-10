@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import { computeMorenoValleyMarketStats } from '@/lib/market-stats'
 import { MarketStats } from '@/components/real estate/MarketStats'
-import { MapPin, Users, Briefcase, GraduationCap, Landmark, TreePine, ArrowRight } from 'lucide-react'
+import { MapPin, Users, Briefcase, GraduationCap, Landmark, TreePine, Trees, ArrowRight } from 'lucide-react'
 import { FaqSection } from '@/components/seo/FaqSection'
 
 export const metadata: Metadata = {
@@ -22,7 +22,7 @@ const DEMOGRAPHICS = [
 
 const LIFESTYLE = [
   { icon: Landmark, label: 'March Air Reserve Base', value: 'Historic air reserve base driving local economy & identity' },
-  { icon: TreePine, label: 'Hidden Valley Lake', value: 'Gated community with lake, golf, and resort amenities' },
+  { icon: Trees, label: 'Lake Perris', value: 'Adjacent state recreation area — boating, swimming, fishing, and lakeside camping' },
   { icon: MapPin, label: 'Prime Location', value: '15 min to Riverside • 60 min to LA • 75 min to San Diego • 45 min to Palm Springs' },
 ]
 
