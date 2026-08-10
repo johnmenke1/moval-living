@@ -39,8 +39,7 @@ Paste each HTML block into the GHL email template editor (Marketing â†’ Emails â
                    alt="moval.living"
                    width="120"
                    height="auto"
-                   style="display: block; margin: 0 auto 12px auto;" />
-              <h1 style="margin: 0; color: #1f2937; font-size: 24px; font-weight: 700;">moval.living</h1>
+                   style="display: block; margin: 0 auto;" />
             </td>
           </tr>
 
@@ -86,7 +85,7 @@ Paste each HTML block into the GHL email template editor (Marketing â†’ Emails â
 
               <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 24px 0 0 0;">
                 Not the right person? Forward this to whoever manages your marketing
-                and we'll never email you again.
+                or <a href="{{unsubscribe_link}}" style="color: #6b7280;">unsubscribe</a> and we'll never email you again.
               </p>
 
               <!-- Signature -->
