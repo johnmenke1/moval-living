@@ -25,9 +25,11 @@
  *
  * Usage:
  *   GHL_API_TOKEN=... GHL_LOCATION_ID=... npx tsx scripts/sync-ghl.mts
- *   [--limit=10]      # smoke test
- *   [--dry-run]       # show what would be created, no API calls
- *   [--only-missing]  # skip businesses that already have ghlCompanyId
+ *   [--limit=10]         # smoke test
+ *   [--dry-run]          # show what would be created, no API calls
+ *   [--only-missing]     # skip businesses that already have ghlCompanyId
+ *   [--only-with-email]  # sync only businesses that have an email set
+ *                        # (useful for pushing newly-discovered emails)
  *
  * Rate limit: GHL allows ~100 req/min on Companies. We sleep 700ms
  * between calls so a 100-business run takes ~70s. Safe under the limit.
@@ -49,6 +51,7 @@ const limitArg = args.find((a) => a.startsWith('--limit='));
 const LIMIT = limitArg ? parseInt(limitArg.split('=')[1], 10) : null;
 const DRY_RUN = args.includes('--dry-run');
 const ONLY_MISSING = args.includes('--only-missing');
+const ONLY_WITH_EMAIL = args.includes('--only-with-email');
 
 import { getPrisma } from '../src/lib/prisma';
 
@@ -208,6 +211,10 @@ async function main() {
   if (ONLY_MISSING) {
     where.ghlCompanyId = null;
   }
+  if (ONLY_WITH_EMAIL) {
+    where.email = { not: null };
+    where.ghlCompanyId = { not: null };
+  }
 
   const candidates = await p.business.findMany({
     where,
@@ -230,7 +237,7 @@ async function main() {
 
   console.log(`\n📤 GHL sync: ${candidates.length} businesses`);
   console.log(
-    `   Mode: ${DRY_RUN ? 'DRY RUN' : ONLY_MISSING ? 'missing only' : 'all'}\n`
+    `   Mode: ${DRY_RUN ? 'DRY RUN' : ONLY_MISSING ? 'missing only' : ONLY_WITH_EMAIL ? 'with-email only' : 'all'}\n`
   );
 
   let created = 0;
