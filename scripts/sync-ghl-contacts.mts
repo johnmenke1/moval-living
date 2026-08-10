@@ -192,7 +192,7 @@ async function discoverListingUrlFieldId(): Promise<string | null> {
 }
 
 function listingUrlFor(slug: string): string {
-  return `https://www.moval.living/businesses/${slug}`;
+  return `https://www.moval.living/business/${slug}`;
 }
 
 // Write the listing URL to a contact's custom field. No-op if field id unknown.
