@@ -3,6 +3,15 @@ import { Trophy } from 'lucide-react'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 
+// Always re-render against the live DB so admin changes to categories
+// (add/move/promote-to-section) appear immediately. Without this, Next.js
+// statically renders the page at build time and Vercel serves the snapshot
+// from its edge cache (X-Nextjs-Stale-Time: 300) until the next deploy.
+// See `references/best-of-and-listing-cards.md` and the matching pattern on
+// /events and /insights.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export const metadata: Metadata = {
   title: 'Best Of Moreno Valley',
   description: 'Moreno Valley\'s definitive Best Of awards — curated top picks by our editors for food, coffee, services, and more.',
