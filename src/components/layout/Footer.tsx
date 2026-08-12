@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, Mail } from 'lucide-react'
-import { InstagramIcon, FacebookIcon } from '@/components/social/SocialIcons'
+import { InstagramIcon, FacebookIcon, LinkedinIcon } from '@/components/social/SocialIcons'
 
 const footerLinks = {
   explore: [
@@ -65,7 +65,7 @@ export function Footer() {
               </div>
             </div>
 
-            {/* Social — official MoVal accounts. Both open in a new tab. */}
+            {/* Social — official MoVal accounts. All open in a new tab. */}
             <div className="mt-6 flex items-center gap-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Follow</span>
               <a
@@ -85,6 +85,15 @@ export function Footer() {
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <FacebookIcon className="h-4 w-4" />
+              </a>
+              <a
+                href="https://www.linkedin.com/company/moval-living"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="moval.living on LinkedIn"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <LinkedinIcon className="h-4 w-4" />
               </a>
             </div>
           </div>
