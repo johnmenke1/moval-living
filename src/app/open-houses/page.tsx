@@ -13,7 +13,6 @@ export default function OpenHousesPage() {
   const [highlightedKey, setHighlightedKey] = useState<string | null>(null)
 
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
   const fetchOpenHouses = useCallback(async () => {
     setLoading(true)
@@ -95,7 +94,6 @@ export default function OpenHousesPage() {
             <OpenHouseMapWrapper
               listings={listings}
               highlightedKey={highlightedKey}
-              apiKey={apiKey}
             />
           </div>
         )}

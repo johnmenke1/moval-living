@@ -135,7 +135,6 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
 
   const { listing, openHouses } = data
   const statusInfo = STATUS_LABELS[listing.status] ?? { label: listing.status, className: 'bg-slate-500 text-white' }
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -358,7 +357,6 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
                     lat={listing.latitude}
                     lng={listing.longitude}
                     address={listing.address}
-                    apiKey={apiKey}
                   />
                 </div>
               </div>

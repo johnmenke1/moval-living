@@ -7,7 +7,6 @@ import type { OpenHouseListing } from '@/app/api/trestle/open-houses/route'
 interface OpenHouseMapProps {
   listings: OpenHouseListing[]
   highlightedKey?: string | null
-  apiKey?: string
 }
 
 type MapStatus = 'idle' | 'loading' | 'ready' | 'error'
@@ -28,7 +27,8 @@ declare global {
  * Uses the same sibling-overlay pattern as BusinessMap to avoid
  * React/Google DOM reconciliation conflicts.
  */
-export function OpenHouseMap({ listings, highlightedKey, apiKey }: OpenHouseMapProps) {
+export function OpenHouseMap({ listings, highlightedKey }: OpenHouseMapProps) {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   const mapRef = useRef<HTMLDivElement>(null)
   const [mapStatus, setMapStatus] = useState<MapStatus>('idle')
   const [statusMsg, setStatusMsg] = useState<string>('Loading map…')

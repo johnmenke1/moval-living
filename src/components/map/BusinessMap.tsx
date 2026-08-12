@@ -9,8 +9,6 @@ interface BusinessMapProps {
   state: string
   zip: string
   name?: string
-  /** Maps JS API key. Must be passed in by the parent server component. */
-  apiKey?: string
 }
 
 type MapStatus = 'idle' | 'loading' | 'ready' | 'error'
@@ -26,6 +24,12 @@ declare global {
 
 /**
  * Renders a Google Maps embed for a single business address.
+ *
+ * API key handling: read `process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+ * directly (not via prop). This component is 'use client', so Next.js
+ * inlines the value into the JS bundle at build time. Reading via prop
+ * would serialize it into the HTML payload as well, exposing it via raw
+ * `curl` even before JS executes.
  *
  * Critical architectural note: the <div> that Google Maps mounts into
  * (`mapRef`) MUST NOT contain any React-rendered children after the map
@@ -48,8 +52,8 @@ export function BusinessMap({
   state,
   zip,
   name,
-  apiKey,
 }: BusinessMapProps) {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   const mapRef = useRef<HTMLDivElement>(null)
   const [mapStatus, setMapStatus] = useState<MapStatus>('idle')
   const [statusMsg, setStatusMsg] = useState<string>('Loading map…')

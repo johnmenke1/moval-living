@@ -7,7 +7,6 @@ interface ListingMapProps {
   lat: number
   lng: number
   address: string
-  apiKey?: string
 }
 
 type MapStatus = 'idle' | 'loading' | 'ready' | 'error'
@@ -25,8 +24,13 @@ declare global {
  * Single-marker Google Maps for a listing detail page.
  * Takes lat/lng directly (no geocoding needed since Property has those fields).
  * Same sibling-overlay pattern as BusinessMap to avoid React/Google DOM conflicts.
+ *
+ * API key handling: read `process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+ * directly in this 'use client' component (not via prop) so it doesn't
+ * get serialized into the HTML payload.
  */
-export function ListingMap({ lat, lng, address, apiKey }: ListingMapProps) {
+export function ListingMap({ lat, lng, address }: ListingMapProps) {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   const mapRef = useRef<HTMLDivElement>(null)
   const [mapStatus, setMapStatus] = useState<MapStatus>('idle')
   const [statusMsg, setStatusMsg] = useState<string>('Loading map…')

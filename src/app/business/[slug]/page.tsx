@@ -444,15 +444,14 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                   </h2>
                 </div>
                 <div className="h-72 min-h-[288px]">
-                  <BusinessMapWrapper
-                    address={business.address}
-                    city={business.city}
-                    state={business.state}
-                    zip={business.zip}
-                    name={business.name}
-                    apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-                  />
-                </div>
+                                  <BusinessMapWrapper
+                                    address={business.address}
+                                    city={business.city}
+                                    state={business.state}
+                                    zip={business.zip}
+                                    name={business.name}
+                                  />
+                                </div>
               </div>
             )}
 

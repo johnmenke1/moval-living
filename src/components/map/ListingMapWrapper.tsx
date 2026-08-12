@@ -14,9 +14,14 @@ interface ListingMapWrapperProps {
   lat: number
   lng: number
   address: string
-  apiKey?: string
 }
 
+/**
+ * See BusinessMapWrapper for the API-key handling rationale: we read
+ * `process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` directly in the
+ * 'use client' child rather than accepting it as a prop, to avoid
+ * serializing it into the HTML payload.
+ */
 export function ListingMapWrapper(props: ListingMapWrapperProps) {
   return <ListingMapAsync {...props} />
 }
