@@ -348,7 +348,7 @@ async function main() {
   // Filter to named businesses only — exclude public spaces that aren't businesses
   const EXCLUDED_LEISURE = new Set(['park', 'nature_reserve', 'garden', 'dog_park', 'picnic_table', 'bench'])
   const EXCLUDED_AMENITY = new Set(['fire_station', 'police', 'post_office', 'townhall', 'courthouse', 'prison', 'bus_station'])
-  const named = elements.filter(el => {
+  let named = elements.filter(el => {
     if (!el.tags?.name || el.tags.name.trim().length === 0) return false
     if (EXCLUDED_LEISURE.has(el.tags.leisure || '')) return false
     if (EXCLUDED_AMENITY.has(el.tags.amenity || '')) return false
@@ -356,6 +356,41 @@ async function main() {
   })
   const excludedCount = elements.length - named.length
   console.log(`Named businesses: ${named.length} (${excludedCount} dropped: unnamed + public spaces)`)
+
+  // City-tag filter (only active for --bbox=wide to avoid pulling in Perris/Riverside/etc)
+  // For --bbox=strict, the bbox itself is tight enough to MV city limits, so we skip the filter.
+  // Allow list: Moreno Valley (any case), MV, March Air Reserve Base (inside MV city limits).
+  // Empty addr:city = ambiguous; allow if it's a business (typical for unmapped areas in OSM).
+  const ALLOWED_CITIES = new Set(['moreno valley', 'mv', 'march air reserve base', 'march arb', 'moval'])
+  // Lat/lng polygon: precise MV city limits (per OSM relation 11112117, verified via Nominatim).
+  // South: 33.8587, North: 33.9879, West: -117.2966, East: -117.0882 (no buffer — Nominatim is authoritative).
+  // The Overpass bbox extends wider to catch edge businesses, but those are Calimesa/UCR/Perris.
+  const MV_LAT_RANGE = { min: 33.858, max: 33.988 }
+  const MV_LNG_RANGE = { min: -117.297, max: -117.088 }
+  if (BBOX_MODE === 'wide') {
+    const before = named.length
+    let droppedCity = 0
+    let droppedGeo = 0
+    named = named.filter(el => {
+      const lat = el.lat ?? el.center?.lat
+      const lng = el.lon ?? el.center?.lon
+      // Lat/lng polygon check FIRST (most precise)
+      if (lat !== undefined && lng !== undefined) {
+        if (lat < MV_LAT_RANGE.min || lat > MV_LAT_RANGE.max ||
+            lng < MV_LNG_RANGE.min || lng > MV_LNG_RANGE.max) {
+          droppedGeo++
+          return false
+        }
+      }
+      // City-tag check (for elements WITHOUT lat/lng — rare for businesses)
+      const city = (el.tags?.['addr:city'] || '').toLowerCase().trim()
+      if (!city) return true // no addr:city tag — keep (lat/lng already passed)
+      if (ALLOWED_CITIES.has(city)) return true
+      droppedCity++
+      return false
+    })
+    console.log(`Wide filter: ${before} -> ${named.length} (dropped ${droppedGeo} outside-MV-polygon by lat/lng, ${droppedCity} non-MV city tag)`)
+  }
   console.log()
 
   // Bucket by mapped slug for visibility
