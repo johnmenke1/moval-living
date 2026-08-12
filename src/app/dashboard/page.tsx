@@ -39,39 +39,51 @@ export default async function DashboardPage() {
 
   // Admin: show moderation panels
   if (isAdmin) {
-    const [posts, businesses, approvedBusinesses, pendingPostCount, pendingBusinessCount, bestOfCategories, guestAuthors, guestPosts] = await Promise.all([
+    const [
+      posts,
+      businesses,
+      approvedBusinesses,
+      pendingPostCount,
+      pendingBusinessCount,
+      bestOfCategories,
+      bestOfNominations,
+      bestOfNominationCategories,
+      guestAuthors,
+      guestPosts,
+    ] = await Promise.all([
       prisma.socialPost.findMany({
         include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.business.findMany({
-              include: {
-                category: { select: { name: true, slug: true } },
-                owner: { select: { id: true, name: true, email: true } },
-                _count: { select: { reviews: true } },
-              },
-              orderBy: { createdAt: 'desc' },
-            }),
-            // Slim list — just for the Guest Authors "Link Business" picker
-            prisma.business.findMany({
-              where: { status: 'APPROVED' },
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                logo: true,
-                category: { select: { name: true, slug: true } },
-                isExpertPartner: true,
-              },
-              orderBy: [{ isExpertPartner: 'desc' }, { name: 'asc' }],
-            }),
+        include: {
+          category: { select: { name: true, slug: true } },
+          owner: { select: { id: true, name: true, email: true } },
+          _count: { select: { reviews: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      // Slim list — just for the Guest Authors "Link Business" picker
+      prisma.business.findMany({
+        where: { status: 'APPROVED' },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          logo: true,
+          category: { select: { name: true, slug: true } },
+          isExpertPartner: true,
+        },
+        orderBy: [{ isExpertPartner: 'desc' }, { name: 'asc' }],
+      }),
       prisma.socialPost.count({ where: { status: 'PENDING' } }),
       prisma.business.count({ where: { status: 'PENDING' } }),
       prisma.bestOfCategory.findMany({
         include: {
           nominees: {
             include: {
-              business: { select: { id: true, name: true, slug: true, address: true, website: true, logo: true } } },
+              business: { select: { id: true, name: true, slug: true, address: true, website: true, logo: true } },
+            },
             orderBy: { winner: 'desc' },
           },
           subCategories: {
@@ -79,6 +91,23 @@ export default async function DashboardPage() {
             include: { _count: { select: { nominees: true } } },
           },
         },
+        orderBy: { name: 'asc' },
+      }),
+      // Best-Of Nominations — last 100, with matched Business for display.
+      // Sorted by status (PENDING first via enum ordering) then newest.
+      prisma.bestOfNomination.findMany({
+        orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+        take: 100,
+        include: {
+          business: {
+            select: { id: true, name: true, slug: true, status: true, logo: true },
+          },
+        },
+      }),
+      // Slim category list for the approve modal — only what the panel needs.
+      prisma.bestOfCategory.findMany({
+        where: { published: true },
+        select: { id: true, name: true, slug: true, published: true },
         orderBy: { name: 'asc' },
       }),
       prisma.guestAuthor.findMany({
@@ -126,24 +155,26 @@ export default async function DashboardPage() {
                 </Link>
               )}
               <Link href="/dashboard/add" className="btn-primary inline-flex items-center justify-center gap-2">
-                              <Plus className="w-4 h-4" /> Add Business
-                            </Link>
-                          </div>
-                        </div>
-                        <div className="container-max py-8">
-                          <AdminTabs
-                            businesses={businessesWithFlags}
-                            posts={posts}
-                            bestOfCategories={bestOfCategoriesForAdmin}
-                            guestAuthors={guestAuthors.map((a: any) => ({ ...a, postCount: a._count.posts }))}
-                            guestPosts={guestPosts}
-                            approvedBusinesses={approvedBusinesses}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                }
+                <Plus className="w-4 h-4" /> Add Business
+              </Link>
+            </div>
+          </div>
+          <div className="container-max py-8">
+            <AdminTabs
+              businesses={businessesWithFlags}
+              posts={posts}
+              bestOfCategories={bestOfCategoriesForAdmin}
+              bestOfNominations={bestOfNominations}
+              bestOfNominationCategories={bestOfNominationCategories}
+              guestAuthors={guestAuthors.map((a: any) => ({ ...a, postCount: a._count.posts }))}
+              guestPosts={guestPosts}
+              approvedBusinesses={approvedBusinesses}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (!owner || !owner.business) {
     return (
@@ -207,29 +238,29 @@ export default async function DashboardPage() {
                 </span>
               </div>
               <nav className="p-2">
-                              <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
-                                'bg-primary/10 text-primary'
-                              }`}>
-                                <Building2 className="w-4 h-4" /> Overview
-                              </div>
-                              <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">
-                                <Star className="w-4 h-4" /> Reviews
-                              </div>
-                              {owner.business.tier === 'EXPERT_PARTNER' && (
-                                <Link
-                                  href="/dashboard/partner"
-                                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
-                                >
-                                  <Sparkles className="w-4 h-4" /> Partner Dashboard
-                                </Link>
-                              )}
-                              <Link
-                                href={`/dashboard/edit`}
-                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
-                              >
-                                <Settings className="w-4 h-4" /> Edit Listing
-                              </Link>
-                            </nav>
+                <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                  'bg-primary/10 text-primary'
+                }`}>
+                  <Building2 className="w-4 h-4" /> Overview
+                </div>
+                <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">
+                  <Star className="w-4 h-4" /> Reviews
+                </div>
+                {owner.business.tier === 'EXPERT_PARTNER' && (
+                  <Link
+                    href="/dashboard/partner"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
+                  >
+                    <Sparkles className="w-4 h-4" /> Partner Dashboard
+                  </Link>
+                )}
+                <Link
+                  href={`/dashboard/edit`}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  <Settings className="w-4 h-4" /> Edit Listing
+                </Link>
+              </nav>
               <div className="p-4 border-t border-slate-100">
                 <a
                   href={`/business/${business.slug}`}

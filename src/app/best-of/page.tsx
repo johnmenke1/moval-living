@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { Trophy } from 'lucide-react'
+import { Trophy, Plus } from 'lucide-react'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 
@@ -129,6 +129,24 @@ export default async function BestOfPage() {
       </div>
 
       <div className="container-max py-10 space-y-16">
+
+        {/* Community nominations CTA — surfaces the public submission form
+            right at the top so visitors who came looking for it (or just
+            discovered it) don't have to hunt. */}
+        <section className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="flex-1">
+            <h2 className="text-xl sm:text-2xl font-bold text-text mb-1">Know a local business that&apos;s killing it?</h2>
+            <p className="text-text-secondary text-sm sm:text-base">
+              Nominate them for Best Of — our editors review every submission personally. Suggest a category that doesn&apos;t exist yet, or pick from the ones below.
+            </p>
+          </div>
+          <Link
+            href="/submit/best-of"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors shrink-0"
+          >
+            <Plus className="w-4 h-4" /> Nominate a Business
+          </Link>
+        </section>
 
         {categories.length === 0 ? (
           <div className="text-center py-16">

@@ -45,6 +45,12 @@ type Tile = {
 // facebook.com/moval.living) — update these if the handles ever change.
 const TILES: Tile[] = [
   { href: '/best-of', label: 'Best Of Moreno Valley', description: "Our editors' top picks", icon: Trophy },
+  {
+    href: '/submit/best-of',
+    label: 'Nominate a Business',
+    description: 'Suggest a local favorite for Best Of',
+    icon: Sparkles,
+  },
   { href: '/events', label: 'Community Events', description: "What's happening in MoVal", icon: Calendar },
   { href: '/deals', label: 'Local Deals', description: 'Discounts from local businesses', icon: Tag },
   { href: '/homes', label: 'Homes for Sale', description: 'Browse Moreno Valley listings', icon: HomeIcon },

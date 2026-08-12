@@ -91,6 +91,7 @@ model Business {
   reviews            Review[]
   socialPosts        SocialPost[]
   bestOfNominees     BestOfNominee[]
+  bestOfNominations  BestOfNomination[]
   guestAuthors       GuestAuthor[]
   expertPartnerLeads ExpertPartnerLead[]
   expertPartnerStats ExpertPartnerStat[]
@@ -278,6 +279,70 @@ model BestOfNominee {
   @@unique([categoryId, businessId])
   @@index([categoryId])
   @@index([winner])
+}
+
+// ── Public BestOf Nominations ─────────────────────────────────────────────
+// Submitted by any visitor (no auth) via /submit/best-of. Lands PENDING,
+// reviewed by admin in the dashboard "Best-Of Nominations" tab. Approval
+// promotes the suggestion into a BestOfCategory + BestOfNominee. Rejection
+// keeps the row for record-keeping (and as market-research signal — what
+// categories people are asking for).
+//
+// Captures CAN-SPAM/10DLC/TCPA consent at submit-time (same pattern as
+// Business.submitterEmailOptIn / Owner.emailOptIn). Mirrors the nominator
+// into GoHighLevel as a Contact with tag 'community-member' (broad enough
+// to reuse for guest posts, claims, etc.) and source 'best-of-nomination'.
+
+enum BestOfNominationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model BestOfNomination {
+  id              String                 @id @default(cuid())
+  // Free-text — may match an existing Business (businessId set below) or be
+  // a brand-new suggestion the admin hasn't listed yet.
+  businessName    String
+  businessId      String?
+  business        Business?              @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  // Free-text — always captured even if a matching category exists. Lets the
+  // admin see how the nominator phrased it, and surfaces category requests.
+  categoryName    String
+
+  nominatorName   String
+  nominatorEmail  String
+  reason          String                 @db.Text
+
+  status          BestOfNominationStatus @default(PENDING)
+
+  // Captured consents (CAN-SPAM / 10DLC / TCPA)
+  emailOptIn      Boolean   @default(false)
+  smsOptIn        Boolean   @default(false) // always false — public form doesn't collect phone
+  emailConsentAt  DateTime?
+  consentSource   String?   // e.g. 'best-of-nomination-form'
+
+  // GHL mirror
+  ghlContactId    String?   @unique
+  ghlSyncedAt     DateTime?
+
+  // Source capture for spam/abuse review
+  sourceIp        String?
+  userAgent       String?   @db.Text
+
+  // Admin actions
+  reviewedBy      String?   // Owner.id of the reviewing admin
+  reviewedAt      DateTime?
+  rejectionReason String?   @db.Text
+  adminNotes      String?   @db.Text
+  promotedNomineeId String? @unique // FK to BestOfNominee.id if promoted on approve
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([nominatorEmail])
+  @@index([businessId])
 }
 
 // ── Guest Author / Guest Post ─────────────────────────────────────────────
