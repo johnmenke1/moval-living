@@ -12,7 +12,7 @@ import {
   Mail,
   ArrowUpRight,
 } from 'lucide-react'
-import { InstagramIcon, FacebookIcon, LinkedinIcon } from '@/components/social/SocialIcons'
+import { InstagramIcon, FacebookIcon, LinkedinIcon, TiktokIcon } from '@/components/social/SocialIcons'
 
 export const metadata: Metadata = {
   title: 'moval.living — Link in Bio',
@@ -70,6 +70,13 @@ const TILES: Tile[] = [
     label: 'LinkedIn',
     description: 'moval.living',
     icon: LinkedinIcon as unknown as React.ComponentType<{ className?: string }>,
+    external: true,
+  },
+  {
+    href: 'https://www.tiktok.com/@moval.living',
+    label: 'TikTok',
+    description: '@moval.living',
+    icon: TiktokIcon as unknown as React.ComponentType<{ className?: string }>,
     external: true,
   },
   {

@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, Mail } from 'lucide-react'
-import { InstagramIcon, FacebookIcon, LinkedinIcon } from '@/components/social/SocialIcons'
+import { InstagramIcon, FacebookIcon, LinkedinIcon, TiktokIcon } from '@/components/social/SocialIcons'
 
 const footerLinks = {
   explore: [
@@ -94,6 +94,15 @@ export function Footer() {
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <LinkedinIcon className="h-4 w-4" />
+              </a>
+              <a
+                href="https://www.tiktok.com/@moval.living"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="moval.living on TikTok"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <TiktokIcon className="h-4 w-4" />
               </a>
             </div>
           </div>
