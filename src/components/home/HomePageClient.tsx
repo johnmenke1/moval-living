@@ -28,6 +28,7 @@ import {
   KeyRound,
   HelpingHand,
   Truck,
+  Drama,
   type LucideIcon,
 } from 'lucide-react'
 import { categories } from '@/data/categories'
@@ -44,6 +45,7 @@ const categoryColors: Record<string, string> = {
   'property-management': '#0EA5E9',
   'non-profits': '#DC2626',
   'supply-logistics': '#475569',
+  entertainment: '#A855F7',
   professional: '#6366F1',
   beauty: '#F59E0B',
   'home-services': '#14B8A6',
@@ -79,6 +81,7 @@ const categoryIcons: Record<string, LucideIcon> = {
   KeyRound,
   HelpingHand,
   Truck,
+  Drama,
 }
 
 interface Business {

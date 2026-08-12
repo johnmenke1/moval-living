@@ -17,6 +17,7 @@ const categories = [
   { name: 'Property Management', slug: 'property-management', description: 'Apartment communities, shopping centers, plazas, and other managed properties', icon: 'KeyRound' },
   { name: 'Non-Profits', slug: 'non-profits', description: 'Charitable, civic, cultural, and service organizations serving Moreno Valley', icon: 'HelpingHand' },
   { name: 'Supply & Logistics', slug: 'supply-logistics', description: 'Trucking, warehousing, distribution, foreign trade zones, material handling, and wholesale supply', icon: 'Truck' },
+  { name: 'Entertainment', slug: 'entertainment', description: 'Movie theaters, bowling alleys, trampoline parks, escape rooms, immersive experiences, event venues, and live entertainment', icon: 'Drama' },
   { name: 'Professional Services', slug: 'professional', description: 'Attorneys, accountants, marketing, business consulting', icon: 'Briefcase' },
   { name: 'Insurance Services', slug: 'insurance', description: 'Auto, home, life, health, and commercial insurance agents', icon: 'ShieldCheck' },
   { name: 'Dispensaries', slug: 'dispensaries', description: 'Licensed cannabis dispensaries and delivery services', icon: 'Cannabis' },

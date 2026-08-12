@@ -91,6 +91,14 @@ export const categories: Category[] = [
     image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&q=80',
   },
   {
+    id: 'entertainment',
+    name: 'Entertainment',
+    slug: 'entertainment',
+    description: 'Movie theaters, bowling alleys, trampoline parks, escape rooms, immersive experiences, event venues, and live entertainment',
+    icon: 'Drama',
+    image: 'https://images.unsplash.com/photo-1514306191717-452ec28c7814?w=800&q=80',
+  },
+  {
     id: 'professional',
     name: 'Professional Services',
     slug: 'professional',
