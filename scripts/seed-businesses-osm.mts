@@ -84,16 +84,23 @@ function buildQuery(): string {
   // Union of all business-relevant tags. ~5-15 sec runtime on Overpass.
   return `[out:json][timeout:90];
 (
-  // amenity: food, drink, services, education, healthcare, financial, worship
+  // amenity: food, drink, services, education, healthcare, financial, worship, events, coworking, childcare
   // (excluded civic/government: fire_station, police, post_office, townhall, courthouse, prison, bus_station — not businesses)
-  node["amenity"~"^(restaurant|cafe|fast_food|food_court|bar|pub|biergarten|ice_cream|bakery|bank|atm|bureau_de_change|pharmacy|hospital|clinic|doctors|dentist|veterinary|optician|physiotherapist|psychotherapist|nursing_home|school|kindergarten|college|university|library|driving_school|language_school|music_school|place_of_worship|community_centre|social_facility|fuel|car_wash|car_rental|taxi|ferry_terminal|marketplace)$"](${bboxStr});
-  way["amenity"~"^(restaurant|cafe|fast_food|food_court|bar|pub|biergarten|ice_cream|bakery|bank|atm|bureau_de_change|pharmacy|hospital|clinic|doctors|dentist|veterinary|optician|physiotherapist|psychotherapist|nursing_home|school|kindergarten|college|university|library|driving_school|language_school|music_school|place_of_worship|community_centre|social_facility|fuel|car_wash|car_rental|taxi|ferry_terminal|marketplace)$"](${bboxStr});
+  // (events_venue, internet_cafe, childcare added Aug 2026 — see references/followups.md for gap audit)
+  node["amenity"~"^(restaurant|cafe|fast_food|food_court|bar|pub|biergarten|ice_cream|bakery|bank|atm|bureau_de_change|pharmacy|hospital|clinic|doctors|dentist|veterinary|optician|physiotherapist|psychotherapist|nursing_home|school|kindergarten|college|university|library|driving_school|language_school|music_school|place_of_worship|community_centre|social_facility|fuel|car_wash|car_rental|taxi|ferry_terminal|marketplace|events_venue|events|internet_cafe|childcare)$"](${bboxStr});
+  way["amenity"~"^(restaurant|cafe|fast_food|food_court|bar|pub|biergarten|ice_cream|bakery|bank|atm|bureau_de_change|pharmacy|hospital|clinic|doctors|dentist|veterinary|optician|physiotherapist|psychotherapist|nursing_home|school|kindergarten|college|university|library|driving_school|language_school|music_school|place_of_worship|community_centre|social_facility|fuel|car_wash|car_rental|taxi|ferry_terminal|marketplace|events_venue|events|internet_cafe|childcare)$"](${bboxStr});
 
   // shop: anything retail
   node["shop"](${bboxStr});
   way["shop"](${bboxStr});
 
-  // office: professional services, real estate, insurance, government, NGO
+  // office: professional services, real estate, insurance, government, NGO, coworking
+  // (already queries office=* via the broad "office" query below — coworking already covered)
+  // But adding it explicitly for clarity and to keep TAG_MAP deterministic
+  node["office"~"^(coworking|notary|government|diplomatic|research|forestry|guide|travel_agent|advertising_agency|newspaper|recruitment|security|telecommunication|administrative)$"](${bboxStr});
+  way["office"~"^(coworking|notary|government|diplomatic|research|forestry|guide|travel_agent|advertising_agency|newspaper|recruitment|security|telecommunication|administrative)$"](${bboxStr});
+
+  // office catch-all (for everything else tagged with office=* — keeps existing behavior)
   node["office"](${bboxStr});
   way["office"](${bboxStr});
 
@@ -166,7 +173,8 @@ const TAG_MAP: Array<{ test: (t: OsmTags) => boolean; slug: string }> = [
   { test: t => t.office === 'lawyer' || t.office === 'notary' || t.office === 'accountant' ||
                  t.office === 'tax_advisor' || t.office === 'consulting' || t.office === 'it' ||
                  t.office === 'software' || t.office === 'marketing' || t.office === 'advertising' ||
-                 t.office === 'financial' || t.office === 'employment_agency' || t.office === 'translator', slug: 'professional' },
+                 t.office === 'financial' || t.office === 'employment_agency' || t.office === 'translator' ||
+                 t.office === 'coworking', slug: 'professional' },
 
   // Real estate
   { test: t => t.office === 'estate_agent' || t.office === 'real_estate', slug: 'real-estate' },
@@ -182,10 +190,11 @@ const TAG_MAP: Array<{ test: (t: OsmTags) => boolean; slug: string }> = [
   // Insurance (must come BEFORE finance so it wins)
   { test: t => t.office === 'insurance', slug: 'insurance' },
 
-  // Education
+  // Education (incl. childcare / daycare)
   { test: t => t.amenity === 'school' || t.amenity === 'kindergarten' || t.amenity === 'college' ||
                  t.amenity === 'university' || t.amenity === 'library' || t.amenity === 'driving_school' ||
                  t.amenity === 'language_school' || t.amenity === 'music_school' ||
+                 t.amenity === 'childcare' ||
                  t.office === 'educational_institution', slug: 'education' },
 
   // Government offices (civic services — public-facing offices people search for)
@@ -204,9 +213,13 @@ const TAG_MAP: Array<{ test: (t: OsmTags) => boolean; slug: string }> = [
   { test: t => t.tourism === 'hotel' || t.tourism === 'motel' || t.tourism === 'guest_house' ||
                  t.tourism === 'hostel' || t.tourism === 'apartment' || t.tourism === 'chalet', slug: 'hospitality' },
 
-  // Entertainment
+  // Entertainment (incl. events_venue — banquet halls, wedding venues, party rooms)
   { test: t => t.leisure === 'bowling_alley' || t.leisure === 'amusement_arcade' ||
-                 t.amenity === 'social_facility' || t.amenity === 'community_centre', slug: 'entertainment' },
+                 t.amenity === 'social_facility' || t.amenity === 'community_centre' ||
+                 t.amenity === 'events_venue' || t.amenity === 'events', slug: 'entertainment' },
+
+  // Internet cafe (USO, gaming cafes)
+  { test: t => t.amenity === 'internet_cafe', slug: 'entertainment' },
 
   // Non-profits (often tagged office=ngo, office=association)
   { test: t => t.office === 'ngo' || t.office === 'association' || t.office === 'charity' ||
