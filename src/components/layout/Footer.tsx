@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, Mail } from 'lucide-react'
+import { InstagramIcon, FacebookIcon } from '@/components/social/SocialIcons'
 
 const footerLinks = {
   explore: [
@@ -8,6 +9,7 @@ const footerLinks = {
     { label: 'Best Of', href: '/best-of' },
     { label: 'Community Events', href: '/events' },
     { label: 'Local Deals', href: '/deals' },
+    { label: 'Link in Bio', href: '/link' },
   ],
   stories: [
     { label: 'Life in MoVal', href: '/life' },
@@ -61,6 +63,29 @@ export function Footer() {
                   hello@moval.living
                 </a>
               </div>
+            </div>
+
+            {/* Social — official MoVal accounts. Both open in a new tab. */}
+            <div className="mt-6 flex items-center gap-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Follow</span>
+              <a
+                href="https://www.instagram.com/moval_living/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="moval.living on Instagram"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <InstagramIcon className="h-4 w-4" />
+              </a>
+              <a
+                href="https://www.facebook.com/moval.living/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="moval.living on Facebook"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <FacebookIcon className="h-4 w-4" />
+              </a>
             </div>
           </div>
 
