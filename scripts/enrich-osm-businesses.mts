@@ -61,6 +61,7 @@ for (const [k, v] of Object.entries(fileEnv)) if (!process.env[k]) process.env[k
 
 const DATABASE_URL = process.env.DATABASE_URL!
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY!
+const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN! // Required for non-Vercel environments; ignored when OIDC is available
 
 if (!DATABASE_URL) { console.error('DATABASE_URL not set'); process.exit(1) }
 if (!GOOGLE_PLACES_API_KEY) { console.error('GOOGLE_PLACES_API_KEY not set'); process.exit(1) }
@@ -200,11 +201,11 @@ async function fetchPhotoBuffer(photoName: string, maxHeight: number): Promise<B
 
 async function uploadPhoto(key: string, buf: Buffer): Promise<string | null> {
   try {
-    const blob = await put(key, buf, {
-      access: 'public',
-      contentType: 'image/jpeg',
-      addRandomSuffix: false,
-    })
+    // Pass `token` explicitly to bypass OIDC (which only works inside Vercel runtime).
+    // On Vercel, OIDC auto-auth is preferred; the token is ignored there.
+    const opts: any = { access: 'public', contentType: 'image/jpeg', addRandomSuffix: false }
+    if (BLOB_TOKEN) opts.token = BLOB_TOKEN
+    const blob = await put(key, buf, opts)
     return blob.url
   } catch (e: any) {
     console.warn(`  WARN: Vercel Blob upload failed for ${key}: ${e.message?.slice(0, 80)}`)
