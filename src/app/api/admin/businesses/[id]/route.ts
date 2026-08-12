@@ -28,7 +28,7 @@ const updateSchema = z.object({
 // PATCH /api/admin/businesses/[id] — approve/reject/status + admin metadata (google reviews, category)
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth()
 
@@ -63,6 +63,19 @@ export async function PATCH(
   if (parsed.data.chamberMember !== undefined) data.chamberMember = parsed.data.chamberMember
   if (parsed.data.hispanicChamberMember !== undefined) data.hispanicChamberMember = parsed.data.hispanicChamberMember
 
+  // If the admin is bumping tier to a premium tier, stamp featuredAt on
+  // first transition (idempotent — only set if currently null). This
+  // mirrors the Stripe webhook logic so both paths produce the same UX.
+  if (parsed.data.tier && (parsed.data.tier === 'FEATURED' || parsed.data.tier === 'EXPERT_PARTNER')) {
+    const existing = await prisma.business.findUnique({
+      where: { id },
+      select: { featuredAt: true },
+    })
+    if (existing && !existing.featuredAt) {
+      data.featuredAt = new Date()
+    }
+  }
+
   const business = await prisma.business.update({
     where: { id },
     data,
@@ -78,7 +91,7 @@ export async function PATCH(
 // DELETE /api/admin/businesses/[id] — permanently delete a business
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth()
 

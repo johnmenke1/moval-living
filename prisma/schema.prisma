@@ -88,6 +88,14 @@ model Business {
   ownerId            String?             @unique
   claimToken         String?             @unique
   claimExpiresAt     DateTime?
+  // ── Lifecycle timestamps (for /api/public/live-activity ticker) ────────
+  // claimedAt: first time ownerId got set. FeaturedAt: first time tier
+  // flipped to FEATURED. Both nullable, both populated by the places that
+  // currently write those fields. Used to surface "X just claimed…" and
+  // "X upgraded to Featured…" events on the homepage. Stable once set —
+  // never overwritten on subsequent updates.
+  claimedAt          DateTime?
+  featuredAt         DateTime?
   reviews            Review[]
   socialPosts        SocialPost[]
   bestOfNominees     BestOfNominee[]
@@ -105,6 +113,11 @@ model Business {
   @@index([tier])
   @@index([city])
   @@index([isExpertPartner])
+  // Live DB already has these indexes (added by a sibling subagent via
+  // direct DDL but never committed to schema). Keep them in sync so the
+  // ticker query that filters by claimedAt/featuredAt stays fast.
+  @@index([claimedAt])
+  @@index([featuredAt])
 }
 
 model Category {
@@ -121,24 +134,24 @@ model Category {
 }
 
 model Owner {
-  id               String    @id @default(cuid())
-  role             UserRole  @default(USER)
+  id               String        @id @default(cuid())
+  role             UserRole      @default(USER)
   name             String?
-  email            String    @unique
+  email            String        @unique
   emailVerified    DateTime?
   image            String?
   passwordHash     String?
-  resetToken       String?   @unique
+  resetToken       String?       @unique
   resetExpires     DateTime?
   phone            String? // for future SMS opt-in
   // CAN-SPAM / 10DLC / TCPA consent tracking
-  emailOptIn       Boolean   @default(false)
-  smsOptIn         Boolean   @default(false)
+  emailOptIn       Boolean       @default(false)
+  smsOptIn         Boolean       @default(false)
   emailConsentAt   DateTime?
   smsConsentAt     DateTime?
   smsConsentSource String? // e.g. 'claim-form', 'submit-form', 'landing-page'
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
   accounts         Account[]
   sessions         Session[]
   business         Business?
@@ -300,45 +313,45 @@ enum BestOfNominationStatus {
 }
 
 model BestOfNomination {
-  id              String                 @id @default(cuid())
+  id           String    @id @default(cuid())
   // Free-text — may match an existing Business (businessId set below) or be
   // a brand-new suggestion the admin hasn't listed yet.
-  businessName    String
-  businessId      String?
-  business        Business?              @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  businessName String
+  businessId   String?
+  business     Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   // Free-text — always captured even if a matching category exists. Lets the
   // admin see how the nominator phrased it, and surfaces category requests.
-  categoryName    String
+  categoryName String
 
-  nominatorName   String
-  nominatorEmail  String
-  reason          String                 @db.Text
+  nominatorName  String
+  nominatorEmail String
+  reason         String @db.Text
 
-  status          BestOfNominationStatus @default(PENDING)
+  status BestOfNominationStatus @default(PENDING)
 
   // Captured consents (CAN-SPAM / 10DLC / TCPA)
-  emailOptIn      Boolean   @default(false)
-  smsOptIn        Boolean   @default(false) // always false — public form doesn't collect phone
-  emailConsentAt  DateTime?
-  consentSource   String?   // e.g. 'best-of-nomination-form'
+  emailOptIn     Boolean   @default(false)
+  smsOptIn       Boolean   @default(false) // always false — public form doesn't collect phone
+  emailConsentAt DateTime?
+  consentSource  String? // e.g. 'best-of-nomination-form'
 
   // GHL mirror
-  ghlContactId    String?   @unique
-  ghlSyncedAt     DateTime?
+  ghlContactId String?   @unique
+  ghlSyncedAt  DateTime?
 
   // Source capture for spam/abuse review
-  sourceIp        String?
-  userAgent       String?   @db.Text
+  sourceIp  String?
+  userAgent String? @db.Text
 
   // Admin actions
-  reviewedBy      String?   // Owner.id of the reviewing admin
-  reviewedAt      DateTime?
-  rejectionReason String?   @db.Text
-  adminNotes      String?   @db.Text
-  promotedNomineeId String? @unique // FK to BestOfNominee.id if promoted on approve
+  reviewedBy        String? // Owner.id of the reviewing admin
+  reviewedAt        DateTime?
+  rejectionReason   String?   @db.Text
+  adminNotes        String?   @db.Text
+  promotedNomineeId String?   @unique // FK to BestOfNominee.id if promoted on approve
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, createdAt(sort: Desc)])
   @@index([nominatorEmail])

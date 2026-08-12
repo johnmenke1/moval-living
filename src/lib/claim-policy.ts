@@ -13,5 +13,9 @@ export function getAutoApprovedClaimData(ownerId: string) {
     claimToken: null,
     claimExpiresAt: null,
     status: 'APPROVED' as const,
+    // Live DB had this column already (from a sibling subagent's direct DDL)
+    // but no code path was populating it. Setting it here means the homepage
+    // "X just claimed..." ticker has data to surface once new claims happen.
+    claimedAt: new Date(),
   }
 }

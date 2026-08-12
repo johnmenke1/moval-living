@@ -15,6 +15,11 @@ import type { Tier } from '@prisma/client'
  * On cancel/revoke, the tier reverts to FREE — Expert Partner is special:
  * we also flip `isExpertPartner = false` so the badge disappears from the
  * listing until Johnny manually re-enrolls the business.
+ *
+ * On the FIRST transition to a premium tier (FEATURED or EXPERT_PARTNER),
+ * we stamp `featuredAt` so the homepage "X just upgraded" ticker has data
+ * to surface. Idempotent: only set when featuredAt is currently null, so
+ * renewals and re-subscriptions don't bump the timestamp.
  */
 
 const EXPERT_PRICE_IDS = new Set([
@@ -61,6 +66,17 @@ export async function POST(req: NextRequest) {
         const newTier = resolveTierFromMetadata(tierMeta)
         const isExpert = newTier === 'EXPERT_PARTNER'
 
+        // Only stamp featuredAt on the FIRST upgrade to a premium tier.
+        // Idempotent: re-subscribing after a cancel won't bump the date.
+        const existing = await prisma.business.findUnique({
+          where: { id: businessId },
+          select: { featuredAt: true },
+        })
+        const shouldStampFeaturedAt =
+          !!existing &&
+          !existing.featuredAt &&
+          (newTier === 'FEATURED' || newTier === 'EXPERT_PARTNER')
+
         await prisma.business.update({
           where: { id: businessId },
           data: {
@@ -72,6 +88,8 @@ export async function POST(req: NextRequest) {
             // Expert Partner upgrades auto-flag the partner; founding date
             // is set later by Johnny when he confirms Founding Partner status.
             ...(isExpert ? { isExpertPartner: true } : {}),
+            // First-time premium transition only — see check above.
+            ...(shouldStampFeaturedAt ? { featuredAt: new Date() } : {}),
           },
         })
         console.log(
@@ -87,7 +105,7 @@ export async function POST(req: NextRequest) {
         if (!businessId) break
 
         const isActive = ['active', 'trialing'].includes(subRaw.status)
-        const tier = isActive ? resolveTierFromMetadata(tierMeta) : 'FREE' as Tier
+        const tier = isActive ? resolveTierFromMetadata(tierMeta) : ('FREE' as Tier)
         const isExpert = tier === 'EXPERT_PARTNER'
         // Stripe.Subscription doesn't expose billing_period_end as a typed
         // property in current @stripe/stripe-js typings; cast for the cast.
@@ -102,6 +120,9 @@ export async function POST(req: NextRequest) {
               ? new Date(periodEnd * 1000)
               : null,
             ...(isExpert ? { isExpertPartner: true } : { isExpertPartner: false }),
+            // Don't bump featuredAt on renewals/cancellations — original
+            // upgrade timestamp is preserved so the ticker shows the
+            // correct "first upgrade" date.
           },
         })
         console.log(
@@ -127,6 +148,9 @@ export async function POST(req: NextRequest) {
             // If they were Expert Partner, drop the flag too so the badge
             // disappears. Johnny can manually re-enable for grace periods.
             ...(wasExpert ? { isExpertPartner: false } : {}),
+            // featuredAt preserved — a business that was once Featured
+            // still has that history. The ticker can filter by current
+            // tier === FEATURED if it wants only-active features.
           },
         })
         console.log(

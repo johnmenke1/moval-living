@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
+import LiveActivityTicker from '@/components/home/LiveActivityTicker'
 
 const categoryColors: Record<string, string> = {
   restaurants: '#F97316',
@@ -131,19 +132,19 @@ export function HomePageClient({ featuredBusinesses, categoryCounts }: HomePageC
       <section className="relative bg-gradient-to-br from-primary via-blue-600 to-secondary overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
         <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent/10 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
-        
+
         <div className="container-max relative py-20 md:py-28">
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white text-sm px-4 py-1.5 rounded-full mb-6">
               <MapPin className="w-4 h-4 text-secondary" />
               Moreno Valley, California
             </div>
-            
+
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
               Discover Moreno Valley&apos;s{' '}
               <span className="text-secondary">Best Local Businesses</span>
             </h1>
-            
+
             <p className="text-lg md:text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
               Your trusted guide to finding restaurants, contractors, healthcare, and more — all verified and reviewed by your neighbors.
             </p>
@@ -194,6 +195,14 @@ export function HomePageClient({ featuredBusinesses, categoryCounts }: HomePageC
         </div>
       </section>
 
+      {/* ─── LIVE ACTIVITY TICKER ─── */}
+      {/* "MoVal right now" — shows recent claims, upgrades, reviews, and
+          nominations. Lazy-fetches from /api/public/live-activity on the
+          client, auto-rotates every 7s. Placement: between hero and the
+          Featured grid so it's visible on first paint but doesn't compete
+          with the search bar. */}
+      <LiveActivityTicker />
+
       {/* ─── FEATURED & BEST OF BUSINESSES ─── */}
       <section className="section bg-white">
         <div className="container-max">
@@ -229,7 +238,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts }: HomePageC
             <h2 className="text-3xl font-bold text-text mb-3">Browse by Category</h2>
             <p className="text-text-secondary text-lg">Find exactly what you need — fast</p>
           </div>
-          
+
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {categories.map(category => {
               const Icon = categoryIcons[category.icon] ?? Building
@@ -269,7 +278,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts }: HomePageC
             <h2 className="text-3xl font-bold text-text mb-3">How It Works</h2>
             <p className="text-text-secondary text-lg">Finding and supporting local has never been easier</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             {[
               { step: '1', title: 'Search', desc: 'Browse by category or search for a specific business. Filter by rating, distance, and more.', icon: '🔍' },
