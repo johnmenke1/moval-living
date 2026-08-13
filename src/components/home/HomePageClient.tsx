@@ -34,6 +34,7 @@ import {
 import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
 import LiveActivityTicker from '@/components/home/LiveActivityTicker'
+import { Calendar } from 'lucide-react'
 
 const categoryColors: Record<string, string> = {
   restaurants: '#F97316',
@@ -112,9 +113,16 @@ interface Business {
 interface HomePageClientProps {
   featuredBusinesses: Business[]
   categoryCounts: Record<string, number>
+  latestLifePosts: Array<{
+    slug: string
+    title: string
+    excerpt: string | null
+    heroImageUrl: string | null
+    publishedAt: string | null
+  }>
 }
 
-export function HomePageClient({ featuredBusinesses, categoryCounts }: HomePageClientProps) {
+export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifePosts }: HomePageClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
 
@@ -299,6 +307,68 @@ export function HomePageClient({ featuredBusinesses, categoryCounts }: HomePageC
           </div>
         </div>
       </section>
+
+      {/* ─── LIFE IN MOVAL — EDITORIAL CALLOUT ─── */}
+      {/* Pulls the most recent "Life in MoVal" posts so visitors see the
+          editorial lane and Google gets an internal-link into /life. Section
+          only renders when at least one LIFE post exists — silently hidden
+          when the lane is empty so the homepage doesn't show an empty grid. */}
+      {latestLifePosts.length > 0 && (
+        <section className="section bg-slate-50">
+          <div className="container-max">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-3xl font-bold text-text mb-1">Life in MoVal</h2>
+                <p className="text-text-secondary">
+                  Observations, outings, and reflections from John Menke — what&apos;s worth noticing in Moreno Valley.
+                </p>
+              </div>
+              <Link href="/life" className="hidden sm:flex items-center gap-1 text-primary font-medium hover:gap-2 transition-all">
+                Read all <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {latestLifePosts.map(post => (
+                <Link
+                  key={post.slug}
+                  href={`/life/${post.slug}`}
+                  className="group bg-white rounded-xl border border-slate-100 overflow-hidden hover:border-primary hover:shadow-lg transition-all"
+                >
+                  {post.heroImageUrl && (
+                    <div className="block aspect-[16/9] overflow-hidden bg-slate-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={post.heroImageUrl}
+                        alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  )}
+                  <div className="p-6">
+                    <h3 className="text-lg font-bold text-text mb-2 group-hover:text-primary transition-colors">
+                      {post.title}
+                    </h3>
+                    {post.excerpt && (
+                      <p className="text-sm text-text-secondary mb-3 line-clamp-3">{post.excerpt}</p>
+                    )}
+                    {post.publishedAt && (
+                      <div className="flex items-center gap-1 text-xs text-text-secondary">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(post.publishedAt).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ─── CTA BANNER ─── */}
       <section className="py-16 bg-gradient-to-r from-accent to-orange-400">

@@ -3,6 +3,13 @@ import { prisma } from '@/lib/prisma'
 
 const BASE = 'https://www.moval.living'
 
+// Sitemap pulls from live DB (businesses, Best-Of categories, editorial
+// posts). Without force-dynamic, Vercel prerenders this at build time and
+// the prerender survives subsequent deploys — admin-curated additions
+// stay invisible until the cache expires naturally. force-dynamic ensures
+// every request hits the live DB. Same fix as src/app/best-of/page.tsx.
+export const dynamic = 'force-dynamic'
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
 
@@ -19,6 +26,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/submit`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE}/link`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/submit/best-of`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE}/life`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${BASE}/insights`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
   ]
 
   // Dynamic business pages — APPROVED only
@@ -50,5 +59,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
-  return [...staticPages, ...businessPages, ...bestOfPages]
+  // Dynamic editorial posts — Life in MoVal (LIFE) + Guest Insights (GUEST)
+  // Both already have their own [slug] route handler and force-dynamic rendering;
+  // surfacing them here is what makes Google actually find the articles.
+  const editorialPosts = await prisma.guestPost.findMany({
+    where: { status: 'published', postType: { in: ['LIFE', 'GUEST'] } },
+    select: { slug: true, postType: true, publishedAt: true, updatedAt: true },
+    orderBy: { publishedAt: 'desc' },
+  })
+
+  const editorialPages: MetadataRoute.Sitemap = editorialPosts.map(p => ({
+    url: `${BASE}/${
+      p.postType === 'GUEST' ? 'insights' : 'life'
+    }/${p.slug}`,
+    lastModified: p.updatedAt ?? p.publishedAt ?? now,
+    changeFrequency: 'monthly',
+    priority: 0.6,
+  }))
+
+  return [...staticPages, ...businessPages, ...bestOfPages, ...editorialPages]
 }

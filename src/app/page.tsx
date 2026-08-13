@@ -97,10 +97,31 @@ async function getHomepageBusinesses() {
   })
 }
 
+// Recent "Life in MoVal" editorial posts for the homepage callout. We pull the
+// most recent published LIFE posts (capped at 3) and only the fields the
+// homepage card actually renders — slug, title, excerpt, hero, publish date.
+// If there are no published LIFE posts yet, the homepage falls back to hiding
+// the section entirely (handled in HomePageClient).
+async function getLatestLifePosts() {
+  return prisma.guestPost.findMany({
+    where: { status: 'published', postType: 'LIFE' },
+    select: {
+      slug: true,
+      title: true,
+      excerpt: true,
+      heroImageUrl: true,
+      publishedAt: true,
+    },
+    orderBy: { publishedAt: 'desc' },
+    take: 3,
+  })
+}
+
 export default async function HomePage() {
-  const [candidates, categoryCounts] = await Promise.all([
+  const [candidates, categoryCounts, latestLifePosts] = await Promise.all([
     getHomepageBusinesses(),
     getCategoryCounts(),
+    getLatestLifePosts(),
   ])
 
   // Sort priority — shared with /search and category pages so listings
@@ -121,10 +142,20 @@ export default async function HomePage() {
   }))
 
   return (
-    <>
-      <JsonLd schema={WEBSITE_SCHEMA} />
-      <JsonLd schema={ORGANIZATION_SCHEMA} />
-      <HomePageClient featuredBusinesses={featuredBusinesses} categoryCounts={categoryCounts} />
-    </>
-  )
-}
+      <>
+        <JsonLd schema={WEBSITE_SCHEMA} />
+        <JsonLd schema={ORGANIZATION_SCHEMA} />
+        <HomePageClient
+          featuredBusinesses={featuredBusinesses}
+          categoryCounts={categoryCounts}
+          latestLifePosts={latestLifePosts.map(p => ({
+            slug: p.slug,
+            title: p.title,
+            excerpt: p.excerpt,
+            heroImageUrl: p.heroImageUrl,
+            publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
+          }))}
+        />
+      </>
+    )
+  }
