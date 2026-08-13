@@ -186,7 +186,7 @@ export default async function InsightPostPage({ params }: Ctx) {
           </div>
         )}
 
-        <div className="container-max py-20">
+        <div className="container-max pt-12 pb-12">
           <div className="max-w-2xl mx-auto">
             {/* Title + meta */}
             <header className="mb-8">
@@ -229,50 +229,30 @@ export default async function InsightPostPage({ params }: Ctx) {
                 </div>
               </div>
             )}
-
-            {/* Footer byline */}
-            <footer className="mt-12 pt-8 border-t border-slate-200">
-              <div className="text-sm text-text-secondary">
-                Written by{' '}
-                <Link href={`/authors/${author.slug}`} className="text-primary font-semibold hover:underline">
-                  {author.displayName}
-                </Link>
-                {author.companyName && (
-                  <>
-                    {' '}
-                    of{' '}
-                    {author.companyUrl ? (
-                      // rel="sponsored" because the relationship between
-                      // MoVal Living and the partner business is paid.
-                      <a
-                        href={author.companyUrl}
-                        rel="sponsored noopener"
-                        target="_blank"
-                        className="text-primary font-semibold hover:underline"
-                      >
-                        {author.companyName}
-                      </a>
-                    ) : (
-                      <span className="font-semibold">{author.companyName}</span>
-                    )}
-                  </>
-                )}
-                . Published{' '}
-                {post.publishedAt &&
-                  new Date(post.publishedAt).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                .
-              </div>
-              {author.bio && (
-                <p className="mt-3 text-sm text-text-secondary italic">{author.bio}</p>
-              )}
-            </footer>
           </div>
         </div>
       </article>
+
+      {/* Footer byline — extracted to its own band below the article, mirroring
+          /life's layout. Same AuthorByline variant=footer (compact text-only
+          byline) so both lanes use the same component for the same purpose. */}
+      <footer className="container-max mt-20 pb-24">
+        <div className="max-w-2xl mx-auto">
+          <div className="pt-8 border-t border-slate-200">
+            <AuthorByline
+              author={{
+                slug: author.slug,
+                displayName: author.displayName,
+                title: author.title,
+                companyName: author.companyName,
+                photoUrl: author.photoUrl,
+              }}
+              publishedAt={post.publishedAt}
+              variant="footer"
+            />
+          </div>
+        </div>
+      </footer>
     </>
   )
 }
