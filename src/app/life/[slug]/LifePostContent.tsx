@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { renderMarkdown } from '@/lib/markdown'
+import AuthorByline from '@/components/author/AuthorByline'
 
 function SpotifyPlayer({ trackId }: { trackId: string }) {
   return (
@@ -15,6 +16,14 @@ function SpotifyPlayer({ trackId }: { trackId: string }) {
   )
 }
 
+interface LifeAuthor {
+  slug: string
+  displayName: string
+  title: string | null
+  companyName: string | null
+  photoUrl: string | null
+}
+
 interface LifePost {
   slug: string
   title: string
@@ -25,6 +34,8 @@ interface LifePost {
   metaDescription: string | null
   spotifyTrack1: string | null
   spotifyTrack2: string | null
+  publishedAt: string | null
+  author: LifeAuthor | null
 }
 
 export default function LifePostContent({ post }: { post: LifePost }) {
@@ -51,6 +62,18 @@ export default function LifePostContent({ post }: { post: LifePost }) {
             </div>
           )}
 
+          {/* Byline — links to /authors/[author.slug] when an author is
+              attached. Renders nothing for posts without an author (e.g.
+              pre-existing posts before the GuestAuthor profile existed). */}
+          {post.author && (
+            <div className="mb-8">
+              <AuthorByline
+                author={post.author}
+                publishedAt={post.publishedAt ? new Date(post.publishedAt) : null}
+              />
+            </div>
+          )}
+
           <div
             className="prose prose-base max-w-none prose-headings:font-bold prose-headings:text-text prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-3 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-2 prose-p:text-text prose-p:my-3 prose-a:text-primary hover:prose-a:underline prose-strong:font-bold prose-strong:text-text prose-img:rounded-xl prose-blockquote:border-l-4 prose-blockquote:border-l-primary prose-blockquote:text-text-secondary prose-blockquote:pl-4 prose-blockquote:my-4 prose-ul:my-3 prose-ol:my-3 prose-li:my-1"
             dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
@@ -59,15 +82,54 @@ export default function LifePostContent({ post }: { post: LifePost }) {
           {/* Footer */}
           <footer className="mt-12 pt-8 border-t border-slate-200">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold text-lg">
-                JM
-              </div>
-              <div>
-                <div className="font-semibold text-text">John Menke</div>
-                <div className="text-sm text-text-secondary">
-                  eXP of California Realty · Moreno Valley
-                </div>
-              </div>
+              {post.author ? (
+                <Link
+                  href={`/authors/${post.author.slug}`}
+                  className="flex items-center gap-4 group"
+                >
+                  <div className="w-12 h-12 rounded-full bg-primary overflow-hidden flex-shrink-0">
+                    {post.author.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={post.author.photoUrl}
+                        alt={post.author.displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
+                        {post.author.displayName
+                          .split(' ')
+                          .map((p) => p[0])
+                          .slice(0, 2)
+                          .join('')
+                          .toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-text group-hover:text-primary transition-colors">
+                      {post.author.displayName}
+                    </div>
+                    {post.author.title && (
+                      <div className="text-sm text-text-secondary">
+                        {post.author.title}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold text-lg">
+                    JM
+                  </div>
+                  <div>
+                    <div className="font-semibold text-text">John Menke</div>
+                    <div className="text-sm text-text-secondary">
+                      eXP of California Realty · Moreno Valley
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </footer>
         </div>

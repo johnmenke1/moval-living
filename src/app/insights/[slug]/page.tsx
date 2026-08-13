@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Calendar, ArrowLeft, Building2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { renderMarkdown } from '@/lib/markdown'
+import AuthorByline from '@/components/author/AuthorByline'
 
 export const dynamic = 'force-dynamic'
 
@@ -194,51 +195,18 @@ export default async function InsightPostPage({ params }: Ctx) {
               </h1>
               <p className="text-lg text-text-secondary mb-6">{post.excerpt}</p>
 
-              {/* Byline card */}
-              <Link
-                href={`/authors/${author.slug}`}
-                className="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-xl hover:border-primary transition-colors"
-              >
-                <div className="w-14 h-14 rounded-full bg-slate-100 overflow-hidden flex-shrink-0">
-                  {author.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={author.photoUrl}
-                      alt={author.displayName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-400 font-semibold">
-                      {author.displayName
-                        .split(' ')
-                        .map((p) => p[0])
-                        .slice(0, 2)
-                        .join('')
-                        .toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-text">{author.displayName}</div>
-                  {author.title && (
-                    <div className="text-sm text-text-secondary">{author.title}</div>
-                  )}
-                  {author.companyName && (
-                    <div className="text-xs text-text-secondary inline-flex items-center gap-1 mt-0.5">
-                      <Building2 className="w-3 h-3" />
-                      {author.companyName}
-                    </div>
-                  )}
-                </div>
-                <div className="text-xs text-text-secondary hidden sm:block">
-                  <Calendar className="w-3 h-3 inline mr-1" />
-                  {post.publishedAt && new Date(post.publishedAt).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </div>
-              </Link>
+              {/* Byline card — uses the shared AuthorByline component so
+                  the header structure stays in sync with /life posts. */}
+              <AuthorByline
+                author={{
+                  slug: author.slug,
+                  displayName: author.displayName,
+                  title: author.title,
+                  companyName: author.companyName,
+                  photoUrl: author.photoUrl,
+                }}
+                publishedAt={post.publishedAt}
+              />
             </header>
 
             {/* Body */}

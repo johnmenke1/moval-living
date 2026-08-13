@@ -11,7 +11,20 @@ export const dynamic = 'force-dynamic'
 type Ctx = { params: Promise<{ slug: string }> }
 
 async function getPublishedLifePost(slug: string) {
-  const post = await prisma.guestPost.findUnique({ where: { slug } })
+  const post = await prisma.guestPost.findUnique({
+    where: { slug },
+    include: {
+      author: {
+        select: {
+          slug: true,
+          displayName: true,
+          title: true,
+          companyName: true,
+          photoUrl: true,
+        },
+      },
+    },
+  })
   if (!post || post.status !== 'published' || post.postType !== 'LIFE' || !post.publishedAt) return null
   return post
 }
@@ -79,6 +92,16 @@ export default async function LifePostPage({ params }: Ctx) {
           metaDescription: post.metaDescription,
           spotifyTrack1: post.spotifyTrack1,
           spotifyTrack2: post.spotifyTrack2,
+          publishedAt: post.publishedAt?.toISOString() ?? null,
+          author: post.author
+            ? {
+                slug: post.author.slug,
+                displayName: post.author.displayName,
+                title: post.author.title,
+                companyName: post.author.companyName,
+                photoUrl: post.author.photoUrl,
+              }
+            : null,
         }}
       />
     </article>
