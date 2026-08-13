@@ -186,7 +186,7 @@ export default async function InsightPostPage({ params }: Ctx) {
           </div>
         )}
 
-        <div className="container-max py-12">
+        <div className="container-max py-20">
           <div className="max-w-2xl mx-auto">
             {/* Title + meta */}
             <header className="mb-8">

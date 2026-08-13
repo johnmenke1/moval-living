@@ -42,7 +42,7 @@ export default function LifePostContent({ post }: { post: LifePost }) {
   const hasSpotify = post.spotifyTrack1 || post.spotifyTrack2
 
   return (
-    <div className="container-max py-12">
+    <div className="container-max py-20">
       <div className="flex gap-12">
         {/* Main content */}
         <div className="flex-1 min-w-0 max-w-2xl">
