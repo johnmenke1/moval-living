@@ -92,21 +92,24 @@ export default function LifePostContent({ post }: { post: LifePost }) {
           has its own clear vertical rhythm. We use mt-* / mb-* (which work
           reliably in this build) instead of pt-* / pb-* on the <footer>
           itself (which render as 0px inside <article min-h-screen>):
-            - mt-20 on the footer (80px above, separates from article body)
+            - mt-12 on the footer (48px above, separates from article body
+              without leaving too much empty space)
             - pt-8 on the inner div (32px padding above the byline content)
             - mb-24 on the inner div (96px below the byline, separates from
               site footer)
-      */}
-      <footer className="container-max mt-20">
+          The byline itself is rendered as a clickable card (background tint,
+          padding, border-radius) so it visually reads as an interactive
+          object — bigger photo (64px), bigger text, hover state. */}
+      <footer className="container-max mt-12">
         <div className="max-w-2xl">
-          <div className="border-t border-slate-200 pt-8 mb-24">
+          <div className="pt-8 border-t border-slate-200 mb-24">
             <div className="flex items-center gap-4">
               {post.author ? (
                 <Link
                   href={`/authors/${post.author.slug}`}
-                  className="flex items-center gap-4 group"
+                  className="flex items-center gap-4 group p-3 -m-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-primary transition-colors w-full"
                 >
-                  <div className="w-12 h-12 rounded-full bg-primary overflow-hidden flex-shrink-0">
+                  <div className="w-16 h-16 rounded-full bg-primary overflow-hidden flex-shrink-0">
                     {post.author.photoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -125,8 +128,11 @@ export default function LifePostContent({ post }: { post: LifePost }) {
                       </div>
                     )}
                   </div>
-                  <div>
-                    <div className="font-semibold text-text group-hover:text-primary transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-1">
+                      About the author
+                    </div>
+                    <div className="text-lg font-semibold text-text group-hover:text-primary transition-colors">
                       {post.author.displayName}
                     </div>
                     {post.author.title && (
@@ -135,14 +141,27 @@ export default function LifePostContent({ post }: { post: LifePost }) {
                       </div>
                     )}
                   </div>
+                  <svg
+                    className="w-5 h-5 text-text-secondary group-hover:text-primary transition-colors flex-shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
                 </Link>
               ) : (
                 <>
-                  <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold text-lg">
+                  <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
                     JM
                   </div>
-                  <div>
-                    <div className="font-semibold text-text">John Menke</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-1">
+                      About the author
+                    </div>
+                    <div className="text-lg font-semibold text-text">John Menke</div>
                     <div className="text-sm text-text-secondary">
                       eXP of California Realty · Moreno Valley
                     </div>

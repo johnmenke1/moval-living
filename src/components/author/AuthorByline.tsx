@@ -48,24 +48,50 @@ export default function AuthorByline({ author, publishedAt, variant = 'header' }
   const authorHref = `/authors/${author.slug}`
 
   if (variant === 'footer') {
-    // Compact footer variant — used at the bottom of /insights posts.
+    // Footer variant — large clickable card with photo, "About the author"
+    // label, name, title, and a chevron affordance. Mirrors the
+    // /life post footer byline for visual consistency.
     return (
-      <div className="text-sm text-text-secondary">
-        Written by{' '}
-        <Link href={authorHref} className="text-primary font-semibold hover:underline">
-          {author.displayName}
-        </Link>
-        {author.companyName && (
-          <>
-            {' '}
-            of{' '}
-            <span className="font-semibold">{author.companyName}</span>
-          </>
-        )}
-        . Published{' '}
-        {dateStr}
-        .
-      </div>
+      <Link
+        href={authorHref}
+        className="flex items-center gap-4 group p-4 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-primary transition-colors w-full"
+      >
+        <div className="w-16 h-16 rounded-full bg-primary overflow-hidden flex-shrink-0">
+          {author.photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={author.photoUrl}
+              alt={author.displayName}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-white font-bold text-xl">
+              {initials}
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-1">
+            About the author
+          </div>
+          <div className="text-lg font-semibold text-text group-hover:text-primary transition-colors">
+            {author.displayName}
+          </div>
+          {author.title && (
+            <div className="text-sm text-text-secondary">{author.title}</div>
+          )}
+        </div>
+        <svg
+          className="w-5 h-5 text-text-secondary group-hover:text-primary transition-colors flex-shrink-0"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+          aria-hidden="true"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </Link>
     )
   }
 
