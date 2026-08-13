@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { renderMarkdown } from '@/lib/markdown'
-import AuthorByline from '@/components/author/AuthorByline'
 
 function SpotifyPlayer({ trackId }: { trackId: string }) {
   return (
@@ -58,18 +57,6 @@ export default function LifePostContent({ post }: { post: LifePost }) {
                 src={post.heroImageUrl}
                 alt={post.title}
                 className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-
-          {/* Byline — links to /authors/[author.slug] when an author is
-              attached. Renders nothing for posts without an author (e.g.
-              pre-existing posts before the GuestAuthor profile existed). */}
-          {post.author && (
-            <div className="mb-8">
-              <AuthorByline
-                author={post.author}
-                publishedAt={post.publishedAt ? new Date(post.publishedAt) : null}
               />
             </div>
           )}
