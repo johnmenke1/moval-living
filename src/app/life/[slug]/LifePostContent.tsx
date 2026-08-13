@@ -89,16 +89,17 @@ export default function LifePostContent({ post }: { post: LifePost }) {
       </div>
 
       {/* Byline — pulled out of the article body into its own band so it
-          has its own clear vertical rhythm:
-            - mt-20 (80px above the byline border, separates from article body)
-            - pt-8 (32px padding above the byline content, after the border)
-            - pb-24 (96px below the byline, separates from site footer)
-          This was previously crammed inside py-20 padding that the article
-          body shared with the byline, making the byline feel like it sat
-          below the article margin instead of in its own band. */}
-      <footer className="container-max mt-20 pb-24">
+          has its own clear vertical rhythm. We use mt-* / mb-* (which work
+          reliably in this build) instead of pt-* / pb-* on the <footer>
+          itself (which render as 0px inside <article min-h-screen>):
+            - mt-20 on the footer (80px above, separates from article body)
+            - pt-8 on the inner div (32px padding above the byline content)
+            - mb-24 on the inner div (96px below the byline, separates from
+              site footer)
+      */}
+      <footer className="container-max mt-20">
         <div className="max-w-2xl">
-          <div className="pt-8 border-t border-slate-200">
+          <div className="border-t border-slate-200 pt-8 mb-24">
             <div className="flex items-center gap-4">
               {post.author ? (
                 <Link

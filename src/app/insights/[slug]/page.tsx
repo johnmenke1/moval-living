@@ -236,9 +236,9 @@ export default async function InsightPostPage({ params }: Ctx) {
       {/* Footer byline — extracted to its own band below the article, mirroring
           /life's layout. Same AuthorByline variant=footer (compact text-only
           byline) so both lanes use the same component for the same purpose. */}
-      <footer className="container-max mt-20 pb-24">
-        <div className="max-w-2xl mx-auto">
-          <div className="pt-8 border-t border-slate-200">
+      <footer className="container-max mt-20">
+        <div className="max-w-2xl">
+          <div className="border-t border-slate-200 pt-8 mb-24">
             <AuthorByline
               author={{
                 slug: author.slug,
