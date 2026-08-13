@@ -37,8 +37,13 @@ async function getAuthor(slug: string) {
   const author = await prisma.guestAuthor.findUnique({
     where: { slug },
     include: {
+      // Show every published post byline-attributed to this author — both
+      // /life editorial posts (postType: LIFE) AND /insights guest posts
+      // (postType: GUEST). The previous filter of just GUEST was a bug:
+      // /authors/[slug] is meant to be the canonical byline page for all
+      // content the author wrote, regardless of lane.
       posts: {
-        where: { status: 'published', postType: 'GUEST' },
+        where: { status: 'published', postType: { in: ['LIFE', 'GUEST'] } },
         orderBy: { publishedAt: 'desc' },
         select: {
           id: true,
@@ -47,6 +52,7 @@ async function getAuthor(slug: string) {
           excerpt: true,
           heroImageUrl: true,
           publishedAt: true,
+          postType: true,
         },
       },
       business: {
@@ -535,7 +541,9 @@ export default async function AuthorPage({ params }: Ctx) {
                           >
                             <h3 className="text-lg font-bold text-text mb-2">
                               <Link
-                                href={`/insights/${post.slug}`}
+                                href={`/${
+                                  post.postType === 'LIFE' ? 'life' : 'insights'
+                                }/${post.slug}`}
                                 className="hover:text-primary"
                               >
                                 {post.title}
@@ -667,7 +675,9 @@ export default async function AuthorPage({ params }: Ctx) {
                         >
                           <h3 className="text-lg font-bold text-text mb-2">
                             <Link
-                              href={`/insights/${post.slug}`}
+                              href={`/${
+                                post.postType === 'LIFE' ? 'life' : 'insights'
+                              }/${post.slug}`}
                               className="hover:text-primary"
                             >
                               {post.title}
