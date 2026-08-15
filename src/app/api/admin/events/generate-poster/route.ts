@@ -53,23 +53,30 @@ function buildPrompt(sub: { title: string; venueName: string | null; sourcePostC
   }
 
   return [
-    `Photograph of a community event scene for a ${title}.`,
+    `Photograph of a community event scene.`,
     sceneKeywords ? `Inspired by: ${sceneKeywords}.` : '',
     `Setting: ${venue}, Southern California.`,
     `Photographic style, editorial magazine quality, natural lighting.`,
-    `Real people, candid moment, atmospheric scene.`,
-    `No caption or title text in the image.`,
+    `Real people, candid moment, atmospheric scene, journalistic photograph.`,
+    `No text of any kind visible in the image — no signs, no banners, no logos, no watermarks, no titles.`,
+    `Pure photograph with no overlay or graphics.`,
   ].filter(Boolean).join(' ')
 }
 
-/** Recraft's negative_prompt reliably excludes what we list here. */
+/** Recraft's negative_prompt reliably excludes what we list here. We use
+ *  very explicit phrasing because Recraft still adds titles/logos when given
+ *  generic "no text" instructions. The key is to ban the specific patterns
+ *  we see: event-title banners, watermark logos, building signage with words. */
 function buildNegativePrompt(): string {
   return [
-    'text, words, letters, typography, signage',
-    'banners, posters with words, captions, titles, watermarks',
-    'street signs, storefront text, t-shirts with text, logos with words',
+    'text, words, letters, typography, signage, alphabetic characters',
+    'event title banners, magazine headers, newspaper mastheads',
+    'watermark logos, sponsor badges, corner logos, branded overlays',
+    'street signs, storefront signs, building signs with words, banners with words',
+    'banners, posters with words, captions, titles, subtitles',
+    't-shirts with text, hats with text, umbrellas with words',
     'gibberish writing, fake letters, blurry text, unreadable text',
-    'event poster style, flyer, advertisement layout',
+    'event poster style, flyer, advertisement layout, sponsored content look',
   ].join(', ')
 }
 
