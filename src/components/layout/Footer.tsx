@@ -6,6 +6,7 @@ import { InstagramIcon, FacebookIcon, LinkedinIcon, TiktokIcon } from '@/compone
 const footerLinks = {
   explore: [
     { label: 'Browse Businesses', href: '/search' },
+    { label: 'Se Habla Español', href: '/search?espanol=1' },
     { label: 'Best Of', href: '/best-of' },
     { label: 'Community Events', href: '/events' },
     { label: 'Local Deals', href: '/deals' },
@@ -25,6 +26,8 @@ const footerLinks = {
   ],
   city: [
     { label: 'About MoVal', href: '/about-moreno-valley' },
+    { label: 'Chamber Members', href: '/chamber' },
+    { label: 'Hispanic Chamber Members', href: '/hispanic-chamber' },
     { label: 'Homes for Sale', href: '/homes' },
     { label: 'Open Houses', href: '/open-houses' },
   ],

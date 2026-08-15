@@ -28,6 +28,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/submit/best-of`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/life`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE}/insights`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${BASE}/chamber`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
+    { url: `${BASE}/hispanic-chamber`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
   ]
 
   // Dynamic business pages — APPROVED only

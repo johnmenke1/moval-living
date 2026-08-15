@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import { Search, SlidersHorizontal, X } from 'lucide-react'
+import { Languages, Search, SlidersHorizontal, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SearchFiltersProps {
@@ -13,6 +13,7 @@ interface SearchFiltersProps {
     tier?: string
     sort?: string
     chamber?: string
+    espanol?: string
   }
   resultCount: number
 }
@@ -42,7 +43,10 @@ export function SearchFilters({ categories, currentParams, resultCount }: Search
     })
   }
 
-  const hasActiveFilters = currentParams.category || currentParams.tier || currentParams.sort
+  const hasActiveFilters = currentParams.category || currentParams.tier || currentParams.sort || currentParams.espanol
+
+  const espanolActive = Boolean(currentParams.espanol)
+  const toggleEspanol = () => updateParam('espanol', espanolActive ? '' : '1')
 
   return (
     <div className="flex flex-col gap-4">
@@ -110,6 +114,22 @@ export function SearchFilters({ categories, currentParams, resultCount }: Search
             <option value="name">A to Z</option>
           </select>
 
+          {/* Language toggle — one tap shows only businesses with
+              Spanish-speaking staff. */}
+          <button
+            onClick={toggleEspanol}
+            aria-pressed={espanolActive}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-3 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap',
+              espanolActive
+                ? 'bg-primary border-primary text-white'
+                : 'bg-white border-slate-200 text-text-secondary hover:bg-slate-50'
+            )}
+          >
+            <Languages className="w-4 h-4" />
+            Se habla español
+          </button>
+
           {hasActiveFilters && (
             <button
               onClick={clearAll}
@@ -135,6 +155,19 @@ export function SearchFilters({ categories, currentParams, resultCount }: Search
               <option key={cat.id} value={cat.slug}>{cat.name}</option>
             ))}
           </select>
+          <button
+            onClick={toggleEspanol}
+            aria-pressed={espanolActive}
+            className={cn(
+              'flex items-center justify-center gap-1.5 px-4 py-3 rounded-lg border text-sm font-medium transition-colors',
+              espanolActive
+                ? 'bg-primary border-primary text-white'
+                : 'bg-white border-slate-200 text-text-secondary'
+            )}
+          >
+            <Languages className="w-4 h-4" />
+            Se habla español
+          </button>
           <div className="flex gap-3">
             <select
               value={currentParams.tier || ''}

@@ -8,6 +8,7 @@ import { BusinessMapWrapper } from '@/components/map/BusinessMapWrapper'
 import { BusinessSidebar } from '@/components/business/BusinessSidebar'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { cn } from '@/lib/utils'
+import { publicDescription } from '@/lib/display'
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
@@ -81,7 +82,7 @@ export async function generateMetadata({ params }: BusinessPageProps): Promise<M
   if (!business) return { title: 'Business Not Found' }
 
   const pageUrl = `https://www.moval.living/business/${slug}`
-  const description = business.metaDescription || business.description.slice(0, 160)
+  const description = business.metaDescription || publicDescription(business).slice(0, 160)
 
   return {
     title: business.metaTitle || business.name,
@@ -113,7 +114,7 @@ function buildBusinessSchema(business: Awaited<ReturnType<typeof getBusiness>> &
     '@type': 'LocalBusiness',
     '@id': `https://www.moval.living/business/${business.slug}`,
     name: business.name,
-    description: business.description,
+    description: publicDescription(business),
     url: `https://www.moval.living/business/${business.slug}`,
   }
 
@@ -289,8 +290,7 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                     {(business.tier === 'FEATURED' || business.tier === 'EXPERT_PARTNER' ||
                       business.isExpertPartner || business.isBestOfWinner ||
                       (business.bestOfNominees && business.bestOfNominees.length > 0) ||
-                      business.hasCoupon || business.seHablaEspanol ||
-                      business.chamberMember || business.hispanicChamberMember) && (
+                      business.hasCoupon || business.seHablaEspanol) && (
                       <BusinessBadgesRow
                         tier={business.tier}
                         isExpertPartner={business.isExpertPartner}
@@ -299,8 +299,6 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                         bestOfNominationCount={business.bestOfNominees?.length ?? 0}
                         hasCoupon={business.hasCoupon}
                         seHablaEspanol={business.seHablaEspanol}
-                        chamberMember={business.chamberMember}
-                        hispanicChamberMember={business.hispanicChamberMember}
                       />
                     )}
 
@@ -319,10 +317,56 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                   </div>
                 </div>
 
-                {/* Description */}
+                {/* Description — never renders raw import text ("OSM
+                    import: …"); placeholder descriptions fall back to a
+                    neutral category line via publicDescription(). */}
                 <div className="prose prose-slate max-w-none mb-8">
-                  <p className="text-text-secondary leading-relaxed whitespace-pre-line">{business.description}</p>
+                  <p className="text-text-secondary leading-relaxed whitespace-pre-line">{publicDescription(business)}</p>
                 </div>
+
+                {/* Community & Affiliations — chamber memberships and
+                    language get real estate here instead of shouting from
+                    the badge row. */}
+                {(business.chamberMember || business.hispanicChamberMember || business.seHablaEspanol) && (
+                  <div className="mb-8">
+                    <h3 className="font-semibold text-text mb-3">Community &amp; Affiliations</h3>
+                    <div className="flex flex-wrap gap-3">
+                      {business.chamberMember && (
+                        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+                          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-white">
+                            <Building2 className="h-4 w-4" />
+                          </span>
+                          <div>
+                            <p className="text-sm font-semibold text-text leading-tight">Moreno Valley Chamber of Commerce</p>
+                            <p className="text-xs text-text-secondary">Member</p>
+                          </div>
+                        </div>
+                      )}
+                      {business.hispanicChamberMember && (
+                        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+                          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white">
+                            <Globe className="h-4 w-4" />
+                          </span>
+                          <div>
+                            <p className="text-sm font-semibold text-text leading-tight">MV Hispanic Chamber of Commerce</p>
+                            <p className="text-xs text-text-secondary">Member</p>
+                          </div>
+                        </div>
+                      )}
+                      {business.seHablaEspanol && (
+                        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+                          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-white">
+                            <Languages className="h-4 w-4" />
+                          </span>
+                          <div>
+                            <p className="text-sm font-semibold text-text leading-tight">Se habla español</p>
+                            <p className="text-xs text-text-secondary">Atención en español</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Photo Gallery */}
                 {business.photos && business.photos.length > 0 && (
@@ -504,8 +548,6 @@ function BusinessBadgesRow({
   bestOfNominationCount,
   hasCoupon,
   seHablaEspanol,
-  chamberMember,
-  hispanicChamberMember,
 }: {
   tier: string
   isExpertPartner: boolean
@@ -514,15 +556,13 @@ function BusinessBadgesRow({
   bestOfNominationCount: number
   hasCoupon: boolean
   seHablaEspanol: boolean
-  chamberMember: boolean
-  hispanicChamberMember: boolean
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2 mt-3">
       {bestOfWinner && (
-        <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
           <Trophy className="w-3 h-3" />
-          #1 Best Of Winner
+          Best of MoVal Winner
         </span>
       )}
       {!bestOfWinner && bestOfNominationCount > 0 && (
@@ -555,31 +595,17 @@ function BusinessBadgesRow({
           Deal Available
         </span>
       )}
-      {chamberMember && (
-        <span
-          className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200"
-          title="Moreno Valley Chamber of Commerce member"
-        >
-          <Building2 className="w-3 h-3" />
-          Chamber Member
-        </span>
-      )}
-      {hispanicChamberMember && (
-        <span
-          className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200"
-          title="Moreno Valley Hispanic Chamber of Commerce member"
-        >
-          <Globe className="w-3 h-3" />
-          Hispanic Chamber Member
-        </span>
-      )}
+      {/* Chamber membership and language moved to the Community &
+          Affiliations block below the description — the badge row stays
+          capped at the award-type signals. A quiet Español chip remains
+          here since language matters at the moment of choosing. */}
       {seHablaEspanol && (
         <span
-          className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-gradient-to-r from-red-500 to-amber-400 text-white border border-red-600/20 shadow-sm"
-          title="Staff speaks Spanish"
+          className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/25"
+          title="Atención en español — staff speaks Spanish"
         >
           <Languages className="w-3 h-3" />
-          Se Habla Español
+          Español
         </span>
       )}
       {/* Note: FEATURED / EXPERT_PARTNER tier pills stay on the cover image. */}

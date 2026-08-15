@@ -1,11 +1,19 @@
 import type { Metadata } from 'next'
 import { Providers } from '@/components/Providers'
-import { Inter } from 'next/font/google'
+import { Inter, Fraunces } from 'next/font/google'
 import './globals.css'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+
+// Warm display serif for headings — gives the site an editorial, "local
+// paper" personality that all-Inter never could. Body copy stays Inter.
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  variable: '--font-fraunces',
+  axes: ['opsz'],
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.moval.living'),
@@ -81,7 +89,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
       <head>
         <link rel="icon" href="https://movalliving.s3.us-west-1.amazonaws.com/favicon.ico" />
         {/* Geo meta tags — recognized by search engines for local intent */}

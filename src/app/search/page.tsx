@@ -14,6 +14,7 @@ interface SearchPageProps {
     tier?: string
     sort?: string
     page?: string
+    espanol?: string
   }>
 }
 
@@ -38,6 +39,7 @@ async function getBusinesses(params: {
   tier?: string
   sort?: string
   page?: string
+  espanol?: string
 }) {
   const page = parseInt(params.page || '1')
   const skip = (page - 1) * RESULTS_PER_PAGE
@@ -56,6 +58,13 @@ async function getBusinesses(params: {
 
   if (params.category) {
     where.category = { slug: params.category }
+  }
+
+  // "Se habla español" filter — with ~35% of Moreno Valley Spanish-speaking,
+  // language is a first-class search facet, not just a badge. Linkable
+  // directly as /search?espanol=1.
+  if (params.espanol) {
+    where.seHablaEspanol = true
   }
 
   if (params.tier === 'CHAMBER') {

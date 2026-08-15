@@ -17,7 +17,7 @@
   }
   .prose-headings:where(h1, h2, h3, h4, h5, h6) {
     color: var(--color-text);
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-fraunces), 'Inter', sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
     margin-top: 1.75em;
@@ -152,7 +152,9 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Inter', sans-serif;
+    /* Fraunces (loaded in layout.tsx) with Inter fallback — editorial
+       headings over clean body copy. */
+    font-family: var(--font-fraunces), 'Inter', sans-serif;
     @apply font-bold tracking-tight;
   }
 }
@@ -174,7 +176,8 @@
     text-decoration: none;
   }
   .btn-primary:hover {
-    background-color: #1d4ed8;
+    /* Darkened brand teal — the old #1d4ed8 was an off-palette blue. */
+    background-color: #00595d;
   }
   .btn-primary:focus {
     outline: none;
@@ -236,8 +239,9 @@
     transition: all 150ms ease-out;
   }
   .card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transform: scale(1.02);
+    /* Lift instead of scale — scaling makes text shimmer and edges wobble. */
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
   }
 
   .card-featured {
@@ -247,8 +251,8 @@
     transition: all 150ms ease-out;
   }
   .card-featured:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transform: scale(1.02);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
   }
 
   .input {

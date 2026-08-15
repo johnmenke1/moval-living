@@ -120,25 +120,11 @@ export default function LiveActivityTicker() {
     return () => clearInterval(t)
   }, [events.length])
 
-  // Skeleton / empty state — quiet placeholder, never bigger than the
-  // hero content. Helps layout stability on first paint.
-  if (events.length === 0) {
-    return (
-      <section className="bg-gradient-to-r from-slate-50 to-slate-100 border-y border-slate-200">
-        <div className="container-max py-5">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-              <Activity className="w-3.5 h-3.5" />
-              {error ? 'Live activity' : 'MoVal right now'}
-            </div>
-            <div className="h-5 w-px bg-slate-300" />
-            <div className="text-sm text-slate-500">
-              {error ? 'Activity feed unavailable — check back soon' : 'Loading recent activity…'}
-            </div>
-          </div>
-        </div>
-      </section>
-    )
+  // Nothing to show yet (still fetching, fetch failed, or feed empty) —
+  // render nothing. A visible "Loading recent activity…" strip on first
+  // paint reads as broken; the ticker should only exist once it has news.
+  if (error || events.length === 0) {
+    return null
   }
 
   // Active event formatting. Cap showing to 1 visible at a time — the
