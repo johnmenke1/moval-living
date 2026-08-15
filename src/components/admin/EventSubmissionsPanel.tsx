@@ -23,6 +23,12 @@ interface Submission {
   sourceAuthorHandle: string | null
   sourceAuthorUrl: string | null
   sourceThumbnailUrl: string | null
+  // Original IG/FB post text — captured at submission time via Playwright.
+  // Becomes Event.description and Event.sourcePostExcerpt on approve.
+  sourcePostCaption: string | null
+  // Our CDN hero URL — populated by the daily cron via fal generation.
+  // Becomes Event.heroImageUrl on approve.
+  thumbnailUrl: string | null
   sourcePostExcerpt: string | null
   title: string
   startsAt: string
@@ -199,12 +205,20 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
                 className="w-full flex items-center gap-4 p-4 text-left hover:bg-slate-50 transition-colors"
               >
                 <div className="shrink-0">
-                  {s.sourceThumbnailUrl ? (
+                  {s.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={s.thumbnailUrl}
+                      alt=""
+                      className="w-14 h-14 rounded-lg object-cover bg-slate-100"
+                    />
+                  ) : s.sourceThumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={s.sourceThumbnailUrl}
                       alt=""
                       className="w-14 h-14 rounded-lg object-cover bg-slate-100"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                     />
                   ) : (
                     <div className="w-14 h-14 rounded-lg bg-slate-100 flex items-center justify-center">
@@ -259,13 +273,22 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
                   {/* Original post */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-1">
-                      {s.sourceThumbnailUrl ? (
+                      {s.thumbnailUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={s.thumbnailUrl}
+                          alt=""
+                          className="w-full rounded-lg object-cover bg-slate-100"
+                          style={{ aspectRatio: '1/1' }}
+                        />
+                      ) : s.sourceThumbnailUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={s.sourceThumbnailUrl}
                           alt=""
                           className="w-full rounded-lg object-cover bg-slate-100"
                           style={{ aspectRatio: '1/1' }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                         />
                       ) : (
                         <div
@@ -292,6 +315,20 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
                           <p className="text-xs text-text-secondary mt-1">by {s.sourceAuthorHandle}</p>
                         )}
                       </div>
+
+                      {s.sourcePostCaption && (
+                        <div>
+                          <p className="text-xs font-semibold text-text-secondary mb-1">
+                            Original post caption
+                            <span className="ml-2 text-[10px] font-normal text-text-secondary/70">
+                              (will become the Event description on approve)
+                            </span>
+                          </p>
+                          <p className="text-sm bg-white rounded-lg border border-slate-100 p-3 whitespace-pre-wrap max-h-48 overflow-y-auto">
+                            {s.sourcePostCaption}
+                          </p>
+                        </div>
+                      )}
 
                       {s.submitterNote && (
                         <div>

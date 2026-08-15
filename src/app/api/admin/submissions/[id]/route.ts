@@ -58,19 +58,22 @@ export async function PATCH(
         data: {
           slug: eventSlug,
           title: submission.title,
-          description: submission.submitterNote ?? null,
+          description: submission.sourcePostCaption ?? submission.submitterNote ?? null,
           startsAt: submission.startsAt,
           endsAt: submission.endsAt ?? null,
           venueName: submission.venueName ?? null,
           venueTag: 'OTHER', // admin can re-tag from the dashboard
           tier: 'STANDARD',
+          // Carry the fal-generated hero image forward so the Event renders
+          // immediately on /events. Admin can replace via dashboard.
+          heroImageUrl: submission.thumbnailUrl ?? null,
           source: submission.sourcePlatform,
           sourceUrl: submission.sourceUrl,
           sourceAuthorHandle: submission.sourceAuthorHandle ?? null,
           sourceAuthorUrl: submission.sourceAuthorUrl ?? null,
-          // Capture the submitter note (which often contains the original
-          // post caption) as the sourcePostExcerpt for moderation context.
-          sourcePostExcerpt: submission.submitterNote ?? null,
+          // Capture the original IG caption as sourcePostExcerpt for
+          // editorial context. Admin sees this when reviewing tier decisions.
+          sourcePostExcerpt: submission.sourcePostCaption ?? submission.submitterNote ?? null,
           originatingSubmissionId: submission.id,
           submittedById: submission.submittedById ?? null,
           reviewedById,
