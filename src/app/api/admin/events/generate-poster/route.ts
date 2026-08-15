@@ -35,32 +35,30 @@ export const maxDuration = 300 // 5 min — Vercel Pro limit; each fal image tak
 
 /** Build the prompt for Recraft V3. We describe the scene in photographic
  *  terms and explicitly exclude text/words in the negative_prompt (Recraft
- *  actually respects negative prompts; FLUX doesn't). */
+ *  actually respects negative prompts; FLUX doesn't).
+ *
+ *  Important: we deliberately do NOT pass the IG caption or event title
+ *  into the prompt. When we did, Recraft rendered text like 'Taste of the
+ *  Valley' banners and 'Moreno Valley Chamber' signage. By using only the
+ *  venue name + atmospheric descriptors, we get a clean photographic scene. */
 function buildPrompt(sub: { title: string; venueName: string | null; sourcePostCaption: string | null }): string {
-  const title = sub.title || 'Community event'
-  const venue = sub.venueName || 'local venue'
+  const venue = sub.venueName || 'a community space'
 
-  // Pull scene keywords from the IG caption — gives us a more specific image
-  let sceneKeywords = ''
-  if (sub.sourcePostCaption) {
-    const cleaned = sub.sourcePostCaption
-      .slice(0, 200)
-      .replace(/https?:\/\/\S+/g, '')
-      .replace(/[@#]\w+/g, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-    if (cleaned.length > 20) sceneKeywords = cleaned.slice(0, 120)
-  }
+  // Extract the city from venue if it looks like "Name, City, State ZIP"
+  const cityMatch = venue.match(/,\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?),\s*CA/i)
+  const city = cityMatch ? cityMatch[1] : 'Southern California'
+
+  // Strip street address from venue so we don't prime the model for text
+  const cleanVenue = venue.replace(/^\d+[^,]*,/, '').trim() || 'a community space'
 
   return [
-    `Photograph of a community event scene.`,
-    sceneKeywords ? `Inspired by: ${sceneKeywords}.` : '',
-    `Setting: ${venue}, Southern California.`,
-    `Photographic style, editorial magazine quality, natural lighting.`,
+    `Editorial photograph of an outdoor community gathering.`,
+    `Setting: ${cleanVenue}, ${city}.`,
+    `Photographic style, magazine quality, golden hour natural lighting.`,
     `Real people, candid moment, atmospheric scene, journalistic photograph.`,
-    `No text of any kind visible in the image — no signs, no banners, no logos, no watermarks, no titles.`,
-    `Pure photograph with no overlay or graphics.`,
-  ].filter(Boolean).join(' ')
+    `No text of any kind visible in the image.`,
+    `Pure unedited photograph with no overlay or graphics.`,
+  ].join(' ')
 }
 
 /** Recraft's negative_prompt reliably excludes what we list here. We use
