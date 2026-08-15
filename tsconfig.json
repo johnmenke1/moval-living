@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "prisma/seed.ts", "scripts/schema-smoke.ts"] 
+  "exclude": ["node_modules", "prisma/seed.ts", "scripts/schema-smoke.ts", "scripts/seed-businesses-google-v2.mts"] 
 }
