@@ -108,10 +108,18 @@ async function generateAndUpload(venueName: string, city: string | null, slug: s
 }
 
 export async function POST(req: NextRequest) {
-  // Admin auth (this is a destructive action — not exposed to cron)
-  const session = await auth()
-  if (!session?.user?.id || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Two auth paths:
+  //   1. Admin session (admin clicks "Regenerate" in dashboard)
+  //   2. CRON_SECRET Bearer (the weekly review run regenerates all stale heroes)
+  const cronSecret = process.env.CRON_SECRET
+  const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/, '')
+  const isCron = cronSecret && bearer === cronSecret
+
+  if (!isCron) {
+    const session = await auth()
+    if (!session?.user?.id || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
   }
 
   const apiKey = process.env.FAL_KEY
