@@ -22,13 +22,20 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { put } from '@vercel/blob'
 
-const FAL_MODEL = 'fal-ai/flux-2/klein/9b'
+// We use Recraft V3 instead of FLUX because FLUX diffusion models
+// ignore "no text" instructions and add gibberish event posters to every
+// image. Recraft supports explicit `negative_prompt` and reliably excludes
+// text when told to. Trade-off: ~10s generation vs <1s, but the quality
+// and prompt adherence is dramatically better.
+const FAL_MODEL = 'fal-ai/recraft/v3/text-to-image'
 const FAL_BASE = 'https://queue.fal.run'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 min — Vercel Pro limit; each fal image takes ~30s
 
-/** Build the fal prompt. Atmospheric scene only — typography overlays in our UI. */
+/** Build the prompt for Recraft V3. We describe the scene in photographic
+ *  terms and explicitly exclude text/words in the negative_prompt (Recraft
+ *  actually respects negative prompts; FLUX doesn't). */
 function buildPrompt(sub: { title: string; venueName: string | null; sourcePostCaption: string | null }): string {
   const title = sub.title || 'Community event'
   const venue = sub.venueName || 'local venue'
@@ -45,19 +52,25 @@ function buildPrompt(sub: { title: string; venueName: string | null; sourcePostC
     if (cleaned.length > 20) sceneKeywords = cleaned.slice(0, 120)
   }
 
-  // IMPORTANT: FLUX tends to add gibberish text to event-style images
-  // ("HALOWEN VILLAGE", fake addresses, etc.) which conflicts with our
-  // typography overlay. We use emphatic language + leave the right third
-  // of the image blank so our overlay has clean real estate.
   return [
-    `Photograph of an event scene for "${title}".`,
+    `Photograph of a community event scene for a ${title}.`,
     sceneKeywords ? `Inspired by: ${sceneKeywords}.` : '',
-    `Atmospheric setting near ${venue}, Moreno Valley California.`,
-    `Moody cinematic lighting, modern editorial composition, magazine quality photograph.`,
-    `Leave the right third of the frame as clean negative space (sky, wall, or out-of-focus background).`,
-    `STRICTLY NO TEXT, NO LETTERS, NO WORDS, NO SIGNAGE, NO POSTERS WITH WORDS, NO BANNERS, NO STOREFRONT TEXT, NO STREET SIGNS, NO WATERMARKS anywhere.`,
-    `NO captions or titles in the image. The image must look like a pure photograph with no textual elements of any kind.`,
+    `Setting: ${venue}, Southern California.`,
+    `Photographic style, editorial magazine quality, natural lighting.`,
+    `Real people, candid moment, atmospheric scene.`,
+    `No caption or title text in the image.`,
   ].filter(Boolean).join(' ')
+}
+
+/** Recraft's negative_prompt reliably excludes what we list here. */
+function buildNegativePrompt(): string {
+  return [
+    'text, words, letters, typography, signage',
+    'banners, posters with words, captions, titles, watermarks',
+    'street signs, storefront text, t-shirts with text, logos with words',
+    'gibberish writing, fake letters, blurry text, unreadable text',
+    'event poster style, flyer, advertisement layout',
+  ].join(', ')
 }
 
 /** Submit to fal queue, poll until done, return image URL. */
@@ -70,9 +83,9 @@ async function generateImage(prompt: string, apiKey: string): Promise<string> {
     },
     body: JSON.stringify({
       prompt,
-      aspect_ratio: 'landscape',
+      image_size: 'landscape_16_9',
       num_images: 1,
-      output_format: 'jpeg',
+      negative_prompt: buildNegativePrompt(),
     }),
   })
   if (!submitRes.ok) {
@@ -84,7 +97,7 @@ async function generateImage(prompt: string, apiKey: string): Promise<string> {
   // Poll status (GET works, POST returns 405)
   let attempts = 0
   let lastStatus: string | null = null
-  while (attempts < 60) {
+  while (attempts < 90) { // Recraft takes ~10s, allow 90s
     await new Promise((r) => setTimeout(r, 1000))
     attempts++
     const pollRes = await fetch(status_url, {
@@ -106,6 +119,7 @@ async function generateImage(prompt: string, apiKey: string): Promise<string> {
   })
   if (!resultRes.ok) throw new Error(`fal result fetch failed: ${resultRes.status}`)
   const result = await resultRes.json()
+  // Recraft returns { images: [{ url }] } — same shape as FLUX
   const url = result.images?.[0]?.url
   if (!url) throw new Error('fal returned no image URL')
   return url
