@@ -109,14 +109,29 @@ export async function POST(req: NextRequest) {
       }
 
       const slug = await nextSubmissionSlug()
+      // Use venue tag as author handle — Fox shows up as 'foxriverside',
+      // MoVal events as 'cityofmorenovalley', etc. Makes the queue
+      // scannable by venue.
+      const handleMap: Record<string, string> = {
+        FOX_RIVERSIDE: 'foxriverside',
+        REDLANDS_BOWL: 'redlands.bowl',
+        REDLANDS_THEATER_FESTIVAL: 'redlands.theater',
+        RIVERSIDE_MUNICIPAL_AUDITORIUM: 'riverside.auditorium',
+        RIVERSIDE_CONVENTION_CENTER: 'riverside.convention',
+        UCR: 'ucriverside',
+        CBU: 'calbaptist',
+        RIVERSIDE_ART_MUSEUM: 'riverside.artmuseum',
+        RIVERSIDE_METROPOLITAN_MUSEUM: 'riverside.metro',
+        MOVAL_HIGH_SCHOOL: 'movalschools',
+      }
+      const handle = handleMap[e.venueTag || 'OTHER'] || 'cityofmorenovalley'
       const submission = await prisma.submission.create({
         data: {
           slug,
           sourceUrl: e.sourceUrl,
           // 'OTHER' covers city calendars, venue sites, etc. — not IG/FB
           sourcePlatform: 'OTHER',
-          // Populate author handle with the city/venue name for editorial context
-          sourceAuthorHandle: e.venueTag === 'REDLANDS_BOWL' ? 'redlands.bowl' : 'cityofmorenovalley',
+          sourceAuthorHandle: handle,
           title: e.title,
           startsAt,
           endsAt,
