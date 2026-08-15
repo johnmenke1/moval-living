@@ -229,6 +229,112 @@ model SocialPost {
   @@index([eventDate])
 }
 
+// ── Events System ─────────────────────────────────────────────────────────
+// Submission is what humans (and Emma's regional scan) write; Event is what
+// the public /events page renders after admin approval. See migration
+// 20260816000000_add_event_submission for the SQL that backs this.
+
+enum VenueTag {
+  FOX_RIVERSIDE
+  RIVERSIDE_MUNICIPAL_AUDITORIUM
+  RIVERSIDE_CONVENTION_CENTER
+  UCR
+  CBU
+  RIVERSIDE_ART_MUSEUM
+  RIVERSIDE_METROPOLITAN_MUSEUM
+  REDLANDS_BOWL
+  REDLANDS_THEATER_FESTIVAL
+  MOVAL_HIGH_SCHOOL
+  OTHER
+}
+
+enum EventTier {
+  STANDARD
+  HONORABLE_MENTION
+  HERO
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DUPLICATE
+}
+
+enum SubmissionSource {
+  INSTAGRAM
+  FACEBOOK
+  OTHER
+}
+
+model Submission {
+  id                 String           @id @default(cuid())
+  slug               String           @unique
+  sourceUrl          String
+  sourcePlatform     SubmissionSource
+  sourceAuthorHandle String?
+  sourceAuthorUrl    String?
+  sourceThumbnailUrl String?
+  sourceCapturedAt   DateTime?
+  title              String
+  startsAt           DateTime
+  endsAt             DateTime?
+  venueName          String?
+  submittedById      String?
+  submitterNote      String?          @db.Text
+  status             SubmissionStatus @default(PENDING)
+  reviewedById       String?
+  reviewedAt         DateTime?
+  rejectionReason    String?
+  promotedToEventId  String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  promotedToEvent Event? @relation("SubmissionToEvent", fields: [promotedToEventId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([startsAt])
+  @@index([createdAt])
+}
+
+model Event {
+  id                      String    @id @default(cuid())
+  slug                    String    @unique
+  title                   String
+  description             String?   @db.Text
+  startsAt                DateTime
+  endsAt                  DateTime?
+  venueName               String?
+  venueTag                VenueTag  @default(OTHER)
+  address                 String?
+  city                    String?
+  state                   String?
+  zip                     String?
+  category                String?
+  heroImageUrl            String?
+  ticketUrl               String?
+  isFree                  Boolean   @default(false)
+  tier                    EventTier @default(STANDARD)
+  source                  String
+  sourceUrl               String?
+  sourceAuthorHandle      String?
+  sourceAuthorUrl         String?
+  sourcePostExcerpt       String?   @db.Text
+  originatingSubmissionId String?
+  submittedById           String?
+  reviewedById            String?
+  reviewedAt              DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  submissions Submission[] @relation("SubmissionToEvent")
+
+  @@index([startsAt])
+  @@index([tier])
+  @@index([venueTag])
+  @@index([city])
+}
+
 enum Platform {
   INSTAGRAM
   FACEBOOK

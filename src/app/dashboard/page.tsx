@@ -50,6 +50,8 @@ export default async function DashboardPage() {
       bestOfNominationCategories,
       guestAuthors,
       guestPosts,
+      eventSubmissions,
+      eventsForDuplicate,
     ] = await Promise.all([
       prisma.socialPost.findMany({
         include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
@@ -123,6 +125,15 @@ export default async function DashboardPage() {
         },
         orderBy: { createdAt: 'desc' },
       }),
+      // Event submissions for the new Events moderation tab.
+      prisma.submission.findMany({
+        orderBy: { createdAt: 'desc' },
+      }),
+      // Existing events for the "Mark as duplicate" picker on each submission.
+      prisma.event.findMany({
+        orderBy: { startsAt: 'desc' },
+        select: { id: true, slug: true, title: true, startsAt: true, venueName: true },
+      }),
     ])
     // Map subCategories to the shape BestOfAdmin expects ({ id, name, nomineeCount })
     const bestOfCategoriesForAdmin = bestOfCategories.map(c => ({
@@ -169,6 +180,19 @@ export default async function DashboardPage() {
               guestAuthors={guestAuthors.map((a: any) => ({ ...a, postCount: a._count.posts }))}
               guestPosts={guestPosts}
               approvedBusinesses={approvedBusinesses}
+              eventSubmissions={eventSubmissions.map((s) => ({
+                ...s,
+                startsAt: s.startsAt.toISOString(),
+                endsAt: s.endsAt?.toISOString() ?? null,
+                sourceCapturedAt: s.sourceCapturedAt?.toISOString() ?? null,
+                createdAt: s.createdAt.toISOString(),
+                updatedAt: s.updatedAt.toISOString(),
+                reviewedAt: s.reviewedAt?.toISOString() ?? null,
+              }))}
+              eventsForDuplicate={eventsForDuplicate.map((e) => ({
+                ...e,
+                startsAt: e.startsAt.toISOString(),
+              }))}
             />
           </div>
         </div>

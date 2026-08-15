@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, MessageSquare, Trophy, Inbox, Users, FileText, Activity, Shield } from 'lucide-react'
+import { Building2, MessageSquare, Trophy, Inbox, Users, FileText, Activity, Shield, Calendar } from 'lucide-react'
 import BusinessesModeration from '@/components/admin/BusinessesModeration'
 import SocialPostsModeration from '@/components/admin/SocialPostsModeration'
 import BestOfAdmin from '@/components/admin/BestOfAdmin'
 import BestOfNominationsPanel from '@/components/admin/BestOfNominationsPanel'
 import GuestAuthorsPanel from '@/components/admin/GuestAuthorsPanel'
 import GuestPostsPanel from '@/components/admin/GuestPostsPanel'
+import EventSubmissionsPanel from '@/components/admin/EventSubmissionsPanel'
 import DiagnosticsPanel from '@/components/admin/DiagnosticsPanel'
 import AuditsPanel from '@/components/admin/AuditsPanel'
 import { clsx } from 'clsx'
@@ -21,15 +22,19 @@ interface AdminTabsProps {
   guestAuthors: any[]
   guestPosts: any[]
   approvedBusinesses: any[]
+  eventSubmissions: any[]
+  eventsForDuplicate: any[]
 }
 
-type TabKey = 'businesses' | 'social' | 'bestof' | 'bestofnominations' | 'guestauthors' | 'guestposts' | 'audits' | 'diagnostics'
+type TabKey = 'businesses' | 'social' | 'bestof' | 'bestofnominations' | 'guestauthors' | 'guestposts' | 'events' | 'audits' | 'diagnostics'
 
 const TABS: { key: TabKey; label: string; icon: typeof Building2; count?: (p: AdminTabsProps) => number }[] = [
   { key: 'businesses', label: 'Businesses', icon: Building2,
     count: (p) => p.businesses.filter((b: any) => b.status === 'PENDING').length },
   { key: 'social', label: 'Social Posts', icon: MessageSquare,
     count: (p) => p.posts.filter((x: any) => x.status === 'PENDING').length },
+  { key: 'events', label: 'Events', icon: Calendar,
+    count: (p) => p.eventSubmissions.filter((x: any) => x.status === 'PENDING').length },
   { key: 'bestof', label: 'Best Of', icon: Trophy,
     count: (p) => p.bestOfCategories.length },
   { key: 'bestofnominations', label: 'Nominations', icon: Inbox,
@@ -42,10 +47,10 @@ const TABS: { key: TabKey; label: string; icon: typeof Building2; count?: (p: Ad
   { key: 'diagnostics', label: 'Diagnostics', icon: Activity },
 ]
 
-export default function AdminTabs({ businesses, posts, bestOfCategories, bestOfNominations, bestOfNominationCategories, guestAuthors, guestPosts, approvedBusinesses }: AdminTabsProps) {
+export default function AdminTabs({ businesses, posts, bestOfCategories, bestOfNominations, bestOfNominationCategories, guestAuthors, guestPosts, approvedBusinesses, eventSubmissions, eventsForDuplicate }: AdminTabsProps) {
   const [active, setActive] = useState<TabKey>('businesses')
 
-  const props = { businesses, posts, bestOfCategories, bestOfNominations, bestOfNominationCategories, guestAuthors, guestPosts, approvedBusinesses }
+  const props = { businesses, posts, bestOfCategories, bestOfNominations, bestOfNominationCategories, guestAuthors, guestPosts, approvedBusinesses, eventSubmissions, eventsForDuplicate }
 
   return (
     <div>
@@ -99,6 +104,7 @@ export default function AdminTabs({ businesses, posts, bestOfCategories, bestOfN
         )}
         {active === 'guestauthors' && <GuestAuthorsPanel initialAuthors={guestAuthors} approvedBusinesses={approvedBusinesses} />}
         {active === 'guestposts' && <GuestPostsPanel initialPosts={guestPosts} authors={guestAuthors.map((a: any) => ({ id: a.id, displayName: a.displayName, slug: a.slug }))} />}
+        {active === 'events' && <EventSubmissionsPanel initialSubmissions={eventSubmissions} existingEvents={eventsForDuplicate} />}
         {active === 'audits' && <AuditsPanel />}
         {active === 'diagnostics' && <DiagnosticsPanel />}
       </div>
