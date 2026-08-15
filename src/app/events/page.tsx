@@ -355,6 +355,16 @@ function StandardCard({ event }: { event: any }) {
       rel="noopener noreferrer"
       className="block bg-white rounded-xl border border-slate-100 overflow-hidden hover:border-primary/30 hover:shadow-sm transition-all group"
     >
+      {event.heroImageUrl && (
+        <div className="aspect-[16/9] bg-gradient-to-br from-primary/10 to-secondary/10 relative overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={event.heroImageUrl}
+            alt={event.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+      )}
       <div className="p-5">
         <p className="text-xs font-bold text-text-secondary mb-2 uppercase tracking-wide">{dateLabel}</p>
         <h3 className="font-semibold text-text mb-2 group-hover:text-primary transition-colors line-clamp-2">
