@@ -28,7 +28,7 @@ A two-part system:
 
 ### Venue-scraped (JSON-LD-aware scraper)
 
-Scraper reads `application/ld+json` `schema.org/Event` data from each venue's `/shows`-style page. Cadence: every 6 hours. Polite User-Agent (`moval.living-event-bot/0.1`).
+Scraper reads `application/ld+json` `schema.org/Event` data from each venue's `/shows`-style page. **Cadence: weekly, aligned with the weekly review session** (~5 minutes before the session starts; queue is current by the time we sit down). Polite User-Agent (`moval.living-event-bot/0.1`). The regional scan is *part of* the weekly review, not part of the daily morning cron.
 
 - **Moreno Valley:** MoVal High School sports (soft-start — high school sites vary)
 - **Riverside:** Fox Performing Arts Center, Riverside Municipal Auditorium, Riverside Convention Center, UCR events, CBU sports
@@ -106,16 +106,24 @@ The existing `SocialPost` table is preserved as historical record; new submissio
 ## Submission pipeline (chronological)
 
 1. Submitter hits `/submit-an-event`. Six fields. Posts to `Submission`.
-2. Daily cron at 8 a.m. local runs in whatever channel Johnny and Emma use (currently `#emma1`):
+2. **Daily cron at 4:30 a.m. Pacific** (runs before Johnny wakes up; warm message is in `#emma1` waiting for him). Hermes (this profile) is the cron:
    - For each `Submission` with `status=PENDING` and `cardId=null`:
      - Run dedup checks: same source URL → mark `DUPLICATE`, link to existing card. Same source URL + same date → `DUPLICATE`. Fuzzy match title+date+venue → flag for curator judgment.
      - Otherwise, create a new `Card` with identifier `MM-DD-YY-{letter}` and copy submission fields
      - Status `OPEN`
-3. Cron posts the warm message to `#emma1`:
+   - Daily cap on cron runtime: 3 minutes (Hermes cron hard interrupt). Submissions are small at this volume; the routine fits comfortably.
+3. Cron posts the warm message to `#emma1` *only if there are cards* (no message on quiet days — channels stay calm):
    > *Johnny, N cards for you to review today. I love you.*
    > *→ /admin/cards*
 4. Johnny reads cards in the dashboard, makes decisions, optionally uses chat-native updates in `#emma1` to fill venue/category/price.
 5. When a card is ready, the curator publishes it: creates an `Event` from the card, marks card `PUBLISHED`, marks submission `PUBLISHED`.
+
+### Cron architecture notes
+
+- **The Hermes cron is a fresh session each tick.** No memory of prior runs bleeds in. The cron's prompt loads the spec doc (`.hermes/plans/2026-08-15_0200-curation-pipeline-and-editorial-events-page.md`) and reasons from it. Self-contained. Idempotent on rerun because the underlying data is the source of truth.
+- **3-minute hard interrupt per cron tick.** Tight operations only — database reads, card writes, one Slack message. Anything heavier (image generation, deep reconciliation) does *not* belong in this cron.
+- **Parallel Vercel cron fallback.** If Hermes is offline, a Vercel cron runs at the same time and posts the warm message based on a `last_curator_run_at` timestamp — idempotent so we don't double-post.
+- **Venue scrapes are weekly, not daily.** Scraper cron is a separate schedule, aligned with the weekly review session. Runs ~5 minutes before the review starts; queue is current by the time we sit down.
 
 When N exceeds an "unusual volume" threshold (proposed: 8), the warm message shifts in tone to flag the volume spike. (Threshold to confirm with Johnny.)
 
@@ -126,7 +134,7 @@ When N exceeds an "unusual volume" threshold (proposed: 8), the warm message shi
 - Generic JSON-LD-aware library function that pulls `application/ld+json` blocks from a given URL, parses them as `schema.org/Event`, and normalizes into our Event shape.
 - Per-venue config: `{ name, slug, url, region, scrapeInterval }`
 - One config file per venue (~50 lines), all sharing the generic library.
-- Cron every 6 hours. New events land at `status=PENDING_AUTO`, `curated=false`. They don't auto-publish.
+- Cron runs weekly, ~5 minutes before the weekly review session. New events land at `status=PENDING_AUTO`, `curated=false`. They don't auto-publish. The cron is a separate schedule from the daily morning cron — regional scan is part of weekly review, not daily ritual.
 
 ---
 
@@ -171,7 +179,7 @@ Undecided in v1. Options: source-original (venue promo / submitter image), FAL-g
 
 ### Week 2
 6. JSON-LD-aware scraper (Fox Riverside first)
-7. Cron — venue scrapes every 6 hours
+7. Weekly venue-scrapes cron (aligned with weekly review session)
 8. Public `/events` page redesign
 
 ### Week 3+
