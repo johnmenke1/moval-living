@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { nextSubmissionSlug } from '@/lib/submission-slug'
-import { captureOembed, detectPlatform } from '@/lib/submission-oembed'
+import { captureSubmissionMetadata, detectPlatform, closeBrowser } from '@/lib/submission-capture'
 
 const submissionSchema = z.object({
   sourceUrl: z.string().trim().url().max(2000),
@@ -96,11 +96,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid end time' }, { status: 400 })
   }
 
-  // Detect platform + fetch oEmbed for the prep card.
-  // Both are best-effort — if either fails we still create the Submission,
-  // just with null thumbnail/author fields for the admin to fill manually.
+  // Detect platform + capture metadata via Playwright (real browser).
+  // Best-effort — if the fetch fails we still create the Submission,
+  // just with null fields for the admin to fill manually.
   const platform = detectPlatform(sourceUrl)
-  const oembed = await captureOembed(sourceUrl, platform)
+  const capture = await captureSubmissionMetadata(sourceUrl, platform)
 
   // Generate slug MM-DD-YY-a, MM-DD-YY-b, ...
   const slug = await nextSubmissionSlug()
@@ -110,10 +110,11 @@ export async function POST(req: NextRequest) {
       slug,
       sourceUrl,
       sourcePlatform: platform,
-      sourceAuthorHandle: oembed.authorHandle,
-      sourceAuthorUrl: oembed.authorUrl,
-      sourceThumbnailUrl: oembed.thumbnailUrl,
-      sourceCapturedAt: oembed.capturedAt,
+      sourceAuthorHandle: capture.authorHandle,
+      sourceAuthorUrl: capture.authorUrl,
+      sourceThumbnailUrl: capture.thumbnailUrl,
+      sourcePostCaption: capture.postCaption,
+      sourceCapturedAt: capture.capturedAt,
       title,
       startsAt: startsAtDate,
       endsAt: endsAtDate,

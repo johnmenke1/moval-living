@@ -275,7 +275,9 @@ model Submission {
   sourceAuthorHandle String?
   sourceAuthorUrl    String?
   sourceThumbnailUrl String?
+  sourcePostCaption  String?          @db.Text
   sourceCapturedAt   DateTime?
+  thumbnailUrl       String?
   title              String
   startsAt           DateTime
   endsAt             DateTime?
