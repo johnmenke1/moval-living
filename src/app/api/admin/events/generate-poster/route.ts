@@ -45,13 +45,18 @@ function buildPrompt(sub: { title: string; venueName: string | null; sourcePostC
     if (cleaned.length > 20) sceneKeywords = cleaned.slice(0, 120)
   }
 
+  // IMPORTANT: FLUX tends to add gibberish text to event-style images
+  // ("HALOWEN VILLAGE", fake addresses, etc.) which conflicts with our
+  // typography overlay. We use emphatic language + leave the right third
+  // of the image blank so our overlay has clean real estate.
   return [
-    `Editorial photo style event hero image for "${title}".`,
+    `Photograph of an event scene for "${title}".`,
     sceneKeywords ? `Inspired by: ${sceneKeywords}.` : '',
     `Atmospheric setting near ${venue}, Moreno Valley California.`,
-    `Moody cinematic lighting, modern composition, magazine quality.`,
-    `Suitable for typography overlay on the right side.`,
-    `NO TEXT, NO WORDS, NO LETTERS, NO TYPOGRAPHY anywhere in the image.`,
+    `Moody cinematic lighting, modern editorial composition, magazine quality photograph.`,
+    `Leave the right third of the frame as clean negative space (sky, wall, or out-of-focus background).`,
+    `STRICTLY NO TEXT, NO LETTERS, NO WORDS, NO SIGNAGE, NO POSTERS WITH WORDS, NO BANNERS, NO STOREFRONT TEXT, NO STREET SIGNS, NO WATERMARKS anywhere.`,
+    `NO captions or titles in the image. The image must look like a pure photograph with no textual elements of any kind.`,
   ].filter(Boolean).join(' ')
 }
 
