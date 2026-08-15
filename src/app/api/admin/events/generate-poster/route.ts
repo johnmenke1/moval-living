@@ -152,8 +152,12 @@ async function processOne(
   sub: { id: string; slug: string; title: string; venueName: string | null; sourcePostCaption: string | null },
   apiKey: string
 ): Promise<{ submissionId: string; slug: string; status: 'success' | 'error'; thumbnailUrl?: string; error?: string }> {
+  // For city-curated events (OTHER sourcePlatform) the venueName may be
+  // generic ("Moreno Valley (various locations)"). Fall back to title
+  // keywords when venueName is too generic for an image.
+  const venueName = sub.venueName || sub.title
   try {
-    const prompt = buildPrompt(sub)
+    const prompt = buildPrompt({ title: sub.title, venueName, sourcePostCaption: sub.sourcePostCaption })
     const falImageUrl = await generateImage(prompt, apiKey)
     const blobUrl = await uploadToBlob(falImageUrl, sub.slug)
     await prisma.submission.update({
@@ -213,11 +217,14 @@ export async function POST(req: NextRequest) {
     subs = [sub]
   } else if (body.all) {
     // Cap at 10 to avoid runaway runs
+    // Process any platform with no thumbnailUrl — IG/FB submissions get the
+    // Playwright capture path; OTHER submissions (city calendars) skip
+    // capture since they have no IG post to fetch. generate-poster works
+    // on any platform; it's the venueName + city that drives the prompt.
     subs = await prisma.submission.findMany({
       where: {
         status: 'PENDING',
         thumbnailUrl: null,
-        sourcePlatform: { in: ['INSTAGRAM', 'FACEBOOK'] },
       },
       orderBy: { createdAt: 'desc' },
       take: 10,
