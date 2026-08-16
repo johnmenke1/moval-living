@@ -29,13 +29,22 @@ export async function POST(req: NextRequest) {
   const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/, '')
   const isCron = cronSecret && bearer === cronSecret
   if (!isCron) {
-    const session = await auth()
-    if (!session?.user?.id || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    try {
+      const session = await auth()
+      if (!session?.user?.id || session.user.role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+    } catch (err) {
+      return NextResponse.json({ error: `Auth error: ${err instanceof Error ? err.message : String(err)}` }, { status: 500 })
     }
   }
 
-  const contentType = req.headers.get('content-type') || ''
+  let contentType: string
+  try {
+    contentType = req.headers.get('content-type') || ''
+  } catch (err) {
+    return NextResponse.json({ error: `header error: ${err instanceof Error ? err.message : String(err)}` }, { status: 500 })
+  }
 
   // Path 1: multipart upload from a file picker
   if (contentType.includes('multipart/form-data')) {
