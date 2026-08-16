@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Calendar,
@@ -14,6 +14,7 @@ import {
   ImageIcon,
   Copy,
   Pencil,
+  Search,
 } from 'lucide-react'
 
 interface Submission {
@@ -60,6 +61,7 @@ type Filter = 'PENDING' | 'APPROVED' | 'REJECTED' | 'DUPLICATE' | 'ALL'
 export default function EventSubmissionsPanel({ initialSubmissions, existingEvents }: Props) {
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions)
   const [filter, setFilter] = useState<Filter>('PENDING')
+  const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -74,7 +76,16 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
     ALL: submissions.length,
   }
 
-  const filtered = submissions.filter((s) => filter === 'ALL' || s.status === filter)
+  // Apply status filter + case-insensitive substring match on the event
+  // title. Empty query matches everything.
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return submissions.filter((s) => {
+      if (filter !== 'ALL' && s.status !== filter) return false
+      if (!q) return true
+      return s.title.toLowerCase().includes(q)
+    })
+  }, [submissions, filter, query])
 
   // Approve creates an Event from the Submission. The API fills in:
   //   - description = sourcePostExcerpt (if available) OR title
@@ -165,6 +176,20 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
         </div>
       )}
 
+      {/* Search + filter row */}
+      <div className="mb-4">
+        <div className="relative max-w-md">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by event title…"
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          />
+        </div>
+      </div>
+
       {/* Filter pills */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
         {(['PENDING', 'APPROVED', 'REJECTED', 'DUPLICATE', 'ALL'] as Filter[]).map((f) => (
@@ -192,7 +217,11 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
       {filtered.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
           <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-text-secondary">No submissions match this filter.</p>
+          <p className="text-text-secondary">
+            {query.trim()
+              ? `No submissions match "${query.trim()}" in this filter.`
+              : 'No submissions match this filter.'}
+          </p>
         </div>
       ) : (
         <ul className="space-y-3">
