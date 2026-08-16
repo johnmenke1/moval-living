@@ -140,12 +140,25 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
   return (
     <div className="flex flex-col">
       {/* ─── HERO ─── */}
-      {/* Brand palette only: deep navy → teal, terracotta glow, no off-brand
-          blues. The headline leads with the community voice — the directory
-          is the utility underneath it, not the identity. */}
-      <section className="relative bg-gradient-to-br from-secondary via-[#01566d] to-primary overflow-hidden">
+      {/* Layered stack: cityscape photo underneath, dark+brand gradient on top
+          (keeps the white headline readable and preserves the brand palette),
+          then the two decorative blur blobs as the brand's signature accent.
+          The photo is the LCP element — eager-loaded with high fetch priority. */}
+      <section className="relative overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://zcbtyeiwows1rc8s.public.blob.vercel-storage.com/home/home-hero-1786913867250.jpg"
+          alt="Aerial view of Moreno Valley with Box Springs Mountain in the distance"
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+        />
+        {/* Dark overlay for headline readability + brand teal tint */}
+        <div className="absolute inset-0 bg-gradient-to-br from-secondary/85 via-[#01566d]/80 to-primary/75" />
+        {/* Brand accent blobs (kept at lower opacity so the photo shows through) */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent/20 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent/15 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
 
         <div className="container-max relative py-20 md:py-28">
           <div className="max-w-3xl mx-auto text-center">
