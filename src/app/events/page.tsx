@@ -130,7 +130,31 @@ export default async function EventsPage({ searchParams }: PageProps) {
     orderBy: [{ tier: 'asc' }, { startsAt: 'asc' }],
   })
 
-  const hero = events.find((e) => e.tier === 'HERO')
+  const heroInRange = events.find((e) => e.tier === 'HERO')
+
+  // Month view falls back to the NEXT hero event if no hero exists in the
+  // current month. This keeps the section visible across months — e.g. if
+  // September's hero is set up while we're still in August, /events still
+  // shows it at the top. Today/week views stay strict (they mean "now").
+  let heroOverride: typeof events[number] | null = null
+  if (view === 'month' && !heroInRange) {
+    const now = new Date()
+    const fallback = await prisma.event.findFirst({
+      where: {
+        tier: 'HERO',
+        startsAt: { gt: range.end },
+      },
+      orderBy: { startsAt: 'asc' },
+    })
+    // Only fall back to a hero that's within 90 days — anything further
+    // out is too speculative to render above the current month.
+    if (fallback && fallback.startsAt.getTime() - now.getTime() < 90 * 86400000) {
+      heroOverride = fallback
+    }
+  }
+
+  const hero = heroInRange ?? heroOverride
+
   const honorable = events.filter((e) => e.tier === 'HONORABLE_MENTION')
   const standard = events.filter((e) => e.tier === 'STANDARD')
 
