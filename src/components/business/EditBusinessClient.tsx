@@ -165,17 +165,39 @@ export default function EditBusinessClient({ business, categories, isAdmin }: Pr
     },
   }) as React.InputHTMLAttributes<HTMLInputElement>
 
-  // Hours — stored as JSON in a hidden field so submit handler can read them
-  const [hoursJson, setHoursJson] = useState(JSON.stringify(
-    business.hours || {
-      mon: { open: '9:00 AM', close: '5:00 PM', closed: false },
-      tue: { open: '9:00 AM', close: '5:00 PM', closed: false },
-      wed: { open: '9:00 AM', close: '5:00 PM', closed: false },
-      thu: { open: '9:00 AM', close: '5:00 PM', closed: false },
-      fri: { open: '9:00 AM', close: '5:00 PM', closed: false },
-      sat: { open: '9:00 AM', close: '5:00 PM', closed: false },
-      sun: { open: '9:00 AM', close: '5:00 PM', closed: true },
+  // Hours — stored as JSON in a hidden field so submit handler can read them.
+  // DEFAULT_HOURS is the canonical shape (7 days, open/close as strings,
+  // closed as boolean). Used as the seed for normalizeHours() so a partial
+  // DB row (e.g. only sun populated) doesn't crash the form.
+  const DEFAULT_HOURS: Record<string, { open: string; close: string; closed: boolean }> = {
+    mon: { open: '9:00 AM', close: '5:00 PM', closed: false },
+    tue: { open: '9:00 AM', close: '5:00 PM', closed: false },
+    wed: { open: '9:00 AM', close: '5:00 PM', closed: false },
+    thu: { open: '9:00 AM', close: '5:00 PM', closed: false },
+    fri: { open: '9:00 AM', close: '5:00 PM', closed: false },
+    sat: { open: '9:00 AM', close: '5:00 PM', closed: false },
+    sun: { open: '9:00 AM', close: '5:00 PM', closed: true },
+  }
+
+  // Coerce an arbitrary hours shape (from DB JSON) into a full 7-day
+  // record where every value is the right type. Fixes the 7-Eleven
+  // crash: DB stored { sun: { open: '00:00', close: null } } only,
+  // which then crashed the render when iterating the missing days.
+  function normalizeHours(input: unknown): Record<string, { open: string; close: string; closed: boolean }> {
+    const out: Record<string, { open: string; close: string; closed: boolean }> = {}
+    for (const day of Object.keys(DEFAULT_HOURS)) {
+      const v = (input && typeof input === 'object' ? (input as Record<string, unknown>)[day] : null) as { open?: unknown; close?: unknown; closed?: unknown } | null
+      out[day] = {
+        open: typeof v?.open === 'string' ? v.open : DEFAULT_HOURS[day].open,
+        close: typeof v?.close === 'string' ? v.close : DEFAULT_HOURS[day].close,
+        closed: typeof v?.closed === 'boolean' ? v.closed : DEFAULT_HOURS[day].closed,
+      }
     }
+    return out
+  }
+
+  const [hoursJson, setHoursJson] = useState(JSON.stringify(
+    normalizeHours(business.hours)
   ))
 
   const update = (field: string, value: string | boolean) => {
@@ -279,8 +301,9 @@ export default function EditBusinessClient({ business, categories, isAdmin }: Pr
     }
   }
 
-  const hours: Record<string, { open: string; close: string; closed: boolean }> =
-    JSON.parse(hoursJson)
+  // Re-normalize on every render so partial hoursJson (e.g. mid-edit)
+  // can't crash the loop. Cheap (7 keys) and pure.
+  const hours = normalizeHours(JSON.parse(hoursJson))
   const dayLabels: Record<string, string> = {
     mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday',
     fri: 'Friday', sat: 'Saturday', sun: 'Sunday',
