@@ -20,9 +20,15 @@ import { put } from '@vercel/blob'
 import { z } from 'zod'
 
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Allow admin session OR CRON_SECRET (so scripts can upload via curl).
+  const cronSecret = process.env.CRON_SECRET
+  const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/, '')
+  const isCron = cronSecret && bearer === cronSecret
+  if (!isCron) {
+    const session = await auth()
+    if (!session?.user?.id || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
   }
 
   const contentType = req.headers.get('content-type') || ''
