@@ -24,6 +24,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
+  try {
   // Allow admin session OR CRON_SECRET (so scripts can upload via curl).
   const cronSecret = process.env.CRON_SECRET
   const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/, '')
@@ -37,13 +38,6 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       return NextResponse.json({ error: `Auth error: ${err instanceof Error ? err.message : String(err)}` }, { status: 500 })
     }
-  }
-
-  let contentType: string
-  try {
-    contentType = req.headers.get('content-type') || ''
-  } catch (err) {
-    return NextResponse.json({ error: `header error: ${err instanceof Error ? err.message : String(err)}` }, { status: 500 })
   }
 
   // Path 1: multipart upload from a file picker
@@ -97,4 +91,7 @@ export async function POST(req: NextRequest) {
     contentType: sourceContentType,
   })
   return NextResponse.json({ url: blob.url })
+  } catch (err) {
+    return NextResponse.json({ error: `Caught: ${err instanceof Error ? err.message : String(err)}` }, { status: 500 })
+  }
 }
