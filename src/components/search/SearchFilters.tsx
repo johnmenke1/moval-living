@@ -104,15 +104,9 @@ export function SearchFilters({ categories, currentParams, resultCount }: Search
             <option value="CHAMBER">Chamber Members</option>
           </select>
 
-          <select
-            value={currentParams.sort || ''}
-            onChange={e => updateParam('sort', e.target.value)}
-            className="input py-3 w-auto min-w-[160px]"
-          >
-            <option value="">Newest First</option>
-            <option value="rating">Highest Rated</option>
-            <option value="name">A to Z</option>
-          </select>
+          {/* Sort chip removed — /search now uses an opinionated
+              ordering: by category, then Expert Partner → Featured tier
+              → Best Of → alphabetical within each bucket. */}
 
           {/* Language toggle — one tap shows only businesses with
               Spanish-speaking staff. */}
@@ -168,26 +162,15 @@ export function SearchFilters({ categories, currentParams, resultCount }: Search
             <Languages className="w-4 h-4" />
             Se habla español
           </button>
-          <div className="flex gap-3">
-            <select
-              value={currentParams.tier || ''}
-              onChange={e => updateParam('tier', e.target.value)}
-              className="input flex-1"
-            >
-              <option value="">All Listings</option>
-              <option value="FEATURED">Featured</option>
-              <option value="CHAMBER">Chamber</option>
-            </select>
-            <select
-              value={currentParams.sort || ''}
-              onChange={e => updateParam('sort', e.target.value)}
-              className="input flex-1"
-            >
-              <option value="">Newest</option>
-              <option value="rating">Top Rated</option>
-              <option value="name">A–Z</option>
-            </select>
-          </div>
+          <select
+            value={currentParams.tier || ''}
+            onChange={e => updateParam('tier', e.target.value)}
+            className="input"
+          >
+            <option value="">All Listings</option>
+            <option value="FEATURED">Featured</option>
+            <option value="CHAMBER">Chamber</option>
+          </select>
           {hasActiveFilters && (
             <button onClick={clearAll} className="text-sm text-error">
               Clear all filters

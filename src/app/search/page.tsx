@@ -1,4 +1,3 @@
-import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
 import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
@@ -12,8 +11,6 @@ interface SearchPageProps {
     q?: string
     category?: string
     tier?: string
-    sort?: string
-    page?: string
     espanol?: string
   }>
 }
@@ -31,22 +28,18 @@ export const metadata: Metadata = {
   twitter: { card: 'summary', title: 'Browse Businesses', description: 'Discover local businesses in Moreno Valley, CA.' },
 }
 
-const RESULTS_PER_PAGE = 20
+// Anchor slug for category section IDs: alphanumeric + hyphens, lowercased.
+function anchorFor(slug: string): string {
+  return 'cat-' + slug.replace(/[^a-z0-9-]/gi, '-').toLowerCase()
+}
 
 async function getBusinesses(params: {
   q?: string
   category?: string
   tier?: string
-  sort?: string
-  page?: string
   espanol?: string
 }) {
-  const page = parseInt(params.page || '1')
-  const skip = (page - 1) * RESULTS_PER_PAGE
-
-  const where: Record<string, unknown> = {
-    status: 'APPROVED',
-  }
+  const where: Record<string, unknown> = { status: 'APPROVED' }
 
   if (params.q) {
     where.OR = [
@@ -56,21 +49,12 @@ async function getBusinesses(params: {
     ]
   }
 
-  if (params.category) {
-    where.category = { slug: params.category }
-  }
-
-  // "Se habla español" filter — with ~35% of Moreno Valley Spanish-speaking,
-  // language is a first-class search facet, not just a badge. Linkable
-  // directly as /search?espanol=1.
+  // "Se habla español" filter — first-class search facet.
   if (params.espanol) {
     where.seHablaEspanol = true
   }
 
   if (params.tier === 'CHAMBER') {
-    // Show businesses affiliated with either chamber — covers the Chamber
-    // Members filter chip in the search dropdown. We AND this with any
-    // existing search query rather than overwriting it.
     where.AND = [
       ...(Array.isArray(where.AND) ? where.AND : []),
       {
@@ -79,75 +63,73 @@ async function getBusinesses(params: {
           { hispanicChamberMember: true },
         ],
       },
-    ];
+    ]
   } else if (params.tier) {
-    where.tier = params.tier.toUpperCase();
+    where.tier = params.tier.toUpperCase()
   }
 
-  let orderBy: Record<string, unknown> = { createdAt: 'desc' }
-  if (params.sort === 'rating') {
-    orderBy = { reviews: { _count: 'desc' } } as Record<string, unknown>
-  } else if (params.sort === 'name') {
-    orderBy = { name: 'asc' }
-  }
-
-  const [businesses, total] = await Promise.all([
-    prisma.business.findMany({
-      where,
-      include: {
-        category: true,
-        reviews: true,
-        _count: { select: { reviews: true } },
-      },
-      orderBy,
-      skip,
-      take: RESULTS_PER_PAGE,
-    }),
-    prisma.business.count({ where }),
-  ])
-
-  // Sort matches the homepage's 4-tier priority so listings appear in
-  // a consistent, curated order everywhere:
-  //   0 = Expert Partner (wins outright)
-  //   1 = Best Of + (FEATURED or EXPERT_PARTNER tier)
-  //   2 = (FEATURED or EXPERT_PARTNER tier) only
-  //   3 = Best Of only
-  //   4 = everything else (FREE tier)
-  // Within each tier, the user-supplied sort still applies (rating, name,
-  // or default newest-first).
-  const sorted = [...businesses].sort((a, b) => {
-    const diff = businessPriority(a) - businessPriority(b)
-    if (diff !== 0) return diff
-    if (params.sort === 'rating') {
-      return (b.googleRating ?? 0) - (a.googleRating ?? 0)
-    }
-    if (params.sort === 'name') {
-      return a.name.localeCompare(b.name)
-    }
-    return b.createdAt.getTime() - a.createdAt.getTime() // newest first
+  // Pull every approved business matching the filters. We group + sort
+  // client-side so the new "by category → tier → A–Z" ordering is the
+  // single source of truth across the site.
+  const businesses = await prisma.business.findMany({
+    where,
+    include: {
+      category: true,
+      reviews: true,
+      _count: { select: { reviews: true } },
+    },
   })
 
+  // When a single category is filtered, the grouping collapses to one
+  // section. Otherwise group by category, alphabetized.
+  const singleCategory = params.category
+    ? categories.find(c => c.slug === params.category)
+    : undefined
+
+  // Bucket businesses by category. Categories without matches are dropped.
+  // Type the bucket's category as the Prisma row shape (not the static
+  // `categories[]` fallback) so we don't fight extra nullable fields.
+  type BucketCategory = NonNullable<(typeof businesses)[number]['category']>
+  const buckets = new Map<string, { category: BucketCategory; items: typeof businesses }>()
+
+  for (const b of businesses) {
+    const cat = b.category
+    if (!cat) continue
+    const key = cat.id
+    if (!buckets.has(key)) buckets.set(key, { category: cat, items: [] as typeof businesses })
+    buckets.get(key)!.items.push(b)
+  }
+
+  // Sort each bucket by tier priority then name ascending.
+  for (const { items } of buckets.values()) {
+    items.sort((a, b) => {
+      const diff = businessPriority(a) - businessPriority(b)
+      if (diff !== 0) return diff
+      return a.name.localeCompare(b.name)
+    })
+  }
+
+  // Order the sections: filtered category first if applicable, otherwise
+  // all categories with matches, sorted alphabetically by name.
+  const sections = Array.from(buckets.values()).sort((a, b) =>
+    a.category.name.localeCompare(b.category.name)
+  )
+
+  // When the user filters to one category, we still want to surface the
+  // category name as the H1 — drop the "All Businesses" header.
+  const isSingleCategoryView = Boolean(singleCategory) && sections.length > 0
+
   return {
-    businesses: sorted.map(b => ({
-      ...b,
-      isBestOf: b.isBestOfWinner,
-      coupon: b.coupon as {
-        headline: string
-        description?: string | null
-        code?: string | null
-        expiresAt?: string | null
-      } | null,
-    })),
-    total,
-    page,
-    totalPages: Math.ceil(total / RESULTS_PER_PAGE),
+    sections,
+    total: businesses.length,
+    isSingleCategoryView,
+    singleCategory,
   }
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams
-  const { businesses, total, page, totalPages } = await getBusinesses(params)
-  const selectedCategory = categories.find(c => c.slug === params.category)
+  const { sections, total, isSingleCategoryView, singleCategory } = await getBusinesses(params)
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -168,17 +150,18 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <h1 className="text-2xl font-bold text-text">
               {params.q
                 ? `Results for "${params.q}"`
-                : selectedCategory
-                ? selectedCategory.name
+                : isSingleCategoryView && singleCategory
+                ? singleCategory.name
                 : 'All Businesses'}
             </h1>
             <p className="text-text-secondary text-sm mt-0.5">
               {total} business{total !== 1 ? 'es' : ''} found in Moreno Valley
+              {sections.length > 1 && ` · ${sections.length} categories`}
             </p>
           </div>
         </div>
 
-        {businesses.length === 0 ? (
+        {sections.length === 0 ? (
           <EmptyState
             title="No businesses found"
             description={
@@ -190,46 +173,47 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             ctaHref="/submit"
           />
         ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-              {businesses.map(business => (
-                <BusinessCard key={business.id} business={business} />
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center gap-2">
-                {page > 1 && (
-                  <a
-                    href={`/search?${buildQueryString({ ...params, page: String(page - 1) })}`}
-                    className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-text hover:bg-slate-50 transition-colors"
+          <div className="space-y-12">
+            {sections.map(({ category, items }) => (
+              <section
+                key={category.id}
+                id={anchorFor(category.slug)}
+                className="scroll-mt-32"
+                aria-labelledby={`${anchorFor(category.slug)}-title`}
+              >
+                <header className="flex items-baseline justify-between gap-4 mb-5 border-b border-slate-200 pb-3">
+                  <h2
+                    id={`${anchorFor(category.slug)}-title`}
+                    className="text-xl font-bold text-text"
                   >
-                    ← Previous
-                  </a>
-                )}
-                <span className="px-4 py-2 text-text-secondary">
-                  Page {page} of {totalPages}
-                </span>
-                {page < totalPages && (
-                  <a
-                    href={`/search?${buildQueryString({ ...params, page: String(page + 1) })}`}
-                    className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-text hover:bg-slate-50 transition-colors"
-                  >
-                    Next →
-                  </a>
-                )}
-              </div>
-            )}
-          </>
+                    {category.name}
+                  </h2>
+                  <span className="text-xs font-medium text-text-secondary whitespace-nowrap">
+                    {items.length} business{items.length !== 1 ? 'es' : ''}
+                  </span>
+                </header>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {items.map(business => (
+                    <BusinessCard
+                      key={business.id}
+                      business={{
+                        ...business,
+                        isBestOf: business.isBestOfWinner,
+                        coupon: business.coupon as {
+                          headline: string
+                          description?: string | null
+                          code?: string | null
+                          expiresAt?: string | null
+                        } | null,
+                      }}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         )}
       </div>
     </div>
   )
-}
-
-function buildQueryString(params: Record<string, string | undefined>): string {
-  return new URLSearchParams(
-    Object.entries(params).filter(([, v]) => v !== undefined && v !== '') as string[][]
-  ).toString()
 }
