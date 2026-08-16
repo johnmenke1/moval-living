@@ -134,6 +134,20 @@ export default async function DashboardPage() {
         orderBy: { startsAt: 'desc' },
         select: { id: true, slug: true, title: true, startsAt: true, venueName: true },
       }),
+      // All events for the new Events Admin tab (edit/delete view).
+      prisma.event.findMany({
+        orderBy: { startsAt: 'desc' },
+        take: 200,
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          startsAt: true,
+          venueName: true,
+          tier: true,
+          category: true,
+        },
+      }),
     ])
     // Map subCategories to the shape BestOfAdmin expects ({ id, name, nomineeCount })
     const bestOfCategoriesForAdmin = bestOfCategories.map(c => ({
@@ -190,6 +204,10 @@ export default async function DashboardPage() {
                 reviewedAt: s.reviewedAt?.toISOString() ?? null,
               }))}
               eventsForDuplicate={eventsForDuplicate.map((e) => ({
+                ...e,
+                startsAt: e.startsAt.toISOString(),
+              }))}
+              events={events.map((e) => ({
                 ...e,
                 startsAt: e.startsAt.toISOString(),
               }))}

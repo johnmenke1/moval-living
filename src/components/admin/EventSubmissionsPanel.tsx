@@ -13,6 +13,7 @@ import {
   Inbox,
   ImageIcon,
   Copy,
+  Pencil,
 } from 'lucide-react'
 
 interface Submission {
@@ -37,6 +38,8 @@ interface Submission {
   submitterNote: string | null
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'DUPLICATE'
   createdAt: string
+  /** ID of the Event this submission was promoted to (when status === 'APPROVED'). */
+  promotedToEventId: string | null
 }
 
 interface EventForDuplicate {
@@ -443,10 +446,19 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
                   )}
 
                   {s.status === 'APPROVED' && (
-                    <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg p-3">
-                      ✓ Approved and promoted to an Event. Edit the event from the public Events page or the
-                      admin dashboard to add venue address, hero image, and other details.
-                    </p>
+                    <div className="space-y-2">
+                      <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg p-3">
+                        ✓ Approved and promoted to an Event. Edit the event below to add venue address, hero image, and other details.
+                      </p>
+                      {s.promotedToEventId && (
+                        <Link
+                          href={`/dashboard/events/edit?id=${s.promotedToEventId}`}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" /> Edit event
+                        </Link>
+                      )}
+                    </div>
                   )}
 
                   {s.status === 'REJECTED' && (
