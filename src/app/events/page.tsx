@@ -1,12 +1,15 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
 import { Calendar, MapPin, ExternalLink, ArrowRight, Sparkles, Award, Send } from 'lucide-react'
+import CategoryFilter from './CategoryFilter'
+import MonthNav from './MonthNav'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600 // 1 hour
 
 interface PageProps {
-  searchParams: Promise<{ view?: string; region?: string }>
+  searchParams: Promise<{ view?: string; month?: string; cat?: string }>
 }
 
 type View = 'today' | 'weekend' | 'week' | 'month'
@@ -15,7 +18,20 @@ function startOfDayUTC(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
 }
 
-function viewRange(view: View, now: Date): { start: Date; end: Date; label: string } {
+function startOfMonthUTC(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1))
+}
+
+function endOfMonthUTC(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1))
+}
+
+/** Returns the {start, end, label} range for the given view. */
+function viewRange(
+  view: View,
+  now: Date,
+  monthParam?: string,
+): { start: Date; end: Date; label: string } {
   const today = startOfDayUTC(now)
   switch (view) {
     case 'today':
@@ -25,67 +41,81 @@ function viewRange(view: View, now: Date): { start: Date; end: Date; label: stri
         label: 'Today',
       }
     case 'weekend': {
-      // Fri-Sun: find the next Friday at-or-after today
-      const dayOfWeek = today.getUTCDay() // 0=Sun, 5=Fri, 6=Sat
-      const daysUntilFriday = dayOfWeek <= 5 ? 5 - dayOfWeek : 6 // wrap-around
+      const dayOfWeek = today.getUTCDay()
+      const daysUntilFriday = dayOfWeek <= 5 ? 5 - dayOfWeek : 6
       const friday = new Date(today.getTime() + daysUntilFriday * 24 * 60 * 60 * 1000)
       const monday = new Date(friday.getTime() + 3 * 24 * 60 * 60 * 1000)
       return { start: friday, end: monday, label: 'This Weekend' }
     }
     case 'week': {
-      const sunday = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-      return { start: today, end: sunday, label: 'This Week' }
+      const inAWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+      return { start: today, end: inAWeek, label: 'This Week' }
     }
     case 'month':
     default: {
-      const inAMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
-      return { start: today, end: inAMonth, label: 'This Month' }
+      // Default to the current month (UTC) unless monthParam specifies otherwise.
+      const baseDate = parseMonthParam(monthParam) ?? today
+      const start = startOfMonthUTC(baseDate)
+      const end = endOfMonthUTC(baseDate)
+      return { start, end, label: formatMonthLabel(baseDate) }
     }
   }
 }
 
-// Venue tags that count as "local region" (MoVal + curated regional venues)
-const REGIONAL_VENUE_TAGS = new Set([
-  'FOX_RIVERSIDE',
-  'RIVERSIDE_MUNICIPAL_AUDITORIUM',
-  'RIVERSIDE_CONVENTION_CENTER',
-  'UCR',
-  'CBU',
-  'RIVERSIDE_ART_MUSEUM',
-  'RIVERSIDE_METROPOLITAN_MUSEUM',
-  'REDLANDS_BOWL',
-  'REDLANDS_THEATER_FESTIVAL',
-  'MOVAL_HIGH_SCHOOL',
-])
+function parseMonthParam(s?: string): Date | null {
+  if (!s) return null
+  const m = s.match(/^(\d{4})-(\d{2})$/)
+  if (!m) return null
+  const year = parseInt(m[1], 10)
+  const month = parseInt(m[2], 10) - 1
+  if (isNaN(year) || isNaN(month) || month < 0 || month > 11) return null
+  return new Date(Date.UTC(year, month, 1))
+}
 
-const REGIONAL_CITIES = new Set([
-  'Moreno Valley',
-  'Beaumont',
-  'Perris',
+function formatMonthLabel(d: Date): string {
+  return d.toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+}
+
+const VALID_CATEGORIES = new Set([
+  'SPORTS',
+  'MUSIC',
+  'ARTS',
+  'EDUCATIONAL',
+  'FAMILY',
+  'FOOD_DRINK',
+  'COMMUNITY',
+  'FUNDRAISERS',
+  'HOLIDAY_CELEBRATIONS',
 ])
 
 export default async function EventsPage({ searchParams }: PageProps) {
-  const { view: rawView, region: rawRegion } = await searchParams
+  const { view: rawView, month: rawMonth, cat: rawCat } = await searchParams
   const view: View = (['today', 'weekend', 'week', 'month'] as View[]).includes(
-    rawView as View
+    rawView as View,
   )
     ? (rawView as View)
     : 'month'
-  const region: 'local' | 'all' = rawRegion === 'all' ? 'all' : 'local'
 
+  // For month view, use the URL month param; otherwise default to "today's month"
+  // so the MonthNav shows the right initial state.
   const now = new Date()
-  const range = viewRange(view, now)
+  const range = viewRange(view, now, rawMonth)
+  const navMonth = view === 'month'
+    ? (parseMonthParam(rawMonth) ?? startOfMonthUTC(now))
+    : startOfMonthUTC(now)
 
-  // Build the where clause. Local region = MoVal cities + curated regional venues.
-  // All = everything.
+  // Parse categories
+  const selectedCats = (rawCat ?? '')
+    .split(',')
+    .map((s) => s.trim().toUpperCase())
+    .filter((c) => VALID_CATEGORIES.has(c))
+
+  // Build the where clause. All approved events; category filter optional.
   const where: any = {
     startsAt: { gte: range.start, lt: range.end },
   }
-  if (region === 'local') {
-    where.OR = [
-      { city: { in: [...REGIONAL_CITIES] } },
-      { venueTag: { in: [...REGIONAL_VENUE_TAGS] } },
-    ]
+  if (selectedCats.length > 0) {
+    where.category = { in: selectedCats }
   }
 
   const events = await prisma.event.findMany({
@@ -96,6 +126,8 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const hero = events.find((e) => e.tier === 'HERO')
   const honorable = events.filter((e) => e.tier === 'HONORABLE_MENTION')
   const standard = events.filter((e) => e.tier === 'STANDARD')
+
+  const isMonthView = view === 'month'
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -113,14 +145,14 @@ export default async function EventsPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters bar */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="container-max py-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="container-max py-4 space-y-3">
           {/* View tabs */}
           <div className="flex gap-1 overflow-x-auto">
             {(['today', 'weekend', 'week', 'month'] as View[]).map((v) => {
               const isActive = view === v
-              const href = v === 'month' ? '/events' : `/events?view=${v}${region === 'all' ? '&region=all' : ''}`
+              const href = v === 'month' ? '/events' : `/events?view=${v}`
               return (
                 <Link
                   key={v}
@@ -137,37 +169,29 @@ export default async function EventsPage({ searchParams }: PageProps) {
                       ? 'Weekend'
                       : v === 'week'
                         ? 'This Week'
-                        : 'This Month'}
+                        : 'Month'}
                 </Link>
               )
             })}
           </div>
 
-          {/* Region toggle */}
-          <div className="flex gap-1">
-            <Link
-              href={view === 'month' ? '/events' : `/events?view=${view}`}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                region === 'local'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-text-secondary hover:bg-slate-200'
-              }`}
-            >
-              Local Region
-            </Link>
-            <Link
-              href={view === 'month' ? '/events?region=all' : `/events?view=${view}&region=all`}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                region === 'all'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-text-secondary hover:bg-slate-200'
-              }`}
-            >
-              All Events
-            </Link>
-          </div>
+          {/* Category filter chips */}
+          <Suspense fallback={null}>
+            <CategoryFilter selected={selectedCats} />
+          </Suspense>
         </div>
       </div>
+
+      {/* Month nav (only on month view) */}
+      {isMonthView && (
+        <div className="bg-white border-b border-slate-200">
+          <div className="container-max py-4">
+            <Suspense fallback={null}>
+              <MonthNav currentMonth={navMonth} />
+            </Suspense>
+          </div>
+        </div>
+      )}
 
       <div className="container-max py-10">
         {/* Empty state */}
@@ -176,7 +200,10 @@ export default async function EventsPage({ searchParams }: PageProps) {
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Calendar className="w-8 h-8 text-primary" />
             </div>
-            <h2 className="text-xl font-bold text-text mb-2">No events {range.label.toLowerCase()}</h2>
+            <h2 className="text-xl font-bold text-text mb-2">
+              No events {range.label.toLowerCase()}
+              {selectedCats.length > 0 && ' with selected filters'}
+            </h2>
             <p className="text-text-secondary max-w-md mx-auto mb-6">
               Know something happening? Submit an event and we&apos;ll add it to the calendar after a quick review.
             </p>
