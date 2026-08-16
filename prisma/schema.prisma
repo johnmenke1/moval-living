@@ -254,6 +254,16 @@ enum EventTier {
   HERO
 }
 
+enum EventCategory {
+  SPORTS
+  MUSIC
+  EDUCATIONAL
+  FUNDRAISERS
+  COMMUNITY
+  ARTS
+  FAMILY
+}
+
 enum SubmissionStatus {
   PENDING
   APPROVED
@@ -312,7 +322,7 @@ model Event {
   city                    String?
   state                   String?
   zip                     String?
-  category                String?
+  category                EventCategory?
   heroImageUrl            String?
   ticketUrl               String?
   isFree                  Boolean   @default(false)
@@ -335,6 +345,7 @@ model Event {
   @@index([tier])
   @@index([venueTag])
   @@index([city])
+  @@index([category])
 }
 
 enum Platform {
