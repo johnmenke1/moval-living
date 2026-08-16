@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
-import { Calendar, MapPin, ExternalLink, ArrowRight, Sparkles, Award, Send, Building2 } from 'lucide-react'
+import { Calendar, MapPin, ExternalLink, ArrowRight, Sparkles, Award, Send, Building2, Ticket, CheckCircle } from 'lucide-react'
 import CategoryFilter from './CategoryFilter'
 import LanguageFilter from './LanguageFilter'
 import MonthNav from './MonthNav'
@@ -236,7 +236,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
         {events.length > 0 && (
           <div className="space-y-6">
             {/* Hero — full width */}
-            {hero && <HeroCard event={hero} />}
+            {hero && <HeroSection event={hero} />}
 
             {/* Honorable mentions — 2-3 cards in a row */}
             {honorable.length > 0 && (
@@ -304,64 +304,127 @@ function cardHref(event: any): { href: string; external: boolean } {
   return { href: event.sourceUrl ?? '#', external: !!event.sourceUrl }
 }
 
-function HeroCard({ event }: { event: any }) {
+// Full-bleed hero section for the tier=HERO event. Image fills the
+// background with a dark gradient overlay so text stays legible on any
+// photo. CTA button is wired to ticketUrl when present; free events get
+// an RSVP-style copy change. Linked-business events keep the Hosted by
+// badge.
+function HeroSection({ event }: { event: any }) {
   const dateLabel = formatEventDate(event.startsAt)
   const venue = event.venueName ?? 'Venue TBD'
   const target = cardHref(event)
 
+  // Primary CTA: ticket link (external, opens new tab).
+  // If no ticketUrl, fall back to the event detail page link.
+  const primaryHref = event.ticketUrl ?? target.href
+  const primaryExternal = !!event.ticketUrl ? true : target.external
+  const primaryLabel = event.ticketUrl
+    ? event.isFree ? 'RSVP — Free' : 'Get tickets'
+    : 'Event details'
+  const PrimaryIcon = event.ticketUrl ? (event.isFree ? CheckCircle : Ticket) : ArrowRight
+
   return (
-    <Link
-      href={target.href}
-      target={target.external ? '_blank' : undefined}
-      rel="noopener noreferrer"
-      className="block bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow"
-    >
-      <div className="grid grid-cols-1 lg:grid-cols-2">
-        {/* Image */}
-        <div className="aspect-[4/3] lg:aspect-auto bg-gradient-to-br from-primary/20 to-secondary/20 relative">
-          {event.heroImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={event.heroImageUrl}
-              alt={event.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Calendar className="w-20 h-20 text-primary/30" />
-            </div>
-          )}
-          <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs font-bold uppercase tracking-wider shadow-lg">
+    <section className="relative rounded-2xl overflow-hidden bg-slate-900 text-white shadow-lg">
+      {/* Background image */}
+      <div className="absolute inset-0">
+        {event.heroImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={event.heroImageUrl}
+            alt=""
+            aria-hidden
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/40 to-secondary/40" />
+        )}
+        {/* Dark overlay so text is legible on any image */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/55 to-slate-950/25" />
+      </div>
+
+      {/* Content */}
+      <div className="relative px-6 py-10 sm:px-10 sm:py-14 lg:px-14 lg:py-20 flex flex-col justify-end min-h-[420px] sm:min-h-[480px] lg:min-h-[560px]">
+        {/* Top-left chip row: badge + category */}
+        <div className="flex flex-wrap items-center gap-2 mb-auto">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs font-bold uppercase tracking-wider shadow-lg">
             <Award className="w-3.5 h-3.5" /> This Week&apos;s Pick
-          </div>
+          </span>
+          {event.category && (
+            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/15 backdrop-blur text-white text-xs font-semibold uppercase tracking-wider">
+              {event.category.replace(/_/g, ' ')}
+            </span>
+          )}
+          {event.esEnEspanol && (
+            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/15 backdrop-blur text-white text-xs font-semibold uppercase tracking-wider">
+              En Español
+            </span>
+          )}
         </div>
 
-        {/* Copy */}
-        <div className="p-8 lg:p-10 flex flex-col justify-center">
-          <p className="text-sm font-semibold text-primary mb-2">{dateLabel}</p>
-          <h2 className="text-3xl lg:text-4xl font-bold text-text mb-4 leading-tight">{event.title}</h2>
-          <div className="flex items-center gap-2 text-text-secondary mb-4">
-            <MapPin className="w-4 h-4" />
-            <span className="text-sm">{venue}</span>
-            {event.city && event.city !== 'Moreno Valley' && (
-              <span className="text-sm text-text-secondary">· {event.city}</span>
-            )}
-          </div>
-          {event.business && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4 self-start">
+        {/* Date pill */}
+        <div className="flex items-center gap-2 mb-3">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur text-white text-xs font-semibold">
+            <Calendar className="w-3.5 h-3.5" />
+            {dateLabel}
+          </span>
+        </div>
+
+        {/* Headline */}
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-3 max-w-3xl">
+          {event.title}
+        </h2>
+
+        {/* Venue */}
+        <div className="flex items-center gap-2 text-white/85 mb-3">
+          <MapPin className="w-4 h-4 shrink-0" />
+          <span className="text-sm">{venue}</span>
+          {event.city && event.city !== 'Moreno Valley' && (
+            <span className="text-sm text-white/85">· {event.city}</span>
+          )}
+        </div>
+
+        {/* Linked business badge */}
+        {event.business && (
+          <div className="mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur text-white text-xs font-semibold">
               <Building2 className="w-3.5 h-3.5" />
               Hosted by {event.business.name}
-            </div>
-          )}
-          {event.description && (
-            <p className="text-text-secondary leading-relaxed line-clamp-4 mb-6">{event.description}</p>
-          )}
-          <div className="inline-flex items-center gap-2 text-primary font-semibold">
-            Learn more <ArrowRight className="w-4 h-4" />
+            </span>
           </div>
+        )}
+
+        {/* Description */}
+        {event.description && (
+          <p className="text-white/80 leading-relaxed line-clamp-3 mb-6 max-w-2xl">
+            {event.description}
+          </p>
+        )}
+
+        {/* CTA row */}
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href={primaryHref}
+            target={primaryExternal ? '_blank' : undefined}
+            rel={primaryExternal ? 'noopener noreferrer' : undefined}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold text-base hover:bg-primary/90 transition-colors shadow-lg"
+          >
+            <PrimaryIcon className="w-5 h-5" />
+            {primaryLabel}
+            {primaryExternal && <ExternalLink className="w-3.5 h-3.5 opacity-75" />}
+          </a>
+          {/* Secondary link to host (only when we have a separate ticket CTA) */}
+          {event.ticketUrl && target.href !== primaryHref && (
+            <Link
+              href={target.href}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 backdrop-blur text-white font-semibold text-base hover:bg-white/20 transition-colors"
+            >
+              <Building2 className="w-4 h-4" />
+              Visit host
+            </Link>
+          )}
         </div>
       </div>
-    </Link>
+    </section>
   )
 }
 
