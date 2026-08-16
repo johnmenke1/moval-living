@@ -6,16 +6,27 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 3600 // 1 hour
 
 interface PageProps {
-  searchParams: Promise<{ view?: string; region?: string }>
+  searchParams: Promise<{ view?: string; cat?: string; month?: string }>
 }
 
 type View = 'today' | 'weekend' | 'week' | 'month'
+type EventCategory = 'SPORTS' | 'MUSIC' | 'EDUCATIONAL' | 'FUNDRAISERS' | 'COMMUNITY' | 'ARTS' | 'FAMILY'
+
+const CATEGORY_LABELS: Record<EventCategory, string> = {
+  SPORTS: 'Sports',
+  MUSIC: 'Music',
+  EDUCATIONAL: 'Educational',
+  FUNDRAISERS: 'Fundraisers',
+  COMMUNITY: 'Community',
+  ARTS: 'Arts',
+  FAMILY: 'Family',
+}
 
 function startOfDayUTC(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
 }
 
-function viewRange(view: View, now: Date): { start: Date; end: Date; label: string } {
+function viewRange(view: View, now: Date, monthParam?: string): { start: Date; end: Date; label: string } {
   const today = startOfDayUTC(now)
   switch (view) {
     case 'today':
@@ -38,54 +49,97 @@ function viewRange(view: View, now: Date): { start: Date; end: Date; label: stri
     }
     case 'month':
     default: {
-      const inAMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
-      return { start: today, end: inAMonth, label: 'This Month' }
+      // Parse month param (YYYY-MM) or default to current month
+      let year: number, month: number
+      if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
+        const [y, m] = monthParam.split('-').map(Number)
+        year = y
+        month = m - 1 // JS months are 0-indexed
+      } else {
+        year = today.getUTCFullYear()
+        month = today.getUTCMonth()
+      }
+      const start = new Date(Date.UTC(year, month, 1))
+      const end = new Date(Date.UTC(year, month + 1, 1))
+      const monthLabel = start.toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'America/Los_Angeles' })
+      return { start, end, label: monthLabel }
     }
   }
 }
 
-// Venue tags that count as "local region" (MoVal + curated regional venues)
-const REGIONAL_VENUE_TAGS = new Set([
-  'FOX_RIVERSIDE',
-  'RIVERSIDE_MUNICIPAL_AUDITORIUM',
-  'RIVERSIDE_CONVENTION_CENTER',
-  'UCR',
-  'CBU',
-  'RIVERSIDE_ART_MUSEUM',
-  'RIVERSIDE_METROPOLITAN_MUSEUM',
-  'REDLANDS_BOWL',
-  'REDLANDS_THEATER_FESTIVAL',
-  'MOVAL_HIGH_SCHOOL',
-])
+/** Build a YYYY-MM string for the month containing `d`. */
+function monthParamFor(d: Date): string {
+  const y = d.getUTCFullYear()
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+  return `${y}-${m}`
+}
 
-const REGIONAL_CITIES = new Set([
-  'Moreno Valley',
-  'Beaumont',
-  'Perris',
-])
+/** Shift a YYYY-MM string by `delta` months (-1 for prev, +1 for next). */
+function shiftMonth(monthParam: string, delta: number): string {
+  const [y, m] = monthParam.split('-').map(Number)
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1))
+  return monthParamFor(d)
+}
+
+/** Parse `cat` URL param into a validated category list. */
+function parseCategories(cat?: string): EventCategory[] {
+  if (!cat) return []
+  const valid = new Set<string>(Object.keys(CATEGORY_LABELS))
+  return cat.split(',').filter((c) => valid.has(c)) as EventCategory[]
+}
+
+/** Build a clean URL for filter links. */
+function buildHref({
+  view,
+  cat,
+  month,
+}: {
+  view?: View
+  cat?: EventCategory[]
+  month?: string | undefined
+}): string {
+  const params = new URLSearchParams()
+  if (view && view !== 'month') params.set('view', view)
+  if (cat && cat.length > 0) params.set('cat', cat.join(','))
+  if (month) params.set('month', month)
+  const qs = params.toString()
+  return qs ? `/events?${qs}` : '/events'
+}
 
 export default async function EventsPage({ searchParams }: PageProps) {
-  const { view: rawView, region: rawRegion } = await searchParams
+  const { view: rawView, cat: rawCat, month: rawMonth } = await searchParams
   const view: View = (['today', 'weekend', 'week', 'month'] as View[]).includes(
     rawView as View
   )
     ? (rawView as View)
     : 'month'
-  const region: 'local' | 'all' = rawRegion === 'all' ? 'all' : 'local'
 
   const now = new Date()
-  const range = viewRange(view, now)
+  const range = viewRange(view, now, rawMonth)
 
-  // Build the where clause. Local region = MoVal cities + curated regional venues.
-  // All = everything.
+  // Build the where clause. All approved events within the date range,
+  // optionally narrowed by category.
+  const selectedCategories = parseCategories(rawCat)
   const where: any = {
     startsAt: { gte: range.start, lt: range.end },
   }
-  if (region === 'local') {
-    where.OR = [
-      { city: { in: [...REGIONAL_CITIES] } },
-      { venueTag: { in: [...REGIONAL_VENUE_TAGS] } },
-    ]
+  if (selectedCategories.length > 0) {
+    where.category = { in: selectedCategories }
+  }
+
+  // Counts per category for chip badges (independent of selected filter).
+  const categoryCounts: Record<EventCategory, number> = {
+    SPORTS: 0, MUSIC: 0, EDUCATIONAL: 0, FUNDRAISERS: 0,
+    COMMUNITY: 0, ARTS: 0, FAMILY: 0,
+  }
+  const allInRange = await prisma.event.findMany({
+    where: { startsAt: { gte: range.start, lt: range.end } },
+    select: { category: true },
+  })
+  for (const e of allInRange) {
+    if (e.category && e.category in categoryCounts) {
+      categoryCounts[e.category as EventCategory]++
+    }
   }
 
   const events = await prisma.event.findMany({
@@ -115,56 +169,84 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
       {/* Filters */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="container-max py-4 flex flex-wrap items-center justify-between gap-4">
-          {/* View tabs */}
-          <div className="flex gap-1 overflow-x-auto">
-            {(['today', 'weekend', 'week', 'month'] as View[]).map((v) => {
-              const isActive = view === v
-              const href = v === 'month' ? '/events' : `/events?view=${v}${region === 'all' ? '&region=all' : ''}`
+        <div className="container-max py-4 space-y-3">
+          {/* View tabs + month navigation */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex gap-1 overflow-x-auto">
+              {(['today', 'weekend', 'week', 'month'] as View[]).map((v) => {
+                const isActive = view === v
+                const href = buildHref({ view: v, cat: selectedCategories, month: view === 'month' && v === 'month' ? rawMonth : undefined })
+                return (
+                  <Link
+                    key={v}
+                    href={href}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                      isActive
+                        ? 'bg-primary text-white'
+                        : 'bg-slate-100 text-text-secondary hover:bg-slate-200'
+                    }`}
+                  >
+                    {v === 'today'
+                      ? 'Today'
+                      : v === 'weekend'
+                        ? 'Weekend'
+                        : v === 'week'
+                          ? 'This Week'
+                          : 'This Month'}
+                  </Link>
+                )
+              })}
+            </div>
+
+            {/* Month picker — only visible when view=month */}
+            {view === 'month' && (
+              <div className="flex items-center gap-2">
+                <Link
+                  href={buildHref({ view: 'month', cat: selectedCategories, month: shiftMonth(rawMonth || monthParamFor(now), -1) })}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-text-secondary hover:bg-slate-200 text-sm"
+                  aria-label="Previous month"
+                >
+                  ←
+                </Link>
+                <span className="text-sm font-semibold text-text min-w-[140px] text-center">{range.label}</span>
+                <Link
+                  href={buildHref({ view: 'month', cat: selectedCategories, month: shiftMonth(rawMonth || monthParamFor(now), 1) })}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-text-secondary hover:bg-slate-200 text-sm"
+                  aria-label="Next month"
+                >
+                  →
+                </Link>
+                <Link
+                  href={buildHref({ view: 'month', cat: selectedCategories })}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-text-secondary hover:bg-slate-200 text-xs font-semibold"
+                >
+                  Today
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Category filter chips */}
+          <div className="flex flex-wrap gap-2">
+            {(Object['entries'](CATEGORY_LABELS) as [EventCategory, string][]).map(([key, label]) => {
+              const isActive = selectedCategories.includes(key)
+              const next = isActive
+                ? selectedCategories.filter((c) => c !== key)
+                : [...selectedCategories, key]
               return (
                 <Link
-                  key={v}
-                  href={href}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  key={key}
+                  href={buildHref({ view, cat: next, month: rawMonth })}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors border ${
                     isActive
-                      ? 'bg-primary text-white'
-                      : 'bg-slate-100 text-text-secondary hover:bg-slate-200'
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-white text-text-secondary border-slate-200 hover:border-primary/50'
                   }`}
                 >
-                  {v === 'today'
-                    ? 'Today'
-                    : v === 'weekend'
-                      ? 'Weekend'
-                      : v === 'week'
-                        ? 'This Week'
-                        : 'This Month'}
+                  {label} ({categoryCounts[key]})
                 </Link>
               )
             })}
-          </div>
-
-          {/* Region toggle */}
-          <div className="flex gap-1">
-            <Link
-              href={view === 'month' ? '/events' : `/events?view=${view}`}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                region === 'local'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-text-secondary hover:bg-slate-200'
-              }`}
-            >
-              Local Region
-            </Link>
-            <Link
-              href={view === 'month' ? '/events?region=all' : `/events?view=${view}&region=all`}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                region === 'all'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-text-secondary hover:bg-slate-200'
-              }`}
-            >
-              All Events
-            </Link>
           </div>
         </div>
       </div>
