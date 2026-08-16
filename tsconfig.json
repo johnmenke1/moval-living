@@ -27,8 +27,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "prisma/seed.ts", "scripts/schema-smoke.ts", "scripts/seed-businesses-google-v2.mts"] 
+  "exclude": ["node_modules", "scripts/**", "prisma/seed.ts"]
 }

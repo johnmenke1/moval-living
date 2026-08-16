@@ -74,8 +74,12 @@ export async function POST(req: NextRequest) {
   // Build eventId map + filter
   const targets = events
     .map(e => {
-      const m = e.sourceUrl.match(/event\/([A-Z0-9]+)/)
-      return m ? { ...e, eventId: m[1] } : null
+      // sourceUrl is non-null in the DB but Prisma types it nullable.
+      // We've already filtered for ticketmaster URLs in the where clause,
+      // so sourceUrl is guaranteed to be present here.
+      const url = e.sourceUrl ?? ''
+      const m = url.match(/event\/([A-Z0-9]+)/)
+      return m ? { ...e, sourceUrl: url, eventId: m[1] } : null
     })
     .filter((x): x is NonNullable<typeof x> => x !== null)
 
