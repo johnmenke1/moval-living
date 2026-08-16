@@ -6,7 +6,10 @@ import { prisma } from '@/lib/prisma'
 // Event metadata that admins can edit. Slug, source fields, and id are immutable.
 // Keep enum values in sync with prisma/schema.prisma.
 const eventCategoryEnum = z.enum([
-  'SPORTS',
+  'HS_SPORTS',
+  'COLLEGE_SPORTS',
+  'LEAGUE_SPORTS',
+  'POLITICAL',
   'MUSIC',
   'ARTS',
   'EDUCATIONAL',
@@ -40,6 +43,7 @@ const schema = z
     startsAt: z.string().datetime({ message: 'Invalid start date' }),
     endsAt: z.string().datetime({ message: 'Invalid end date' }).nullable(),
     isFree: z.boolean(),
+    esEnEspanol: z.boolean(),
     ticketUrl: z
       .string()
       .trim()
@@ -145,6 +149,7 @@ export async function PATCH(
         startsAt: new Date(data.startsAt),
         endsAt: data.endsAt ? new Date(data.endsAt) : null,
         isFree: data.isFree,
+        esEnEspanol: data.esEnEspanol,
         ticketUrl: data.ticketUrl,
         tier: data.tier,
         venueName: data.venueName,

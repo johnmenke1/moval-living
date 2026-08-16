@@ -4,7 +4,10 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useCallback } from 'react'
 
 export const CATEGORIES = [
-  { value: 'SPORTS', label: 'Sports' },
+  { value: 'HS_SPORTS', label: 'HS Sports' },
+  { value: 'COLLEGE_SPORTS', label: 'College Sports' },
+  { value: 'LEAGUE_SPORTS', label: 'League Sports' },
+  { value: 'POLITICAL', label: 'Political' },
   { value: 'MUSIC', label: 'Music' },
   { value: 'ARTS', label: 'Arts & Culture' },
   { value: 'EDUCATIONAL', label: 'Education' },

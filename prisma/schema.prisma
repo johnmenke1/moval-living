@@ -256,7 +256,14 @@ enum EventTier {
 }
 
 enum EventCategory {
-  SPORTS
+  // SPORTS was split into three specific categories in 2026-08 to give
+  // Moreno Valley residents more targeted filters. SPORTS itself was
+  // removed from new usage; existing rows were migrated to HS_SPORTS or
+  // COLLEGE_SPORTS in migration 20260816000000_split_sports_and_add_political.
+  HS_SPORTS         // High school athletics — CIF, MVUSD, etc.
+  COLLEGE_SPORTS    // College athletics — UCR, CBU, etc.
+  LEAGUE_SPORTS     // Adult leagues, club sports, rec leagues
+  POLITICAL         // Town halls, candidate forums, ballot events, protests
   MUSIC
   ARTS
   EDUCATIONAL
@@ -329,6 +336,10 @@ model Event {
   heroImageUrl            String?
   ticketUrl               String?
   isFree                  Boolean   @default(false)
+  // Mirrors Business.seHablaEspanol. When true, the event is primarily
+  // delivered in Spanish (or bilingual). Surfaced as a public filter chip
+  // and a badge on the event card.
+  esEnEspanol             Boolean   @default(false)
   tier                    EventTier @default(STANDARD)
   source                  String
   sourceUrl               String?
@@ -356,6 +367,7 @@ model Event {
   @@index([city])
   @@index([category])
   @@index([businessId])
+  @@index([esEnEspanol])
 }
 
 enum Platform {

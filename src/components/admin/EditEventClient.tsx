@@ -17,7 +17,11 @@ import {
 // Event field enum values come from Prisma schema. Keep in sync with
 // prisma/schema.prisma (EventCategory, VenueTag, EventTier).
 export const EVENT_CATEGORIES = [
-  'SPORTS',
+  // SPORTS was split in 2026-08 so residents can filter to their level.
+  'HS_SPORTS',
+  'COLLEGE_SPORTS',
+  'LEAGUE_SPORTS',
+  'POLITICAL',
   'MUSIC',
   'ARTS',
   'EDUCATIONAL',
@@ -61,6 +65,9 @@ export interface Event {
   heroImageUrl: string | null
   ticketUrl: string | null
   isFree: boolean
+  // Spanish-language flag. Mirrors Business.seHablaEspanol. When true, the
+  // event is primarily delivered in Spanish (or bilingual).
+  esEnEspanol: boolean
   tier: string
   source: string
   sourceUrl: string | null
@@ -103,6 +110,7 @@ export default function EditEventClient({ event }: { event: Event }) {
     startsAt: isoToLocalInput(event.startsAt),
     endsAt: event.endsAt ? isoToLocalInput(event.endsAt) : '',
     isFree: event.isFree,
+    esEnEspanol: event.esEnEspanol,
     ticketUrl: event.ticketUrl ?? '',
     tier: event.tier,
     venueName: event.venueName ?? '',
@@ -221,6 +229,7 @@ export default function EditEventClient({ event }: { event: Event }) {
       startsAt: new Date(form.startsAt).toISOString(),
       endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
       isFree: form.isFree,
+      esEnEspanol: form.esEnEspanol,
       ticketUrl: form.ticketUrl.trim() || null,
       tier: form.tier,
       venueName: form.venueName.trim() || null,
@@ -367,7 +376,7 @@ export default function EditEventClient({ event }: { event: Event }) {
                     <p className="text-xs text-red-600 mt-1">{fieldError('ticketUrl')}</p>
                   )}
                 </div>
-                <div className="flex items-center pt-6">
+                <div className="flex items-center pt-6 flex-wrap gap-x-6 gap-y-2">
                   <label className="inline-flex items-center gap-2 text-sm font-semibold text-text cursor-pointer">
                     <input
                       type="checkbox"
@@ -376,6 +385,15 @@ export default function EditEventClient({ event }: { event: Event }) {
                       className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
                     />
                     Free event
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-text cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.esEnEspanol}
+                      onChange={(e) => update('esEnEspanol', e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                    />
+                    En Espa&ntilde;ol
                   </label>
                 </div>
               </div>

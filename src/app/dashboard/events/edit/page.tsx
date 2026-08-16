@@ -42,6 +42,7 @@ export default async function EditEventPage({
       heroImageUrl: true,
       ticketUrl: true,
       isFree: true,
+      esEnEspanol: true,
       tier: true,
       source: true,
       sourceUrl: true,

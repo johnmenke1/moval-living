@@ -3,13 +3,13 @@ import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
 import { Calendar, MapPin, ExternalLink, ArrowRight, Sparkles, Award, Send, Building2 } from 'lucide-react'
 import CategoryFilter from './CategoryFilter'
+import LanguageFilter from './LanguageFilter'
 import MonthNav from './MonthNav'
 
-export const dynamic = 'force-dynamic'
 export const revalidate = 3600 // 1 hour
 
 interface PageProps {
-  searchParams: Promise<{ view?: string; month?: string; cat?: string }>
+  searchParams: Promise<{ view?: string; month?: string; cat?: string; lang?: string }>
 }
 
 type View = 'today' | 'weekend' | 'week' | 'month'
@@ -77,7 +77,10 @@ function formatMonthLabel(d: Date): string {
 }
 
 const VALID_CATEGORIES = new Set([
-  'SPORTS',
+  'HS_SPORTS',
+  'COLLEGE_SPORTS',
+  'LEAGUE_SPORTS',
+  'POLITICAL',
   'MUSIC',
   'ARTS',
   'EDUCATIONAL',
@@ -89,7 +92,8 @@ const VALID_CATEGORIES = new Set([
 ])
 
 export default async function EventsPage({ searchParams }: PageProps) {
-  const { view: rawView, month: rawMonth, cat: rawCat } = await searchParams
+  const { view: rawView, month: rawMonth, cat: rawCat, lang: rawLang } = await searchParams
+  const langEs = rawLang === 'es'
   const view: View = (['today', 'weekend', 'week', 'month'] as View[]).includes(
     rawView as View,
   )
@@ -116,6 +120,9 @@ export default async function EventsPage({ searchParams }: PageProps) {
   }
   if (selectedCats.length > 0) {
     where.category = { in: selectedCats }
+  }
+  if (langEs) {
+    where.esEnEspanol = true
   }
 
   const events = await prisma.event.findMany({
@@ -179,6 +186,15 @@ export default async function EventsPage({ searchParams }: PageProps) {
           <Suspense fallback={null}>
             <CategoryFilter selected={selectedCats} />
           </Suspense>
+        </div>
+
+        {/* Language filter chip — just the En Español toggle for now */}
+        <div className="bg-white border-b border-slate-200">
+          <div className="container-max py-2">
+            <Suspense fallback={null}>
+              <LanguageFilter active={langEs} />
+            </Suspense>
+          </div>
         </div>
       </div>
 
