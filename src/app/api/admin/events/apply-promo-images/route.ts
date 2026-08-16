@@ -51,25 +51,23 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
 
-  // Find target submissions — Fox + RMA pending with Ticketmaster URLs
-  const subs = await prisma.submission.findMany({
+  // Find target Events — Fox + RMA with Ticketmaster source URLs
+  const events = await prisma.event.findMany({
     where: {
-      status: 'PENDING',
-      sourceAuthorHandle: { in: ['foxriverside', 'riverside.auditorium'] },
+      venueTag: { in: ['FOX_RIVERSIDE', 'RIVERSIDE_MUNICIPAL_AUDITORIUM'] },
       sourceUrl: { contains: 'ticketmaster.com' },
     },
-    select: { id: true, slug: true, sourceUrl: true },
+    select: { id: true, slug: true, sourceUrl: true, originatingSubmissionId: true },
   })
 
-  // Build eventId map
-  const targets = subs
-    .map(s => {
-      const m = s.sourceUrl.match(/event\/([A-Z0-9]+)/)
-      return m ? { ...s, eventId: m[1] } : null
+  // Build eventId map + filter
+  const targets = events
+    .map(e => {
+      const m = e.sourceUrl.match(/event\/([A-Z0-9]+)/)
+      return m ? { ...e, eventId: m[1] } : null
     })
     .filter((x): x is NonNullable<typeof x> => x !== null)
 
-  // Filter by eventIds if provided
   const filtered = parsed.data.eventIds?.length
     ? targets.filter(t => parsed.data.eventIds!.includes(t.eventId))
     : targets
@@ -99,11 +97,20 @@ export async function POST(req: NextRequest) {
       // Upload to Vercel Blob
       const blob = await put(blobPath, buffer, { access: 'public', contentType })
 
-      // Update submission
-      await prisma.submission.update({
+      // Update event hero
+      await prisma.event.update({
         where: { id: t.id },
-        data: { thumbnailUrl: blob.url },
+        data: { heroImageUrl: blob.url },
       })
+
+      // Also update originating Submission's thumbnail if it exists,
+      // so future re-ingests / regenerates keep the right image.
+      if (t.originatingSubmissionId) {
+        await prisma.submission.update({
+          where: { id: t.originatingSubmissionId },
+          data: { thumbnailUrl: blob.url },
+        })
+      }
 
       results.push({ slug: t.slug, eventId: t.eventId, status: 'success', thumbnailUrl: blob.url })
     } catch (err) {
