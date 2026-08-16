@@ -36,6 +36,7 @@ import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { nextSubmissionSlug } from '@/lib/submission-slug'
+import { put } from '@vercel/blob'
 
 const ingestSchema = z.object({
   events: z.array(
@@ -61,6 +62,10 @@ const ingestSchema = z.object({
       ]).optional(),
       description: z.string().trim().max(2000).optional(),
       heroImageUrl: z.string().url().max(2000).optional(),
+      // If provided, ingest will download this URL, upload to Vercel Blob,
+      // and use the resulting blob URL as the hero. Use this for venue
+      // banners hosted externally (CBU sports banner, etc.).
+      heroImageSourceUrl: z.string().url().max(2000).optional(),
     })
   ),
 })
@@ -128,6 +133,31 @@ export async function POST(req: NextRequest) {
         MOVAL_HIGH_SCHOOL: 'movalschools',
       }
       const handle = handleMap[e.venueTag || 'OTHER'] || 'cityofmorenovalley'
+
+      // Resolve hero image URL. Either:
+      //   - `heroImageUrl` already points at a Blob URL (caller pre-uploaded)
+      //   - `heroImageSourceUrl` is an external URL we need to download + upload
+      //   - neither → null (admin uploads later)
+      let heroImageUrl: string | null = e.heroImageUrl ?? null
+      if (!heroImageUrl && e.heroImageSourceUrl) {
+        try {
+          const imgRes = await fetch(e.heroImageSourceUrl, {
+            headers: { 'User-Agent': 'moval.living/0.1 (curated-events@example.com)' },
+          })
+          if (imgRes.ok) {
+            const buffer = Buffer.from(await imgRes.arrayBuffer())
+            const contentType = imgRes.headers.get('content-type') || 'image/jpeg'
+            const ext = contentType.includes('png') ? 'png' : 'jpg'
+            const blobPath = `events/${slug}/hero-${Date.now()}.${ext}`
+            const blob = await put(blobPath, buffer, { access: 'public', contentType })
+            heroImageUrl = blob.url
+          }
+        } catch (err) {
+          console.error(`[ingest] hero image upload failed for ${e.title}:`, err)
+          // Continue without hero image — admin can upload later
+        }
+      }
+
       const submission = await prisma.submission.create({
         data: {
           slug,
@@ -140,9 +170,9 @@ export async function POST(req: NextRequest) {
           endsAt,
           venueName: e.venueName,
           submitterNote: e.description ?? null,
-          // Pre-supplied hero image (e.g. CBU sports banner — admin
-          // doesn't need to upload anything, just pick a tier).
-          thumbnailUrl: e.heroImageUrl ?? null,
+          // Pre-supplied hero image (CBU sports banner, etc.) — admin
+          // doesn't need to upload anything, just pick a tier.
+          thumbnailUrl: heroImageUrl,
           // Mark as already-captured so admin knows this was curated
           sourceCapturedAt: new Date(),
           status: 'PENDING',
