@@ -42,6 +42,7 @@
     "@types/cheerio": "^0.22.35",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
+    "@types/pg": "^8.21.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "cheerio": "^1.2.0",

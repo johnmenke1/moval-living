@@ -52,6 +52,7 @@ export default async function DashboardPage() {
       guestPosts,
       eventSubmissions,
       eventsForDuplicate,
+      events,
     ] = await Promise.all([
       prisma.socialPost.findMany({
         include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
@@ -146,6 +147,7 @@ export default async function DashboardPage() {
           venueName: true,
           tier: true,
           category: true,
+          business: { select: { id: true, name: true, slug: true } },
         },
       }),
     ])

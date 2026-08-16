@@ -74,6 +74,8 @@ const schema = z
         'ZIP must be 5 or 9 digits'
       ),
     heroImageUrl: z.string().trim().max(2000).nullable(),
+    // Optional link to a Business. null = unlink. Empty string treated as null.
+    businessId: z.string().trim().min(1).max(50).nullable(),
   })
   .refine(
     (d) => !d.endsAt || new Date(d.endsAt) > new Date(d.startsAt),
@@ -114,6 +116,27 @@ export async function PATCH(
     }
 
     const data = parsed.data
+
+    // Verify the linked business exists + is APPROVED. If invalid, we want
+    // a clean 400 (not a Prisma foreign-key 500).
+    if (data.businessId) {
+      const biz = await prisma.business.findUnique({
+        where: { id: data.businessId },
+        select: { id: true, status: true },
+      })
+      if (!biz) {
+        return NextResponse.json(
+          { error: 'Linked business not found', fields: { businessId: ['Business does not exist'] } },
+          { status: 400 }
+        )
+      }
+      if (biz.status !== 'APPROVED') {
+        return NextResponse.json(
+          { error: 'Linked business is not approved', fields: { businessId: ['Business must be APPROVED to be linked'] } },
+          { status: 400 }
+        )
+      }
+    }
     const updated = await prisma.event.update({
       where: { id },
       data: {
@@ -132,6 +155,10 @@ export async function PATCH(
         state: data.state,
         zip: data.zip,
         heroImageUrl: data.heroImageUrl,
+        businessId: data.businessId || null,
+        // If businessId is set, verify the business exists + is APPROVED.
+        // If invalid, the FK constraint will reject — but we want a clean
+        // 400 instead of a Prisma foreign-key 500.
       },
       select: {
         id: true,

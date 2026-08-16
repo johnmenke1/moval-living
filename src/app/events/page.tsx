@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
-import { Calendar, MapPin, ExternalLink, ArrowRight, Sparkles, Award, Send } from 'lucide-react'
+import { Calendar, MapPin, ExternalLink, ArrowRight, Sparkles, Award, Send, Building2 } from 'lucide-react'
 import CategoryFilter from './CategoryFilter'
 import MonthNav from './MonthNav'
 
@@ -278,14 +278,25 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
 // ── Card components ─────────────────────────────────────────────────────
 
+// When an event is linked to a Business, the card clicks through to the
+// business profile instead of the external source URL. Returning a plain
+// href string keeps the Link wrapper in each card clean.
+function cardHref(event: any): { href: string; external: boolean } {
+  if (event.business?.slug) {
+    return { href: `/business/${event.business.slug}`, external: false }
+  }
+  return { href: event.sourceUrl ?? '#', external: !!event.sourceUrl }
+}
+
 function HeroCard({ event }: { event: any }) {
   const dateLabel = formatEventDate(event.startsAt)
   const venue = event.venueName ?? 'Venue TBD'
+  const target = cardHref(event)
 
   return (
     <Link
-      href={event.sourceUrl ?? '#'}
-      target={event.sourceUrl ? '_blank' : undefined}
+      href={target.href}
+      target={target.external ? '_blank' : undefined}
       rel="noopener noreferrer"
       className="block bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow"
     >
@@ -320,6 +331,12 @@ function HeroCard({ event }: { event: any }) {
               <span className="text-sm text-text-secondary">· {event.city}</span>
             )}
           </div>
+          {event.business && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4 self-start">
+              <Building2 className="w-3.5 h-3.5" />
+              Hosted by {event.business.name}
+            </div>
+          )}
           {event.description && (
             <p className="text-text-secondary leading-relaxed line-clamp-4 mb-6">{event.description}</p>
           )}
@@ -334,11 +351,12 @@ function HeroCard({ event }: { event: any }) {
 
 function HonorableCard({ event }: { event: any }) {
   const dateLabel = formatEventDate(event.startsAt)
+  const target = cardHref(event)
 
   return (
     <Link
-      href={event.sourceUrl ?? '#'}
-      target={event.sourceUrl ? '_blank' : undefined}
+      href={target.href}
+      target={target.external ? '_blank' : undefined}
       rel="noopener noreferrer"
       className="block bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow group"
     >
@@ -367,6 +385,12 @@ function HonorableCard({ event }: { event: any }) {
             {event.venueName}
           </p>
         )}
+        {event.business && (
+          <p className="text-xs text-primary font-semibold mt-1 flex items-center gap-1">
+            <Building2 className="w-3 h-3" />
+            {event.business.name}
+          </p>
+        )}
       </div>
     </Link>
   )
@@ -374,11 +398,12 @@ function HonorableCard({ event }: { event: any }) {
 
 function StandardCard({ event }: { event: any }) {
   const dateLabel = formatEventDate(event.startsAt)
+  const target = cardHref(event)
 
   return (
     <Link
-      href={event.sourceUrl ?? '#'}
-      target={event.sourceUrl ? '_blank' : undefined}
+      href={target.href}
+      target={target.external ? '_blank' : undefined}
       rel="noopener noreferrer"
       className="block bg-white rounded-xl border border-slate-100 overflow-hidden hover:border-primary/30 hover:shadow-sm transition-all group"
     >
@@ -402,6 +427,12 @@ function StandardCard({ event }: { event: any }) {
             <MapPin className="w-3 h-3" />
             {event.venueName}
             {event.city && event.city !== 'Moreno Valley' && ` · ${event.city}`}
+          </p>
+        )}
+        {event.business && (
+          <p className="text-xs text-primary font-semibold mb-2 flex items-center gap-1">
+            <Building2 className="w-3 h-3" />
+            Hosted by {event.business.name}
           </p>
         )}
         {event.description && (

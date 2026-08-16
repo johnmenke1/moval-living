@@ -47,6 +47,8 @@ export default async function EditEventPage({
       sourceUrl: true,
       createdAt: true,
       updatedAt: true,
+      businessId: true,
+      business: { select: { id: true, name: true, slug: true } },
     },
   })
 

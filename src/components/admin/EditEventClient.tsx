@@ -11,6 +11,7 @@ import {
   ImagePlus,
   X,
   ExternalLink,
+  Search,
 } from 'lucide-react'
 
 // Event field enum values come from Prisma schema. Keep in sync with
@@ -65,6 +66,9 @@ export interface Event {
   sourceUrl: string | null
   createdAt: string
   updatedAt: string
+  // Optional link to a Business listing. When null, the event is standalone.
+  businessId: string | null
+  business: { id: string; name: string; slug: string } | null
 }
 
 // Convert ISO datetime → the value expected by <input type="datetime-local">.
@@ -73,6 +77,15 @@ function isoToLocalInput(iso: string): string {
   const d = new Date(iso)
   const tzOffset = d.getTimezoneOffset() * 60_000
   return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16)
+}
+
+export interface LinkableBusiness {
+  id: string
+  name: string
+  slug: string
+  tagline: string | null
+  address: string
+  city: string
 }
 
 export default function EditEventClient({ event }: { event: Event }) {
@@ -102,6 +115,17 @@ export default function EditEventClient({ event }: { event: Event }) {
   })
 
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(event.heroImageUrl)
+
+  // Linked business — search-as-you-type picker
+  const [selectedBusiness, setSelectedBusiness] = useState<LinkableBusiness | null>(
+    event.business
+      ? { id: event.business.id, name: event.business.name, slug: event.business.slug, tagline: null, address: '', city: '' }
+      : null
+  )
+  const [bizQuery, setBizQuery] = useState('')
+  const [bizResults, setBizResults] = useState<LinkableBusiness[]>([])
+  const [bizSearching, setBizSearching] = useState(false)
+  const [showBizResults, setShowBizResults] = useState(false)
 
   const update = (field: string, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -145,6 +169,46 @@ export default function EditEventClient({ event }: { event: Event }) {
     setSaved(false)
   }
 
+  // Debounced business search — uses the existing admin search endpoint.
+  // Only fires when the query is at least 2 chars to avoid hammering the API.
+  const handleBusinessSearch = async (q: string) => {
+    setBizQuery(q)
+    if (q.trim().length < 2) {
+      setBizResults([])
+      setShowBizResults(false)
+      return
+    }
+    setBizSearching(true)
+    try {
+      const res = await fetch(`/api/admin/businesses/search?q=${encodeURIComponent(q)}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Search failed')
+      setBizResults(data.businesses ?? [])
+      setShowBizResults(true)
+    } catch (err) {
+      setBizResults([])
+      setShowBizResults(false)
+    } finally {
+      setBizSearching(false)
+    }
+  }
+
+  const handlePickBusiness = (b: LinkableBusiness) => {
+    setSelectedBusiness(b)
+    setBizQuery('')
+    setBizResults([])
+    setShowBizResults(false)
+    setSaved(false)
+  }
+
+  const handleClearBusiness = () => {
+    setSelectedBusiness(null)
+    setBizQuery('')
+    setBizResults([])
+    setShowBizResults(false)
+    setSaved(false)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -167,6 +231,7 @@ export default function EditEventClient({ event }: { event: Event }) {
       state: form.state.trim() || null,
       zip: form.zip.trim() || null,
       heroImageUrl: heroImageUrl,
+      businessId: selectedBusiness?.id ?? null,
     }
 
     try {
@@ -461,6 +526,69 @@ export default function EditEventClient({ event }: { event: Event }) {
                 </div>
               </div>
             </div>
+          </section>
+
+          {/* LINKED BUSINESS */}
+          <section className="bg-white rounded-2xl border border-slate-100 p-6">
+            <h2 className="text-lg font-bold text-text mb-1">Linked Business</h2>
+            <p className="text-xs text-text-secondary mb-4">
+              Link this event to a local Business listing. When set, the venue name on the public event card becomes a click-through to the business profile.
+            </p>
+
+            {selectedBusiness ? (
+              <div className="flex items-center justify-between p-4 rounded-lg border border-primary/30 bg-primary/5">
+                <div>
+                  <p className="font-semibold text-text">{selectedBusiness.name}</p>
+                  <p className="text-xs text-text-secondary">
+                    <a href={`/business/${selectedBusiness.slug}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                      /business/{selectedBusiness.slug}
+                    </a>
+                    {selectedBusiness.tagline && ` · ${selectedBusiness.tagline}`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearBusiness}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-slate-200 text-text text-sm font-medium hover:bg-slate-50 transition-colors"
+                >
+                  <X className="w-4 h-4" /> Unlink
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+                <input
+                  type="text"
+                  value={bizQuery}
+                  onChange={(e) => handleBusinessSearch(e.target.value)}
+                  onFocus={() => bizResults.length > 0 && setShowBizResults(true)}
+                  placeholder="Search businesses by name…"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+                {bizSearching && (
+                  <p className="text-xs text-text-secondary mt-1">Searching…</p>
+                )}
+                {showBizResults && bizResults.length > 0 && (
+                  <ul className="absolute z-10 mt-1 w-full max-h-64 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg">
+                    {bizResults.map((b) => (
+                      <li key={b.id}>
+                        <button
+                          type="button"
+                          onClick={() => handlePickBusiness(b)}
+                          className="w-full text-left px-3 py-2 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                        >
+                          <p className="font-semibold text-text text-sm">{b.name}</p>
+                          <p className="text-xs text-text-secondary">{b.address}, {b.city}</p>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {showBizResults && !bizSearching && bizResults.length === 0 && bizQuery.length >= 2 && (
+                  <p className="text-xs text-text-secondary mt-2">No approved businesses match &ldquo;{bizQuery}&rdquo;.</p>
+                )}
+              </div>
+            )}
           </section>
 
           {/* MEDIA */}

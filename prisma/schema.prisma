@@ -104,6 +104,7 @@ model Business {
   expertPartnerLeads ExpertPartnerLead[]
   expertPartnerStats ExpertPartnerStat[]
   audits             BusinessAudit[]
+  events             Event[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -334,6 +335,12 @@ model Event {
   sourceAuthorHandle      String?
   sourceAuthorUrl         String?
   sourcePostExcerpt       String?   @db.Text
+
+  // Optional link to a local Business listing. When set, the event card
+  // surfaces the venueName as a click-through to /business/[slug]. The
+  // back-relation on Business.events lets the business page list its events.
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   originatingSubmissionId String?
   submittedById           String?
   reviewedById            String?
@@ -348,6 +355,7 @@ model Event {
   @@index([venueTag])
   @@index([city])
   @@index([category])
+  @@index([businessId])
 }
 
 enum Platform {

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Calendar, Search, Pencil, Eye } from 'lucide-react'
+import { Calendar, Search, Pencil, Eye, Building2 } from 'lucide-react'
 
 export interface EventRow {
   id: string
@@ -12,6 +12,7 @@ export interface EventRow {
   venueName: string | null
   tier: string
   category: string | null
+  business: { id: string; name: string; slug: string } | null
 }
 
 interface Props {
@@ -96,6 +97,7 @@ export default function EventsAdminPanel({ events }: Props) {
                   <th className="px-4 py-3 font-semibold hidden lg:table-cell">Venue</th>
                   <th className="px-4 py-3 font-semibold">Tier</th>
                   <th className="px-4 py-3 font-semibold hidden md:table-cell">Category</th>
+                  <th className="px-4 py-3 font-semibold hidden lg:table-cell">Business</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
@@ -125,6 +127,22 @@ export default function EventsAdminPanel({ events }: Props) {
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell text-text-secondary">
                       {e.category ? e.category.replace('_', ' ') : '—'}
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      {e.business ? (
+                        <a
+                          href={`/business/${e.business.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors max-w-[180px] truncate"
+                          title={e.business.name}
+                        >
+                          <Building2 className="w-3 h-3 shrink-0" />
+                          {e.business.name}
+                        </a>
+                      ) : (
+                        <span className="text-text-secondary text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex items-center gap-1">
