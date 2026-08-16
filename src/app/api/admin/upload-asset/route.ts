@@ -19,6 +19,10 @@ import { auth } from '@/auth'
 import { put } from '@vercel/blob'
 import { z } from 'zod'
 
+// @vercel/blob requires Node.js runtime
+export const runtime = 'nodejs'
+export const maxDuration = 60
+
 export async function POST(req: NextRequest) {
   // Allow admin session OR CRON_SECRET (so scripts can upload via curl).
   const cronSecret = process.env.CRON_SECRET
