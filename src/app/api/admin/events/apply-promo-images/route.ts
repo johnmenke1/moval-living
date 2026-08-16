@@ -51,10 +51,13 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
 
-  // Find target Events — Fox + RMA with Ticketmaster source URLs
+  // Find target Events. Events default venueTag=OTHER on approval
+  // (admin re-tags later), so we can't filter by venueTag. Instead,
+  // match by sourceUrl pattern — Ticketmaster URLs come from Live Nation
+  // venues (Fox Riverside, Riverside Municipal Auditorium, and any other
+  // Live Nation venue we add later).
   const events = await prisma.event.findMany({
     where: {
-      venueTag: { in: ['FOX_RIVERSIDE', 'RIVERSIDE_MUNICIPAL_AUDITORIUM'] },
       sourceUrl: { contains: 'ticketmaster.com' },
     },
     select: { id: true, slug: true, sourceUrl: true, originatingSubmissionId: true },
