@@ -63,6 +63,14 @@ export async function POST(req: NextRequest) {
     select: { id: true, slug: true, sourceUrl: true, originatingSubmissionId: true },
   })
 
+  console.log(`[apply-promo-images] found ${events.length} events with ticketmaster sourceUrl`)
+  if (events.length === 0) {
+    // Diagnostic: try a broad query to see what's there
+    const allEvents = await prisma.event.count()
+    const tmEvents = await prisma.event.count({ where: { sourceUrl: { contains: 'ticketmaster' } } })
+    console.log(`[apply-promo-images] DEBUG: total events=${allEvents}, with 'ticketmaster' substring=${tmEvents}`)
+  }
+
   // Build eventId map + filter
   const targets = events
     .map(e => {
