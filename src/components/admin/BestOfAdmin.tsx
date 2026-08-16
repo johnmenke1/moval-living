@@ -4,7 +4,7 @@ import { useState } from 'react'
 import {
   Trophy, Star, Plus, Trash2, Edit2, Save, X,
   RefreshCw, ExternalLink, AlertCircle, CheckCircle, Search,
-  PlusCircle, ChevronDown, ChevronUp,
+  PlusCircle, ChevronDown, ChevronUp, ImagePlus, Loader2, Link as LinkIcon,
 } from 'lucide-react'
 
 // Locale-stable number formatter for hydration safety. Without an explicit
@@ -87,6 +87,49 @@ function CategoryModal({
   const [parentCategoryId, setParentCategoryId] = useState<string | null>(category?.parentCategoryId ?? null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // Cover-image upload state. `useUrlMode` flips the UI between the upload
+  // widget (default) and a plain text input — Johnny can still paste an
+  // external URL when he has one.
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [useUrlMode, setUseUrlMode] = useState(false)
+
+  const handleCoverUpload = async (file: File) => {
+    setUploadError('')
+    // Client-side gate: 10MB max, JPEG/PNG/WEBP/GIF only. The endpoint
+    // re-validates, but failing fast here avoids a useless round-trip.
+    const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+    const MAX_BYTES = 10 * 1024 * 1024
+    if (!ALLOWED_TYPES.has(file.type)) {
+      setUploadError(`Unsupported file type: ${file.type || 'unknown'}. Use JPEG, PNG, WEBP, or GIF.`)
+      return
+    }
+    if (file.size > MAX_BYTES) {
+      setUploadError(`File is ${(file.size / 1024 / 1024).toFixed(1)}MB — max is 10MB.`)
+      return
+    }
+    setUploadingCover(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      // Pass categoryId when editing an existing row so the Blob lands at
+      // best-of/categories/{slug}/cover-{ts}.{ext} (predictable path).
+      // For new rows we omit it; the slug will be set on save.
+      if (category?.id) fd.append('categoryId', category.id)
+      const res = await fetch('/api/admin/best-of/categories/upload-image', {
+        method: 'POST',
+        body: fd,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || `Upload failed (${res.status})`)
+      if (!data?.url) throw new Error('Upload succeeded but no URL returned.')
+      setImageUrl(data.url)
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setUploadingCover(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!name.trim() || !slug.trim()) { setError('Name and slug required'); return }
@@ -201,8 +244,91 @@ function CategoryModal({
             <span className="text-sm text-text">Section Header <span className="text-text-secondary text-xs">(visual group header, not a clickable card)</span></span>
           </label>
           <div>
-            <label className="block text-xs font-semibold text-text-secondary mb-1">Cover Image URL <span className="font-normal text-text-secondary">(shown on the category block)</span></label>
-            <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://images.unsplash.com/..." className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary" />
+            <label className="block text-xs font-semibold text-text-secondary mb-1">
+              Cover Image <span className="font-normal text-text-secondary">(shown on the category block)</span>
+            </label>
+            {useUrlMode ? (
+              <div className="space-y-2">
+                <input
+                  value={imageUrl}
+                  onChange={e => setImageUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setUseUrlMode(false)}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                >
+                  <ImagePlus className="w-3.5 h-3.5" /> Upload an image instead
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3">
+                <div className="shrink-0">
+                  {imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imageUrl}
+                      alt="Cover preview"
+                      className="w-24 h-24 rounded-lg object-cover bg-slate-100"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-lg bg-slate-100 flex items-center justify-center text-text-secondary text-xs">
+                      No image
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-2">
+                  {uploadError && (
+                    <div className="flex items-start gap-2 p-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
+                      <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                      <span>{uploadError}</span>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 cursor-pointer transition-colors">
+                      {uploadingCover ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <ImagePlus className="w-3.5 h-3.5" />
+                      )}
+                      {uploadingCover ? 'Uploading…' : imageUrl ? 'Replace image' : 'Upload image'}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) handleCoverUpload(file)
+                          // Reset so re-selecting the same file fires onChange again.
+                          e.target.value = ''
+                        }}
+                      />
+                    </label>
+                    {imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setImageUrl('')}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-text text-xs font-medium hover:bg-slate-50 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" /> Remove
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUseUrlMode(true)}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary hover:text-primary"
+                  >
+                    <LinkIcon className="w-3.5 h-3.5" /> Or paste a URL
+                  </button>
+                  <p className="text-xs text-text-secondary">
+                    JPEG / PNG / WEBP / GIF. Max 10MB. Stored on Vercel Blob.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
