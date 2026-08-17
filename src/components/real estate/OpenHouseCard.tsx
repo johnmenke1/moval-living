@@ -1,4 +1,4 @@
-import { MapPin, Bed, Bath, Square, Calendar, Car } from 'lucide-react'
+import { MapPin, Bed, Bath, Square, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import type { OpenHouseListing } from '@/app/api/trestle/open-houses/route'
@@ -81,7 +81,7 @@ export function OpenHouseCard({
   const card = (
     <div
       className={cn(
-        'card overflow-hidden group transition-all duration-200',
+        'card overflow-hidden rounded-2xl border-slate-200/80 shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl',
         highlighted && 'ring-2 ring-primary shadow-lg'
       )}
       onMouseEnter={onMouseEnter}
@@ -98,6 +98,7 @@ export function OpenHouseCard({
             target.src = PLACEHOLDER_SVG
           }}
         />
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/35 to-transparent" />
         <div className="absolute top-3 left-3">
           <span
             className={cn(
@@ -127,7 +128,7 @@ export function OpenHouseCard({
       {/* Content */}
       <div className="p-5">
         {/* Price */}
-        <div className="text-2xl font-bold text-text mb-1">{formatPrice(listing.listPrice)}</div>
+        <div className="mb-1 text-2xl font-bold text-primary">{formatPrice(listing.listPrice)}</div>
 
         {/* Address */}
         <div className="flex items-start gap-1.5 mb-3">

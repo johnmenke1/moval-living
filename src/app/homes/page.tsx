@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { ListingCard } from '@/components/real estate/ListingCard'
-import { Search, SlidersHorizontal, X, ChevronDown, Loader2 } from 'lucide-react'
+import { Search, X, ChevronDown, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Listing {
@@ -68,7 +68,7 @@ export default function HomesPage() {
   const [totalPages, setTotalPages] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filtersOpen, setFiltersOpen] = useState(false)
+
 
   // Filter state
   const [priceRange, setPriceRange] = useState(PRICE_RANGES[0])
@@ -107,6 +107,8 @@ export default function HomesPage() {
   }, [priceRange, beds, sort, searchQ])
 
   useEffect(() => {
+    // The request synchronizes remote listing data with the selected filters.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchListings(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priceRange, beds, sort])
@@ -122,19 +124,28 @@ export default function HomesPage() {
     priceRange.label !== 'Any' || beds.label !== 'Any' || searchQ !== ''
 
   return (
-    <div className="bg-slate-50 min-h-screen">
-      {/* Page Header */}
-      <div className="bg-white border-b border-slate-100">
-        <div className="container-max py-8">
-          <h1 className="text-3xl font-bold text-text mb-2">Moreno Valley Homes for Sale</h1>
-          <p className="text-text-secondary">
-            Browse active residential listings in Moreno Valley, CA — powered by CRMLS.
-          </p>
+    <div className="min-h-screen bg-[#eef3f2]">
+      {/* Editorial real-estate masthead */}
+      <section className="relative overflow-hidden bg-secondary text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(201,120,109,0.32),transparent_34%),radial-gradient(circle_at_10%_100%,rgba(0,122,127,0.55),transparent_42%)]" />
+        <div className="relative container-max py-12 sm:py-16">
+          <div className="max-w-3xl">
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.22em] text-accent">The MoVal home search</p>
+            <h1 className="mb-4 text-4xl font-bold leading-[1.05] sm:text-6xl">Find your place in Moreno Valley.</h1>
+            <p className="max-w-2xl text-base leading-7 text-white/75 sm:text-lg">
+              Browse active homes with current CRMLS data, then narrow the search by the details that matter to your next chapter.
+            </p>
+          </div>
+          <div className="mt-9 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">CRMLS</p><p className="text-xs text-white/60">current listing data</p></div>
+            <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">12</p><p className="text-xs text-white/60">homes per page</p></div>
+            <div className="hidden border-l border-white/25 pl-4 sm:block"><p className="text-2xl font-bold">MoVal</p><p className="text-xs text-white/60">your local market</p></div>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Filter Bar */}
-      <div className="bg-white border-b border-slate-100 sticky top-16 z-30">
+      <div className="sticky top-16 z-30 border-b border-slate-200/80 bg-[#eef3f2]/95 backdrop-blur">
         <div className="container-max py-4">
           <div className="flex items-center gap-3 flex-wrap">
             {/* Search */}
@@ -228,13 +239,13 @@ export default function HomesPage() {
       </div>
 
       {/* Results */}
-      <div className="container-max py-8">
+      <div className="container-max py-9">
         {/* Count */}
         <div className="flex items-center justify-between mb-6">
-          <p className="text-text-secondary text-sm">
-            {!loading && (
+          <p className="text-sm text-text-secondary">
+            {!loading && !error && (
               <>
-                <span className="font-semibold text-text">{total.toLocaleString()}</span>{' '}
+                <span className="font-bold text-primary">{total.toLocaleString()}</span>{' '}
                 {total === 1 ? 'listing' : 'listings'} found
               </>
             )}
@@ -275,7 +286,7 @@ export default function HomesPage() {
         {/* Grid */}
         {!loading && !error && listings.length > 0 && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
               {listings.map((listing) => (
                 <ListingCard
                   key={listing.listingKey}
