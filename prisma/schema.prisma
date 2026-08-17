@@ -766,6 +766,11 @@ model Park {
   blurb       String?
   description String?
 
+  // Structured FAQ content — array of {q: string, a: string}.
+  // Renders as <details> elements on the public detail page AND emits
+  // a Schema.org FAQPage JSON-LD block for SEO rich results.
+  faqsJson    Json?
+
   // Curation
   featured Boolean @default(false)
   isActive Boolean @default(true)
