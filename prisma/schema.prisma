@@ -768,6 +768,11 @@ model Park {
 
   // Curation
   featured Boolean @default(false)
+  isActive Boolean @default(true)
+
+  // Google reputation (mirrors Business.googleRating/googleReviewCount pattern)
+  googleRating      Float?
+  googleReviewCount Int?
 
   // Ops
   createdAt DateTime @default(now())
