@@ -153,17 +153,22 @@ function EventsCarousel({ events }: { events: UpcomingEvent[] }) {
   // Respect prefers-reduced-motion — checked once on mount.
   const [reducedMotion, setReducedMotion] = useState(false)
 
+  // Auto-advance timing constants. Declared at the top of the component
+  // so they're visible to onScroll / scrollToIndex callbacks (which are
+  // defined inside earlier useEffects and reference them via closure).
+  const AUTO_ADVANCE_MS = 5000
+  const RESUME_DELAY_MS = 6000
+
   // Compute scroll position of each card so we can map scrollLeft →
   // activeIndex without a ResizeObserver.
   const cardOffsetsRef = useRef<number[]>([])
-  // True when the next scroll event is caused by our own scrollTo() 
-  // call (auto-advance or chevron/dot click). Manual scrolls (touchpad,
-  // drag, keyboard arrows) leave this false so they trigger the pause.
-  const programmaticScrollRef = useRef(false)
-  // Last scroll position the user manually scrolled to. Used to
-  // throttle the pauseUntil update so the smooth-scroll animation
-  // tail doesn't keep re-stamping the pause window.
-  const lastScrollXRef = useRef<number>(0)
+  // Unix-ms timestamp of the last programmatic scrollTo() call. Scroll
+  // events within RESUME_DELAY_MS of this are treated as the smooth-
+  // scroll animation tail and ignored. Outside that window they're
+  // treated as manual user scrolls and re-stamp pauseUntil. This is
+  // more robust than a boolean flag because smooth-scroll animations
+  // emit many scroll events over ~300-500ms.
+  const lastProgrammaticScrollRef = useRef<number>(0)
 
   const recomputeOffsets = useCallback(() => {
     const rail = railRef.current
@@ -196,17 +201,11 @@ function EventsCarousel({ events }: { events: UpcomingEvent[] }) {
         }
       }
       setActiveIndex(bestIdx)
-      // If this scroll wasn't triggered by our own scrollTo(), treat
-      // it as a manual user interaction and pause auto-advance. 
-      // Threshold: only count scrolls that meaningfully change position
-      // (>= 4px) so the smooth-scroll animation tail doesn't keep
-      // re-triggering the pause.
-      if (!programmaticScrollRef.current) {
-        const prev = lastScrollXRef.current
-        if (Math.abs(x - prev) >= 4) {
-          setPauseUntil(Date.now() + RESUME_DELAY_MS)
-          lastScrollXRef.current = x
-        }
+      // If this scroll is part of a programmatic smooth-scroll animation
+      // (within RESUME_DELAY_MS of our last scrollTo), ignore it.
+      // Otherwise treat as a manual user interaction and pause.
+      if (Date.now() - lastProgrammaticScrollRef.current > RESUME_DELAY_MS) {
+        setPauseUntil(Date.now() + RESUME_DELAY_MS)
       }
     }
     rail.addEventListener('scroll', onScroll, { passive: true })
@@ -255,25 +254,17 @@ function EventsCarousel({ events }: { events: UpcomingEvent[] }) {
     const offsets = cardOffsetsRef.current
     const target = offsets[idx]
     if (typeof target === 'number') {
-      // Mark this as a programmatic scroll so the onScroll handler
-      // doesn't trigger a pause. Clear the flag on the next animation
-      // frame after the scroll completes.
-      programmaticScrollRef.current = true
+      // Stamp the timestamp so onScroll can identify this as part of
+      // a smooth-scroll animation tail (ignore for RESUME_DELAY_MS).
+      lastProgrammaticScrollRef.current = Date.now()
       rail.scrollTo({ left: target, behavior: 'smooth' })
       setPauseUntil(Date.now() + RESUME_DELAY_MS)
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          programmaticScrollRef.current = false
-        })
-      })
     }
   }, [])
 
   // Auto-advance loop. Cycles every AUTO_ADVANCE_MS while not paused. The
   // pauseUntil timer is re-checked on each tick so we resume as soon as
   // the user-interaction window expires.
-  const AUTO_ADVANCE_MS = 5000
-  const RESUME_DELAY_MS = 6000
   useEffect(() => {
     if (events.length <= 1) return
     if (reducedMotion) return
