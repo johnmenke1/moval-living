@@ -115,11 +115,11 @@ export default async function AboutMorenoValleyPage() {
             <h2 className="mb-2 text-3xl font-bold text-text">Outdoor Recreation &amp; Parks</h2>
             <p className="text-text-secondary">
               Moreno Valley runs{' '}
-              <strong>41 city-maintained parks, trails, and recreation facilities</strong>
-              {' '}— including Southern California&apos;s largest Velosolutions pump track at the
-              Flight Deck, an 8-mile paved federal recreation trail (the Juan Bautista de Anza),
-              Cottonwood Golf Center, plus four neighborhood community centers.
-              Find your nearest one on our interactive parks map.
+              <strong>41 city-maintained parks, trails, and recreation facilities</strong>{' '}
+                            — including Southern California&apos;s largest Velosolutions pump track at the
+                            Flight Deck, an 8-mile paved federal recreation trail (the Juan Bautista de Anza),
+                            Cottonwood Golf Center, plus four neighborhood community centers.
+                            Find your nearest one on our interactive parks map.
             </p>
           </div>
 
