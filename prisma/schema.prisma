@@ -722,3 +722,64 @@ model BusinessAudit {
   @@index([score])
   @@index([auditedAt])
 }
+
+
+// ── Parks & Recreation (added 2026-08-17) ──────────────────────────────────
+// City of Moreno Valley parks + Cottonwood Golf Center + Conference & Rec Center.
+// Distinct from Business because parks are not commercial entities, don't go
+// through the chamber/claim flow, and use a different amenity vocabulary.
+model Park {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  type          ParkType
+  googlePlaceId String?  @unique
+
+  // Address (denormalized for fast map rendering without Geo lookup)
+  address String?
+  city    String  @default("Moreno Valley")
+  state   String  @default("CA")
+  zip     String?
+
+  // Coordinates for map pins
+  latitude  Float?
+  longitude Float?
+
+  // Contact
+  phone   String?
+  website String?
+
+  // Weekly hours (JSON: { mon: [{open, close}], ... }) — null = "call for hours"
+  hoursJson Json?
+
+  // Amenity tags (free-text but constrained via lib/park-amenities constant)
+  // Examples: "pump_track", "skate_park", "water_play", "tennis", "dog_park",
+  //           "basketball", "picnic", "playground", "disc_golf", "splash_pad",
+  //           "restrooms", "walking_trails", "bbq", "wheelchair_accessible"
+  amenities String[] @default([])
+
+  // Photos (Vercel Blob URLs, captured via scripts/capture-park-photos.mts)
+  heroPhotoUrl String?
+  photoUrls    String[] @default([])
+
+  // Editorial
+  blurb       String?
+  description String?
+
+  // Curation
+  featured Boolean @default(false)
+
+  // Ops
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([slug])
+  @@index([featured])
+}
+
+enum ParkType {
+  PARK
+  GOLF
+  REC_CENTER
+}
