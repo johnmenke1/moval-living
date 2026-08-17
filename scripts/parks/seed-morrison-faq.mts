@@ -18,9 +18,11 @@ const parkSlug = "morrison-park";
 
 const description = `Morrison Park is one of Moreno Valley's largest multi-use parks — a 35-acre campus that pairs traditional ballfields and picnic shelters with the Flight Deck Bike Park, a world-class pump track destination on the park's southern edge.
 
-The Flight Deck is the marquee feature: a 25,000-square-foot Velosolutions asphalt pump track — the largest in Southern California — plus an adaptive track, asphalt jump lines, a beginner bicycle playground, and a 1,000-foot glow-in-the-dark pathway. Riders from across the region come for the line variety.
+The Flight Deck is the marquee feature. Per the City of Moreno Valley's December 2025 ribbon-cutting release, the Flight Deck Bike Park is located on the southern side of Morrison Park near the Fire Station and is a major addition to Moreno Valley's outdoor facilities. Inspired by the city's aviation heritage, the park was designed to offer a cycling experience that provides a welcoming environment for riders of all ages, abilities, and skill levels.
 
-Beyond the Flight Deck, the park has full-family amenities: soccer fields, baseball diamonds, restrooms, BBQ grills, picnic shelters, a snack bar, and drinking fountains. Open daily 7 AM – 10 PM. Free admission.`;
+That heritage shows up in the design itself — a 25,000-square-foot Velosolutions asphalt pump track (the largest in Southern California), plus the region's first adaptive track for riders of all abilities, the first asphalt jump lines in Southern California, an asphalt bicycle playground for young riders, and a 1,000-foot connecting path lit by Ambient Glow Technology — sunlight-charged glow rocks that illuminate after dark (the first use of this technology in Southern California, per the City).
+
+Beyond the Flight Deck, the park has full-family amenities: soccer fields, baseball diamonds, restrooms, BBQ grills, picnic shelters, a snack bar, and drinking fountains. Open daily 7 AM – 10 PM. Free admission. Designed and built by American Ramp Company.`;
 
 const hours = {
   mon: [{ open: "07:00", close: "22:00" }],
@@ -34,12 +36,24 @@ const hours = {
 
 const faqs = [
   {
-    q: "Where is the Flight Deck pump track inside Morrison Park?",
-    a: "The Flight Deck sits on the southern side of Morrison Park, near the Fire Station at 13460 Morrison Street. It's the dedicated bike/wheel-sports area, separate from the ballfields and picnic areas.",
+    q: "Where is the Flight Deck Bike Park inside Morrison Park?",
+    a: "Per the City of Moreno Valley's December 2025 ribbon-cutting announcement, the Flight Deck Bike Park is located on the southern side of Morrison Park, near the Fire Station at 13460 Morrison Street. It's the dedicated bike/wheel-sports area, separate from the ballfields and picnic areas.",
   },
   {
     q: "How big is the Flight Deck pump track?",
-    a: "The main pump track is 25,000 square feet of Velosolutions asphalt — the largest asphalt pump track in Southern California. There's also a separate adaptive track (the region's first, designed for riders of all abilities), asphalt jump lines, a beginner bicycle playground, and a 1,000-foot glow-in-the-dark pathway.",
+    a: "The main pump track is 25,000 square feet of Velosolutions asphalt — the largest Velosolutions pump track in Southern California.",
+  },
+  {
+    q: "What is the Ambient Glow Technology path?",
+    a: "A 1,000-foot connecting path uses Ambient Glow Technology — sunlight-charged glow rocks that illuminate the trail after dark. Per the City, it's the first use of this technology in Southern California.",
+  },
+  {
+    q: "What's the design story behind the Flight Deck name?",
+    a: "The City says the park was inspired by Moreno Valley's aviation heritage, and was designed to offer a welcoming cycling experience for riders of all ages, abilities, and skill levels. It's designed and built by American Ramp Company.",
+  },
+  {
+    q: "Is the Flight Deck suitable for beginners?",
+    a: "Yes. There's a separate adaptive track (the region's first, designed for riders of all abilities), an asphalt bicycle playground for young riders, and the main 25,000 sq ft pump track works for every skill level — beginners can ride the gentler rollers while advanced riders use the larger features.",
   },
   {
     q: "What are Morrison Park's hours?",
@@ -52,10 +66,6 @@ const faqs = [
   {
     q: "What can I ride at the Flight Deck?",
     a: "Bikes, standard non-motorized scooters, skateboards, and rollerblades are welcome. Motorized bikes and motorized scooters are strictly prohibited.",
-  },
-  {
-    q: "Is the Flight Deck suitable for beginners?",
-    a: "Yes. There's a dedicated beginner bicycle playground separate from the main line, plus the adaptive track which is designed for riders of all abilities. The main 25,000 sq ft pump track works for every skill level — beginners can ride the gentler rollers while advanced riders use the larger features.",
   },
 ];
 
