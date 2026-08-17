@@ -3,8 +3,6 @@ import type { NextConfig } from 'next'
 const nextConfig: NextConfig = {
   // Re-running the prerender for affected routes absorbs a Windows +
   // Next.js 16 race on /_global-error.
-  // (Originally paired with a Turbopack workspace-root workaround that's
-  // no longer needed since we run `next dev --webpack`.)
   experimental: {
     staticGenerationRetryCount: 3,
   },

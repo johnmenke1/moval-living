@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
+import Link from 'next/link'
 import { computeMorenoValleyMarketStats } from '@/lib/market-stats'
 import { MarketStats } from '@/components/real estate/MarketStats'
 import { MapPin, Users, Briefcase, GraduationCap, Landmark, TreePine, Trees, ArrowRight, Bike, MapIcon } from 'lucide-react'
@@ -11,7 +12,9 @@ export const metadata: Metadata = {
     'Learn about Moreno Valley, CA: population, demographics, top employers, schools, lifestyle, and current real estate market stats. Founded by 30-year Moreno Valley resident John Menke (DRE #01959317).',
 }
 
-export const revalidate = 3600
+// Market statistics come from the live database and must not be evaluated
+// during static generation.
+export const dynamic = 'force-dynamic'
 
 const DEMOGRAPHICS = [
   { icon: Users, label: 'Population', value: '215,000+', sub: 'Riverside County, 2nd largest city' },
@@ -146,12 +149,12 @@ export default async function AboutMorenoValleyPage() {
                 </ul>
               </div>
               <div className="bg-accent/5 px-6 py-4 md:px-8">
-                <a
+                <Link
                   href="/parks"
                   className="btn-primary inline-flex items-center gap-2"
                 >
                   Open the parks map <ArrowRight className="h-4 w-4" />
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -176,12 +179,12 @@ export default async function AboutMorenoValleyPage() {
                 </p>
               </div>
               <div className="bg-accent/5 px-6 py-4 md:px-8">
-                <a
+                <Link
                   href="/parks/flight-deck-bike-park"
                   className="btn-primary inline-flex items-center gap-2"
                 >
                   Visit the Flight Deck page <ArrowRight className="h-4 w-4" />
-                </a>
+                </Link>
               </div>
             </div>
           </div>
