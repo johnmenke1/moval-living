@@ -189,6 +189,31 @@ export function ParkCard({ park, distanceLabel, highlighted = false, onClick }: 
               </div>
             )}
 
+            {park.faqsJson.length > 0 && (
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary mb-2 flex items-center gap-1">
+                  <Tag className="w-3 h-3" />
+                  FAQ
+                </h4>
+                <div className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white/60 overflow-hidden">
+                  {park.faqsJson.slice(0, 6).map((faq, i) => (
+                    <details
+                      key={`faq-${i}-${faq.q.slice(0, 24)}`}
+                      className="group px-3 py-2 open:bg-slate-50 cursor-pointer"
+                    >
+                      <summary className="flex items-start justify-between gap-2 text-sm font-semibold text-text select-none list-none marker:hidden [&::-webkit-details-marker]:hidden">
+                        <span>{faq.q}</span>
+                        <ChevronDown className="w-4 h-4 text-text-secondary shrink-0 transition-transform group-open:rotate-180 mt-0.5" />
+                      </summary>
+                      <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                        {faq.a}
+                      </p>
+                    </details>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {park.activeNetReservationUrl && (
               <a
                 href={park.activeNetReservationUrl}
