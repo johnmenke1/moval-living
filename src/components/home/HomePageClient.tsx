@@ -29,13 +29,13 @@ import {
   HelpingHand,
   Truck,
   Drama,
+  Calendar as CalendarIcon,
   type LucideIcon,
 } from 'lucide-react'
 import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
 import { EventsCallout, type UpcomingEvent } from '@/components/home/EventsCallout'
 import LiveActivityTicker from '@/components/home/LiveActivityTicker'
-import { Calendar } from 'lucide-react'
 
 // Constrained to four brand-adjacent hues (teal, navy, terracotta, warm
 // gold) instead of 22 arbitrary rainbow colors — the grid reads as one
@@ -230,20 +230,23 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
         </div>
       </section>
 
-      {/* ─── EVENTS CALLOUT ─── */}
-      {/* Sits between the Hero and the live-activity ticker so visitors
-          see what’s coming up in the community before they reach the
-          Featured & Best-Of grid. Hidden entirely when no upcoming
-          events exist (handled inside the component). */}
-      <EventsCallout events={upcomingEvents} />
+      {/* ─── EVENTS CALLOUT — promotes /events from the homepage ─── */}
+            {/* Carousel of the next 4 imminent events (HERO + HONORABLE_MENTION
+                tier only — curated, not a calendar dump). Sits directly below
+                the Hero so visitors see the upcoming-events carousel as the
+                primary visual pull before reaching the Featured & Best-Of
+                grid. Window is today + 30 days so regional shows (RMA, Fox)
+                booked weeks out are still discoverable. Section self-hides
+                when empty. */}
+            <EventsCallout events={upcomingEvents} />
 
       {/* ─── LIVE ACTIVITY TICKER ─── */}
-      {/* "MoVal right now" — shows recent claims, upgrades, reviews, and
-          nominations. Lazy-fetches from /api/public/live-activity on the
-          client, auto-rotates every 7s. Placement: between hero and the
-          Featured grid so it's visible on first paint but doesn't compete
-          with the search bar. */}
-      <LiveActivityTicker />
+            {/* "MoVal right now" — shows recent claims, upgrades, reviews, and
+                nominations. Lazy-fetches from /api/public/live-activity on the
+                client, auto-rotates every 7s. Sits below the events carousel so
+                the upcoming-events content leads and the live activity
+                provides ambient social proof underneath. */}
+            <LiveActivityTicker />
 
       {/* ─── FEATURED & BEST OF BUSINESSES ─── */}
       <section className="section bg-white">
@@ -270,20 +273,12 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
               featuredBusinesses.slice(0, 6).map(business => (
                 <BusinessCard key={business.id} business={business} />
               ))
-                          )}
-                        </div>
-                      </div>
-                    </section>
+            )}
+          </div>
+        </div>
+      </section>
 
-                    {/* ─── EVENTS CALLOUT — promotes /events from the homepage ─── */}
-                    {/* Sits between Featured and Life so visitors see local events as
-                        a distinct content lane (not just another business grid). Hero +
-                        + Honorable Mention tier only — curated, not a calendar dump.
-                        Window is today + 30 days so regional shows (RMA, Fox) booked
-                        weeks out are still discoverable. Section self-hides when empty. */}
-                    <EventsCallout events={upcomingEvents} />
-
-                    {/* ─── LIFE IN MOVAL — EDITORIAL CALLOUT ─── */}
+      {/* ─── LIFE IN MOVAL — EDITORIAL CALLOUT ─── */}
       {/* Pulls the most recent "Life in MoVal" posts so visitors see the
           editorial lane and Google gets an internal-link into /life. Section
           only renders when at least one LIFE post exists — silently hidden
@@ -329,7 +324,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
                     )}
                     {post.publishedAt && (
                       <div className="flex items-center gap-1 text-xs text-text-secondary">
-                        <Calendar className="w-3 h-3" />
+                        <CalendarIcon className="w-3 h-3" />
                         {new Date(post.publishedAt).toLocaleDateString(undefined, {
                           year: 'numeric',
                           month: 'long',
