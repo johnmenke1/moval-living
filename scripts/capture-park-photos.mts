@@ -103,7 +103,12 @@ async function fetchToBuffer(url: string): Promise<{ buffer: Buffer; contentType
 
 async function uploadOne(target: PicRef): Promise<string> {
   const ext = extensionFromUrl(target.picUrl)
-  const path = `parks/${target.slug}/hero-${Date.now()}.${ext}`
+  // include a microsecond counter + the slug's picUrl hash as a stable,
+  // unique path. addRandomSuffix=false keeps the path predictable for
+  // re-runs (overwrite by slug always wins). The slug + picUrl hash
+  // guarantees uniqueness within a single script run so concurrent
+  // batched uploads never collide on the same path.
+  const path = `parks/${target.slug}/${slugHash(target.slug, target.picUrl)}.${ext}`
   const { buffer, contentType } = await fetchToBuffer(target.picUrl)
   const blob = await put(path, buffer, {
     access: 'public',
@@ -111,6 +116,20 @@ async function uploadOne(target: PicRef): Promise<string> {
     addRandomSuffix: false,
   })
   return blob.url
+}
+
+/** Deterministic 8-char hash of slug + picUrl so two parks never
+ *  resolve to the same blob path even when timestamps collide. */
+function slugHash(slug: string, url: string): string {
+  // FNV-1a-ish — just good enough for unique-per-script-run namespacing.
+  // We don't need cryptographic strength, just low collision probability.
+  let h = 2166136261 >>> 0
+  const s = `${slug}|${url}`
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619) >>> 0
+  }
+  return `hero-${h.toString(16).padStart(8, '0')}`
 }
 
 async function main() {
