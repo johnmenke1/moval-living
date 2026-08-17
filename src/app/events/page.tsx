@@ -6,6 +6,19 @@ import CategoryFilter from './CategoryFilter'
 import LanguageFilter from './LanguageFilter'
 import SearchBar from './SearchBar'
 import MonthNav from './MonthNav'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Moreno Valley Community Events Calendar',
+  description: 'Find concerts, school sports, fundraisers, festivals, and other community events in Moreno Valley and nearby Inland Empire venues.',
+  alternates: { canonical: 'https://www.moval.living/events' },
+  openGraph: {
+    title: 'Moreno Valley Community Events Calendar',
+    description: 'What is happening in and around Moreno Valley, curated by the moval.living team.',
+    url: 'https://www.moval.living/events',
+    type: 'website',
+  },
+}
 
 export const revalidate = 3600 // 1 hour
 
