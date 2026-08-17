@@ -30,6 +30,21 @@ export interface ParkSummary {
    *  for parks where we don't yet have a Google Maps deep link. */
   googleMapUrl: string | null
   activeNetReservationUrl: string | null
+  /** FAQ Q&A pairs for this park. Source: City ArcGIS amenity list +
+   *  hand-curated extras (see scripts/seed-park-faqs.mts). Always an
+   *  array; empty array means "no FAQ data". */
+  faqsJson: ParkFaq[]
+}
+
+/**
+ * A single FAQ entry stored on Park.faqsJson. The shape is intentionally
+ * open-ended (`{ q: string; a: string }`) so the seed script and any
+ * future admin editor add the same fields. We migrate the column if we
+ * ever need more (e.g. add `category: string` to group questions).
+ */
+export interface ParkFaq {
+  q: string
+  a: string
 }
 
 export interface UserLocation {

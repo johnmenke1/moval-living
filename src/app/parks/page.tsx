@@ -73,6 +73,7 @@ async function getParks(): Promise<ParkSummary[]> {
       googleRating: true,
       googleReviewCount: true,
       featured: true,
+      faqsJson: true,
     },
   })
 
@@ -92,6 +93,11 @@ async function getParks(): Promise<ParkSummary[]> {
     featured: r.featured,
     googleMapUrl: null, // filled from a follow-up field if we add googlePlaceId lookups
     activeNetReservationUrl: null, // not stored on Park yet — leaves a hook for step 2 follow-up
+    faqsJson: Array.isArray(r.faqsJson)
+      ? r.faqsJson.filter((f): f is { q: string; a: string } =>
+          !!f && typeof (f as { q?: unknown }).q === 'string' && typeof (f as { a?: unknown }).a === 'string',
+        )
+      : [],
   }))
 }
 
