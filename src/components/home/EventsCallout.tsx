@@ -1,22 +1,28 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, Calendar, ChevronLeft, ChevronRight, MapPin, Sparkles } from 'lucide-react'
+import {
+  ArrowRight,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  Sparkles,
+} from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 /**
  * EventsCallout — homepage band promoting the /events page. Shows the next
- * 4 imminent events as a horizontally-scrollable carousel. The carousel
- * pattern (rather than a 4-column grid) lets users peek at the date pills
- * bleeding off the right edge, which signals "more to explore" and
- * dramatically raises click-through vs. a flat grid.
+ * 4 imminent events as a horizontally-scrollable, auto-advancing strip.
+ * Auto-advance pulls the eye forward so visitors notice the section even
+ * while skimming the page.
  *
  * Layout:
  *   • Header row (eyebrow + title + 'See all events') on top.
- *   • Horizontal scroll-snap carousel of event cards below.
- *   • Prev/next chevrons appear on hover (desktop) or always (mobile).
- *   • Dot pagination below the rail — fills out the visual rhythm.
+ *   • Horizontal scroll-snap carousel of event cards.
+ *   • Prev/next chevrons appear on hover (desktop) or always (touch).
+ *   • Dot pagination below the rail shows current position.
  *
  * Section is hidden entirely when there are no upcoming events.
  */
@@ -112,14 +118,24 @@ export function EventsCallout({ events }: EventsCalloutProps) {
 }
 
 /**
- * Horizontal scroll-snap carousel for the event cards. Smaller than a
- * full-width grid card so 3-4 cards are visible at once on desktop, with
- * the next card peeking in to signal scrollability. Chevron buttons appear
- * on hover (desktop) or always-on (touch). Dots below the rail show
- * position.
+ * Horizontal scroll-snap carousel with auto-advance. Smaller cards than a
+ * full-width grid so 3 fit on a 1280px viewport with the next one peeking
+ * in (signals "more here"). Auto-advance cycles through every card then
+ * wraps; pauses on hover, after user interaction, or when offscreen.
+ *
+ * Pause logic:
+ *   • `prefers-reduced-motion` users: no auto-advance (accessibility).
+ *   • Hovering the carousel: paused (so users can read a card or click
+ *     chevrons without the page fighting them).
+ *   • User clicked a chevron / dot / manually scrolled: paused for
+ *     `RESUME_DELAY_MS` so they can finish their interaction before the
+ *     auto-cycle resumes.
+ *   • Offscreen: paused (saves CPU and prevents motion that's invisible
+ *     to the user).
  */
 function EventsCarousel({ events }: { events: UpcomingEvent[] }) {
   const railRef = useRef<HTMLDivElement | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
   // Index of the card currently snapped to the start of the rail. Drives
   // the dot indicator and which chevrons are enabled.
   const [activeIndex, setActiveIndex] = useState(0)
@@ -127,10 +143,27 @@ function EventsCarousel({ events }: { events: UpcomingEvent[] }) {
   // scroll dimensions. Cheap — no debounce, no ResizeObserver, just a
   // window listener.
   const [, setTick] = useState(0)
+  // Paused flags. Multiple sources of pause can stack — any single one
+  // being true means the auto-advance is off.
+  const [isHovering, setIsHovering] = useState(false)
+  const [isOffscreen, setIsOffscreen] = useState(false)
+  // Unix ms until which the carousel should remain paused due to a recent
+  // user interaction (chevron / dot click / manual scroll). 0 = no pause.
+  const [pauseUntil, setPauseUntil] = useState(0)
+  // Respect prefers-reduced-motion — checked once on mount.
+  const [reducedMotion, setReducedMotion] = useState(false)
 
   // Compute scroll position of each card so we can map scrollLeft →
   // activeIndex without a ResizeObserver.
   const cardOffsetsRef = useRef<number[]>([])
+  // True when the next scroll event is caused by our own scrollTo() 
+  // call (auto-advance or chevron/dot click). Manual scrolls (touchpad,
+  // drag, keyboard arrows) leave this false so they trigger the pause.
+  const programmaticScrollRef = useRef(false)
+  // Last scroll position the user manually scrolled to. Used to
+  // throttle the pauseUntil update so the smooth-scroll animation
+  // tail doesn't keep re-stamping the pause window.
+  const lastScrollXRef = useRef<number>(0)
 
   const recomputeOffsets = useCallback(() => {
     const rail = railRef.current
@@ -163,36 +196,119 @@ function EventsCarousel({ events }: { events: UpcomingEvent[] }) {
         }
       }
       setActiveIndex(bestIdx)
+      // If this scroll wasn't triggered by our own scrollTo(), treat
+      // it as a manual user interaction and pause auto-advance. 
+      // Threshold: only count scrolls that meaningfully change position
+      // (>= 4px) so the smooth-scroll animation tail doesn't keep
+      // re-triggering the pause.
+      if (!programmaticScrollRef.current) {
+        const prev = lastScrollXRef.current
+        if (Math.abs(x - prev) >= 4) {
+          setPauseUntil(Date.now() + RESUME_DELAY_MS)
+          lastScrollXRef.current = x
+        }
+      }
     }
     rail.addEventListener('scroll', onScroll, { passive: true })
-    const onResize = () => {
+    const onWindowResize = () => {
       recomputeOffsets()
       setTick((t) => t + 1)
     }
-    window.addEventListener('resize', onResize)
+    window.addEventListener('resize', onWindowResize)
     return () => {
       rail.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onResize)
+      window.removeEventListener('resize', onWindowResize)
     }
   }, [recomputeOffsets, events.length])
 
+  // Offscreen detection — IntersectionObserver pauses auto-advance when the
+  // carousel scrolls out of the viewport. Threshold 0.25 means we only
+  // consider it "offscreen" when less than a quarter is visible, which
+  // avoids pausing during normal scroll-toward-the-section.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => setIsOffscreen(!entry.isIntersecting),
+      { threshold: 0.25 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  // Reduced-motion preference.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReducedMotion(mq.matches)
+    const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
   // Scroll the rail so the given card index sits at the start. Uses
-  // scroll-snap CSS so the rail animates smoothly.
+  // scroll-snap CSS so the rail animates smoothly. Also stamps the pause
+  // window so the auto-advance doesn't immediately undo the user's action.
   const scrollToIndex = useCallback((idx: number) => {
     const rail = railRef.current
     if (!rail) return
     const offsets = cardOffsetsRef.current
     const target = offsets[idx]
     if (typeof target === 'number') {
+      // Mark this as a programmatic scroll so the onScroll handler
+      // doesn't trigger a pause. Clear the flag on the next animation
+      // frame after the scroll completes.
+      programmaticScrollRef.current = true
       rail.scrollTo({ left: target, behavior: 'smooth' })
+      setPauseUntil(Date.now() + RESUME_DELAY_MS)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          programmaticScrollRef.current = false
+        })
+      })
     }
   }, [])
 
+  // Auto-advance loop. Cycles every AUTO_ADVANCE_MS while not paused. The
+  // pauseUntil timer is re-checked on each tick so we resume as soon as
+  // the user-interaction window expires.
+  const AUTO_ADVANCE_MS = 5000
+  const RESUME_DELAY_MS = 6000
+  useEffect(() => {
+    if (events.length <= 1) return
+    if (reducedMotion) return
+    const id = setInterval(() => {
+      if (isHovering || isOffscreen) return
+      if (Date.now() < pauseUntil) return
+      setActiveIndex((current) => {
+        const next = (current + 1) % events.length
+        // Scroll the rail to the next card so the auto-advance actually
+        // moves visually. skip the smooth behavior on the first auto-tick
+        // to avoid a glitch if the user just navigated in.
+        const rail = railRef.current
+        const target = cardOffsetsRef.current[next]
+        if (rail && typeof target === 'number') {
+          rail.scrollTo({ left: target, behavior: 'smooth' })
+        }
+        return next
+      })
+    }, AUTO_ADVANCE_MS)
+    return () => clearInterval(id)
+  }, [events.length, isHovering, isOffscreen, pauseUntil, reducedMotion])
+
   const canPrev = activeIndex > 0
   const canNext = activeIndex < events.length - 1
+  const autoPaused = isHovering || isOffscreen || Date.now() < pauseUntil
 
   return (
-    <div className="relative group/carousel">
+    <div
+      ref={containerRef}
+      className="relative group/carousel"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      onFocusCapture={() => setIsHovering(true)}
+      onBlurCapture={() => setIsHovering(false)}
+    >
       {/* Carousel rail — hidden scrollbar, snap-x mandatory. Each card is
           18rem wide (w-72) so 3 fit comfortably on a 1280px viewport with
           the next card peeking in. On smaller screens fewer cards fit and
@@ -312,7 +428,8 @@ function EventsCarousel({ events }: { events: UpcomingEvent[] }) {
       </button>
 
       {/* Dot pagination — only when there's more than one card. Each dot
-          scrolls the rail to that card's offset on click. */}
+          scrolls the rail to that card's offset on click. The active dot
+          animates smoothly as auto-advance moves the rail. */}
       {events.length > 1 && (
         <div className="flex justify-center gap-1.5 mt-4">
           {events.map((event, idx) => (
@@ -329,6 +446,23 @@ function EventsCarousel({ events }: { events: UpcomingEvent[] }) {
               )}
             />
           ))}
+          {/* Auto-advance status pill — small visual cue that the carousel
+              is "live"". Faded when paused (hover / offscreen / recent
+              interaction). Accessibility note: this is purely decorative,
+              not load-bearing — screen readers don't need to know. */}
+          {!reducedMotion && (
+            <span
+              aria-hidden
+              className={cn(
+                'ml-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider transition-opacity',
+                autoPaused ? 'opacity-30' : 'opacity-70',
+              )}
+              title={autoPaused ? 'Auto-advance paused' : 'Auto-advance on'}
+            >
+              <span className={cn('w-1.5 h-1.5 rounded-full', autoPaused ? 'bg-slate-400' : 'bg-primary animate-pulse')} />
+              {autoPaused ? 'Paused' : 'Live'}
+            </span>
+          )}
         </div>
       )}
     </div>

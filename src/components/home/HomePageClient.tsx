@@ -230,23 +230,21 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
         </div>
       </section>
 
-      {/* ─── EVENTS CALLOUT — promotes /events from the homepage ─── */}
-            {/* Carousel of the next 4 imminent events (HERO + HONORABLE_MENTION
-                tier only — curated, not a calendar dump). Sits directly below
-                the Hero so visitors see the upcoming-events carousel as the
-                primary visual pull before reaching the Featured & Best-Of
-                grid. Window is today + 30 days so regional shows (RMA, Fox)
-                booked weeks out are still discoverable. Section self-hides
-                when empty. */}
-            <EventsCallout events={upcomingEvents} />
-
       {/* ─── LIVE ACTIVITY TICKER ─── */}
-            {/* "MoVal right now" — shows recent claims, upgrades, reviews, and
-                nominations. Lazy-fetches from /api/public/live-activity on the
-                client, auto-rotates every 7s. Sits below the events carousel so
-                the upcoming-events content leads and the live activity
-                provides ambient social proof underneath. */}
-            <LiveActivityTicker />
+      {/* "MoVal right now" — shows recent claims, upgrades, reviews, and
+          nominations. Lazy-fetches from /api/public/live-activity on the
+          client, auto-rotates every 7s. Sits directly below the Hero as
+          ambient social proof before the events carousel pulls focus. */}
+      <LiveActivityTicker />
+
+      {/* ─── EVENTS CALLOUT — promotes /events from the homepage ─── */}
+      {/* Carousel of the next 4 imminent events (HERO + HONORABLE_MENTION
+          tier only — curated, not a calendar dump). Sits below the live
+          activity ticker so visitors see real-time community signal first,
+          then get pulled into the upcoming-events carousel. Window is today
+          + 30 days so regional shows (RMA, Fox) booked weeks out are still
+          discoverable. Section self-hides when empty. */}
+      <EventsCallout events={upcomingEvents} />
 
       {/* ─── FEATURED & BEST OF BUSINESSES ─── */}
       <section className="section bg-white">
