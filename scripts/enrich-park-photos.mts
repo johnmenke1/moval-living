@@ -245,11 +245,19 @@ async function uploadParkPhoto(
   if (!media) return null
 
   const path = `parks/${t.slug}/photo-${String(i).padStart(2, '0')}-${slugHash(t.slug, photo.name)}.jpg`
-  const blob = await put(path, media.buffer, {
+  // Pass `token` explicitly to bypass OIDC (which only works inside Vercel
+  // runtime). On Vercel, OIDC auto-auth is preferred and the token is
+  // ignored there. Mirrors the pattern in scripts/enrich-osm-businesses.mts.
+  const opts: Record<string, unknown> = {
     access: 'public',
     contentType: media.contentType,
     addRandomSuffix: false,
-  })
+  }
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    opts.token = process.env.BLOB_READ_WRITE_TOKEN
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const blob = await put(path, media.buffer, opts as any)
   return blob.url
 }
 
