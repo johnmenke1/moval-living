@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { ChevronDown, MapPin, Star, Tag, TreePine, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ParkSummary } from '@/lib/parks'
@@ -210,6 +211,13 @@ export function ParkCard({ park, distanceLabel, highlighted = false, onClick }: 
                 Open in Google Maps →
               </a>
             )}
+
+            <Link
+              href={`/parks/${park.slug}`}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors w-fit"
+            >
+              View full details →
+            </Link>
           </div>
         )}
       </div>

@@ -8,6 +8,7 @@ const footerLinks = {
     { label: 'Browse Businesses', href: '/search' },
     { label: 'Se Habla Español', href: '/search?espanol=1' },
     { label: 'Best Of', href: '/best-of' },
+    { label: 'Parks & Recreation', href: '/parks' },
     { label: 'Community Events', href: '/events' },
     { label: 'Local Deals', href: '/deals' },
     { label: 'Link in Bio', href: '/link' },
