@@ -30,8 +30,20 @@
  *      {slug}-secondary-address.txt. Inline --blurb / --description /
  *      etc. flags override the files when both are present.
  *
+ *   3. Identity corrections (one-shot; use sparingly):
+ *
+ *      --name "New Name"   --type PARK|GOLF|REC_CENTER
+ *      --lat 33.9375       --lng -117.2306
+ *
+ *      Applied only when passed; otherwise the existing name / type /
+ *      coordinates are left alone. Useful for fixing typos like the
+ *      "CA Aqueduct Linear Park" → "Juan Bautista de Anza Multi-Use
+ *      Trail" rename, or backfilling missing coordinates on linear
+ *      trails.
+ *
  * Idempotent — overwrites whatever's there. Use --reset to wipe editorial
  * fields only (description, blurb, hours, faqs, secondary address).
+ * Identity fields (name, type, lat, lng) are NOT reset by --reset.
  */
 import { config as loadEnv } from "dotenv";
 loadEnv();
@@ -53,6 +65,11 @@ interface Args {
   secondaryAddress?: string;
   featured?: boolean;
   reset?: boolean;
+  // Identity fields (one-shot corrections — name, type, coordinates).
+  name?: string;
+  type?: "PARK" | "GOLF" | "REC_CENTER";
+  lat?: number;
+  lng?: number;
 }
 
 function parseArgs(): Args {
@@ -120,6 +137,10 @@ function parseArgs(): Args {
     secondaryAddress,
     featured: has("--featured") || undefined,
     reset: has("--reset"),
+    name: get("--name"),
+    type: get("--type") as "PARK" | "GOLF" | "REC_CENTER" | undefined,
+    lat: get("--lat") ? Number(get("--lat")) : undefined,
+    lng: get("--lng") ? Number(get("--lng")) : undefined,
   };
 }
 
@@ -149,6 +170,35 @@ async function main() {
   if (args.faqsJson !== undefined) data.faqsJson = args.faqsJson;
   if (args.secondaryAddress !== undefined) data.secondaryAddress = args.secondaryAddress || null;
   if (args.featured !== undefined) data.featured = args.featured;
+  // Identity fields — only apply if explicitly passed.
+  if (args.name !== undefined) {
+    if (!args.name.trim()) {
+      console.error("--name cannot be empty");
+      process.exit(1);
+    }
+    data.name = args.name.trim();
+  }
+  if (args.type !== undefined) {
+    if (!["PARK", "GOLF", "REC_CENTER"].includes(args.type)) {
+      console.error(`--type must be one of PARK|GOLF|REC_CENTER (got: ${args.type})`);
+      process.exit(1);
+    }
+    data.type = args.type;
+  }
+  if (args.lat !== undefined) {
+    if (Number.isNaN(args.lat) || args.lat < -90 || args.lat > 90) {
+      console.error(`--lat out of range (got: ${args.lat})`);
+      process.exit(1);
+    }
+    data.latitude = args.lat;
+  }
+  if (args.lng !== undefined) {
+    if (Number.isNaN(args.lng) || args.lng < -180 || args.lng > 180) {
+      console.error(`--lng out of range (got: ${args.lng})`);
+      process.exit(1);
+    }
+    data.longitude = args.lng;
+  }
 
   const updated = await prisma.park.update({
     where: { slug: args.slug },
@@ -156,21 +206,26 @@ async function main() {
     select: {
       slug: true,
       name: true,
+      type: true,
       blurb: true,
       description: true,
       faqsJson: true,
       hoursJson: true,
       secondaryAddress: true,
+      latitude: true,
+      longitude: true,
       featured: true,
     },
   });
 
   console.log(`✓ ${updated.name} (${updated.slug})`);
+  console.log(`  type: ${updated.type}`);
   console.log(`  blurb: ${updated.blurb?.length ?? 0} chars`);
   console.log(`  description: ${updated.description?.length ?? 0} chars`);
   console.log(`  faqs: ${Array.isArray(updated.faqsJson) ? updated.faqsJson.length : 0}`);
   console.log(`  hours: ${updated.hoursJson ? "set" : "null"}`);
   console.log(`  secondaryAddress: ${updated.secondaryAddress ?? "(none)"}`);
+  console.log(`  coords: ${updated.latitude?.toFixed(6) ?? "null"}, ${updated.longitude?.toFixed(6) ?? "null"}`);
   console.log(`  featured: ${updated.featured}`);
 
   await prisma.$disconnect();

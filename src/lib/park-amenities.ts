@@ -34,6 +34,8 @@ export const AMENITIES = [
   { slug: "wheelchair_access", label: "Accessible",         icon: "Accessibility" },
   { slug: "parking",           label: "Parking Lot",        icon: "Car" },
   { slug: "lights",            label: "Lit Fields",         icon: "Lightbulb" },
+  { slug: "bike_path",         label: "Bike Path",          icon: "Bike" },
+  { slug: "historic_site",     label: "Historic Site",      icon: "Landmark" },
 ] as const;
 
 /** Quick lookup: slug → metadata. */
