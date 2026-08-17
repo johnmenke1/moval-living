@@ -37,6 +37,10 @@ interface ListingsResponse {
   totalPages: number
 }
 
+interface MarketStats {
+  active: { count: number; medianListPrice: number; newLast7Days: number }
+}
+
 const PRICE_RANGES = [
   { label: 'Any', min: '', max: '' },
   { label: 'Under $400K', min: '', max: '400000' },
@@ -69,6 +73,23 @@ export default function HomesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Market stats from /api/trestle/stats
+  const [marketStats, setMarketStats] = useState<MarketStats | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/trestle/stats')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: MarketStats | null) => {
+        if (!cancelled && data) setMarketStats(data)
+      })
+      .catch(() => {
+        /* non-fatal — hero falls back to em-dashes */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Filter state
   const [priceRange, setPriceRange] = useState(PRICE_RANGES[0])
@@ -137,9 +158,9 @@ export default function HomesPage() {
             </p>
           </div>
           <div className="mt-9 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">Live</p><p className="text-xs text-white/60">listings on the market</p></div>
-            <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">Updated</p><p className="text-xs text-white/60">every single day</p></div>
-            <div className="hidden border-l border-white/25 pl-4 sm:block"><p className="text-2xl font-bold">MoVal-wide</p><p className="text-xs text-white/60">every neighborhood</p></div>
+            <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">{marketStats ? marketStats.active.count.toLocaleString() : '\u2014'}</p><p className="text-xs text-white/60">active homes for sale</p></div>
+            <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">{marketStats ? marketStats.active.newLast7Days.toLocaleString() : '\u2014'}</p><p className="text-xs text-white/60">new in last 7 days</p></div>
+            <div className="hidden border-l border-white/25 pl-4 sm:block"><p className="text-2xl font-bold">{marketStats ? `$${(marketStats.active.medianListPrice / 1000).toFixed(0)}K` : '\u2014'}</p><p className="text-xs text-white/60">median list price</p></div>
           </div>
         </div>
       </section>
