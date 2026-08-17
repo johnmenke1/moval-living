@@ -3,16 +3,32 @@
  * scripts/parks/seed-park-content.mts
  *
  * Generic park content seeder for parks that don't have a bespoke seed
- * script (e.g. seed-morrison-faq.mts). Usage:
+ * script (e.g. seed-morrison-faq.mts).
  *
- *   node --experimental-strip-types scripts/parks/seed-park-content.mts \
- *     --slug lasselle-sports-park \
- *     --blurb "..." \
- *     --description "..." \
- *     --hours '{"mon":[{"open":"06:00","close":"22:00"}]}' \
- *     --faqs '[{"q":"...","a":"..."},...]'
- *     [--secondary-address "..."] \
- *     [--featured]
+ * Two ways to use it:
+ *
+ *   1. Inline flags (short content only):
+ *
+ *      node --experimental-strip-types scripts/parks/seed-park-content.mts \
+ *        --slug lasselle-sports-park \
+ *        --blurb "..." \
+ *        --description "..." \
+ *        --hours '{"mon":[{"open":"06:00","close":"22:00"}]}' \
+ *        --faqs '[{"q":"...","a":"..."},...]'
+ *        [--secondary-address "..."] \
+ *        [--featured]
+ *
+ *   2. Brief files (longer content, easier to edit):
+ *
+ *      node --experimental-strip-types scripts/parks/seed-park-content.mts \
+ *        --slug lasselle-sports-park \
+ *        --briefs-dir scripts/parks/briefs \
+ *        [--featured]
+ *
+ *      Reads from scripts/parks/briefs/{slug}-blurb.txt,
+ *      {slug}-description.txt, {slug}-hours.json, {slug}-faqs.json,
+ *      {slug}-secondary-address.txt. Inline --blurb / --description /
+ *      etc. flags override the files when both are present.
  *
  * Idempotent — overwrites whatever's there. Use --reset to wipe editorial
  * fields only (description, blurb, hours, faqs, secondary address).
@@ -20,6 +36,9 @@
 import { config as loadEnv } from "dotenv";
 loadEnv();
 loadEnv({ path: ".env.local", override: true });
+
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -42,29 +61,44 @@ function parseArgs(): Args {
     const i = argv.indexOf(flag);
     return i >= 0 ? argv[i + 1] : undefined;
   };
+  const has = (flag: string): boolean => argv.includes(flag);
   const slug = get("--slug");
   if (!slug) {
     console.error("--slug is required");
     process.exit(1);
   }
-  const blurb = get("--blurb");
-  const description = get("--description");
-  const hoursRaw = get("--hours");
-  const faqsRaw = get("--faqs");
-  const secondaryAddress = get("--secondary-address");
-  const featured = argv.includes("--featured");
-  const reset = argv.includes("--reset");
 
+  // Either pass inline values OR a --briefs-dir pointing at a directory
+  // with files named {slug}-description.txt, {slug}-blurb.txt, {slug}-hours.json,
+  // {slug}-faqs.json, {slug}-secondary-address.txt. Inline wins when both
+  // are present.
+  const briefsDir = get("--briefs-dir");
+  const readBrief = (suffix: string): string | undefined => {
+    if (!briefsDir) return undefined;
+    const p = join(briefsDir, `${slug}-${suffix}`);
+    return existsSync(p) ? readFileSync(p, "utf8").trim() : undefined;
+  };
+
+  const inlineOrFile = (flag: string, suffix: string): string | undefined => {
+    return get(flag) ?? readBrief(suffix);
+  };
+
+  const blurb = inlineOrFile("--blurb", "blurb.txt");
+  const description = inlineOrFile("--description", "description.txt");
+  const secondaryAddress = inlineOrFile("--secondary-address", "secondary-address.txt");
+
+  const hoursRaw = get("--hours") ?? readBrief("hours.json");
   let hoursJson: unknown = undefined;
   if (hoursRaw) {
     try {
       hoursJson = JSON.parse(hoursRaw);
     } catch (e) {
-      console.error(`invalid --hours JSON: ${(e as Error).message}`);
+      console.error(`invalid hours JSON: ${(e as Error).message}`);
       process.exit(1);
     }
   }
 
+  const faqsRaw = get("--faqs") ?? readBrief("faqs.json");
   let faqsJson: { q: string; a: string }[] | undefined = undefined;
   if (faqsRaw) {
     try {
@@ -72,7 +106,7 @@ function parseArgs(): Args {
       if (!Array.isArray(parsed)) throw new Error("not an array");
       faqsJson = parsed;
     } catch (e) {
-      console.error(`invalid --faqs JSON: ${(e as Error).message}`);
+      console.error(`invalid faqs JSON: ${(e as Error).message}`);
       process.exit(1);
     }
   }
@@ -84,8 +118,8 @@ function parseArgs(): Args {
     hoursJson,
     faqsJson,
     secondaryAddress,
-    featured: featured || undefined,
-    reset,
+    featured: has("--featured") || undefined,
+    reset: has("--reset"),
   };
 }
 
