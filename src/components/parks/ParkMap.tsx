@@ -1,133 +1,397 @@
 'use client'
 
-import { TreePine, Flag, Building2, MapPin } from 'lucide-react'
-import { typeLabel } from '@/lib/parks'
-import type { ParkSummary } from '@/lib/parks'
+import { useEffect, useRef, useState } from 'react'
+import type { ParkSummary, UserLocation } from '@/lib/parks'
+import { parksCenter, typeLabel } from '@/lib/parks'
+import { MapPin } from 'lucide-react'
 
 interface ParkMapProps {
   parks: ParkSummary[]
-  /** The slug of the highlighted card → flip the matching row to highlight. */
+  /** The slug of the highlighted card → flip the matching marker to highlight. */
   highlightedSlug?: string | null
+  /** Optional "near me" user location → renders a blue dot + re-centers. */
+  userLocation?: UserLocation | null
   onMarkerClick?: (slug: string) => void
 }
 
+type MapStatus = 'idle' | 'loading' | 'ready' | 'error'
+
+const LOAD_TIMEOUT_MS = 15_000
+const SCRIPT_ID = 'google-maps-script'
+
+// Color by type so the user can scan at-a-glance.
+const MARKER_COLORS: Record<ParkSummary['type'], string> = {
+  PARK: '#007A7F',       // primary teal
+  GOLF: '#00405C',       // deep navy
+  REC_CENTER: '#9B5C2E', // warm bronze
+}
+
+declare global {
+  interface Window {
+    __movalMapsReady?: () => void
+  }
+}
+
 /**
- * ParkMap — Google Maps shell for /parks.
+ * ParkMap — live Google Maps for /parks.
  *
- * V1 placeholder (Aug 17, 2026): renders a translucent "coming soon"
- * overlay over a no-map fallback panel that summarizes the matching parks
- * by type. The real Google Maps instance lands in step 4 of the parks
- * roadmap — same component boundary, swapped internals.
+ * Renders one marker per park with lat/lng. Markers cluster at low zoom.
+ * Hovering a marker (or a card outside the map) highlights the row;
+ * clicking opens the InfoWindow and (via onMarkerClick) scrolls the card
+ * into view.
  *
- * The placeholder is intentionally information-dense (counts by type +
- * the first 5 lat/lng tuples) so the page is functional even before the
- * map arrives. Once the Map is live, this header becomes redundant, but
- * keeping it here as a no-script / slow-network fallback is cheap.
+ * API key handling: read `process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+ * directly. This component is 'use client', so Next.js inlines the value
+ * into the JS bundle at build time. Reading via prop would serialize
+ * it into the HTML payload as well, exposing it via raw curl even
+ * before JS executes.
+ *
+ * CRITICAL: the <div> Google Maps mounts into (`mapRef`) MUST NOT
+ * contain any React-rendered children once mounted. Google mutates that
+ * DOM freely — adding tiles, controls, an internal shadow tree. If
+ * React also tries to reconcile children inside that same node, you get
+ * the `Failed to execute 'removeChild' on 'Node'` error, because
+ * React's view of the DOM and Google's diverge.
+ *
+ * So: the wrapper is BARE from the moment `mounted === true`. Loading
+ * / error UI is rendered as a SIBLING overlay (absolute-positioned)
+ * that covers the wrapper while it's still needed, and is removed once
+ * the map is ready. That way Google owns the wrapper's children 100%
+ * of the time it's in use, and React never reconciles inside it.
+ *
+ * Markers are recreated when the parks array changes (filtered subset).
+ * We hold them in a ref keyed by slug so we can highlight without
+ * rebuilding the full set.
  */
-export function ParkMap({ parks, highlightedSlug, onMarkerClick }: ParkMapProps) {
-  const byType = parks.reduce<Record<string, ParkSummary[]>>((acc, p) => {
-    ;(acc[p.type] ||= []).push(p)
-    return acc
-  }, {})
+export function ParkMap({ parks, highlightedSlug, userLocation, onMarkerClick }: ParkMapProps) {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  const mapRef = useRef<HTMLDivElement>(null)
+  const [mapStatus, setMapStatus] = useState<MapStatus>('idle')
+  const [statusMsg, setStatusMsg] = useState<string>('Loading map…')
+  const [mounted, setMounted] = useState(false)
+  // Refs to live map state — recreated each time the parks array changes.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mapInstanceRef = useRef<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markersRef = useRef<any[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clustererRef = useRef<any>(null)
+  const infoWindowRef = useRef<unknown>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const infoSlugRef = useRef<string | null>(null)
 
-  const withCoords = parks.filter(
-    (p) => p.latitude != null && p.longitude != null,
-  ) as Array<ParkSummary & { latitude: number; longitude: number }>
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
-  const fivePointSpread = withCoords.length > 0 && (
-    <>
-      <span className="font-mono text-[10px] text-text-secondary">
-        {withCoords[0].latitude.toFixed(4)}, {withCoords[0].longitude.toFixed(4)}
-      </span>
-      {withCoords.length > 1 && (
-        <span className="text-text-secondary">…</span>
-      )}
-    </>
-  )
+  // Bootstrap the script exactly once. Subsequent renders reuse it.
+  useEffect(() => {
+    if (!mounted) return
+    if (!apiKey) {
+      setStatusMsg('Map unavailable (no API key configured).')
+      setMapStatus('error')
+      return
+    }
+    if (!mapRef.current) return
+
+    let cancelled = false
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+    timeoutId = setTimeout(() => {
+      if (cancelled) return
+      setStatusMsg('Map took too long to load.')
+      setMapStatus('error')
+    }, LOAD_TIMEOUT_MS)
+
+    function tryInit(el: HTMLDivElement, attemptsLeft = 200) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const g = (window as any).google
+      if (cancelled) return
+      if (g && g.maps && g.maps.Map && el) {
+        if (timeoutId) clearTimeout(timeoutId)
+        initMap(g, el)
+        return
+      }
+      if (attemptsLeft <= 0) {
+        if (timeoutId) clearTimeout(timeoutId)
+        setStatusMsg('Map failed to load.')
+        setMapStatus('error')
+        return
+      }
+      setTimeout(() => tryInit(el, attemptsLeft - 1), 75)
+    }
+
+    window.__movalMapsReady = () => {
+      if (mapRef.current) tryInit(mapRef.current)
+    }
+
+    const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null
+    if (existing) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((window as any).google?.maps?.Map) {
+        if (mapRef.current) tryInit(mapRef.current)
+      } else {
+        existing.addEventListener('load', () => {
+          if (mapRef.current) tryInit(mapRef.current)
+        }, { once: true })
+        existing.addEventListener('error', () => {
+          if (timeoutId) clearTimeout(timeoutId)
+          setStatusMsg('Map failed to load.')
+          setMapStatus('error')
+        }, { once: true })
+      }
+    } else {
+      const script = document.createElement('script')
+      script.id = SCRIPT_ID
+      script.src =
+        `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}` +
+        `&v=weekly&libraries=places&callback=__movalMapsReady`
+      script.async = true
+      script.defer = true
+      script.onerror = () => {
+        if (timeoutId) clearTimeout(timeoutId)
+        setStatusMsg('Map failed to load.')
+        setMapStatus('error')
+      }
+      document.head.appendChild(script)
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function initMap(g: any, el: HTMLDivElement) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const GoogleMaps = g.maps as any
+      const c = parksCenter([])
+      const map = new GoogleMaps.Map(el, {
+        center: { lat: c.lat, lng: c.lng },
+        zoom: c.zoom,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+      })
+      mapInstanceRef.current = map
+      // Tell React the wrapper is now owned by Google. We flip
+      // status to 'ready' AFTER the map has populated its DOM,
+      // so React's next render won't try to reconcile inside
+      // the wrapper.
+      setMapStatus('ready')
+      return map
+    }
+
+    return () => {
+      cancelled = true
+      if (timeoutId) clearTimeout(timeoutId)
+      // Detach map references; let GC + DOM detach do the rest.
+      mapInstanceRef.current = null
+      markersRef.current = []
+      clustererRef.current = null
+      infoWindowRef.current = null
+      if (mapRef.current) {
+        while (mapRef.current.firstChild) {
+          mapRef.current.removeChild(mapRef.current.firstChild)
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, apiKey])
+
+  // (Re-)render markers whenever the filtered parks set changes.
+  useEffect(() => {
+    if (mapStatus !== 'ready') return
+    const map = mapInstanceRef.current
+    if (!map) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const GoogleMaps = (window as any).google.maps as any
+    if (!GoogleMaps) return
+
+    // Clear previous markers (and their cluster).
+    for (const m of markersRef.current) m.setMap(null)
+    markersRef.current = []
+    if (clustererRef.current) {
+      clustererRef.current.clearMarkers()
+      clustererRef.current = null
+    }
+
+    const withCoords = parks.filter(
+      (p) => p.latitude != null && p.longitude != null,
+    ) as Array<ParkSummary & { latitude: number; longitude: number }>
+
+    if (withCoords.length === 0) {
+      const c = parksCenter([])
+      map.setCenter({ lat: c.lat, lng: c.lng })
+      map.setZoom(c.zoom)
+      return
+    }
+
+    const newMarkers = withCoords.map((p) => {
+      const marker = new GoogleMaps.Marker({
+        position: { lat: p.latitude, lng: p.longitude },
+        title: p.name,
+        icon: {
+          path: GoogleMaps.SymbolPath.CIRCLE,
+          fillColor: MARKER_COLORS[p.type],
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+          scale: 9,
+        },
+      })
+      marker.addListener('click', () => {
+        if (infoWindowRef.current) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ;(infoWindowRef.current as any).close()
+        }
+        const html = infoHtml(p)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const iw = new GoogleMaps.InfoWindow({ content: html, maxWidth: 260 })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(iw as any).open(map, marker)
+        infoWindowRef.current = iw
+        infoSlugRef.current = p.slug
+        onMarkerClick?.(p.slug)
+      })
+      return marker
+    })
+    markersRef.current = newMarkers
+
+    // Clustering — only useful at low zoom where markers overlap.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const clusterer = new (window as any).MarkerClusterer({
+      map,
+      markers: newMarkers,
+      // Disable clustering at zoom 14+ so individual parks are visible.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      renderer: (window as any).MarkerClusterer.withDefaultRenderer({
+        // Keep small icons since we have ~40 markers, not thousands.
+        maxZoom: 14,
+      }),
+    })
+    clustererRef.current = clusterer
+
+    // Fit bounds to current set. Use a small padding so the markers
+    // don't sit on the edge of the visible area.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bounds = new GoogleMaps.LatLngBounds()
+    for (const p of withCoords) bounds.extend({ lat: p.latitude, lng: p.longitude })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(map as any).fitBounds(bounds, 40)
+    // If only one park, fitBounds zooms too far in. Cap it.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const listener = (window as any).google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
+      if (map.getZoom() > 15) map.setZoom(15)
+    })
+    void listener
+  }, [parks, mapStatus, onMarkerClick])
+
+  // Highlight sync — when highlightedSlug changes from the card side,
+  // bounce the matching marker (bounce animation draws the eye).
+  useEffect(() => {
+    if (mapStatus !== 'ready') return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const GoogleMaps = (window as any).google?.maps as any
+    if (!GoogleMaps) return
+    for (const m of markersRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const title = (m as any).getTitle?.()
+      if (title === highlightedSlug) {
+        m.setAnimation(GoogleMaps.Animation.BOUNCE)
+        setTimeout(() => m.setAnimation(null), 700)
+      }
+    }
+  }, [highlightedSlug, mapStatus])
+
+  // "Near me" — render a blue dot at the user's location and recenter.
+  // Only runs when userLocation is non-null (i.e., user opted in).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userMarkerRef = useRef<any>(null)
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    if (!map || mapStatus !== 'ready') return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const GoogleMaps = (window as any).google?.maps as any
+    if (!GoogleMaps) return
+
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setMap(null)
+      userMarkerRef.current = null
+    }
+    if (!userLocation) return
+
+    userMarkerRef.current = new GoogleMaps.Marker({
+      position: { lat: userLocation.latitude, lng: userLocation.longitude },
+      map,
+      title: 'Your location',
+      icon: {
+        path: GoogleMaps.SymbolPath.CIRCLE,
+        fillColor: '#4285F4',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 3,
+        scale: 8,
+      },
+      zIndex: 9999,
+    })
+    // Recenter on the user, but keep the parks visible by zooming out a bit.
+    map.setCenter({ lat: userLocation.latitude, lng: userLocation.longitude })
+    map.setZoom(13)
+    return () => {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setMap(null)
+        userMarkerRef.current = null
+      }
+    }
+  }, [userLocation, mapStatus])
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-secondary/5 via-white to-primary/5 shadow-sm overflow-hidden">
-      <div className="relative min-h-[480px] h-full">
-        {/* "Map placeholder" — translucent gradient slab. The real
-            Map component replaces this in step 4. */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(0,122,127,0.08),transparent_50%),radial-gradient(circle_at_70%_80%,rgba(0,64,92,0.10),transparent_55%)] flex items-center justify-center pointer-events-none">
-          <div className="text-center px-6 pointer-events-auto">
+    <div className="rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative">
+      {/* Map wrapper — owned by Google once mounted. Keep BARE. */}
+      <div
+        ref={mapRef}
+        className="w-full h-[480px] bg-slate-100"
+        aria-label="Map of Moreno Valley parks"
+        role="region"
+      />
+
+      {/* Loading + error overlays — SIBLINGS of the map div, not children. */}
+      {mapStatus !== 'ready' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-50 pointer-events-none">
+          <div className="text-center px-6">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-secondary text-white mb-3">
               <MapPin className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-text mb-1" style={{ fontFamily: 'var(--font-fraunces), Inter, sans-serif' }}>
-              Map coming in the next update
-            </h3>
-            <p className="text-xs text-text-secondary max-w-xs">
-              Live Google Maps with pins, hover-to-highlight, and the &quot;near me&quot; blue dot.
-              The cards on the right work right now.
-            </p>
+            <p className="text-sm text-text-secondary">{statusMsg}</p>
+            {mapStatus === 'error' && !apiKey && (
+              <p className="mt-1 text-xs text-text-secondary">
+                Add <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> to enable the map.
+              </p>
+            )}
           </div>
         </div>
-
-        {/* Stats + marker list — overlayed top-left so the placeholder
-            doesn't hide useful info. */}
-        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl p-3 shadow-sm max-w-[260px]">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
-            Map summary
-          </h4>
-          <ul className="text-xs space-y-1.5">
-            {(['PARK', 'GOLF', 'REC_CENTER'] as const).map((t) => {
-              const list = byType[t] ?? []
-              if (list.length === 0) return null
-              const Icon = t === 'PARK' ? TreePine : t === 'GOLF' ? Flag : Building2
-              return (
-                <li key={t} className="flex items-center gap-2 text-text">
-                  <Icon className="w-3.5 h-3.5 text-primary" />
-                  <span className="font-semibold">{list.length}</span>
-                  <span className="text-text-secondary">{typeLabel(t)}{list.length === 1 ? '' : 's'}</span>
-                </li>
-              )
-            })}
-          </ul>
-          {fivePointSpread && (
-            <div className="mt-2 pt-2 border-t border-slate-200 flex items-center gap-1">
-              {fivePointSpread}
-            </div>
-          )}
-        </div>
-
-        {/* Marker list — pre-step-4 fallback so users can see which parks
-            are in the result set even before the map itself loads. */}
-        {withCoords.length > 0 && (
-          <div className="absolute bottom-3 left-3 right-3 max-h-44 overflow-y-auto bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl p-3 shadow-sm">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary mb-2 sticky top-0 bg-white/95">
-              Pins ({withCoords.length})
-            </h4>
-            <ul className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-              {withCoords.slice(0, 12).map((p) => (
-                <li key={p.slug}>
-                  <button
-                    type="button"
-                    onClick={() => onMarkerClick?.(p.slug)}
-                    className={
-                      'w-full text-left px-2 py-1.5 rounded-md text-[11px] font-medium ' +
-                      (highlightedSlug === p.slug
-                        ? 'bg-primary text-white'
-                        : 'bg-slate-50 hover:bg-slate-100 text-text-secondary')
-                    }
-                  >
-                    <span className="truncate block">{p.name}</span>
-                    <span className="font-mono text-[9px] opacity-70 truncate block">
-                      {p.latitude.toFixed(3)}, {p.longitude.toFixed(3)}
-                    </span>
-                  </button>
-                </li>
-              ))}
-              {withCoords.length > 12 && (
-                <li className="text-[10px] text-text-secondary px-2 py-1.5 italic">
-                  +{withCoords.length - 12} more (map view)
-                </li>
-              )}
-            </ul>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
+}
+
+/** InfoWindow HTML — kept tiny and inline. No JSX here, just a string. */
+function infoHtml(p: ParkSummary & { latitude: number; longitude: number }): string {
+  const addr = p.address ? `<div style="font-size:11px;color:#475569;margin-top:2px;">${escapeHtml(p.address)}</div>` : ''
+  const rating = p.googleRating
+    ? `<div style="font-size:11px;color:#475569;margin-top:4px;">★ ${p.googleRating.toFixed(1)}${p.googleReviewCount ? ` · ${p.googleReviewCount} reviews` : ''}</div>`
+    : ''
+  return `
+    <div style="font-family:Inter,system-ui,sans-serif;padding:4px 2px;max-width:240px;">
+      <div style="font-weight:600;font-size:13px;color:#0f172a;">${escapeHtml(p.name)}</div>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:#007A7F;margin-top:2px;">${typeLabel(p.type)}</div>
+      ${addr}
+      ${rating}
+    </div>
+  `.trim()
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }

@@ -260,6 +260,7 @@ export function ParksClient({ parks }: ParksClientProps) {
           <ParkMap
             parks={visibleParks}
             highlightedSlug={highlightedSlug}
+            userLocation={userLocation}
             onMarkerClick={(slug) => {
               setHighlightedSlug(slug)
               if (typeof document !== 'undefined') {
