@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     'skate park Moreno Valley',
     'Moreno Valley splash pad',
     'pump track Moreno Valley',
+    'Flight Deck Bike Park',
     'Moreno Valley recreation center',
     'parks near me Moreno Valley',
   ],
@@ -45,7 +46,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Parks & Recreation in Moreno Valley',
     description:
-      '36 parks, 1 golf course, 1 rec center — with a map, amenity filters, and "near me" distance.',
+      'Every City of MoVal park, trail, golf center, and rec facility on one interactive map — with amenity filters, photos, and "near me" distance.',
   },
 }
 
