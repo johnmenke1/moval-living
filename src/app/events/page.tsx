@@ -4,12 +4,13 @@ import { prisma } from '@/lib/prisma'
 import { Calendar, MapPin, ExternalLink, ArrowRight, Sparkles, Award, Send, Building2, Ticket, CheckCircle } from 'lucide-react'
 import CategoryFilter from './CategoryFilter'
 import LanguageFilter from './LanguageFilter'
+import SearchBar from './SearchBar'
 import MonthNav from './MonthNav'
 
 export const revalidate = 3600 // 1 hour
 
 interface PageProps {
-  searchParams: Promise<{ view?: string; month?: string; cat?: string; lang?: string }>
+  searchParams: Promise<{ view?: string; month?: string; cat?: string; lang?: string; q?: string }>
 }
 
 type View = 'today' | 'weekend' | 'week' | 'month'
@@ -92,8 +93,9 @@ const VALID_CATEGORIES = new Set([
 ])
 
 export default async function EventsPage({ searchParams }: PageProps) {
-  const { view: rawView, month: rawMonth, cat: rawCat, lang: rawLang } = await searchParams
+  const { view: rawView, month: rawMonth, cat: rawCat, lang: rawLang, q: rawQ } = await searchParams
   const langEs = rawLang === 'es'
+  const searchQuery = (rawQ ?? '').trim()
   const view: View = (['today', 'weekend', 'week', 'month'] as View[]).includes(
     rawView as View,
   )
@@ -115,14 +117,32 @@ export default async function EventsPage({ searchParams }: PageProps) {
     .filter((c) => VALID_CATEGORIES.has(c))
 
   // Build the where clause. All approved events; category filter optional.
+  // When a text search is active (?q=...), we broaden the date window to
+  // today + 90 days so searchers see relevant upcoming events regardless
+  // of which view tab they're on ("Ravens football" should surface the
+  // next Ravens game, not be hidden by the Today/Weekend/This Week filters).
+  const searchDateEnd = searchQuery
+    ? new Date(now.getTime() + 90 * 86400000)
+    : range.end
   const where: any = {
-    startsAt: { gte: range.start, lt: range.end },
+    startsAt: { gte: searchQuery ? startOfDayUTC(now) : range.start, lt: searchDateEnd },
   }
   if (selectedCats.length > 0) {
     where.category = { in: selectedCats }
   }
   if (langEs) {
     where.esEnEspanol = true
+  }
+  if (searchQuery) {
+    // Case-insensitive substring match across the user-visible text fields.
+    // Same OR-shape as /search page so behavior is consistent end-to-end.
+    where.OR = [
+      { title: { contains: searchQuery, mode: 'insensitive' } },
+      { description: { contains: searchQuery, mode: 'insensitive' } },
+      { venueName: { contains: searchQuery, mode: 'insensitive' } },
+      { address: { contains: searchQuery, mode: 'insensitive' } },
+      { city: { contains: searchQuery, mode: 'insensitive' } },
+    ]
   }
 
   const events = await prisma.event.findMany({
@@ -180,6 +200,12 @@ export default async function EventsPage({ searchParams }: PageProps) {
                   <Calendar className="w-7 h-7" />
                 </div>
                 <div className="min-w-0">
+                  {/* Eyebrow — small primary chip that establishes the page's
+                      identity ("Community Calendar") before the title. */}
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider mb-1.5">
+                    <Sparkles className="w-3 h-3" />
+                    Community Calendar
+                  </span>
                   <h1 className="text-3xl sm:text-4xl font-bold text-text leading-tight">
                     Community{' '}
                     <span className="text-primary">Events</span>
@@ -191,9 +217,19 @@ export default async function EventsPage({ searchParams }: PageProps) {
                 </div>
               </div>
 
+              {/* Search bar — case-insensitive text search across title,
+                  description, venue, address, and city. Widens the date
+                  window to today + 90 days while q is active. */}
+              <div className="mt-4">
+                <Suspense fallback={null}>
+                  <SearchBar initialQuery={searchQuery} />
+                </Suspense>
+              </div>
+
               {/* Filter rows */}
               <div className="mt-4 space-y-3">
-                {/* View pills — segmented control */}
+                {/* View pills — segmented control. Active tab is the only
+                    colored interior so the current view is unmistakable. */}
                 <div className="bg-slate-100/80 rounded-xl p-1 flex gap-1 w-fit max-w-full overflow-x-auto">
                   {(['today', 'weekend', 'week', 'month'] as View[]).map((v) => {
                     const isActive = view === v
@@ -204,7 +240,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
                         href={href}
                         className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
                           isActive
-                            ? 'bg-white text-primary shadow-sm'
+                            ? 'bg-primary text-white shadow-sm'
                             : 'text-text-secondary hover:text-text'
                         }`}
                       >
@@ -256,11 +292,16 @@ export default async function EventsPage({ searchParams }: PageProps) {
               <Calendar className="w-8 h-8 text-primary" />
             </div>
             <h2 className="text-xl font-bold text-text mb-2">
-              No events {range.label.toLowerCase()}
-              {selectedCats.length > 0 && ' with selected filters'}
+              {searchQuery
+                ? `No events matching "${searchQuery}"`
+                : `No events ${range.label.toLowerCase()}${
+                    selectedCats.length > 0 ? ' with selected filters' : ''
+                  }`}
             </h2>
             <p className="text-text-secondary max-w-md mx-auto mb-6">
-              Know something happening? Submit an event and we&apos;ll add it to the calendar after a quick review.
+              {searchQuery
+                ? 'Try a different search term, clear the search, or browse the calendar.'
+                : 'Know something happening? Submit an event and we\u2019ll add it to the calendar after a quick review.'}
             </p>
             <Link
               href="/submit/event"
