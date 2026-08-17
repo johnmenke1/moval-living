@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
+import { EventsCallout, type UpcomingEvent } from '@/components/home/EventsCallout'
 import LiveActivityTicker from '@/components/home/LiveActivityTicker'
 import { Calendar } from 'lucide-react'
 
@@ -123,9 +124,10 @@ interface HomePageClientProps {
     heroImageUrl: string | null
     publishedAt: string | null
   }>
+  upcomingEvents: UpcomingEvent[]
 }
 
-export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifePosts }: HomePageClientProps) {
+export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifePosts, upcomingEvents }: HomePageClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
 
@@ -228,6 +230,13 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
         </div>
       </section>
 
+      {/* ─── EVENTS CALLOUT ─── */}
+      {/* Sits between the Hero and the live-activity ticker so visitors
+          see what’s coming up in the community before they reach the
+          Featured & Best-Of grid. Hidden entirely when no upcoming
+          events exist (handled inside the component). */}
+      <EventsCallout events={upcomingEvents} />
+
       {/* ─── LIVE ACTIVITY TICKER ─── */}
       {/* "MoVal right now" — shows recent claims, upgrades, reviews, and
           nominations. Lazy-fetches from /api/public/live-activity on the
@@ -261,12 +270,20 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
               featuredBusinesses.slice(0, 6).map(business => (
                 <BusinessCard key={business.id} business={business} />
               ))
-            )}
-          </div>
-        </div>
-      </section>
+                          )}
+                        </div>
+                      </div>
+                    </section>
 
-      {/* ─── LIFE IN MOVAL — EDITORIAL CALLOUT ─── */}
+                    {/* ─── EVENTS CALLOUT — promotes /events from the homepage ─── */}
+                    {/* Sits between Featured and Life so visitors see local events as
+                        a distinct content lane (not just another business grid). Hero +
+                        + Honorable Mention tier only — curated, not a calendar dump.
+                        Window is today + 30 days so regional shows (RMA, Fox) booked
+                        weeks out are still discoverable. Section self-hides when empty. */}
+                    <EventsCallout events={upcomingEvents} />
+
+                    {/* ─── LIFE IN MOVAL — EDITORIAL CALLOUT ─── */}
       {/* Pulls the most recent "Life in MoVal" posts so visitors see the
           editorial lane and Google gets an internal-link into /life. Section
           only renders when at least one LIFE post exists — silently hidden

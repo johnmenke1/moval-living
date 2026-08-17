@@ -117,11 +117,50 @@ async function getLatestLifePosts() {
   })
 }
 
+// Upcoming curated events for the homepage call-out strip. We surface HERO
+// + HONORABLE_MENTION tier events so the homepage reads as a curated pick
+// rather than a calendar dump. Window is today + 30 days — wide enough to
+// catch regional venue events (RMA, Fox) that are booked 2–3 weeks out,
+// narrow enough that "this month" framing stays honest. Ordered by tier
+// (HERO first) then start time so the marquee event leads the strip.
+//
+// Includes the linked business slug so event cards can link through to
+// /business/[slug] when the event is hosted by a known MoVal business
+// (matches the events-page HeroSection cardHref pattern).
+async function getUpcomingEvents() {
+  const now = new Date()
+  const horizon = new Date(now.getTime() + 30 * 86400000)
+  return prisma.event.findMany({
+    where: {
+      tier: { in: ['HERO', 'HONORABLE_MENTION'] },
+      startsAt: { gte: now, lte: horizon },
+    },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      startsAt: true,
+      venueName: true,
+      city: true,
+      category: true,
+      heroImageUrl: true,
+      ticketUrl: true,
+      isFree: true,
+      esEnEspanol: true,
+      tier: true,
+      business: { select: { slug: true, name: true } },
+    },
+    orderBy: [{ tier: 'asc' }, { startsAt: 'asc' }],
+    take: 4,
+  })
+}
+
 export default async function HomePage() {
-  const [candidates, categoryCounts, latestLifePosts] = await Promise.all([
+  const [candidates, categoryCounts, latestLifePosts, upcomingEvents] = await Promise.all([
     getHomepageBusinesses(),
     getCategoryCounts(),
     getLatestLifePosts(),
+    getUpcomingEvents(),
   ])
 
   // Sort priority — shared with /search and category pages so listings
@@ -142,20 +181,38 @@ export default async function HomePage() {
   }))
 
   return (
-      <>
-        <JsonLd schema={WEBSITE_SCHEMA} />
-        <JsonLd schema={ORGANIZATION_SCHEMA} />
-        <HomePageClient
-          featuredBusinesses={featuredBusinesses}
-          categoryCounts={categoryCounts}
-          latestLifePosts={latestLifePosts.map(p => ({
-            slug: p.slug,
-            title: p.title,
-            excerpt: p.excerpt,
-            heroImageUrl: p.heroImageUrl,
-            publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
-          }))}
-        />
-      </>
-    )
-  }
+    <>
+      <JsonLd schema={WEBSITE_SCHEMA} />
+      <JsonLd schema={ORGANIZATION_SCHEMA} />
+      <HomePageClient
+        featuredBusinesses={featuredBusinesses}
+        categoryCounts={categoryCounts}
+        latestLifePosts={latestLifePosts.map(p => ({
+          slug: p.slug,
+          title: p.title,
+          excerpt: p.excerpt,
+          heroImageUrl: p.heroImageUrl,
+          publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
+        }))}
+        upcomingEvents={upcomingEvents.map(e => ({
+          id: e.id,
+          slug: e.slug,
+          title: e.title,
+          startsAt: e.startsAt.toISOString(),
+          venueName: e.venueName,
+          city: e.city,
+          category: e.category,
+          heroImageUrl: e.heroImageUrl,
+          ticketUrl: e.ticketUrl,
+          isFree: e.isFree,
+          esEnEspanol: e.esEnEspanol,
+          // Tier comes back as the enum string; cast for client component.
+          tier: e.tier as 'HERO' | 'HONORABLE_MENTION',
+          // business may be null when the event isn't linked to a local
+          // listing (e.g. regional venues like RMA / Fox). Pass through.
+          business: e.business ? { slug: e.business.slug, name: e.business.name } : null,
+        }))}
+      />
+    </>
+  )
+}
