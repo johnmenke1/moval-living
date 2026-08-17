@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
 import { SearchFilters } from '@/components/search/SearchFilters'
+import { CompactSearchBar } from '@/components/search/CompactSearchBar'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { compareBusinessesForSearch } from '@/lib/business-priority'
 import type { Metadata } from 'next'
@@ -104,22 +105,11 @@ async function getBusinesses(params: {
     where.seHablaEspanol = true
   }
 
-  if (params.tier === 'CHAMBER') {
-    // Show businesses affiliated with either chamber — covers the Chamber
-    // Members filter chip in the search dropdown. We AND this with any
-    // existing search query rather than overwriting it.
-    where.AND = [
-      ...(Array.isArray(where.AND) ? where.AND : []),
-      {
-        OR: [
-          { chamberMember: true },
-          { hispanicChamberMember: true },
-        ],
-      },
-    ]
-  } else if (params.tier) {
-    where.tier = params.tier.toUpperCase()
-  }
+  // Tier filter dropped (2026-08-16): the All / Featured / Free / Chamber
+  // buttons weren't earning their space per Johnny. Existing deep links
+  // with ?tier= still resolve (this param is just ignored). Within-group
+  // presentation order (EP → Featured → BestOf → Free) still uses
+  // compareBusinessesForSearch below.
 
   // No pagination — the grouped layout is the navigation. ~687 approved
   // businesses spread across ~20 categories is scannable; we'll revisit
@@ -182,64 +172,84 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   // treatment, a deep-linked category gets the category name, and the
   // default landing is a brand-style "Discover MoVal" heading.
   const headline = params.q
-    ? { eyebrow: 'Search results', title: <>Results for &ldquo;{params.q}&rdquo;</>, color: 'primary' as const }
+    ? { eyebrow: 'Search results', title: <>Results for &ldquo;{params.q}&rdquo;</> }
     : selectedCategory
-      ? { eyebrow: 'Category', title: selectedCategory.name, color: 'primary' as const }
-      : { eyebrow: 'Local Business Directory', title: <>Discover <span className="text-primary">MoVal</span></>, color: 'primary' as const }
+      ? { eyebrow: 'Category', title: selectedCategory.name }
+      : { eyebrow: 'Local Business Directory', title: <>Discover <span className="text-primary">MoVal</span></> }
+
+  // Active filter detection — drives the Clear button visibility on the
+  // compact sticky bar. Anything non-default counts as active.
+  const hasActiveFilters = Boolean(params.q || params.category || params.espanol)
 
   return (
     <div className="bg-slate-50 min-h-screen">
       {/* Header — single cohesive card with brand wash + decorative watermark.
           Matches the /events treatment so the two search/listing pages
-          feel like a related family. Sticky so filters follow scroll. */}
-      <div className="sticky top-16 z-30">
-        <div className="container-max pt-6 pb-3">
-          <div
-            className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm bg-gradient-to-br from-secondary/8 via-white to-primary/5"
-            style={{
-              backgroundImage:
-                "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='1' cy='1' r='1' fill='%23015a6b' fill-opacity='0.10'/></svg>\"), linear-gradient(to bottom right, rgba(1,90,107,0.06), white, rgba(0,122,127,0.04))",
-            }}
-          >
-            {/* Decorative watermark — soft, big, behind everything */}
-            <Building2
-              aria-hidden
-              className="pointer-events-none absolute -right-8 -top-8 w-64 h-64 text-primary/[0.06] rotate-12"
-            />
-            <Building2
-              aria-hidden
-              className="pointer-events-none absolute -left-12 bottom-0 w-48 h-48 text-secondary/[0.05] -rotate-6"
-            />
+          feel like a related family. NOT sticky — only the search bar
+          sticks. This block (title + category nav + category dropdown)
+          scrolls away naturally, freeing up screen real estate once the
+          user is reading business cards. */}
+      <div className="container-max pt-6 pb-3">
+        <div
+          className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm bg-gradient-to-br from-secondary/8 via-white to-primary/5"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='1' cy='1' r='1' fill='%23015a6b' fill-opacity='0.10'/></svg>\"), linear-gradient(to bottom right, rgba(1,90,107,0.06), white, rgba(0,122,127,0.04))",
+          }}
+        >
+          {/* Decorative watermark — soft, big, behind everything */}
+          <Building2
+            aria-hidden
+            className="pointer-events-none absolute -right-8 -top-8 w-64 h-64 text-primary/[0.06] rotate-12"
+          />
+          <Building2
+            aria-hidden
+            className="pointer-events-none absolute -left-12 bottom-0 w-48 h-48 text-secondary/[0.05] -rotate-6"
+          />
 
-            <div className="relative px-5 sm:px-8 pt-6 pb-5">
-              {/* Title row */}
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary shrink-0">
-                  <Search className="w-7 h-7" />
-                </div>
-                <div className="min-w-0">
-                  {/* Eyebrow chip — small primary chip that establishes the
-                      page's identity ("Local Business Directory") before
-                      the title. Matches the events-page treatment. */}
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider mb-1.5">
-                    <Sparkles className="w-3 h-3" />
-                    {headline.eyebrow}
-                  </span>
-                  <h1 className="text-3xl sm:text-4xl font-bold text-text leading-tight">
-                    {headline.title}
-                  </h1>
-                </div>
+          <div className="relative px-5 sm:px-8 pt-6 pb-5">
+            {/* Title row */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary shrink-0">
+                <Search className="w-7 h-7" />
               </div>
-
-              {/* Filter row — search input primary, dropdowns subordinated */}
-              <SearchFilters
-                categories={categories}
-                currentParams={params}
-                resultCount={total}
-                categoryNav={categoryNav}
-              />
+              <div className="min-w-0">
+                {/* Eyebrow chip — small primary chip that establishes the
+                    page's identity ("Local Business Directory") before
+                    the title. Matches the events-page treatment. */}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider mb-1.5">
+                  <Sparkles className="w-3 h-3" />
+                  {headline.eyebrow}
+                </span>
+                <h1 className="text-3xl sm:text-4xl font-bold text-text leading-tight">
+                  {headline.title}
+                </h1>
+              </div>
             </div>
+
+            {/* Filter row — only the secondary filters live here (category
+                select, language toggle). The search bar is rendered
+                separately below in the sticky compact bar so it stays
+                visible while scrolling without taking up massive real
+                estate. */}
+            <SearchFilters
+              categories={categories}
+              currentParams={params}
+              categoryNav={categoryNav}
+            />
           </div>
+        </div>
+      </div>
+
+      {/* Compact sticky search bar — search input + lang toggle + clear.
+          Sticks to the top once the header card scrolls past. Small
+          footprint so it doesn't block listings. */}
+      <div className="sticky top-16 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/70">
+        <div className="container-max py-3">
+          <CompactSearchBar
+            currentParams={params}
+            hasActiveFilters={hasActiveFilters}
+          />
         </div>
       </div>
 
@@ -280,8 +290,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               <section
                 key={group.slug}
                 id={`cat-${group.slug}`}
-                // `scroll-mt-*` clears the sticky header when jumping to an anchor.
-                className="scroll-mt-48"
+                // `scroll-mt-*` clears the sticky search bar when jumping
+                // to an anchor (the search bar is much shorter now so 48
+                // is plenty).
+                className="scroll-mt-32"
               >
                 {/* Category section header — small icon + name + count chip,
                     with a brand-tinted gradient underline so each category
