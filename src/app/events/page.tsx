@@ -162,62 +162,77 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="container-max py-10">
-          <div className="flex items-center gap-3 mb-3">
-            <Calendar className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold text-text">Community Events</h1>
-          </div>
-          <p className="text-text-secondary max-w-2xl">
-            What&apos;s happening in and around Moreno Valley — from local community gatherings
-            to regional shows worth the drive. Curated by the moval.living team.
-          </p>
-        </div>
-      </div>
+      {/* Head section — single cohesive card with brand wash + dotted calendar overlay.
+          Replaces 3 stacked 'bg-white border-b' slabs. Sticky so filters follow scroll. */}
+      <div className="sticky top-0 z-10">
+        <div className="container-max pt-6 pb-2">
+          <div
+            className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm bg-gradient-to-br from-secondary/8 via-white to-primary/5"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='1' cy='1' r='1' fill='%23015a6b' fill-opacity='0.10'/></svg>\"), linear-gradient(to bottom right, rgba(1,90,107,0.06), white, rgba(0,122,127,0.04))",
+            }}
+          >
+            <div className="relative px-5 sm:px-8 pt-6 pb-5">
+              {/* Title row */}
+              <div className="flex items-center gap-4 mb-2">
+                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary shrink-0">
+                  <Calendar className="w-7 h-7" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-3xl sm:text-4xl font-bold text-text leading-tight">
+                    Community{' '}
+                    <span className="text-primary">Events</span>
+                  </h1>
+                  <p className="text-sm sm:text-base text-text-secondary mt-1 max-w-2xl">
+                    What&apos;s happening in and around Moreno Valley — curated by the
+                    moval.living team.
+                  </p>
+                </div>
+              </div>
 
-      {/* Filters bar */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="container-max py-4 space-y-3">
-          {/* View tabs */}
-          <div className="flex gap-1 overflow-x-auto">
-            {(['today', 'weekend', 'week', 'month'] as View[]).map((v) => {
-              const isActive = view === v
-              const href = v === 'month' ? '/events' : `/events?view=${v}`
-              return (
-                <Link
-                  key={v}
-                  href={href}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    isActive
-                      ? 'bg-primary text-white'
-                      : 'bg-slate-100 text-text-secondary hover:bg-slate-200'
-                  }`}
-                >
-                  {v === 'today'
-                    ? 'Today'
-                    : v === 'weekend'
-                      ? 'Weekend'
-                      : v === 'week'
-                        ? 'This Week'
-                        : 'Month'}
-                </Link>
-              )
-            })}
-          </div>
+              {/* Filter rows */}
+              <div className="mt-4 space-y-3">
+                {/* View pills — segmented control */}
+                <div className="bg-slate-100/80 rounded-xl p-1 flex gap-1 w-fit max-w-full overflow-x-auto">
+                  {(['today', 'weekend', 'week', 'month'] as View[]).map((v) => {
+                    const isActive = view === v
+                    const href = v === 'month' ? '/events' : `/events?view=${v}`
+                    return (
+                      <Link
+                        key={v}
+                        href={href}
+                        className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
+                          isActive
+                            ? 'bg-white text-primary shadow-sm'
+                            : 'text-text-secondary hover:text-text'
+                        }`}
+                      >
+                        {v === 'today'
+                          ? 'Today'
+                          : v === 'weekend'
+                            ? 'Weekend'
+                            : v === 'week'
+                              ? 'This Week'
+                              : 'Month'}
+                      </Link>
+                    )
+                  })}
+                </div>
 
-          {/* Category filter chips */}
-          <Suspense fallback={null}>
-            <CategoryFilter selected={selectedCats} />
-          </Suspense>
-        </div>
-
-        {/* Language filter chip — just the En Español toggle for now */}
-        <div className="bg-white border-b border-slate-200">
-          <div className="container-max py-2">
-            <Suspense fallback={null}>
-              <LanguageFilter active={langEs} />
-            </Suspense>
+                {/* Category chips + language toggle on one row */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-3 justify-between">
+                  <div className="min-w-0 flex-1">
+                    <Suspense fallback={null}>
+                      <CategoryFilter selected={selectedCats} />
+                    </Suspense>
+                  </div>
+                  <Suspense fallback={null}>
+                    <LanguageFilter active={langEs} />
+                  </Suspense>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
