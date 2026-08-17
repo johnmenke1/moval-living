@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import { computeMorenoValleyMarketStats } from '@/lib/market-stats'
 import { MarketStats } from '@/components/real estate/MarketStats'
-import { MapPin, Users, Briefcase, GraduationCap, Landmark, TreePine, Trees, ArrowRight } from 'lucide-react'
+import { MapPin, Users, Briefcase, GraduationCap, Landmark, TreePine, Trees, ArrowRight, Bike, MapIcon } from 'lucide-react'
 import { FaqSection } from '@/components/seo/FaqSection'
 
 export const metadata: Metadata = {
@@ -103,6 +103,87 @@ export default async function AboutMorenoValleyPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Outdoor Recreation & Parks — surfaces the /parks directory + Flight Deck spotlight */}
+      <section className="section bg-white" id="parks">
+        <div className="container-max">
+          <div className="mb-8">
+            <p className="mb-2 text-sm font-semibold tracking-widest uppercase text-accent">Get Outside</p>
+            <h2 className="mb-2 text-3xl font-bold text-text">Outdoor Recreation &amp; Parks</h2>
+            <p className="text-text-secondary">
+              Moreno Valley runs{' '}
+              <strong>41 city-maintained parks, trails, and recreation facilities</strong>
+              {' '}— including Southern California&apos;s largest Velosolutions pump track at the
+              Flight Deck, an 8-mile paved federal recreation trail (the Juan Bautista de Anza),
+              Cottonwood Golf Center, plus four neighborhood community centers.
+              Find your nearest one on our interactive parks map.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Primary card: the /parks directory */}
+            <div className="card flex flex-col overflow-hidden border-l-4 border-accent">
+              <div className="flex-1 p-6 md:p-8">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">
+                  <MapIcon className="h-7 w-7" />
+                </div>
+                <h3 className="mb-2 text-2xl font-bold text-text">Every park on one map</h3>
+                <p className="mb-4 leading-relaxed text-text-secondary">
+                  Our parks directory puts all 41 City of Moreno Valley facilities on a single
+                  interactive map — filter by amenities (pump track, skate park, tennis, splash pad,
+                  dog park, picnic shelters, and more), search by name, or hit &ldquo;find parks
+                  near me&rdquo; to surface the ones closest to your front door. Each listing has
+                  an FAQ accordion, opening hours, address, photos from Google, and a one-tap
+                  directions link.
+                </p>
+                <ul className="mb-2 space-y-1.5 text-sm text-text-secondary">
+                  <li>• 36 parks + Cottonwood Golf Center + 4 community centers + the Anza Trail + the Flight Deck</li>
+                  <li>• Google-sourced user photos and amenity data on every listing</li>
+                  <li>• Curated FAQ accordion answering the questions locals actually ask</li>
+                </ul>
+              </div>
+              <div className="bg-accent/5 px-6 py-4 md:px-8">
+                <a
+                  href="/parks"
+                  className="btn-primary inline-flex items-center gap-2"
+                >
+                  Open the parks map <ArrowRight className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
+
+            {/* Secondary card: Flight Deck Bike Park spotlight */}
+            <div className="card flex flex-col overflow-hidden border-l-4 border-accent">
+              <div className="flex-1 p-6 md:p-8">
+                <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent">
+                  Just Opened — December 2025
+                </div>
+                <div className="my-3 flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">
+                  <Bike className="h-7 w-7" />
+                </div>
+                <h3 className="mb-2 text-2xl font-bold text-text">Flight Deck Bike Park</h3>
+                <p className="mb-2 leading-relaxed text-text-secondary">
+                  Southern California&apos;s largest Velosolutions asphalt pump track — a 25,000-sq-ft
+                  cycling destination on the southern side of Morrison Park. Built by American Ramp
+                  Company and inspired by the city&apos;s aviation heritage, Flight Deck features the
+                  region&apos;s first adaptive track for riders of all abilities, the first asphalt
+                  jump lines in SoCal, an asphalt bicycle playground for young riders, and a
+                  1,000-foot connecting path using Ambient Glow Technology (sunlight-charged glow
+                  rocks that light the trail after dark). Free admission. Open daily.
+                </p>
+              </div>
+              <div className="bg-accent/5 px-6 py-4 md:px-8">
+                <a
+                  href="/parks/flight-deck-bike-park"
+                  className="btn-primary inline-flex items-center gap-2"
+                >
+                  Visit the Flight Deck page <ArrowRight className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
