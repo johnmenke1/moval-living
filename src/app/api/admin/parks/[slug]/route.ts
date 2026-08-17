@@ -13,7 +13,8 @@ const amenityEnum = z.enum(AMENITY_SLUGS as unknown as [string, ...string[]])
 // mis-categorize the facility. Both require a migration.
 const updateSchema = z.object({
   name: z.string().min(1).max(120).optional(),
-  address: z.string().nullable().optional(),
+  address: z.string().max(200).nullable().optional(),
+  secondaryAddress: z.string().max(200).nullable().optional(),
   city: z.string().min(1).max(80).optional(),
   state: z.string().length(2).optional(),
   zip: z.string().nullable().optional(),

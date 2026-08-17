@@ -737,6 +737,11 @@ model Park {
 
   // Address (denormalized for fast map rendering without Geo lookup)
   address String?
+  // Optional secondary address for parks with a distinct sub-area that
+  // has its own street address (e.g. Morrison Park → Flight Deck Bike
+  // Park at 13460 Morrison Street). Renders as a labeled sub-line in
+  // the sidebar and as a separate Google Maps link.
+  secondaryAddress String?
   city    String  @default("Moreno Valley")
   state   String  @default("CA")
   zip     String?

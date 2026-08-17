@@ -18,6 +18,7 @@ interface ParkEditorPark {
   name: string
   type: ParkType
   address: string | null
+  secondaryAddress: string | null
   city: string
   state: string
   zip: string | null
@@ -84,6 +85,8 @@ export function ParkEditor({ initialPark }: Props) {
         body: JSON.stringify({
           name: park.name,
           address: park.address,
+          secondaryAddress: park.secondaryAddress,
+          city: park.city,
           latitude: park.latitude,
           longitude: park.longitude,
           phone: park.phone,
@@ -252,6 +255,18 @@ export function ParkEditor({ initialPark }: Props) {
                   value={park.address ?? ''}
                   onChange={(e) => update('address', e.target.value || null)}
                   placeholder="Street address"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-primary focus:outline-none"
+                />
+              </Field>
+              <Field
+                label="Secondary address (sub-area)"
+                hint="Optional. For parks with a distinct sub-area that has its own address (e.g. Morrison Park → Flight Deck Bike Park at 13460 Morrison Street)."
+              >
+                <input
+                  type="text"
+                  value={park.secondaryAddress ?? ''}
+                  onChange={(e) => update('secondaryAddress', e.target.value || null)}
+                  placeholder="e.g. 13460 Morrison Street"
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-primary focus:outline-none"
                 />
               </Field>
@@ -586,10 +601,11 @@ export function ParkEditor({ initialPark }: Props) {
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block">
       <span className="block text-xs font-semibold text-text-secondary mb-1">{label}</span>
+      {hint && <span className="block text-xs text-text-secondary/80 mb-1">{hint}</span>}
       {children}
     </label>
   )

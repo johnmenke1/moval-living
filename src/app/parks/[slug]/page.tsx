@@ -292,6 +292,22 @@ export default async function ParkDetailPage({ params }: Props) {
                     </a>
                   </div>
                 )}
+                {park.secondaryAddress && (
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${park.secondaryAddress}, ${park.city}, ${park.state}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-primary"
+                    >
+                      <span className="text-xs uppercase tracking-wider text-text-secondary font-semibold block mb-0.5">
+                        Sub-area
+                      </span>
+                      {park.secondaryAddress}
+                    </a>
+                  </div>
+                )}
                 {park.phone && (
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4 text-primary flex-shrink-0" />
