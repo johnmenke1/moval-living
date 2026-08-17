@@ -224,6 +224,7 @@ export function ParkMap({ parks, highlightedSlug, userLocation, onMarkerClick }:
 
     const newMarkers = withCoords.map((p) => {
       const marker = new GoogleMaps.Marker({
+        map, // attach directly so markers are visible even without the (currently-disabled) MarkerClusterer
         position: { lat: p.latitude, lng: p.longitude },
         title: p.name,
         icon: {
