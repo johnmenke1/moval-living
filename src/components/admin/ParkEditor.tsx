@@ -33,6 +33,9 @@ interface ParkEditorPark {
   photoUrls: string[]
   blurb: string | null
   description: string | null
+  // Curated FAQs. Shape: { q: string, a: string }[] — rendered as
+  // <details> on the detail page AND emitted as Schema.org FAQPage.
+  faqsJson: { q: string; a: string }[] | null
   featured: boolean
   isActive: boolean
   updatedAt: string
@@ -66,6 +69,10 @@ export function ParkEditor({ initialPark }: Props) {
     })
   }
 
+  function setFaqs(updater: (cur: { q: string; a: string }[]) => { q: string; a: string }[]) {
+    setPark((p) => ({ ...p, faqsJson: updater(p.faqsJson ?? []) }))
+  }
+
   async function save() {
     setSaving(true)
     setError(null)
@@ -83,6 +90,7 @@ export function ParkEditor({ initialPark }: Props) {
           website: park.website,
           blurb: park.blurb,
           description: park.description,
+          faqsJson: park.faqsJson ?? null,
           amenities: park.amenities.filter(isKnownAmenity),
           featured: park.featured,
           isActive: park.isActive,
@@ -336,6 +344,88 @@ export function ParkEditor({ initialPark }: Props) {
                 />
               </Field>
             </div>
+          </section>
+
+          {/* FAQs card — Schema.org FAQPage + visible <details> on the
+              public detail page. Add up to 20 Q/A pairs that are worth
+              surfacing (unique-to-this-park info that isn't in the
+              description). */}
+          <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="font-bold text-text">FAQs ({(park.faqsJson ?? []).length})</h2>
+              <button
+                type="button"
+                onClick={() => setFaqs((cur) => [...cur, { q: '', a: '' }])}
+                disabled={(park.faqsJson ?? []).length >= 20}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-xs font-semibold disabled:opacity-40"
+              >
+                + Add FAQ
+              </button>
+            </div>
+            <p className="text-xs text-text-secondary mb-4">
+              Rendered as collapsible entries on the detail page + a Schema.org
+              FAQPage block in the page metadata for SEO rich results.
+            </p>
+            {(park.faqsJson ?? []).length === 0 ? (
+              <div className="text-xs text-text-secondary text-center py-6 border-2 border-dashed border-slate-200 rounded-lg">
+                No FAQs yet. Click "Add FAQ" to add one.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {(park.faqsJson ?? []).map((f, i) => (
+                  <div
+                    key={`faq-edit-${i}`}
+                    className="rounded-lg border border-slate-200 p-3 flex flex-col gap-2 bg-background/30"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-text-secondary">
+                        FAQ #{i + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFaqs((cur) => cur.filter((_, j) => j !== i))
+                        }
+                        className="text-xs text-red-600 hover:underline font-semibold"
+                        aria-label={`Remove FAQ ${i + 1}`}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <Field label={`Question (${f.q.length}/280)`}>
+                      <input
+                        type="text"
+                        value={f.q}
+                        onChange={(e) =>
+                          setFaqs((cur) =>
+                            cur.map((row, j) =>
+                              j === i ? { ...row, q: e.target.value.slice(0, 280) } : row,
+                            ),
+                          )
+                        }
+                        placeholder="e.g. Where is the pump track inside the park?"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-primary focus:outline-none"
+                      />
+                    </Field>
+                    <Field label={`Answer (${f.a.length}/2000)`}>
+                      <textarea
+                        value={f.a}
+                        onChange={(e) =>
+                          setFaqs((cur) =>
+                            cur.map((row, j) =>
+                              j === i ? { ...row, a: e.target.value.slice(0, 2000) } : row,
+                            ),
+                          )
+                        }
+                        rows={3}
+                        placeholder="Short, factual answer."
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-primary focus:outline-none resize-y"
+                      />
+                    </Field>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Amenities card */}

@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ExternalLink, Star, MapPin, Image as ImageIcon, Search } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Star, MapPin, Image as ImageIcon, Search, HelpCircle } from 'lucide-react'
 import type { ParkType } from '@/lib/parks'
 import { typeLabel } from '@/lib/parks'
 
@@ -23,6 +23,7 @@ interface ParkRow {
   heroPhotoUrl: string | null
   photoCount: number
   hasCoords: boolean
+  faqCount: number
   featured: boolean
   isActive: boolean
   updatedAt: string
@@ -221,6 +222,12 @@ export function ParksAdminClient({ initialParks }: Props) {
                         <ImageIcon className="w-3 h-3" />
                         {p.photoCount}
                       </span>
+                      {p.faqCount > 0 && (
+                        <span className="inline-flex items-center gap-1 text-emerald-700">
+                          <HelpCircle className="w-3 h-3" />
+                          {p.faqCount} FAQ{p.faqCount === 1 ? '' : 's'}
+                        </span>
+                      )}
                       {!p.hasCoords && (
                         <span className="inline-flex items-center gap-1 text-amber-600 font-semibold">
                           <MapPin className="w-3 h-3" />

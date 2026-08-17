@@ -4,10 +4,15 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { JsonLd } from '@/components/seo/JsonLd'
-import { ArrowLeft, MapPin, Phone, Globe, Star, Clock } from 'lucide-react'
+import { ArrowLeft, MapPin, Phone, Globe, Star, Clock, HelpCircle } from 'lucide-react'
 import { AMENITIES } from '@/lib/park-amenities'
 import type { ParkType } from '@/lib/parks'
 import { typeLabel } from '@/lib/parks'
+
+// Shape of Park.faqsJson (free-form, but constrained to {q, a} pairs)
+// Stored as JSONB so we can add fields later (e.g. {q, a, category}) without
+// a migration.
+interface FaqEntry { q: string; a: string }
 
 export const dynamic = 'force-dynamic'
 
@@ -87,12 +92,44 @@ export default async function ParkDetailPage({ params }: Props) {
       : {}),
   }
 
+  // FAQs (when curated). Validate the stored JSON shape — admin UI can
+  // produce any JSON, so we filter out anything that isn't a {q, a} pair
+  // before rendering or emitting the schema block.
+  const rawFaqs = Array.isArray(park.faqsJson) ? (park.faqsJson as unknown[]) : []
+  const faqs: FaqEntry[] = rawFaqs
+    .filter(
+      (e): e is FaqEntry =>
+        typeof e === 'object' &&
+        e !== null &&
+        typeof (e as Record<string, unknown>).q === 'string' &&
+        typeof (e as Record<string, unknown>).a === 'string',
+    )
+    .map((e) => ({ q: e.q, a: e.a }))
+
+  // Schema.org FAQPage — only emitted when FAQs exist. Google rich
+  // results require every <mainEntity> to have a Question + acceptedAnswer.
+  const faqSchema = faqs.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((f) => ({
+          '@type': 'Question',
+          name: f.q,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: f.a,
+          },
+        })),
+      }
+    : null
+
   const heroSrc = park.heroPhotoUrl ?? park.photoUrls[0] ?? null
   const amenities = AMENITIES.filter((a) => park.amenities.includes(a.slug))
 
   return (
     <>
       <JsonLd schema={schema} />
+      {faqSchema && <JsonLd schema={faqSchema} />}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         <Link
           href="/parks"
@@ -194,6 +231,39 @@ export default async function ParkDetailPage({ params }: Props) {
                         className="object-cover hover:scale-105 transition-transform"
                       />
                     </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* FAQs (when curated). Each opens natively via <details>; the
+                same array powers a Schema.org FAQPage block in the page
+                <head> for SEO rich-result eligibility. */}
+            {faqs.length > 0 && (
+              <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h2 className="font-bold text-text mb-3 flex items-center gap-2">
+                  <HelpCircle className="w-5 h-5 text-primary" />
+                  Frequently asked
+                </h2>
+                <div className="divide-y divide-slate-200">
+                  {faqs.map((f, i) => (
+                    <details
+                      key={`faq-${i}-${f.q.slice(0, 16)}`}
+                      className="group py-3"
+                    >
+                      <summary className="flex items-start justify-between gap-3 cursor-pointer list-none">
+                        <span className="font-semibold text-text">{f.q}</span>
+                        <span
+                          aria-hidden
+                          className="mt-0.5 text-text-secondary text-xl leading-none transition-transform group-open:rotate-45 select-none"
+                        >
+                          +
+                        </span>
+                      </summary>
+                      <p className="mt-2 text-sm text-text-secondary whitespace-pre-line pl-1">
+                        {f.a}
+                      </p>
+                    </details>
                   ))}
                 </div>
               </section>

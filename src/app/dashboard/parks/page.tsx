@@ -34,6 +34,7 @@ export default async function ParksAdminPage() {
       photoUrls: true,
       blurb: true,
       description: true,
+      faqsJson: true,
       featured: true,
       isActive: true,
       updatedAt: true,
@@ -45,6 +46,7 @@ export default async function ParksAdminPage() {
     ...p,
     photoCount: p.photoUrls.length,
     hasCoords: p.latitude != null && p.longitude != null,
+    faqCount: Array.isArray(p.faqsJson) ? p.faqsJson.length : 0,
     updatedAt: p.updatedAt.toISOString(),
   }))
 

@@ -24,6 +24,17 @@ const updateSchema = z.object({
   amenities: z.array(amenityEnum).max(50).optional(),
   blurb: z.string().max(280).nullable().optional(),
   description: z.string().max(4000).nullable().optional(),
+  // FAQs: array of {q: string, a: string} entries. Empty array clears.
+  faqsJson: z
+    .array(
+      z.object({
+        q: z.string().min(1).max(280),
+        a: z.string().min(1).max(2000),
+      }),
+    )
+    .max(20)
+    .nullable()
+    .optional(),
   featured: z.boolean().optional(),
   isActive: z.boolean().optional(),
   // Hero photo URL is a separate field on the model, but the editor

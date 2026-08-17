@@ -25,10 +25,16 @@ export default async function EditParkPage({
   if (!park) notFound()
 
   // JSON-friendly shape (Date → ISO) for the client component.
+  // Normalize faqsJson to the editor's expected shape — Prisma returns
+  // a generic JsonValue but we know the production schema enforces
+  // {q, a}[] via the API zod validator.
   const json = {
     ...park,
     updatedAt: park.updatedAt.toISOString(),
     createdAt: park.createdAt.toISOString(),
+    faqsJson: Array.isArray(park.faqsJson)
+      ? (park.faqsJson as { q: string; a: string }[])
+      : null,
   }
   return <ParkEditor initialPark={json} />
 }

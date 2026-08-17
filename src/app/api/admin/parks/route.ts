@@ -34,6 +34,7 @@ export async function GET(_req: NextRequest) {
       photoUrls: true,
       blurb: true,
       description: true,
+      faqsJson: true,
       featured: true,
       isActive: true,
       updatedAt: true,
