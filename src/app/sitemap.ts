@@ -17,6 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: BASE, lastModified: now, changeFrequency: 'weekly', priority: 1.0 },
     { url: `${BASE}/search`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${BASE}/parks`, lastModified: now, changeFrequency: 'weekly', priority: 0.85 },
     { url: `${BASE}/best-of`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE}/about-moreno-valley`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE}/events`, lastModified: now, changeFrequency: 'daily', priority: 0.7 },
@@ -31,6 +32,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/chamber`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
     { url: `${BASE}/hispanic-chamber`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
   ]
+
+  // Parks — the /parks index page is referenced above. Individual parks
+  // are not yet URL-routable (each park lives at the #slug anchor in
+  // the index). When we add /parks/[slug] route, append a `parkPages`
+  // block here mirroring the `businessPages` pattern.
 
   // Dynamic business pages — APPROVED only
   const businesses = await prisma.business.findMany({
