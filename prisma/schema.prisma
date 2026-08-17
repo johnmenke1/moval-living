@@ -733,7 +733,7 @@ model Park {
   slug          String   @unique
   name          String
   type          ParkType
-  googlePlaceId String?  @unique
+  googlePlaceId String?
 
   // Address (denormalized for fast map rendering without Geo lookup)
   address String?
