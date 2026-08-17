@@ -27,6 +27,7 @@ export async function GET() {
     'StandardStatus',
     'DaysOnMarket',
     'CloseDate',
+    'ListingContractDate',
     'PropertyType',
     'BedroomsTotal',
     'BathroomsTotalInteger',
@@ -34,8 +35,8 @@ export async function GET() {
 
   const propertyUrl = getPropertyEndpoint()
 
-  async function fetchListings(status: string) {
-    const filter = `contains(City, 'Moreno Valley') and StateOrProvince eq 'CA' and StandardStatus eq '${status}' and PropertyType eq 'Residential'`
+  async function fetchListings(status: string, extraFilter = '') {
+    const filter = `contains(City, 'Moreno Valley') and StateOrProvince eq 'CA' and StandardStatus eq '${status}' and PropertyType eq 'Residential'${extraFilter}`
     const url = `${propertyUrl}?$filter=${encodeURIComponent(filter)}&$select=${select}&$top=500&$count=true`
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
@@ -46,12 +47,17 @@ export async function GET() {
     return d.value ?? []
   }
 
-  const [active, closed] = await Promise.all([
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+  const sevenDaysIso = sevenDaysAgo.toISOString().slice(0, 10) // YYYY-MM-DD for OData ge
+
+  const [active, closed, newLast7] = await Promise.all([
     fetchListings('Active'),
     fetchListings('Closed'),
+    fetchListings('Active', ` and ListingContractDate ge ${sevenDaysIso}`),
   ])
 
-  if (!active || !closed) {
+  if (!active || !closed || !newLast7) {
     return NextResponse.json({ error: 'Failed to fetch from Trestle' }, { status: 502 })
   }
 
@@ -86,6 +92,7 @@ export async function GET() {
     generatedAt: new Date().toISOString(),
     active: {
       count: active.length,
+      newLast7Days: newLast7.length,
       medianListPrice: median(activePrices),
       avgListPrice: activePrices.length ? activePrices.reduce((s: number, v: number) => s + v, 0) / activePrices.length : 0,
     },
