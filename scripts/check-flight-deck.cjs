@@ -1,0 +1,28 @@
+const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const { Pool } = require('pg');
+(async () => {
+  const p = new PrismaClient({ adapter: new PrismaPg(new Pool({ connectionString: process.env.DATABASE_URL })) });
+  const total = await p.park.count({ where: { isActive: true } });
+  console.log('active parks:', total);
+  const flight = await p.park.findUnique({ where: { slug: 'flight-deck-bike-park' } });
+  console.log('--- flight-deck-bike-park ---');
+  console.log('name:', flight.name);
+  console.log('type:', flight.type);
+  console.log('address:', flight.address);
+  console.log('lat/lng:', flight.latitude, flight.longitude);
+  console.log('amenities:', JSON.stringify(flight.amenities));
+  console.log('heroPhotoUrl:', flight.heroPhotoUrl);
+  console.log('photoUrls:', JSON.stringify(flight.photoUrls));
+  console.log('blurb:', flight.blurb);
+  console.log('description:', (flight.description ?? '').slice(0, 200));
+  console.log('faqs count:', Array.isArray(flight.faqsJson) ? flight.faqsJson.length : 0);
+  console.log('isActive:', flight.isActive);
+  console.log('featured:', flight.featured);
+  const morrison = await p.park.findUnique({ where: { slug: 'morrison-park' }, select: { amenities: true, faqsJson: true, secondaryAddress: true } });
+  console.log('--- morrison-park ---');
+  console.log('amenities:', JSON.stringify(morrison.amenities));
+  console.log('faqs count:', Array.isArray(morrison.faqsJson) ? morrison.faqsJson.length : 0);
+  console.log('secondaryAddress:', morrison.secondaryAddress);
+  await p.$disconnect();
+})();

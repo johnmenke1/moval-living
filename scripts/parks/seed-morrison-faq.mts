@@ -19,7 +19,11 @@ const parkSlug = "morrison-park";
 // Flight Deck Bike Park has its own street address per the City of
 // Moreno Valley's December 2025 ribbon-cutting release (the sub-area
 // sits on the southern side of the main park, near the Fire Station).
-const secondaryAddress = "13460 Morrison Street";
+const secondaryAddress: string | null = null;
+// Flight Deck Bike Park was promoted to its own entity in Aug 2026 (slug
+// flight-deck-bike-park). It uses 13460 Morrison Street as its primary
+// address and lists its own amenities, FAQs, and hours — so this slot is
+// now reserved for a future distinct sub-area (or stays null).
 
 const description = `Morrison Park is one of Moreno Valley's largest multi-use parks — a 35-acre campus that pairs traditional ballfields and picnic shelters with the Flight Deck Bike Park, a world-class pump track destination on the park's southern edge.
 
@@ -88,7 +92,7 @@ async function main() {
   const updated = await prisma.park.update({
     where: { slug: parkSlug },
     data: {
-      blurb: "Moreno Valley's flagship park — 35 acres of ballfields, picnic areas, and the Flight Deck Bike Park, home to Southern California's largest asphalt pump track.",
+      blurb: "Moreno Valley's flagship 35-acre park — ballfields, picnic shelters, and the broader campus home to the Flight Deck Bike Park (its own page at /parks/flight-deck-bike-park).",
       description,
       hoursJson: hours,
       faqsJson: faqs,

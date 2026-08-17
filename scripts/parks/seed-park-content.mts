@@ -34,12 +34,14 @@
  *
  *      --name "New Name"   --type PARK|GOLF|REC_CENTER
  *      --lat 33.9375       --lng -117.2306
+ *      --amenities '["pump_track","bike_path"]'
  *
  *      Applied only when passed; otherwise the existing name / type /
  *      coordinates are left alone. Useful for fixing typos like the
  *      "CA Aqueduct Linear Park" → "Juan Bautista de Anza Multi-Use
  *      Trail" rename, or backfilling missing coordinates on linear
- *      trails.
+ *      trails. If the slug doesn't exist yet, the seeder creates the
+ *      Park row (in which case --name and --type are required).
  *
  * Idempotent — overwrites whatever's there. Use --reset to wipe editorial
  * fields only (description, blurb, hours, faqs, secondary address).
@@ -70,6 +72,9 @@ interface Args {
   type?: "PARK" | "GOLF" | "REC_CENTER";
   lat?: number;
   lng?: number;
+  address?: string;
+  // Amenities — array of amenity slugs (replaces the existing list).
+  amenities?: string[];
 }
 
 function parseArgs(): Args {
@@ -141,6 +146,10 @@ function parseArgs(): Args {
     type: get("--type") as "PARK" | "GOLF" | "REC_CENTER" | undefined,
     lat: get("--lat") ? Number(get("--lat")) : undefined,
     lng: get("--lng") ? Number(get("--lng")) : undefined,
+    address: get("--address"),
+    amenities: get("--amenities")
+      ? (JSON.parse(get("--amenities")!) as string[])
+      : undefined,
   };
 }
 
@@ -152,10 +161,21 @@ async function main() {
 
   const existing = await prisma.park.findUnique({ where: { slug: args.slug } });
   if (!existing) {
-    console.error(`Park "${args.slug}" not found`);
-    process.exit(1);
+    // No row yet — create one. Required fields: slug, name, type, address,
+    // latitude/longitude are optional on the model, but the seeder needs
+    // them to make a useful Park. Refuse otherwise.
+    if (!args.name) {
+      console.error(`Park "${args.slug}" not found. To create it, also pass --name and --type (--lat/--lng optional).`);
+      process.exit(1);
+    }
+    if (!args.type) {
+      console.error(`--type is required when creating a new Park (got none).`);
+      process.exit(1);
+    }
+    console.log(`Park "${args.slug}" does not exist — creating it.`);
   }
 
+  // Build the data payload (reused for create + update).
   const data: Record<string, unknown> = {};
   if (args.reset) {
     data.blurb = null;
@@ -199,33 +219,69 @@ async function main() {
     }
     data.longitude = args.lng;
   }
+  if (args.amenities !== undefined) {
+    data.amenities = args.amenities;
+  }
+  if (args.address !== undefined) {
+    data.address = args.address || null;
+  }
 
-  const updated = await prisma.park.update({
-    where: { slug: args.slug },
-    data,
-    select: {
-      slug: true,
-      name: true,
-      type: true,
-      blurb: true,
-      description: true,
-      faqsJson: true,
-      hoursJson: true,
-      secondaryAddress: true,
-      latitude: true,
-      longitude: true,
-      featured: true,
-    },
-  });
+  const updated = existing
+    ? await prisma.park.update({
+        where: { slug: args.slug },
+        data,
+        select: {
+          slug: true,
+          name: true,
+          type: true,
+          address: true,
+          blurb: true,
+          description: true,
+          faqsJson: true,
+          hoursJson: true,
+          secondaryAddress: true,
+          latitude: true,
+          longitude: true,
+          amenities: true,
+          featured: true,
+        },
+      })
+    : await prisma.park.create({
+        data: {
+          slug: args.slug,
+          name: args.name!,
+          type: args.type!,
+          city: "Moreno Valley",
+          state: "CA",
+          ...data,
+        },
+        select: {
+          slug: true,
+          name: true,
+          type: true,
+          address: true,
+          blurb: true,
+          description: true,
+          faqsJson: true,
+          hoursJson: true,
+          secondaryAddress: true,
+          latitude: true,
+          longitude: true,
+          amenities: true,
+          featured: true,
+        },
+      });
 
   console.log(`✓ ${updated.name} (${updated.slug})`);
   console.log(`  type: ${updated.type}`);
+  console.log(`  address: ${updated.address ?? "(none)"}`);
   console.log(`  blurb: ${updated.blurb?.length ?? 0} chars`);
   console.log(`  description: ${updated.description?.length ?? 0} chars`);
   console.log(`  faqs: ${Array.isArray(updated.faqsJson) ? updated.faqsJson.length : 0}`);
   console.log(`  hours: ${updated.hoursJson ? "set" : "null"}`);
   console.log(`  secondaryAddress: ${updated.secondaryAddress ?? "(none)"}`);
   console.log(`  coords: ${updated.latitude?.toFixed(6) ?? "null"}, ${updated.longitude?.toFixed(6) ?? "null"}`);
+  console.log(`  amenities: ${updated.amenities.length === 0 ? "(none)" : updated.amenities.join(", ")}`);
   console.log(`  featured: ${updated.featured}`);
 
   await prisma.$disconnect();
