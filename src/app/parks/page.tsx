@@ -13,7 +13,7 @@ const BASE_URL = 'https://www.moval.living'
 export const metadata: Metadata = {
   title: 'Parks & Recreation in Moreno Valley',
   description:
-    'Every City of MoVal park on one map — 36 facilities including Cottonwood Golf Center and the Conference & Recreation Center. Filter by amenities, find parks near you, and explore user-submitted photos.',
+    'Every City of MoVal park on one interactive map — parks, trails, Cottonwood Golf Center, and recreation facilities. Filter by amenities, find parks near you, and explore user-submitted photos.',
   alternates: { canonical: `${BASE_URL}/parks` },
   keywords: [
     'Moreno Valley parks',
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     url: `${BASE_URL}/parks`,
     title: 'Parks & Recreation in Moreno Valley — moval.living',
     description:
-      '36 City-maintained parks, Cottonwood Golf Center, and the Conference & Recreation Center — with amenities, photos, and a find-near-me map.',
+      'Every City of MoVal park on one interactive map — parks, trails, Cottonwood Golf Center, and recreation facilities. Filter by amenities, find parks near you, and explore user-submitted photos.',
     images: [
       {
         url: '/og-parks.jpg',
