@@ -254,18 +254,27 @@ export function ParkMap({ parks, highlightedSlug, userLocation, onMarkerClick }:
     markersRef.current = newMarkers
 
     // Clustering — only useful at low zoom where markers overlap.
+    // DISABLED: the @googlemaps/markerclusterer JS lib is installed as
+    // an npm dep but not <script>-loaded on the page, so window.MarkerClusterer
+    // is undefined and the call would throw TypeError. The page works fine
+    // without clustering at this size (40 markers). When we want clustering,
+    // load the lib from a CDN <script> tag in src/app/parks/page.tsx, then
+    // re-enable this block.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const clusterer = new (window as any).MarkerClusterer({
-      map,
-      markers: newMarkers,
-      // Disable clustering at zoom 14+ so individual parks are visible.
+    if (typeof (window as any).MarkerClusterer !== 'undefined') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      renderer: (window as any).MarkerClusterer.withDefaultRenderer({
-        // Keep small icons since we have ~40 markers, not thousands.
-        maxZoom: 14,
-      }),
-    })
-    clustererRef.current = clusterer
+      const clusterer = new (window as any).MarkerClusterer({
+        map,
+        markers: newMarkers,
+        // Disable clustering at zoom 14+ so individual parks are visible.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        renderer: (window as any).MarkerClusterer.withDefaultRenderer({
+          // Keep small icons since we have ~40 markers, not thousands.
+          maxZoom: 14,
+        }),
+      })
+      clustererRef.current = clusterer
+    }
 
     // Fit bounds to current set. Use a small padding so the markers
     // don't sit on the edge of the visible area.
