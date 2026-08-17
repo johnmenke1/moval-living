@@ -150,6 +150,65 @@ const VETERANS_MEMORIAL_FAQ = [
 ]
 
 /**
+ * Juan Bautista de Anza Multi-Use Trail — Moreno Valley, CA.
+ *
+ *   Per the Feb 2024 NPS Partnership Certification (Section 7(h) of the
+ *   National Trails System Act), an **8-mile** segment of the
+ *   Juan Bautista de Anza National Historic Trail was federally
+ *   certified as the City of Moreno Valley's Anza Trail, running from
+ *   **Eucalyptus Avenue south to Lasselle Avenue**. Owned and
+ *   managed by the City of Moreno Valley Parks & Community Services
+ *   Department. The trail is built on a 100-ft-wide **Department of
+ *   Water Resources (DWR)** water pipeline easement that runs
+ *   diagonally through the city — distinct from (and not the same as)
+ *   the California Aqueduct. The city is allowed to install
+ *   non-structural improvements such as trails in the easement in
+ *   cooperation with DWR.
+ *
+ *   Source anchors used for the Q&A below:
+ *     1) NPS Partnership Certification Agreement (Feb 2024):
+ *        http://movalarchive.org/archive/2024/Attachments/Attachment-15325.pdf
+ *     2) NPS — "Hike the Anza Trail through Moreno Valley"
+ *        https://www.nps.gov/thingstodo/hike-the-anza-trail-through-moreno-valley.htm
+ *     3) Smart Cities Dive — 2023 Crown Communities Award writeup:
+ *        https://www.smartcitiesdive.com/news/archive-acc-2023-crown-communities-award-winner-the-juan-bautista-multi-use-trail-project-in-moreno-/754345
+ *     4) City of MoVal — City Trails page:
+ *        http://moval.org/parks-comm-svc/parks-trails.html
+ *     5) The 1,200-mile federal recreation trail program:
+ *        https://www.nps.gov/juba/planyourvisit/things2do.htm
+ */
+const ANZA_TRAIL_FAQ: Array<{ q: string; a: string }> = [
+  {
+    q: 'What is the Juan Bautista Trail in Moreno Valley?',
+    a: "It's the 8-mile Moreno Valley segment of the federally certified Juan Bautista de Anza National Historic Trail — a paved, multi-use path that the City of Moreno Valley built and now manages. Per the National Park Service's Feb 2024 Partnership Certification Agreement (Section 7(h) of the National Trails System Act), the trail is owned by the City and managed by the City's Parks & Community Services Department; it sits inside a 100-ft-wide Department of Water Resources (DWR) pipeline easement that runs diagonally through the city.",
+  },
+  {
+    q: 'How long is the Anza Trail in MoVal, and where does it run?',
+    a: "The City of Moreno Valley's certified Anza Trail segment is **8 miles**, running from **Eucalyptus Avenue south to Lasselle Avenue** and ultimately connecting to the Lake Perris State Recreation Area to the south. The latest 4-mile phase (the ATP-4 segment, from the Moreno Valley Mall area to Iris Avenue) was substantially completed in late August 2023; the prior four miles were already in place from Segment 1 (Lake Perris SRA → El Potrero Park) and Segment 2 (El Potrero Park → Iris Avenue).",
+  },
+  {
+    q: "Is the Anza Trail in Moreno Valley paved, and is it ADA accessible?",
+    a: "Yes on both. Per the NPS certification agreement, the trail surface is **concrete, pavement, and decomposed granite** (with lighting in some sections) and the entire trail segment is **ADA compliant**, with ramps at intersections. It's a flat, paved route suitable for strollers, wheelchairs, and beginner cyclists.",
+  },
+  {
+    q: "Who can use the Anza Trail, and what are the hours?",
+    a: "It's a **multi-use trail** for pedestrians, bicyclists, and equestrians — **no motorized vehicles** (per the 2023 Crown Communities award description and the City's own trail rules). It's open **24 hours a day, 7 days a week**, with **no fee or permit** required. Pets must be leashed and you must pick up after them.",
+  },
+  {
+    q: 'What awards and recognition has the Anza Trail gotten?',
+    a: "Two industry recognitions on its 2023 completion: (1) the **American City & County 2023 Crown Communities Award** for the multi-phase trail project, and (2) the **Southern California Chapter of the American Public Works Association 2023 B.E.S.T. Project of the Year** award. Both cited the city's work converting an otherwise unused 100-foot DWR pipeline easement into a usable trail.",
+  },
+  {
+    q: "What's the broader Anza Trail that this connects to?",
+    a: "Moreno Valley's trail is one continuous segment of the **Juan Bautista de Anza National Historic Trail**, a **1,200-mile** federally designated recreation trail honoring the 1775–1776 expedition led by Spanish commander Juan Bautista de Anza from Sonora, Mexico to San Francisco. It's administered by the National Park Service and spans 14 California counties and 5 Arizona counties; nearly 300 miles have been federally certified as official recreation segments. Moreno Valley's 8-mile segment is in the official recreation trail system (per the NPS Federal Certification, Feb 2024).",
+  },
+  {
+    q: 'How much did the Anza Trail cost, and who paid for it?',
+    a: "Total project cost was about **$14.8M**, with **$12.2M from California's Active Transportation Program (Cycles 2, 3, and 4)** — fully state-funded through the California Transportation Commission, with no federal dollars. Per the Crown Communities award writeup, the city worked with local schools and the school district to also promote it as a Safe Route to School path.",
+  },
+]
+
+/**
  * Map of slug → curated FAQ extras. The seed script reads this map and
  * appends the array to the universal-template FAQs for the matching
  * park. Add new entries here when a park gets a named new feature
@@ -163,4 +222,5 @@ export const CURATED_FAQS: Record<string, Array<{ q: string; a: string }>> = {
   'moreno-valley-senior-center': SENIOR_CENTER_FAQ,
   'towngate-community-center': TOWNGATE_CENTER_FAQ,
   'veterans-memorial': VETERANS_MEMORIAL_FAQ,
+  'juan-bautista-trail': ANZA_TRAIL_FAQ,
 }
