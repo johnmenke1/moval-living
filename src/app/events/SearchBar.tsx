@@ -49,11 +49,31 @@ export default function SearchBar({ initialQuery }: { initialQuery: string }) {
         }`}
       />
       <input
-        type="search"
+        type="text"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') submit(value)
+          if (e.key === 'Enter') {
+            submit(value)
+            return
+          }
+          if (e.key === 'Escape') {
+            // Escape clears the search and resets the listings — matches
+            // user expectation from search bars on every other site.
+            if (value) {
+              setValue('')
+              submit('')
+            }
+            ;(e.currentTarget as HTMLInputElement).blur()
+          }
+        }}
+        // Auto-submit when the user deletes back to empty. Without this,
+        // backspacing the last character leaves the URL at ?q=<old text>
+        // and the listings stay filtered — the #1 source of 'I cleared
+        // the search but nothing happened' confusion.
+        onChange={(e) => {
+          const next = e.target.value
+          setValue(next)
+          if (next === '' && value !== '') submit('')
         }}
         placeholder='Search events, e.g. "Ravens football"'
         aria-label="Search events"
