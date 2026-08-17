@@ -133,13 +133,13 @@ export default function HomesPage() {
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.22em] text-accent">The MoVal home search</p>
             <h1 className="mb-4 text-4xl font-bold leading-[1.05] sm:text-6xl">Find your place in Moreno Valley.</h1>
             <p className="max-w-2xl text-base leading-7 text-white/75 sm:text-lg">
-              Browse active homes with current CRMLS data, then narrow the search by the details that matter to your next chapter.
+              Every active listing in Moreno Valley, refreshed daily — filter by price, beds, or street name until the right one finds you.
             </p>
           </div>
           <div className="mt-9 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">CRMLS</p><p className="text-xs text-white/60">current listing data</p></div>
-            <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">12</p><p className="text-xs text-white/60">homes per page</p></div>
-            <div className="hidden border-l border-white/25 pl-4 sm:block"><p className="text-2xl font-bold">MoVal</p><p className="text-xs text-white/60">your local market</p></div>
+            <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">Live</p><p className="text-xs text-white/60">listings on the market</p></div>
+            <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">Updated</p><p className="text-xs text-white/60">every single day</p></div>
+            <div className="hidden border-l border-white/25 pl-4 sm:block"><p className="text-2xl font-bold">MoVal-wide</p><p className="text-xs text-white/60">every neighborhood</p></div>
           </div>
         </div>
       </section>
