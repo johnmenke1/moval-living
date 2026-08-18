@@ -17,6 +17,11 @@ type FormState = {
   startTime: string    // HH:MM from <input type="time">
   endTime: string      // HH:MM, optional
   venueName: string
+  // Caption pasted by the submitter when auto-extract failed (IG captcha
+  // wall, etc). Sent as `caption` to the API; the server uses it as
+  // `sourcePostCaption` if non-empty, so admin reviewers see the actual
+  // post text and can promote to an Event with a real description.
+  caption: string
   submitterNote: string
   // Honeypot — must remain empty.
   website: string
@@ -29,12 +34,14 @@ const INITIAL: FormState = {
   startTime: '',
   endTime: '',
   venueName: '',
+  caption: '',
   submitterNote: '',
   website: '',
 }
 
 const MAX_TITLE = 200
 const MAX_VENUE = 200
+const MAX_CAPTION = 2000
 const MAX_NOTE = 600
 
 function canSubmit(f: FormState): boolean {
@@ -92,6 +99,7 @@ export default function SubmitEventForm() {
           startsAt,
           endsAt,
           venueName: form.venueName || undefined,
+          caption: form.caption.trim() || undefined,
           submitterNote: form.submitterNote || undefined,
           website: form.website,
         }),
@@ -235,6 +243,20 @@ export default function SubmitEventForm() {
               placeholder="e.g. Moreno Valley Mall, Fox Riverside"
               maxLength={MAX_VENUE}
               className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+          </Field>
+
+          <Field
+            label="Post caption (optional)"
+            hint={`${form.caption.length} / ${MAX_CAPTION} characters — paste from Instagram / Facebook if we couldn't auto-fetch it.`}
+          >
+            <textarea
+              value={form.caption}
+              onChange={(e) => update('caption', e.target.value)}
+              placeholder="If the post caption didn't auto-load, paste it here so moderators can see what the post said."
+              rows={4}
+              maxLength={MAX_CAPTION}
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
             />
           </Field>
 

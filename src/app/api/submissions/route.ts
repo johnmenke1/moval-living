@@ -12,6 +12,12 @@ const submissionSchema = z.object({
   startsAt: z.string().trim().min(1),
   endsAt: z.string().trim().optional(),
   venueName: z.string().trim().max(200).optional(),
+  // Caption the submitter pasted from Instagram/Facebook when our auto-
+  // extract couldn't (IG serves a captcha wall to unauthenticated browsers
+  // for most posts now, so this happens often). If non-empty, used as the
+  // `sourcePostCaption` so admin reviewers see the actual post text and
+  // can promote to an Event with a real description.
+  caption: z.string().trim().max(2000).optional(),
   submitterNote: z.string().trim().max(600).optional(),
   // Honeypot — must be empty. Bots fill every field they see; real users
   // can't see this one (it's hidden in the form with CSS).
@@ -65,7 +71,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Validation failed — ${issues}` }, { status: 400 })
   }
 
-  const { sourceUrl, title, startsAt, endsAt, venueName, submitterNote, website } = parsed.data
+  const { sourceUrl, title, startsAt, endsAt, venueName, caption, submitterNote, website } = parsed.data
 
   // Honeypot — silently drop the submission if the hidden field is filled.
   // Don't tell the bot we caught it; just return a fake success.
@@ -106,6 +112,11 @@ export async function POST(req: NextRequest) {
   const platform = detectPlatform(sourceUrl)
   const capture = await captureSubmissionMetadata(sourceUrl, platform)
 
+  // Use the user-pasted caption as `sourcePostCaption` when auto-extract
+  // failed (IG captcha wall, etc). Auto-extract takes precedence — admin
+  // gets the richer version when it works; user paste is the fallback.
+  const sourcePostCaption = capture.postCaption ?? caption ?? null
+
   // Generate slug MM-DD-YY-a, MM-DD-YY-b, ...
   const slug = await nextSubmissionSlug()
 
@@ -117,7 +128,7 @@ export async function POST(req: NextRequest) {
       sourceAuthorHandle: capture.authorHandle,
       sourceAuthorUrl: capture.authorUrl,
       sourceThumbnailUrl: capture.thumbnailUrl,
-      sourcePostCaption: capture.postCaption,
+      sourcePostCaption,
       sourceCapturedAt: capture.capturedAt,
       title,
       startsAt: startsAtDate,

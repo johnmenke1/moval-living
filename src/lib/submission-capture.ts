@@ -157,6 +157,32 @@ export async function captureSubmissionMetadata(
       }
     }
 
+    // Last-resort fallbacks for posts where IG is serving a captcha / login
+    // wall instead of the real page (which is now common for unauthenticated
+    // requests). Without an IG session we can't get the caption text — the
+    // page JS doesn't include it in the HTML; it's only hydrated into the
+    // DOM after a successful session check. The form should let the user
+    // paste it manually.
+    if (!postCaption) {
+      const nameDescription = await page.evaluate(() =>
+        document.querySelector('meta[name="description"]')?.getAttribute('content') ?? null,
+      )
+      if (nameDescription) postCaption = nameDescription
+    }
+    if (!postCaption) {
+      const challengeSeen = await page.evaluate(() =>
+        document.body.innerText.toLowerCase().includes('captcha') ||
+        document.body.innerText.toLowerCase().includes('challenge') ||
+        document.body.innerText.toLowerCase().includes('verify your account') ||
+        document.body.innerText.toLowerCase().includes('log in'),
+      )
+      if (challengeSeen) {
+        console.warn(
+          `[capture] IG served captcha/challenge for ${sourceUrl}; caption not extractable without session.`,
+        )
+      }
+    }
+
     await context.close()
 
     return {
