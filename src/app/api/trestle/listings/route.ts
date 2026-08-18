@@ -50,7 +50,6 @@ export async function GET(request: NextRequest) {
     const q = (searchParams.get('q') ?? '').trim().replace(/'/g, "''")
 
     const filters = [
-      "contains(City, 'Moreno Valley')",
       "StateOrProvince eq 'CA'",
       "PropertyType eq 'Residential'",
       "StandardStatus eq 'Active'",
@@ -58,11 +57,20 @@ export async function GET(request: NextRequest) {
     for (const [name, field, op] of [
       ['minBeds', 'BedroomsTotal', 'ge'], ['maxBeds', 'BedroomsTotal', 'le'],
       ['minPrice', 'ListPrice', 'ge'], ['maxPrice', 'ListPrice', 'le'],
+      ['minBaths', 'BathroomsTotalInteger', 'ge'], ['maxBaths', 'BathroomsTotalInteger', 'le'],
     ] as const) {
       const value = Number(searchParams.get(name))
       if (Number.isFinite(value) && value > 0) filters.push(`${field} ${op} ${value}`)
     }
-    if (q) filters.push(`(contains(StreetName, '${q}') or ListingId eq '${q}')`)
+    const propertyType = (searchParams.get('propertyType') ?? '').trim()
+    if (propertyType) {
+      const subTypes = propertyType.split(',').map(s => s.trim().replace(/'/g, "''")).filter(Boolean)
+      if (subTypes.length > 0) {
+        const inList = subTypes.map(s => `'${s}'`).join(',')
+        filters.push(`PropertySubType in (${inList})`)
+      }
+    }
+    if (q) filters.push(`(contains(StreetName, '${q}') or contains(City, '${q}') or contains(PostalCode, '${q}') or ListingId eq '${q}')`)
 
     const params = new URLSearchParams({
       $filter: filters.join(' and '),

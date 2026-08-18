@@ -1,14 +1,20 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getAccessToken, getPropertyEndpoint } from '@/lib/trestle-auth'
 
 /**
- * Market statistics for Moreno Valley — derived from Trestle / CRMLS data.
- * Mirrors the proven working pattern from menke-real-estate.
+ * Market statistics for the search scope — derived from Trestle / CRMLS data.
+ * Defaults to Moreno Valley when no scope is provided. Mirrors the proven
+ * working pattern from menke-real-estate.
+ *
+ * Query params:
+ *   q — search term (city, zip, or street). Defaults to Moreno Valley.
+ *       For stats, only city/zip are honored (street filtering doesn't make
+ *       sense for a market-stat scope).
  */
 
 export const revalidate = 0
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   let token: string
   try {
     token = await getAccessToken()
@@ -35,8 +41,13 @@ export async function GET() {
 
   const propertyUrl = getPropertyEndpoint()
 
+  const q = (request.nextUrl.searchParams.get('q') ?? '').trim().replace(/'/g, "''")
+  const scopeFilter = q
+    ? `(contains(City, '${q}') or contains(PostalCode, '${q}'))`
+    : `contains(City, 'Moreno Valley')`
+
   async function fetchListings(status: string, extraFilter = '') {
-    const filter = `contains(City, 'Moreno Valley') and StateOrProvince eq 'CA' and StandardStatus eq '${status}' and PropertyType eq 'Residential'${extraFilter}`
+    const filter = `${scopeFilter} and StateOrProvince eq 'CA' and StandardStatus eq '${status}' and PropertyType eq 'Residential'${extraFilter}`
     const url = `${propertyUrl}?$filter=${encodeURIComponent(filter)}&$select=${select}&$top=500&$count=true`
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
@@ -90,6 +101,7 @@ export async function GET() {
 
   const stats = {
     generatedAt: new Date().toISOString(),
+    scope: q || 'Moreno Valley',
     active: {
       count: active.length,
       newLast7Days: newLast7.length,
