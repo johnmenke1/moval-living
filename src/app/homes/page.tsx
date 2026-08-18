@@ -158,7 +158,7 @@ export default function HomesPage() {
           />
         </picture>
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10" />
-        <div className="relative container-max py-16 sm:py-24 lg:py-28">
+        <div className="relative container-max py-20 sm:py-28 lg:py-32">
           <div className="max-w-2xl">
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.22em] text-accent">The MoVal home search</p>
             <h1 className="mb-4 text-4xl font-bold leading-[1.05] sm:text-5xl lg:text-6xl">Find your place in Moreno Valley.</h1>
