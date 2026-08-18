@@ -102,8 +102,17 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Approve failed')
+      // Capture the new event id from the API response so the "Edit event"
+      // link renders immediately on the just-approved submission without a
+      // page refresh. Server pre-approval had promotedToEventId=null; the
+      // DB has it set, but client state is stale until we write it back.
+      const newEventId = data.event?.id ?? null
       setSubmissions((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, status: 'APPROVED' as const } : s))
+        prev.map((s) =>
+          s.id === id
+            ? { ...s, status: 'APPROVED' as const, promotedToEventId: newEventId ?? s.promotedToEventId }
+            : s
+        )
       )
       setExpanded(null)
       setSuccess(`Approved — card created as event "${data.event?.title ?? ''}"`)
@@ -148,8 +157,15 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Could not mark as duplicate')
+      // Carry the linked event id into local state so the "Edit event" link
+      // renders immediately on the duplicate row, matching the approve flow.
+      const linkedEventId = data.event?.id ?? null
       setSubmissions((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, status: 'DUPLICATE' as const } : s))
+        prev.map((s) =>
+          s.id === id
+            ? { ...s, status: 'DUPLICATE' as const, promotedToEventId: linkedEventId ?? s.promotedToEventId }
+            : s
+        )
       )
       setDuplicateFor(null)
       setDuplicateEventId('')
