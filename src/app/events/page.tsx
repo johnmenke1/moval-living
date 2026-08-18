@@ -392,8 +392,24 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
 // When an event is linked to a Business, the card clicks through to the
 // business profile instead of the external source URL. Returning a plain
-// href string keeps the Link wrapper in each card clean.
+// Returns the href for an event card's outermost <Link>/<a>. Priority:
+//   1. shareUrl (admin-set override — full URL or path slug)
+//   2. sourceUrl (provenance URL where event info was scraped)
+//   3. linked business page (internal)
+//   4. ticketUrl (legacy — kept for events that pre-date the shareUrl field)
+//   5. '#' fallback (renders a dead link, never the case for active events)
+//
+// The function preserves the legacy `external` boolean so callers don't
+// have to reason about it. shareUrl / sourceUrl / ticketUrl are external
+// (admin-set URLs the user clicks open in a new tab); business links are
+// internal.
 function cardHref(event: any): { href: string; external: boolean } {
+  if (event.shareUrl) {
+    return { href: event.shareUrl, external: true }
+  }
+  if (event.ticketUrl) {
+    return { href: event.ticketUrl, external: true }
+  }
   if (event.business?.slug) {
     return { href: `/business/${event.business.slug}`, external: false }
   }
@@ -402,20 +418,22 @@ function cardHref(event: any): { href: string; external: boolean } {
 
 // Full-bleed hero section for the tier=HERO event. Image fills the
 // background with a dark gradient overlay so text stays legible on any
-// photo. CTA button is wired to ticketUrl when present; free events get
-// an RSVP-style copy change. Linked-business events keep the Hosted by
-// badge.
+// photo. CTA button is wired to shareUrl when present (admin override);
+// free events get an RSVP-style copy change. Linked-business events keep
+// the Hosted by badge.
 function HeroSection({ event }: { event: any }) {
   const dateLabel = formatEventDate(event.startsAt)
   const venue = event.venueName ?? 'Venue TBD'
   const target = cardHref(event)
 
-  // Primary CTA: prefer event.shareUrl (admin-set, full URL or path slug)
-  // over event.sourceUrl (the provenance URL where this event info was
-  // originally scraped from). Falls back to event.ticketUrl (legacy), then
-  // to the event detail page link.
-  const primaryHref = event.shareUrl || event.sourceUrl || event.ticketUrl || target.href
-  const primaryExternal = !!(event.shareUrl || event.sourceUrl || event.ticketUrl) ? true : target.external
+  // The HeroSection uses the same priority as cardHref now (shareUrl first),
+  // so primaryHref === target.href when no ticketUrl is set. We keep the
+  // explicit `ticketUrl` branch for events that pre-date shareUrl and
+  // happen to have a ticket CTA — those still surface the secondary
+  // "Visit host" link via the business relationship.
+  const hasTicketCta = !!event.ticketUrl && !event.shareUrl
+  const primaryHref = hasTicketCta ? event.ticketUrl : target.href
+  const primaryExternal = hasTicketCta || target.external
   const primaryLabel = primaryHref
     ? event.isFree ? 'RSVP — Free' : 'Event details'
     : 'Event details'
