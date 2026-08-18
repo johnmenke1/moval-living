@@ -147,7 +147,7 @@ export default function HomesPage() {
   return (
     <div className="min-h-screen bg-[#eef3f2]">
       {/* Hero — full-bleed image with text overlay */}
-      <section className="relative overflow-hidden text-white">
+      <section className="relative flex min-h-[28rem] items-center overflow-hidden text-white sm:min-h-[36rem] lg:min-h-[44rem]">
         <picture>
           <source srcSet="/homes/hero.webp" type="image/webp" />
           <img
@@ -158,7 +158,7 @@ export default function HomesPage() {
           />
         </picture>
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10" />
-        <div className="relative container-max py-20 sm:py-28 lg:py-32">
+        <div className="relative container-max w-full py-24 sm:py-32 lg:py-40">
           <div className="max-w-2xl">
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.22em] text-accent">The MoVal home search</p>
             <h1 className="mb-4 text-4xl font-bold leading-[1.05] sm:text-5xl lg:text-6xl">Find your place in Moreno Valley.</h1>
@@ -171,7 +171,7 @@ export default function HomesPage() {
 
       {/* Stats strip — brand-green band below the hero image */}
       <section className="bg-secondary text-white">
-        <div className="container-max py-8 sm:py-10">
+        <div className="container-max py-10 sm:py-12">
           <div className="grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">{marketStats ? marketStats.active.count.toLocaleString() : '\u2014'}</p><p className="text-xs text-white/60">active homes for sale</p></div>
             <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">{marketStats ? marketStats.active.newLast7Days.toLocaleString() : '\u2014'}</p><p className="text-xs text-white/60">new in last 7 days</p></div>
