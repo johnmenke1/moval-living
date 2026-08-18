@@ -144,7 +144,7 @@ export default async function DashboardPage() {
         select: {
           id: true,
           slug: true,
-          ticketsSlug: true,
+          shareUrl: true,
           title: true,
           startsAt: true,
           venueName: true,

@@ -78,21 +78,15 @@ const schema = z
         'ZIP must be 5 or 9 digits'
       ),
     heroImageUrl: z.string().trim().max(2000).nullable(),
-    // Optional shareable tickets slug for /tickets/[slug]. Admin-set; when
-    // present, the public events listing prefers /tickets/<ticketsSlug> as
-    // the primary click target over /events/<slug>. Uniqueness across all
-    // events is enforced server-side; the API also returns a 400 if the
-    // chosen slug is already in use by another event.
-    ticketsSlug: z
-      .string()
-      .trim()
-      .min(3, 'Tickets slug must be at least 3 characters')
-      .max(60, 'Tickets slug must be 60 characters or fewer')
-      .regex(
-        /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/,
-        'Lowercase letters, digits, and hyphens only. Cannot start or end with a hyphen.'
-      )
-      .nullable(),
+    // Optional Share URL — when set, the public events listing uses this as
+    // the primary click target instead of event.sourceUrl (the provenance URL
+    // from where the event info was originally scraped). Accepts either a full
+    // URL (https://moval.gov/parks-comm-svc/event-day-of-service.html) or a
+    // path slug (community-day-of-service) — admin's choice. Empty string
+    // treated as null. No format regex because valid share URLs span full
+    // https:// targets, relative paths, and plain slugs. The public events
+    // page uses this as-is.
+    shareUrl: z.string().trim().max(2000).nullable(),
     // Optional link to a Business. null = unlink. Empty string treated as null.
     businessId: z.string().trim().min(1).max(50).nullable(),
   })
@@ -157,26 +151,10 @@ export async function PATCH(
       }
     }
 
-    // Verify the ticketsSlug is unique across all OTHER events. We exclude
-    // the current event so an unchanged slug doesn't trip the check. We do
-    // this before update so a collision becomes a clean 400 instead of a
-    // Prisma unique-constraint 500. (Empty string is treated as null.)
-    const normalizedSlug = data.ticketsSlug?.trim() ? data.ticketsSlug.trim() : null
-    if (normalizedSlug) {
-      const collision = await prisma.event.findFirst({
-        where: { ticketsSlug: normalizedSlug, NOT: { id } },
-        select: { id: true, title: true },
-      })
-      if (collision) {
-        return NextResponse.json(
-          {
-            error: 'Tickets slug already in use',
-            fields: { ticketsSlug: [`"${normalizedSlug}" is already used by event "${collision.title}"`] },
-          },
-          { status: 400 }
-        )
-      }
-    }
+    // shareUrl has no uniqueness constraint — multiple events can legitimately
+    // link to the same upstream URL (e.g. all events scraped from one source
+    // post). Normalize empty string → null before write.
+    const normalizedShareUrl = data.shareUrl?.trim() ? data.shareUrl.trim() : null
 
     const updated = await prisma.event.update({
       where: { id },
@@ -197,7 +175,7 @@ export async function PATCH(
         state: data.state,
         zip: data.zip,
         heroImageUrl: data.heroImageUrl,
-        ticketsSlug: normalizedSlug,
+        shareUrl: normalizedShareUrl,
         businessId: data.businessId || null,
         // If businessId is set, verify the business exists + is APPROVED.
         // If invalid, the FK constraint will reject — but we want a clean

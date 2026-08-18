@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -51,9 +51,10 @@ export const EVENT_TIERS = ['STANDARD', 'HONORABLE_MENTION', 'HERO'] as const
 export interface Event {
   id: string
   slug: string
-  // Shareable tickets URL slug — when set, /tickets/<ticketsSlug> renders a
-  // public event detail page. Null = no shareable URL.
-  ticketsSlug: string | null
+  // Share URL — when set, the public event card links here instead of
+  // event.sourceUrl (the original provenance URL). Accepts full URLs or
+  // path slugs. Null = no override.
+  shareUrl: string | null
   title: string
   description: string | null
   startsAt: string
@@ -116,7 +117,7 @@ export default function EditEventClient({ event }: { event: Event }) {
     esEnEspanol: event.esEnEspanol,
     ticketUrl: event.ticketUrl ?? '',
     tier: event.tier,
-    ticketsSlug: event.ticketsSlug ?? '',
+    shareUrl: event.shareUrl ?? '',
     venueName: event.venueName ?? '',
     venueTag: event.venueTag,
     category: event.category ?? '',
@@ -127,16 +128,6 @@ export default function EditEventClient({ event }: { event: Event }) {
   })
 
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(event.heroImageUrl)
-
-  // Tickets-slug live uniqueness check. status: 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
-  // The input also surfaces a help preview URL when a valid slug is typed.
-  const [slugCheck, setSlugCheck] = useState<
-    | { status: 'idle' }
-    | { status: 'checking' }
-    | { status: 'available' }
-    | { status: 'taken'; byTitle: string }
-    | { status: 'invalid'; reason: string }
-  >({ status: 'idle' })
 
   // Linked business — search-as-you-type picker
   const [selectedBusiness, setSelectedBusiness] = useState<LinkableBusiness | null>(
@@ -215,53 +206,6 @@ export default function EditEventClient({ event }: { event: Event }) {
     }
   }
 
-  // Live uniqueness check for ticketsSlug. Debounced 400ms; skipped when
-  // empty, when unchanged from the initial value, or when the format is
-  // invalid (server also validates on save, but a fast client check
-  // surfaces typos before the user clicks Save).
-  useEffect(() => {
-    const slug = form.ticketsSlug.trim()
-    if (!slug) {
-      setSlugCheck({ status: 'idle' })
-      return
-    }
-    if (slug === (event.ticketsSlug ?? '')) {
-      // Unchanged — no need to check; this is always available to the current event.
-      setSlugCheck({ status: 'available' })
-      return
-    }
-    // Format check mirrors server Zod regex.
-    const formatOk = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(slug)
-    if (!formatOk) {
-      setSlugCheck({
-        status: 'invalid',
-        reason: 'Lowercase letters, digits, and hyphens only. Cannot start or end with a hyphen.',
-      })
-      return
-    }
-    setSlugCheck({ status: 'checking' })
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `/api/admin/events/check-tickets-slug?slug=${encodeURIComponent(slug)}&excludeId=${event.id}`
-        )
-        const data = await res.json()
-        if (!res.ok) throw new Error(data?.error || 'Check failed')
-        if (data.available) {
-          setSlugCheck({ status: 'available' })
-        } else {
-          setSlugCheck({ status: 'taken', byTitle: data.usedByTitle ?? 'another event' })
-        }
-      } catch (err) {
-        setSlugCheck({
-          status: 'invalid',
-          reason: err instanceof Error ? err.message : 'Could not check slug',
-        })
-      }
-    }, 400)
-    return () => clearTimeout(timer)
-  }, [form.ticketsSlug, event.id, event.ticketsSlug])
-
   const handlePickBusiness = (b: LinkableBusiness) => {
     setSelectedBusiness(b)
     setBizQuery('')
@@ -293,7 +237,7 @@ export default function EditEventClient({ event }: { event: Event }) {
       esEnEspanol: form.esEnEspanol,
       ticketUrl: form.ticketUrl.trim() || null,
       tier: form.tier,
-      ticketsSlug: form.ticketsSlug.trim() || null,
+      shareUrl: form.shareUrl.trim() || null,
       venueName: form.venueName.trim() || null,
       venueTag: form.venueTag,
       category: form.category || null,
@@ -362,63 +306,33 @@ export default function EditEventClient({ event }: { event: Event }) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* SLUG — /tickets/[slug] shareable path */}
+          {/* SHARE URL — where the public event card links to */}
           <section className="bg-white rounded-2xl border border-slate-100 p-6">
-            <h2 className="text-lg font-bold text-text mb-1">Tickets Slug</h2>
+            <h2 className="text-lg font-bold text-text mb-1">Share URL</h2>
             <p className="text-xs text-text-secondary mb-4">
-              The path fragment for this event's shareable URL on moval.living — <strong>not</strong> the full ticket-purchase URL.
-              Use lowercase letters, digits, and hyphens only (e.g.{' '}
-              <code className="px-1 py-0.5 rounded bg-slate-100 text-[11px] font-mono">teen-silent-summer-bash</code>
-              {' '}gives you{' '}
-              <code className="px-1 py-0.5 rounded bg-slate-100 text-[11px] font-mono">moval.living/tickets/teen-silent-summer-bash</code>).
-              For the actual Eventbrite / vendor URL, use the <strong>Ticket URL</strong> field above. Leave blank to keep the original source URL as the primary link.
+              The URL visitors land on when they click the public event card.
+              Use this to point at a venue's official page, registration site,
+              or any canonical URL — accepting full URLs or path slugs. Examples:{' '}
+              <code className="px-1 py-0.5 rounded bg-slate-100 text-[11px] font-mono">https://moval.gov/parks-comm-svc/event-day-of-service.html</code>{' '}
+              or just{' '}
+              <code className="px-1 py-0.5 rounded bg-slate-100 text-[11px] font-mono">community-day-of-service</code>.
+              Leave blank to fall back to the original source URL (kept separately as event provenance).
             </p>
             <div className="space-y-2">
               <div className="flex items-stretch gap-2">
-                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-slate-200 bg-slate-50 text-text-secondary text-sm font-mono">
-                  moval.living/tickets/
+                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-slate-200 bg-slate-50 text-text-secondary text-sm">
+                  🔗
                 </span>
                 <input
                   type="text"
-                  value={form.ticketsSlug}
-                  onChange={(e) => update('ticketsSlug', e.target.value.toLowerCase())}
-                  placeholder="teen-silent-summer-bash"
-                  className={`flex-1 px-3 py-2 rounded-r-lg border border-slate-200 text-sm font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary ${errClass('ticketsSlug')}`}
+                  value={form.shareUrl}
+                  onChange={(e) => update('shareUrl', e.target.value)}
+                  placeholder="https://moval.gov/parks-comm-svc/event-day-of-service.html"
+                  className={`flex-1 px-3 py-2 rounded-r-lg border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary ${errClass('shareUrl')}`}
                 />
               </div>
-              {(() => {
-                const s = slugCheck
-                if (s.status === 'idle' && !form.ticketsSlug.trim()) {
-                  return <p className="text-xs text-text-secondary">Leave blank to keep the original source URL as the primary link.</p>
-                }
-                if (s.status === 'checking') {
-                  return <p className="text-xs text-text-secondary">Checking availability…</p>
-                }
-                if (s.status === 'invalid') {
-                  return <p className="text-xs text-red-600">{s.reason}</p>
-                }
-                if (s.status === 'taken') {
-                  return <p className="text-xs text-red-600">Taken — already used by &ldquo;{s.byTitle}&rdquo;.</p>
-                }
-                if (s.status === 'available' && form.ticketsSlug.trim()) {
-                  return (
-                    <p className="text-xs text-green-700">
-                      ✓ Available — public URL will be{' '}
-                      <a
-                        href={`https://moval.living/tickets/${form.ticketsSlug.trim()}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-mono underline hover:no-underline"
-                      >
-                        /tickets/{form.ticketsSlug.trim()}
-                      </a>
-                    </p>
-                  )
-                }
-                return null
-              })()}
-              {fieldError('ticketsSlug') && (
-                <p className="text-xs text-red-600 mt-1">{fieldError('ticketsSlug')}</p>
+              {fieldError('shareUrl') && (
+                <p className="text-xs text-red-600 mt-1">{fieldError('shareUrl')}</p>
               )}
             </div>
           </section>

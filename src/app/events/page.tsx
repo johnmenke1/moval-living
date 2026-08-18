@@ -407,18 +407,16 @@ function HeroSection({ event }: { event: any }) {
   const venue = event.venueName ?? 'Venue TBD'
   const target = cardHref(event)
 
-  // Primary CTA: ticket link (external, opens new tab).
-  // Priority: /tickets/<ticketsSlug> (vanity 302) → ticketUrl → event detail page.
-  // The vanity URL wins when set so admins can remap a broken ticketUrl
-  // by editing ticketsSlug without breaking existing shares.
-  const primaryHref = event.ticketsSlug
-    ? `/tickets/${event.ticketsSlug}`
-    : event.ticketUrl ?? target.href
-  const primaryExternal = !!(event.ticketUrl || event.ticketsSlug) ? true : target.external
-  const primaryLabel = event.ticketsSlug || event.ticketUrl
-    ? event.isFree ? 'RSVP — Free' : 'Get tickets'
+  // Primary CTA: prefer event.shareUrl (admin-set, full URL or path slug)
+  // over event.sourceUrl (the provenance URL where this event info was
+  // originally scraped from). Falls back to event.ticketUrl (legacy), then
+  // to the event detail page link.
+  const primaryHref = event.shareUrl || event.sourceUrl || event.ticketUrl || target.href
+  const primaryExternal = !!(event.shareUrl || event.sourceUrl || event.ticketUrl) ? true : target.external
+  const primaryLabel = primaryHref
+    ? event.isFree ? 'RSVP — Free' : 'Event details'
     : 'Event details'
-  const PrimaryIcon = (event.ticketsSlug || event.ticketUrl) ? (event.isFree ? CheckCircle : Ticket) : ArrowRight
+  const PrimaryIcon = primaryHref ? (event.isFree ? CheckCircle : ArrowRight) : ArrowRight
 
   return (
     <section className="relative rounded-2xl overflow-hidden bg-slate-900 text-white shadow-lg">

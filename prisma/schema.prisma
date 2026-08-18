@@ -322,12 +322,13 @@ model Submission {
 model Event {
   id                      String    @id @default(cuid())
   slug                    String    @unique
-  // Optional human-friendly shareable slug for the /tickets/[slug] route.
-  // When set, the public events listing prefers /tickets/<ticketsSlug>
-  // over /events/<slug> as the primary click target. Null = no shareable
-  // tickets page; falls back to /events/<slug> (or /business/<businessSlug>
-  // when linked to a business). Slugs must be unique across all events.
-  ticketsSlug             String?   @unique
+  // Optional "Share URL" — when set, the public events listing uses this as
+  // the primary click target instead of the original sourceUrl. Accepts
+  // either a full URL (https://moval.gov/parks-comm-svc/event-day-of-
+  // service.html) or a path slug (community-day-of-service) — admin's
+  // choice. Null = no override; card falls back to event.sourceUrl.
+  // Not unique: multiple events can share the same upstream URL.
+  shareUrl                String?
   title                   String
   description             String?   @db.Text
   startsAt                DateTime
