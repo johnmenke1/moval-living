@@ -85,8 +85,12 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Parse dates. The form sends timezone-naive ISO strings via
-  // datetime-local inputs; we treat them as UTC for storage.
+  // Parse dates. The form sends a full ISO 8601 string with a Z suffix
+  // (e.g. "2026-08-30T18:00:00.000Z") — generated client-side by passing the
+  // <input type="datetime-local"> value through `new Date(...)` then
+  // `.toISOString()` in the browser, so it represents the user's intended
+  // wall-clock time in the browser's local TZ. We store it verbatim as a
+  // UTC instant.
   const startsAtDate = new Date(startsAt)
   if (isNaN(startsAtDate.getTime())) {
     return NextResponse.json({ error: 'Invalid event date' }, { status: 400 })

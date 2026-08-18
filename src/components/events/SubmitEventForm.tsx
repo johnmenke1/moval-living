@@ -62,14 +62,26 @@ export default function SubmitEventForm() {
     setSubmitting(true)
     setError('')
     try {
-      // Combine date + time into a single ISO-ish string the server expects.
-      // datetime-local uses local timezone, but we treat it as UTC for
-      // storage — see API route comment. If the user picks 6:00 PM we get
-      // "2026-08-30T18:00" which new Date() parses as local; we send it as-is
-      // and the server normalizes. (Admin can correct any timezone drift on
-      // review.)
-      const startsAt = `${form.date}T${form.startTime || '00:00'}`
-      const endsAt = form.endTime ? `${form.date}T${form.endTime}` : undefined
+      // Combine date + time into a proper UTC ISO string. <input
+      // type="datetime-local"> gives a wall-clock string like "2026-08-30T18:00"
+      // with NO timezone. The user picked 6:00 PM in *their* local timezone
+      // (always Pacific in practice — that's where the team is). The naive
+      // approach of sending that string and letting the server `new Date()`
+      // it is dangerous: server TZ may differ (dev = Pacific, prod = UTC on
+      // Vercel), and the parse silently reinterprets the value.
+      //
+      // Instead, parse the value as a real Date in the browser (which gives
+      // the correct absolute instant — Date constructor treats naive strings
+      // as local), then send the .toISOString() string. The server stores
+      // it verbatim as a UTC instant; rendering it back as Pacific on the
+      // public site yields the same wall-clock time the user picked.
+      const startsAtDate = form.startTime
+        ? new Date(`${form.date}T${form.startTime}`)
+        : new Date(`${form.date}T00:00`)
+      const startsAt = startsAtDate.toISOString()
+      const endsAt = form.endTime
+        ? new Date(`${form.date}T${form.endTime}`).toISOString()
+        : undefined
 
       const res = await fetch('/api/submissions', {
         method: 'POST',
