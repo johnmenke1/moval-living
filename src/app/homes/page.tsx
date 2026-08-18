@@ -146,18 +146,33 @@ export default function HomesPage() {
 
   return (
     <div className="min-h-screen bg-[#eef3f2]">
-      {/* Editorial real-estate masthead */}
-      <section className="relative overflow-hidden bg-secondary text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(201,120,109,0.32),transparent_34%),radial-gradient(circle_at_10%_100%,rgba(0,122,127,0.55),transparent_42%)]" />
-        <div className="relative container-max py-12 sm:py-16">
-          <div className="max-w-3xl">
+      {/* Hero — full-bleed image with text overlay */}
+      <section className="relative overflow-hidden text-white">
+        <picture>
+          <source srcSet="/homes/hero.webp" type="image/webp" />
+          <img
+            src="/homes/hero.jpg"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover object-center"
+          />
+        </picture>
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10" />
+        <div className="relative container-max py-16 sm:py-24 lg:py-28">
+          <div className="max-w-2xl">
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.22em] text-accent">The MoVal home search</p>
-            <h1 className="mb-4 text-4xl font-bold leading-[1.05] sm:text-6xl">Find your place in Moreno Valley.</h1>
-            <p className="max-w-2xl text-base leading-7 text-white/75 sm:text-lg">
+            <h1 className="mb-4 text-4xl font-bold leading-[1.05] sm:text-5xl lg:text-6xl">Find your place in Moreno Valley.</h1>
+            <p className="max-w-xl text-base leading-7 text-white/85 sm:text-lg">
               Every active listing in Moreno Valley, refreshed daily — filter by price, beds, or street name until the right one finds you.
             </p>
           </div>
-          <div className="mt-9 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-3">
+        </div>
+      </section>
+
+      {/* Stats strip — brand-green band below the hero image */}
+      <section className="bg-secondary text-white">
+        <div className="container-max py-8 sm:py-10">
+          <div className="grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">{marketStats ? marketStats.active.count.toLocaleString() : '\u2014'}</p><p className="text-xs text-white/60">active homes for sale</p></div>
             <div className="border-l border-white/25 pl-4"><p className="text-2xl font-bold">{marketStats ? marketStats.active.newLast7Days.toLocaleString() : '\u2014'}</p><p className="text-xs text-white/60">new in last 7 days</p></div>
             <div className="hidden border-l border-white/25 pl-4 sm:block"><p className="text-2xl font-bold">{marketStats ? `$${(marketStats.active.medianListPrice / 1000).toFixed(0)}K` : '\u2014'}</p><p className="text-xs text-white/60">median list price</p></div>
