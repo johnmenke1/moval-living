@@ -49,7 +49,20 @@ export async function GET(request: NextRequest) {
     const sort = ALLOWED_SORTS[searchParams.get('sort') ?? ''] ?? 'ListingContractDate desc'
     const q = (searchParams.get('q') ?? '').trim().replace(/'/g, "''")
 
+    // Default scope is Moreno Valley when no q is provided. The page can
+    // override by passing a city/zip/street value (q expands to match all
+    // three fields).
+    const scopeFilter = q
+      ? `(${[
+          `contains(StreetName, '${q}')`,
+          `contains(City, '${q}')`,
+          `contains(PostalCode, '${q}')`,
+          `ListingId eq '${q}'`,
+        ].join(' or ')})`
+      : `contains(City, 'Moreno Valley')`
+
     const filters = [
+      scopeFilter,
       "StateOrProvince eq 'CA'",
       "PropertyType eq 'Residential'",
       "StandardStatus eq 'Active'",
@@ -70,7 +83,7 @@ export async function GET(request: NextRequest) {
         filters.push(`PropertySubType in (${inList})`)
       }
     }
-    if (q) filters.push(`(contains(StreetName, '${q}') or contains(City, '${q}') or contains(PostalCode, '${q}') or ListingId eq '${q}')`)
+    // q is already applied via scopeFilter above; no extra filter needed.
 
     const params = new URLSearchParams({
       $filter: filters.join(' and '),
