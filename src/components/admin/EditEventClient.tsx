@@ -362,12 +362,16 @@ export default function EditEventClient({ event }: { event: Event }) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* SLUG — /tickets/[slug] shareable URL */}
+          {/* SLUG — /tickets/[slug] shareable path */}
           <section className="bg-white rounded-2xl border border-slate-100 p-6">
-            <h2 className="text-lg font-bold text-text mb-1">Shareable Tickets URL</h2>
+            <h2 className="text-lg font-bold text-text mb-1">Tickets Slug</h2>
             <p className="text-xs text-text-secondary mb-4">
-              Set a clean human-readable URL fragment like <code className="px-1 py-0.5 rounded bg-slate-100 text-[11px] font-mono">teen-silent-summer-bash</code> for{' '}
-              <code className="px-1 py-0.5 rounded bg-slate-100 text-[11px] font-mono">moval.living/tickets/teen-silent-summer-bash</code>. Leave blank to keep the original source URL as the primary link.
+              The path fragment for this event's shareable URL on moval.living — <strong>not</strong> the full ticket-purchase URL.
+              Use lowercase letters, digits, and hyphens only (e.g.{' '}
+              <code className="px-1 py-0.5 rounded bg-slate-100 text-[11px] font-mono">teen-silent-summer-bash</code>
+              {' '}gives you{' '}
+              <code className="px-1 py-0.5 rounded bg-slate-100 text-[11px] font-mono">moval.living/tickets/teen-silent-summer-bash</code>).
+              For the actual Eventbrite / vendor URL, use the <strong>Ticket URL</strong> field above. Leave blank to keep the original source URL as the primary link.
             </p>
             <div className="space-y-2">
               <div className="flex items-stretch gap-2">
