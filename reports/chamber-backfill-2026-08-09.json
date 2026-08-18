@@ -1,0 +1,2152 @@
+{
+  "scannedAt": "2026-08-09T13:39:08.435Z",
+  "apply": true,
+  "updates": [
+    {
+      "id": "cmsll7ore0000dou96vmh0rbo",
+      "slug": "321-insurance-services-inc-ya71K5",
+      "name": "321 Insurance Services, Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22455 Alessandro Bd., Suite 123",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9515308900"
+    },
+    {
+      "id": "cmsll7oso0001dou9mxx7826v",
+      "slug": "a-green-alternative-pU_YE4",
+      "name": "A Green Alternative",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24200 Sunnymead Blvd",
+      "newCity": "MORENO VALLEY",
+      "newZip": "92553",
+      "newPhone": "9515189333"
+    },
+    {
+      "id": "cmsll7otk0002dou9je1tqlmp",
+      "slug": "abm-alpha-llc-dba-fastsigns-tpvpK0",
+      "name": "ABM Alpha LLC dba Fastsigns",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "2309 Sunnymead Bd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512431494"
+    },
+    {
+      "id": "cmsll7ouf0003dou9r182wbz0",
+      "slug": "adecco-staffing-recruitment-usa-X0WWNN",
+      "name": "ADECCO STAFFING & RECRUITMENT, USA",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12125 Day St",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9099425970"
+    },
+    {
+      "id": "cmsll7ov90004dou95ndq6816",
+      "slug": "adriana-s-insurance-services-B5_r8b",
+      "name": "Adriana's Insurance Services",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92533",
+      "newAddress": "23031 Sunnymead Boulevard",
+      "newCity": "Moreno Valley",
+      "newZip": "92533",
+      "newPhone": "19515744416"
+    },
+    {
+      "id": "cmsll7ow40005dou9cdzwg3ea",
+      "slug": "airwave-communication-enterprise-px4tbj",
+      "name": "Airwave Communication Enterprise",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "7213 Old 215 Frontage Rd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516565699"
+    },
+    {
+      "id": "cmsll7owy0006dou9bymjq3q1",
+      "slug": "aldi-inc-nItyd-",
+      "name": "ALDI Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "12661 ALDI Place",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9515305750"
+    },
+    {
+      "id": "cmsll7oxr0007dou9ejtg01ye",
+      "slug": "all-magic-paint-and-body-zXMjq7",
+      "name": "All Magic Paint and Body",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "14461 Commerce Center",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "8006162442"
+    },
+    {
+      "id": "cmsll7oym0008dou98egwlpqm",
+      "slug": "all-solutions-insurance-agency-V8HZ-Z",
+      "name": "All Solutions Insurance Agency",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22364 Alessandro Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512472003"
+    },
+    {
+      "id": "cmsll7ozg0009dou9ho4zddiw",
+      "slug": "amazon-com-services-llc-q7j-HC",
+      "name": "Amazon.com Services LLC",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "17101 Heacock",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9194546420"
+    },
+    {
+      "id": "cmsll7p0a000adou90i9xvtsi",
+      "slug": "american-lady-vets-services-inc-MQCxQt",
+      "name": "American Lady Vets Services Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23846 Sunnymead Blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512084484"
+    },
+    {
+      "id": "cmsll7p17000bdou9b5rj33zt",
+      "slug": "american-legion-post-574-yT7WQI",
+      "name": "American Legion Post 574",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "13876 Old 215 Frontage Rd",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9095768644"
+    },
+    {
+      "id": "cmsll7p36000cdou93cdtyu1j",
+      "slug": "angie-s-gorgeous-hair-creations-mItKAG",
+      "name": "Angie’s Gorgeous Hair Creations",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "Sola Salon",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "3107097331"
+    },
+    {
+      "id": "cmsll7p45000ddou9j0k2s7tm",
+      "slug": "arrive-at-rancho-belago-nUoFwh",
+      "name": "Arrive at Rancho Belago",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "16340 Lasselle St.",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "7606685019"
+    },
+    {
+      "id": "cmsll7p50000edou9jog6v3mj",
+      "slug": "audio-services-live-smCdkP",
+      "name": "Audio Services LIVE!",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "11776 Franklin St.",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9518180341"
+    },
+    {
+      "id": "cmsll7p5u000fdou9i5bvb37e",
+      "slug": "baez-boardgames-llc-3mJ9B2",
+      "name": "Baez Boardgames LLC",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "12125 Day st",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9519928710"
+    },
+    {
+      "id": "cmsll7p6p000gdou9emiavgs7",
+      "slug": "baja-pescador-inc-7GhH2l",
+      "name": "Baja Pescador Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "29017 Alicante Avenue",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "7148098107"
+    },
+    {
+      "id": "cmsll7p7j000hdou9b10h4kwt",
+      "slug": "baker-james-O0KYWw",
+      "name": "Baker, James",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "25319 Orbit Court",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "7144206644"
+    },
+    {
+      "id": "cmsll7p8d000idou9rq16yqfw",
+      "slug": "balance-barbershop-ZFUZCD",
+      "name": "Balance Barbershop",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "27110 Eucalyptus Ave Suite D",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9512080469"
+    },
+    {
+      "id": "cmsll7p97000jdou98n37gmsv",
+      "slug": "bear-alignment-and-brake-H-mh3Z",
+      "name": "Bear Alignment and Brake",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "14320 Elsworth St. #101",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512211788"
+    },
+    {
+      "id": "cmsll7pa1000kdou96a97iros",
+      "slug": "berkshire-hathaway-home-services-california-realty-Y5qTXx",
+      "name": "Berkshire Hathaway Home Services California Realty",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12625 Frederick St., Suit B-7",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9513630315"
+    },
+    {
+      "id": "cmsll7paw000ldou9cjqi9pao",
+      "slug": "biolife-plasma-services--LiwC7",
+      "name": "BioLife Plasma Services",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23727 Sunnymead Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514974407"
+    },
+    {
+      "id": "cmsll7pbq000mdou91ax5zbro",
+      "slug": "biolife-plasma-services-lp-SAuUP4",
+      "name": "BioLife Plasma Services LP",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23727 Sunnymead Blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514974407"
+    },
+    {
+      "id": "cmsll7pcn000ndou95waye06p",
+      "slug": "black-pearl-seafood-and-grill-1IhCAL",
+      "name": "Black Pearl Seafood and Grill",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12848 Day Street, Suite B",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514136950"
+    },
+    {
+      "id": "cmsll7pdh000odou98pivnzbc",
+      "slug": "body-by-candyfaces-esthetics-llc-DHnFvP",
+      "name": "Body By Candyfaces Esthetics LLC",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "13800 HEACOCK ST STE D133",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "5103342482"
+    },
+    {
+      "id": "cmsll7peb000pdou9opjyg6a0",
+      "slug": "bonnie-rodriguez-real-estate-with-alta-realty-group-Ao8W8r",
+      "name": "Bonnie Rodriguez Real Estate With Alta Realty Group",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "15974 La Costa Alta Drive",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9495161877"
+    },
+    {
+      "id": "cmsll7pf6000qdou9nwqv5fqi",
+      "slug": "breakout-escape-rooms-xwQuVa",
+      "name": "Breakout Escape Rooms",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22500 Town Circle, Suite 2081",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514444263"
+    },
+    {
+      "id": "cmsll7pg0000rdou9szjmpp36",
+      "slug": "broadstone-rancho-belago-sAhcYh",
+      "name": "Broadstone Rancho Belago",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "14147 Darwin Drive",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9515211881"
+    },
+    {
+      "id": "cmsll7php000tdou90vq7d175",
+      "slug": "buffalo-wild-wings-7rAF9Y",
+      "name": "Buffalo Wild Wings",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12450 Day St",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516539464"
+    },
+    {
+      "id": "cmsll7pii000udou9d3iffoxu",
+      "slug": "building-up-lives-foundation-gH6vZ8",
+      "name": "Building Up Lives Foundation",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "23185 Hemlock Ave., Suite A",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9515505466"
+    },
+    {
+      "id": "cmsll7pjc000vdou992h8fnpe",
+      "slug": "bumpers-driving-school-BBh3ZT",
+      "name": "Bumpers Driving School",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "14300 Elsworth St. #101",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516561305"
+    },
+    {
+      "id": "cmsll7pk7000wdou94sj46qkj",
+      "slug": "california-school-employees-association-30GsMK",
+      "name": "California School Employees Association",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92552",
+      "newAddress": "PO Box 10130",
+      "newCity": "Moreno Valley",
+      "newZip": "92552",
+      "newPhone": "9516567333"
+    },
+    {
+      "id": "cmsll7pl1000xdou995ijjwd7",
+      "slug": "canyon-springs-shopping-center-aR1nfo",
+      "name": "Canyon Springs Shopping Center",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "12125 Day Street, Suite V-207",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9513690308"
+    },
+    {
+      "id": "cmsll7plw000ydou93w3mgkjq",
+      "slug": "citrus-escrow-inc-7aiETy",
+      "name": "Citrus Escrow, Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12424 Graham Street",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514554030"
+    },
+    {
+      "id": "cmsll7pmq000zdou9p2f4nmf0",
+      "slug": "city-of-moreno-valley-_3U1ud",
+      "name": "City of Moreno Valley",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "14177 Frederick Street",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514133000"
+    },
+    {
+      "id": "cmsll7pnk0010dou961nmnhth",
+      "slug": "cmb-realty-services--sjh57",
+      "name": "CMB Realty Services",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24099 Postal Ave #202",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9515759750"
+    },
+    {
+      "id": "cmsll7pof0011dou9i9amu7pm",
+      "slug": "coldstone-creamery-klJZw_",
+      "name": "Coldstone Creamery",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "25960 Iris Ave., Suite C6",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9512475036"
+    },
+    {
+      "id": "cmsll7pp80012dou9n3ngbr8n",
+      "slug": "consortium-for-early-learning-services-fPTJWQ",
+      "name": "Consortium For Early Learning Services",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "21250 Box Springs Road, Suite 205",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9517785003"
+    },
+    {
+      "id": "cmsll7pq20013dou9pw8yn4xc",
+      "slug": "consulto-strategies-llc-hZgMNG",
+      "name": "Consulto Strategies LLC",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12765 Shadybend Dr.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9498158097"
+    },
+    {
+      "id": "cmsll7pqy0014dou9jqaxcdza",
+      "slug": "cross-word-christian-church-Sdd-yn",
+      "name": "Cross Word Christian Church",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "21401 Box Springs Rd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9512755360"
+    },
+    {
+      "id": "cmsll7pru0015dou9dn5ivwpf",
+      "slug": "cupcake-and-espresso-bar-the-1YTF_s",
+      "name": "Cupcake and Espresso Bar, The",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "12620 Day Street, Suite D",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9516530037"
+    },
+    {
+      "id": "cmsll7pso0016dou90y6zpgof",
+      "slug": "dancing-images-2OWWyF",
+      "name": "Dancing Images",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24594 Sunnymead Blvd., Suite R",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512476858"
+    },
+    {
+      "id": "cmsll7pti0017dou97r7mfob7",
+      "slug": "dawn-busters-toastmasters-club-2169-pIsurx",
+      "name": "Dawn Busters Toastmasters Club 2169",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23110 Atlantic Circle, Suite F",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9517561152"
+    },
+    {
+      "id": "cmsll7pud0018dou9g4jhmfen",
+      "slug": "denises-loving-hands-family-childcare-llc-ATTcjR",
+      "name": "Denises Loving Hands Family Childcare, LLC",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12650 Memorial Way, Apt. 1161",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "3106860475"
+    },
+    {
+      "id": "cmsll7pv70019dou9lqk0p7g1",
+      "slug": "dental-associates-of-moreno-valley-wQAAxH",
+      "name": "Dental Associates of Moreno Valley",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22500 Town Circle, Suite 2074",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516976800"
+    },
+    {
+      "id": "cmsll7pw1001adou9yo9nq7r2",
+      "slug": "destiny-home-health-hospice-and-palliative-care-XzogjO",
+      "name": "Destiny Home Health, Hospice and Palliative Care",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "12370 Perris Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9512421365"
+    },
+    {
+      "id": "cmsll7pwv001bdou91d25vspt",
+      "slug": "discovery-christian-church-dt3bOk",
+      "name": "Discovery Christian Church",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "27555 Alessandro Blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9519245002"
+    },
+    {
+      "id": "cmsll7pxp001cdou9ys56gcfw",
+      "slug": "diversified-realty-N65A_m",
+      "name": "Diversified Realty",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "11370 Moreno Beach Drive",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9515673849"
+    },
+    {
+      "id": "cmsll7pyk001ddou9bxekomgd",
+      "slug": "doctor-s-choice-weight-loss-9KNy_k",
+      "name": "Doctor's Choice Weight Loss",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24490 Sunnymead Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514886999"
+    },
+    {
+      "id": "cmsll7pzm001edou92jz838xo",
+      "slug": "dr-deza-s-dental-office-s-G9uF",
+      "name": "Dr. Deza's Dental Office",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23080 Alessandro Blvd Ste #201",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516970909"
+    },
+    {
+      "id": "cmsll7q0g001fdou9dzqxf4t7",
+      "slug": "dr-martinrex-kedziora-vwjY7c",
+      "name": "Dr. Martinrex Kedziora",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "28600 Highpoint Avenue",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9517688686"
+    },
+    {
+      "id": "cmsll7q1a001gdou9pauv5uhi",
+      "slug": "e-320-air-e0sTNr",
+      "name": "E 320 AIR",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "26480 Coconut Ln",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9097868195"
+    },
+    {
+      "id": "cmsll7q2k001hdou9kd0ybphw",
+      "slug": "edward-jones-da-To2",
+      "name": "Edward Jones",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92518",
+      "newAddress": "21803 Cactus Ave., Suite H",
+      "newCity": "Moreno Valley",
+      "newZip": "92518",
+      "newPhone": "9514889033"
+    },
+    {
+      "id": "cmsll7q3e001idou9uagcqiuu",
+      "slug": "elegant-impressions-bakery-ptsmFD",
+      "name": "Elegant Impressions Bakery",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "25931 Calle Agua",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9516160614"
+    },
+    {
+      "id": "cmsll7q49001jdou9qhlrqofk",
+      "slug": "empire-jamaican-restaurant-empire-caribbean-market-m-ZAF2",
+      "name": "Empire Jamaican Restaurant, Empire Caribbean Market",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23100 Alessandro Blvd. SuiteG",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "2138040768"
+    },
+    {
+      "id": "cmsll7q54001kdou94yd0r435",
+      "slug": "equus-workforce-solutions-moreno-valley-youth-opportunity-ce-zYyTbO",
+      "name": "Equus Workforce Solutions / Moreno Valley Youth Opportunity Center",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23080 Alessandro Blvd., Suite 236",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516531311"
+    },
+    {
+      "id": "cmsll7q5y001ldou9o280etok",
+      "slug": "fairfield-inn-suites-OpmMyI",
+      "name": "Fairfield Inn & Suites",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "221000 Eucalyptus Ave.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9515630053"
+    },
+    {
+      "id": "cmsll7q6s001mdou9nfywb77s",
+      "slug": "fairway-staffing-services-inc-wlwRVD",
+      "name": "Fairway Staffing Services, Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12625 Fedrick St.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9518426800"
+    },
+    {
+      "id": "cmsll7q7m001ndou9mad20wtd",
+      "slug": "family-service-association-WeuEfq",
+      "name": "Family Service Association",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "21250 Box Springs Rd., Suite 211",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9516861096"
+    },
+    {
+      "id": "cmsll7q8h001odou97spfmqz2",
+      "slug": "fix-auto-moreno-valley-aPEnQ_",
+      "name": "Fix Auto Moreno Valley",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "14441 Commerce Center Drive",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516563600"
+    },
+    {
+      "id": "cmsll7q9b001pdou9p7i48d6k",
+      "slug": "floor-decor-Md-Svd",
+      "name": "Floor & Decor",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24318 - D Hemlock Ave",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514196001"
+    },
+    {
+      "id": "cmsll7qa5001qdou9uaanph3y",
+      "slug": "freeway-insurance-the-machado-agency-Qx8KdU",
+      "name": "Freeway Insurance-The Machado Agency",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23871 Sunnymead Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512289370"
+    },
+    {
+      "id": "cmsll7qb0001rdou9s9j561wr",
+      "slug": "friends-of-moreno-valley-senior-center-inc-QTCSb5",
+      "name": "Friends of Moreno Valley Senior Center, Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "Moreno Valley Senior Center",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9515186861"
+    },
+    {
+      "id": "cmsll7qbu001sdou9h6rbjtlv",
+      "slug": "frontline-nutrition-4-8duS",
+      "name": "Frontline Nutrition",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "16110 Perris Bd., Suite G",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9513220720"
+    },
+    {
+      "id": "cmsll7qcp001tdou9jaxqrr5v",
+      "slug": "gameday-men-s-health-moreno-valley-2C-ZwS",
+      "name": "GameDay Men's Health Moreno Valley",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12800 Heacock St., Suite A4",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9515964266"
+    },
+    {
+      "id": "cmsll7qdj001udou9e0lbcdlz",
+      "slug": "gcam-plasma-WsXDXt",
+      "name": "GCAM PLASMA",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "13473 Perris Blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512430220"
+    },
+    {
+      "id": "cmsll7qed001vdou9g0d1lclu",
+      "slug": "gemsi-enterprises-llc-pR61Le",
+      "name": "GEMSI Enterprises LLC",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22445 Alessandro Blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9519659330"
+    },
+    {
+      "id": "cmsll7qf7001wdou9mpsdslpp",
+      "slug": "gold-coast-dental-Ykc5zb",
+      "name": "Gold Coast Dental",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "11875 Pigeon Pass Rd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9092000315"
+    },
+    {
+      "id": "cmsll7qg1001xdou90shsxo4w",
+      "slug": "golden-corral-wfCxps",
+      "name": "Golden Corral",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12125 Day Street, Suite Q101",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9513691024"
+    },
+    {
+      "id": "cmsll7qgv001ydou9vvtglpi4",
+      "slug": "grifols-biomat-X-vpko",
+      "name": "Grifols Biomat",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92571",
+      "newAddress": "13473 Perris Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92571",
+      "newPhone": "9496133533"
+    },
+    {
+      "id": "cmsll7qhq001zdou96deh10ki",
+      "slug": "grizzly-firearms-vZFtCw",
+      "name": "Grizzly Firearms",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24903 Sunnymead Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514851485"
+    },
+    {
+      "id": "cmsll7qip0020dou9873wsi2e",
+      "slug": "hampton-inn-suites-moreno-valley-Ngi2C5",
+      "name": "Hampton Inn & Suites Moreno Valley",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12611 Memorial Way",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9515717788"
+    },
+    {
+      "id": "cmsll7qjj0021dou97r6s3vqw",
+      "slug": "happy-feet-ultrasound-inc-5KME0C",
+      "name": "Happy Feet Ultrasound Inc",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "11875 Pigeon Pass Rd",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9512211338"
+    },
+    {
+      "id": "cmsll7qkd0022dou9g5su03bu",
+      "slug": "harbor-freight-tools-BoG9Y-",
+      "name": "Harbor Freight Tools",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23400 Cactus Ave.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512147902"
+    },
+    {
+      "id": "cmsll7ql70023dou9xq1he6zu",
+      "slug": "healthy-heffa-llc-ex-8sa",
+      "name": "Healthy Heffa, LLC",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "27645 Solitude Ave",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "15622395292"
+    },
+    {
+      "id": "cmsll7qmx0025dou9lsbh21xd",
+      "slug": "heavenly-helping-hands-daycare-_Voa8-",
+      "name": "Heavenly Helping Hands Daycare",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "11814 Kettering Ct",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "4808232318"
+    },
+    {
+      "id": "cmsll7qnt0026dou9y9pul6nk",
+      "slug": "highland-fairview-properties-OfWSD3",
+      "name": "Highland Fairview Properties",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "29000 Eucalyptus Ave.",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9518675365"
+    },
+    {
+      "id": "cmsll7qon0027dou90e1f3103",
+      "slug": "hyundai-of-moreno-valley-XU7hcB",
+      "name": "Hyundai of Moreno Valley",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "27500 Eucalyptus Ave.",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9093160101"
+    },
+    {
+      "id": "cmsll7qph0028dou9trw08ja2",
+      "slug": "imperial-realty-ccYVi5",
+      "name": "Imperial Realty",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23800 Sunnymead Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514852688"
+    },
+    {
+      "id": "cmsll7qqc0029dou96kgews9f",
+      "slug": "in-the-stitch-Uir3AR",
+      "name": "In The Stitch",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "25445 Lone Mesa Trail",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "5625469932"
+    },
+    {
+      "id": "cmsll7qr5002adou9jbipbpn8",
+      "slug": "inland-empire-autobody-paint-inc-pLF1b8",
+      "name": "Inland Empire Autobody & Paint, Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24801 Sunnymead Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514657350"
+    },
+    {
+      "id": "cmsll7qs0002bdou9zl0ym7uy",
+      "slug": "integrated-care-communities-oUKKSm",
+      "name": "Integrated Care Communities",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "11751 Davis Street",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9512433837"
+    },
+    {
+      "id": "cmsll7qsu002cdou98cy5xi9x",
+      "slug": "istaffing-inc-YAC_hB",
+      "name": "iStaffing, Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24021 Alessandro Bd., Suite 114",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9515021990"
+    },
+    {
+      "id": "cmsll7qto002ddou932k3fn7u",
+      "slug": "jar-insurance-services-CSk14E",
+      "name": "JAR Insurance Services",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "13373 Perris Blvd Ste E410",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512436500"
+    },
+    {
+      "id": "cmsll7quj002edou9qvoeeswz",
+      "slug": "kaiser-permanente-moreno-valley-oaD2Nh",
+      "name": "Kaiser Permanente Moreno Valley",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "27300 Iris Avenue",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9512430811"
+    },
+    {
+      "id": "cmsll7qvd002fdou9xh9z40sp",
+      "slug": "kalaveras-cantina-SF6x-q",
+      "name": "Kalaveras Cantina",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23060 Alessandro Bd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "4244447712"
+    },
+    {
+      "id": "cmsll7qw7002gdou9s4mwdd49",
+      "slug": "la-quinta-inn-suites-qVed4a",
+      "name": "La Quinta Inn & Suites",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23090 Sunnymead Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514869000"
+    },
+    {
+      "id": "cmsll7qx2002hdou931m4wrgi",
+      "slug": "la-sierra-restaurant-group-dba-pupuseira-la-sierra-h9PJXS",
+      "name": "La Sierra Restaurant Group DBA/Pupuseira la Sierra",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "12256 Perris Blvd. Suite A",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9512081921"
+    },
+    {
+      "id": "cmsll7qxw002idou94out1yj6",
+      "slug": "law-office-of-michael-geller-inc-qRaG7g",
+      "name": "Law Office of Michael Geller Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "13800 Heacock St. Building C Suite 230B",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512486455"
+    },
+    {
+      "id": "cmsll7qyq002jdou9468mnbzd",
+      "slug": "lcbbq-yxARcr",
+      "name": "LCBBQ",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "14051 Indian St",
+      "newCity": "Moreno valley",
+      "newZip": "92553",
+      "newPhone": "19512080515"
+    },
+    {
+      "id": "cmsll7qzk002kdou9wovxpf95",
+      "slug": "les-schwab-tires-u3fG4M",
+      "name": "Les Schwab Tires",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12682 Perris Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514889003"
+    },
+    {
+      "id": "cmsll7r0e002ldou9u2ld04m1",
+      "slug": "light-it-up-moval-P6RzAN",
+      "name": "Light It Up MoVal",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22500 Town Cir",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512021718"
+    },
+    {
+      "id": "cmsll7r19002mdou9z4h1a354",
+      "slug": "lighthouse-immersive-studios-california-inc-FA5LjF",
+      "name": "Lighthouse Immersive Studios California, Inc",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22500 Town Circle",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "2486021880"
+    },
+    {
+      "id": "cmsll7r23002ndou9ey5d9svx",
+      "slug": "lighthouse-social-service-center-oZN2Ap",
+      "name": "LightHouse Social Service Center",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "15333 Sheila Street #2",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9518073449"
+    },
+    {
+      "id": "cmsll7r2x002odou9i82fate6",
+      "slug": "magic-brush-car-wash-tCnVly",
+      "name": "Magic Brush Car Wash",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22330 Cactus Ave",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9513870940"
+    },
+    {
+      "id": "cmsll7r3s002pdou9e2abq3wl",
+      "slug": "mainstay-suites-vyc9m5",
+      "name": "MainStay Suites",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23120 Sunnymead Blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512473434"
+    },
+    {
+      "id": "cmsll7r4m002qdou93zo7q3m8",
+      "slug": "manzanita-village-senior-living-ewgvcC",
+      "name": "Manzanita Village Senior Living",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "27900 Brodiaea Ave",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "4804318087"
+    },
+    {
+      "id": "cmsll7r5h002rdou9qz83kg1h",
+      "slug": "march-joint-powers-authority-WAiVqo",
+      "name": "March Joint Powers Authority",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "March Inland Port Airport",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9516567000"
+    },
+    {
+      "id": "cmsll7r6c002sdou9knz1f77l",
+      "slug": "margarita-s-grill-restaurant-catering-5KanP4",
+      "name": "Margarita's Grill Restaurant & Catering",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12630 Perris Blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9519242500"
+    },
+    {
+      "id": "cmsll7r76002tdou9ukhqfhrk",
+      "slug": "marinaj-banquets-events-ts7ZIo",
+      "name": "Marinaj Banquets & Events",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22605 Alessandro Bd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9518808067"
+    },
+    {
+      "id": "cmsll7r80002udou9fx9a7hds",
+      "slug": "marsell-wellness-center-moreno-valley-u_7doM",
+      "name": "Marsell Wellness Center Moreno Valley",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22515 Alessandro Blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9095040801"
+    },
+    {
+      "id": "cmsll7r8u002vdou966pcwqg1",
+      "slug": "maxwell-associates-r-e-company-fXoVH2",
+      "name": "Maxwell & Associates R. E. Company",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "14420 Elsworth St., Suite 116",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9513156849"
+    },
+    {
+      "id": "cmsll7r9p002wdou91992djzu",
+      "slug": "mca-the-church-Wv21vs",
+      "name": "MCA the Church",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "13830 Nason Street",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9518184405"
+    },
+    {
+      "id": "cmsll7rak002xdou9edy0z9p6",
+      "slug": "miguel-s-jr-restaurant-3b75ql",
+      "name": "Miguel's Jr. Restaurant",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12860 Day Street",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516970390"
+    },
+    {
+      "id": "cmsll7rbe002ydou945k0qdig",
+      "slug": "miller-jones-mortuary-cPukxE",
+      "name": "Miller-Jones Mortuary",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23618 Sunnymead Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9514854542"
+    },
+    {
+      "id": "cmsll7rc9002zdou97oip03a8",
+      "slug": "mmjeam-insurance-mvGXKZ",
+      "name": "MMJEAM Insurance",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "12125 Day St., Suite K-413",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9517425007"
+    },
+    {
+      "id": "cmsll7rd30030dou9p4k51dyf",
+      "slug": "monarch-a-realty-affiliated-with-keller-williams-vGrRzl",
+      "name": "Monarch-A Realty Affiliated with Keller Williams",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24021 Alessandro Blvd. Suite 124",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9515524496"
+    },
+    {
+      "id": "cmsll7rdw0031dou9lz5fjlnr",
+      "slug": "moolah-tax-services-7sfTG5",
+      "name": "Moolah Tax Services",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "16420 Perris Blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9512080288"
+    },
+    {
+      "id": "cmsll7req0032dou9zqlg3ndb",
+      "slug": "moreno-valley-chamber-of-commerce-ao1b2h",
+      "name": "Moreno Valley Chamber of Commerce",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12625 Frederick St., Suite E3",
+      "newCity": "Moreno valley",
+      "newZip": "92553",
+      "newPhone": "9516974404"
+    },
+    {
+      "id": "cmsll7rfl0033dou93b5fnzv8",
+      "slug": "moreno-valley-college-dpBieY",
+      "name": "Moreno Valley College",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "16130 Lasselle St.",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9515716100"
+    },
+    {
+      "id": "cmsll7rgf0034dou9xiuw2qm9",
+      "slug": "moreno-valley-dentist-6-xwuJ",
+      "name": "Moreno Valley Dentist",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12810 Heacock Street",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512423441"
+    },
+    {
+      "id": "cmsll7rha0035dou9ru6mbeu7",
+      "slug": "moreno-valley-educators-association-eMtcf7",
+      "name": "Moreno Valley Educators Association",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "12125 Day Street, Ste. M407",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9514850545"
+    },
+    {
+      "id": "cmsll7ri30036dou97tfwdz64",
+      "slug": "moreno-valley-elks-lodge-2697-wqn0yD",
+      "name": "Moreno Valley Elks Lodge #2697",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "12125 Day Street Suite V205",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9516834031"
+    },
+    {
+      "id": "cmsll7riy0037dou9obc4ylwq",
+      "slug": "moreno-valley-flower-box-C0tYeG",
+      "name": "Moreno Valley Flower Box",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "14340 Elsworth St., Ste. B-105",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516533171"
+    },
+    {
+      "id": "cmsll7rjs0038dou9hmf8hr8g",
+      "slug": "moreno-valley-historical-society-jlr6eP",
+      "name": "Moreno Valley Historical Society",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92556",
+      "newAddress": "PO Box 66",
+      "newCity": "Moreno Valley",
+      "newZip": "92556",
+      "newPhone": "9512515372"
+    },
+    {
+      "id": "cmsll7rkm0039dou97hrcbght",
+      "slug": "moreno-valley-master-chorale-rED2O3",
+      "name": "Moreno Valley Master Chorale",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92556",
+      "newAddress": "PO Box 1221",
+      "newCity": "Moreno Valley",
+      "newZip": "92556",
+      "newPhone": "9516821928"
+    },
+    {
+      "id": "cmsll7rlh003adou9zyh55epq",
+      "slug": "moreno-valley-united-methodist-church-iBf5Qu",
+      "name": "Moreno Valley United Methodist Church",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "10271 Heacock St.",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9519246990"
+    },
+    {
+      "id": "cmsll7rmb003bdou9wzqd89g8",
+      "slug": "moreno-valley-utility-Es79cJ",
+      "name": "Moreno Valley Utility",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92552",
+      "newAddress": "14177 Frederick St.",
+      "newCity": "Moreno Valley",
+      "newZip": "92552",
+      "newPhone": "9514133500"
+    },
+    {
+      "id": "cmsll7rn7003cdou9suqcyvbf",
+      "slug": "morning-optimist-of-mv-H-zk2H",
+      "name": "Morning Optimist of MV",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92552",
+      "newAddress": "PO Box 9107",
+      "newCity": "Moreno Valley",
+      "newZip": "92552",
+      "newPhone": null
+    },
+    {
+      "id": "cmsll7ro1003ddou9i99l154q",
+      "slug": "n-style-entertainment-rentals-kC6Zpz",
+      "name": "N Style Entertainment & Rentals",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "16461 Spirit Rd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "2018748144"
+    },
+    {
+      "id": "cmsll7row003edou98hafjax2",
+      "slug": "nfi-industries-jJPNYe",
+      "name": "NFI Industries",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "24385 Nandian Ave",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "7145198315"
+    },
+    {
+      "id": "cmsll7rpq003fdou9dxpmucwq",
+      "slug": "nid-hca-riverside-san-bernardino-counties-z8RXUz",
+      "name": "NID HCA Riverside/San Bernardino Counties",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23945 sunnymead blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9513994538"
+    },
+    {
+      "id": "cmsll7rqk003gdou9s49ftnt1",
+      "slug": "oakwood-apts-PXsRN5",
+      "name": "Oakwood Apts",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "15170 Perris Blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9512430800"
+    },
+    {
+      "id": "cmsll7rrf003hdou9yeduchrq",
+      "slug": "optimum-cleaning-services-ayBxK-",
+      "name": "Optimum Cleaning Services",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "25141 Slate Creek Dr.",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9514882788"
+    },
+    {
+      "id": "cmsll7rs9003idou9ex4hgeb0",
+      "slug": "options-for-youth-nonprofit-public-charter-school-E7oMvZ",
+      "name": "Options for Youth Nonprofit Public Charter School",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23651 Sunnymead Boulevard",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516533085"
+    },
+    {
+      "id": "cmsll7rt3003jdou9voyl60gz",
+      "slug": "pacific-smile-dental-clinic-56SBlk",
+      "name": "Pacific Smile Dental Clinic",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "25025 Red Maple Lane Suite #102",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9519246370"
+    },
+    {
+      "id": "cmsll7rtx003kdou9sfg4znge",
+      "slug": "pacific-view-charter-school-XBi78Z",
+      "name": "Pacific View Charter School",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22695 Alessandro Blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516971990"
+    },
+    {
+      "id": "cmsll7rur003ldou9n2m4e7g4",
+      "slug": "palm-plaza-management-xl-nts",
+      "name": "Palm Plaza Management",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24578 - 94 Sunnymead Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9515439333"
+    },
+    {
+      "id": "cmsll7rvm003mdou9goanxri4",
+      "slug": "pepe-s-towing-service-pKaxj9",
+      "name": "Pepe's Towing Service",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "14351 Veterans Way",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516532423"
+    },
+    {
+      "id": "cmsll7rwh003ndou9nybozkqt",
+      "slug": "perris-flowers-3-8RNvx-",
+      "name": "Perris Flowers #3",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22960 Alessandro Boulevard",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "7143669112"
+    },
+    {
+      "id": "cmsll7rxa003odou98z7xhpys",
+      "slug": "perris-isle-senior-apartment-UMIDmT",
+      "name": "Perris Isle Senior Apartment",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12980 Perris Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9519244070"
+    },
+    {
+      "id": "cmsll7ry5003pdou9u81epkj0",
+      "slug": "pop-n-flavors-jNIQ1I",
+      "name": "Pop 'N Flavors",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24021 Alessandro Blvd., Suite 107",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "5627860303"
+    },
+    {
+      "id": "cmsll7ryz003qdou94eo2ddr6",
+      "slug": "powered-through-love-8D8MRz",
+      "name": "Powered Through Love",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "23437 Via Solanan",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "3237175285"
+    },
+    {
+      "id": "cmsll7rzt003rdou9m6yei07o",
+      "slug": "premier-party-rental-WdAydC",
+      "name": "Premier Party Rental",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "14460 Veterans Way",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516971101"
+    },
+    {
+      "id": "cmsll7s0o003sdou9ehwqd9m6",
+      "slug": "prime-technologies-llc-KQVN-q",
+      "name": "Prime Technologies, LLC",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22313 ECHO PARKWAY",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "19512857288"
+    },
+    {
+      "id": "cmsll7s1i003tdou96tdgyism",
+      "slug": "proctor-and-gamble-west-coast-mixing-center-09F_em",
+      "name": "Proctor and Gamble - West Coast Mixing Center",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "1611 Cosmos St.",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9516014100"
+    },
+    {
+      "id": "cmsll7s2c003udou9vzgn5ji9",
+      "slug": "pyramid-home-inspections--_bj5V",
+      "name": "Pyramid Home Inspections",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "14219 Willoughby",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9515361058"
+    },
+    {
+      "id": "cmsll7s3i003vdou9jphryp0t",
+      "slug": "quick-quack-car-wash-9b96aT",
+      "name": "Quick Quack Car Wash",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23550 Alessandro Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "8887722792"
+    },
+    {
+      "id": "cmsll7s4f003wdou942f1mndc",
+      "slug": "quick-quack-car-wash-n8LgOr",
+      "name": "Quick Quack Car Wash",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23550 Alessandro Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "8887722792"
+    },
+    {
+      "id": "cmsll7s6z003zdou9mvbo6ir8",
+      "slug": "rancho-belago-developers-inc-Q5MFRb",
+      "name": "Rancho Belago Developers, Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "27700 KalmiaAve.",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "7608322934"
+    },
+    {
+      "id": "cmsll7s7v0040dou9qxgd5g2x",
+      "slug": "rapid-care-urgent-care-vdh92o",
+      "name": "Rapid Care Urgent Care",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "25125 Sunnymead Bd., #BB",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516236228"
+    },
+    {
+      "id": "cmsll7s8o0041dou96t4534hx",
+      "slug": "realtime-integrated-services-group-2MAjze",
+      "name": "Realtime Integrated Services Group",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "15395 Via Lido",
+      "newCity": "Morreno Valley",
+      "newZip": "92555",
+      "newPhone": "3234196859"
+    },
+    {
+      "id": "cmsll7s9j0042dou9lmen7wrt",
+      "slug": "realty-masters-associates-df0E3m",
+      "name": "Realty Masters & Associates",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "25350 Mountain Cliff Drive",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9513793760"
+    },
+    {
+      "id": "cmsll7sb70044dou9tcq7lzw2",
+      "slug": "rising-stars-business-academy-youthbuild-zNqFpx",
+      "name": "Rising Stars Business Academy YouthBuild",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22500 Town Circle, Suite 2290",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512466174"
+    },
+    {
+      "id": "cmsll7sc10045dou96i4pkjsg",
+      "slug": "riverside-county-department-of-waste-resources-Bcv8TE",
+      "name": "Riverside County Department of Waste Resources",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92583",
+      "newAddress": "14310 Frederick Street",
+      "newCity": "Moreno Valley",
+      "newZip": "92583",
+      "newPhone": "9514863200"
+    },
+    {
+      "id": "cmsll7scw0046dou9z7smx9r3",
+      "slug": "riverside-university-health-system-vJTvxU",
+      "name": "Riverside University Health System",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "26520 Cactus Avenue",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9514864000"
+    },
+    {
+      "id": "cmsll7sdq0047dou9prim6sii",
+      "slug": "riverside-university-health-system-foundation-oZXniX",
+      "name": "Riverside University Health System Foundation",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "26520 Cactus Ave.",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9514864000"
+    },
+    {
+      "id": "cmsll7sek0048dou9egk6zr1f",
+      "slug": "roman-window-coverings-_AXN__",
+      "name": "Roman Window Coverings",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "25652 San Lupe Avneue",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "5624757847"
+    },
+    {
+      "id": "cmsll7sfe0049dou9ukktvfbu",
+      "slug": "ross-distribution-center-dRMbxo",
+      "name": "ROSS Distribution Center",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "17800 Perris Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9514895849"
+    },
+    {
+      "id": "cmsll7sg9004adou9apa984ig",
+      "slug": "rotary-club-of-moreno-valley-4vEJGr",
+      "name": "Rotary Club of Moreno Valley",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92556",
+      "newAddress": "PO Box 297",
+      "newCity": "Moreno Valley",
+      "newZip": "92556",
+      "newPhone": null
+    },
+    {
+      "id": "cmsll7sh3004bdou9dem2co6k",
+      "slug": "royalty-medical-billing-firm-inc-hcKXpD",
+      "name": "Royalty Medical Billing Firm, Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23318 Olivewood Plaza Dr., Suite H",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "8885474744"
+    },
+    {
+      "id": "cmsll7sjl004edou9j9sdtspu",
+      "slug": "security-public-storage-402EcW",
+      "name": "Security Public Storage",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24861 Sunnymead Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512429095"
+    },
+    {
+      "id": "cmsll7skg004fdou97p973fav",
+      "slug": "shango-moreno-valley-UvTKfc",
+      "name": "Shango Moreno Valley",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "11875 Pigeon Pass",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "8664742646"
+    },
+    {
+      "id": "cmsll7sla004gdou944u3a3n4",
+      "slug": "sheila-s-mobile-notary-and-loan-signing-zs9XA6",
+      "name": "Sheila's Mobile Notary and Loan Signing",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "12759 Dolomite Lane",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9513579773"
+    },
+    {
+      "id": "cmsll7sm5004hdou9c7l7rgas",
+      "slug": "sigma-beta-xi-inc-OayA4E",
+      "name": "Sigma Beta Xi, Inc",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "12125 Day St",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9512471700"
+    },
+    {
+      "id": "cmsll7smz004idou9iqeq5u7z",
+      "slug": "sizzler-restaurant-671-lRMEqT",
+      "name": "Sizzler Restaurant #671",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "25035 Sunnymead Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516768616"
+    },
+    {
+      "id": "cmsll7snt004jdou95uqatth7",
+      "slug": "sky-zone-BVOPDP",
+      "name": "Sky Zone",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22550 Town Circle",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9515822139"
+    },
+    {
+      "id": "cmsll7son004kdou9bwjxp5sd",
+      "slug": "smartflow-strategies-llc-ujqPRu",
+      "name": "SmartFlow Strategies, LLC",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "25974 Avenida de Plata",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "8058077454"
+    },
+    {
+      "id": "cmsll7spi004ldou9gmbu6gqe",
+      "slug": "soapbox-laundry-room-llc-JO9vxw",
+      "name": "Soapbox Laundry Room LLC",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24430 Alessandro Blvd",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9097777627"
+    },
+    {
+      "id": "cmsll7sqc004mdou90v3sw0ps",
+      "slug": "soroptimist-international-of-mv-3eCyzU",
+      "name": "Soroptimist International of MV",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "10049 ALTA BRISA WAY",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9514861273"
+    },
+    {
+      "id": "cmsll7sr6004ndou9cud6x74g",
+      "slug": "southpointe-shopping-center-J_5D2u",
+      "name": "Southpointe Shopping Center",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24021 Alessandro Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "7142835800"
+    },
+    {
+      "id": "cmsll7ss0004odou9y20qes4i",
+      "slug": "starbucks-TwAEdb",
+      "name": "Starbucks",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12430 Day St",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9513053715"
+    },
+    {
+      "id": "cmsll7ssv004pdou9mfx14to4",
+      "slug": "state-farm-insurance-jeremy-garzon-agent-_fN77G",
+      "name": "State Farm Insurance, Jeremy Garzon Agent",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "13800 Heacock St., Suite C112",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516531300"
+    },
+    {
+      "id": "cmsll7stp004qdou9i8zy3oac",
+      "slug": "steer-n-stein-of-mv-inc-NTQPMp",
+      "name": "Steer 'N Stein of MV, Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "14950 Perris Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9512438799"
+    },
+    {
+      "id": "cmsll7svd004sdou9a4y5pzkz",
+      "slug": "sundance-plaza-llc-CWgOsQ",
+      "name": "Sundance Plaza LLC",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24467 Sunnymead Bd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": null
+    },
+    {
+      "id": "cmsll7sw9004tdou9dm9tirya",
+      "slug": "sunnymead-ranch-dental-center-j63YWL",
+      "name": "Sunnymead Ranch Dental Center",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "23569 Sunnymead Ranch Pkwy., #A",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9512428282"
+    },
+    {
+      "id": "cmsll7sxw004vdou9dysqrlcp",
+      "slug": "superstorage-UWKwYC",
+      "name": "SuperStorage",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12411 Strip Drive",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9519241875"
+    },
+    {
+      "id": "cmsll7syq004wdou9cdple17e",
+      "slug": "synergy-real-estate-group-6JN-nH",
+      "name": "Synergy Real Estate Group",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "13800 Heacock St., Suite D135A",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9513313315"
+    },
+    {
+      "id": "cmsll7szl004xdou975ca2zqt",
+      "slug": "the-arc-of-riverside-county-mv-resource-center-LlXNo7",
+      "name": "The ARC of Riverside County - MV Resource Center",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "22620 Goldencrest Drive",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9512755344"
+    },
+    {
+      "id": "cmsll7t0f004ydou95gen12w6",
+      "slug": "the-church-of-jesus-christ-of-latter-day-saints-isujtX",
+      "name": "The Church of Jesus Christ of Latter-Day Saints",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "23300 Old Lake Road",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": null
+    },
+    {
+      "id": "cmsll7t2z0051dou99nj9t6te",
+      "slug": "the-part-time-cfo-inc-Tdt0Vn",
+      "name": "The Part-Time CFO, Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "12625 Frederick Street, Suite I5-300",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516535053"
+    },
+    {
+      "id": "cmsll7t3w0052dou9lrlzerk6",
+      "slug": "the-salvation-army-zhMvYb",
+      "name": "The Salvation Army",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "Cornerstone Christian Fellowship",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9517844490"
+    },
+    {
+      "id": "cmsll7t4r0053dou9bdkxt92u",
+      "slug": "toolots-foreign-trade-zone-41TzbN",
+      "name": "Toolots Foreign Trade Zone",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "17783 Indian Street",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "5626126399"
+    },
+    {
+      "id": "cmsll7t5l0054dou9odf2y5ee",
+      "slug": "trinidad-safety-construction-OmL28d",
+      "name": "Trinidad Safety Construction",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "13110 Pan Am Blvd.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9513220963"
+    },
+    {
+      "id": "cmsll7t6g0055dou97hsqhjlz",
+      "slug": "truecare-yTDUn0",
+      "name": "TrueCare",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23119 Cottonwood Ave.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "7606884905"
+    },
+    {
+      "id": "cmsll7t7a0056dou9x47j3bbr",
+      "slug": "tucker-s-tax-service-CtJhTJ",
+      "name": "Tucker's Tax Service",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "24104 Sunnymead Blvd., Suite A",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9519245421"
+    },
+    {
+      "id": "cmsll7t8z0058dou9vddsbru8",
+      "slug": "united-material-handling-inc-u1uUho",
+      "name": "United Material Handling, Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "24665 Nandina Ave.",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9518888910"
+    },
+    {
+      "id": "cmsll7t9t0059dou9devu37lu",
+      "slug": "valvoline-4U1fZt",
+      "name": "Valvoline",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "23165 Hemlock",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9512471873"
+    },
+    {
+      "id": "cmsll7tan005adou9c0jhiaf4",
+      "slug": "veterans-of-foreign-wars-alessandro-post-8547-ArCJTZ",
+      "name": "Veterans of Foreign Wars Alessandro Post 8547",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "22616 Alessandro BLVD",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9516567756"
+    },
+    {
+      "id": "cmsll7tbi005bdou9f3hik0qv",
+      "slug": "via-del-lago-apartment-homes-hoQ2HM",
+      "name": "Via Del Lago Apartment Homes",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "15551 Via Del Lago",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "7145859319"
+    },
+    {
+      "id": "cmsll7tcc005cdou9gjgkxnci",
+      "slug": "vip-healthcare-services-llc-dba-verity-healthcare-services-l-v1D3b0",
+      "name": "VIP Healthcare Services LLC dba Verity Healthcare Services LLC",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "12125 Day street",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9515814922"
+    },
+    {
+      "id": "cmsll7te0005edou974egogzj",
+      "slug": "waste-management-RVmwiR",
+      "name": "Waste Management",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92551",
+      "newAddress": "17700 Indian Avenue",
+      "newCity": "Moreno Valley",
+      "newZip": "92551",
+      "newPhone": "9512805462"
+    },
+    {
+      "id": "cmsll7tew005fdou9wr0zx0pk",
+      "slug": "william-j-saylor-photography-DZ8uUV",
+      "name": "William J Saylor Photography",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92555",
+      "newAddress": "26350 Camino Largo",
+      "newCity": "Moreno Valley",
+      "newZip": "92555",
+      "newPhone": "9498363856"
+    },
+    {
+      "id": "cmsll7tfr005gdou9knl8dihz",
+      "slug": "winchester-associates-inc-qoAE0F",
+      "name": "Winchester Associates, Inc.",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "23640 Tower St.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9519245425"
+    },
+    {
+      "id": "cmsll7tgm005hdou93mg7hlfg",
+      "slug": "woodspring-suites-bg9SV1",
+      "name": "WoodSpring Suites",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92557",
+      "newAddress": "24455 Hemlock Avenue",
+      "newCity": "Moreno Valley",
+      "newZip": "92557",
+      "newPhone": "9518428003"
+    },
+    {
+      "id": "cmsll7thf005idou91yy3phuw",
+      "slug": "writers-lane-solutions-U9bUym",
+      "name": "Writers Lane Solutions",
+      "oldAddress": "Address pending verification",
+      "oldZip": "92553",
+      "newAddress": "13207 Yellowwood St.",
+      "newCity": "Moreno Valley",
+      "newZip": "92553",
+      "newPhone": "9515670211"
+    }
+  ],
+  "skipped": [
+    {
+      "name": "Country Kitchen",
+      "reason": "address already real"
+    },
+    {
+      "name": "Moss Bros. Auto Group",
+      "reason": "address already real"
+    },
+    {
+      "name": "Pedder Hyundai of Moreno Valley",
+      "reason": "address already real"
+    },
+    {
+      "name": "Charmer's Fresh Burgers",
+      "reason": "address already real"
+    },
+    {
+      "name": "Moreno General Services Inc.",
+      "reason": "address already real"
+    },
+    {
+      "name": "R & R Breakfast Spot",
+      "reason": "address already real"
+    },
+    {
+      "name": "Provident Bank",
+      "reason": "address already real"
+    },
+    {
+      "name": "Moreno Valley Animal Hospital",
+      "reason": "address already real"
+    },
+    {
+      "name": "Moreno Valley Mall",
+      "reason": "address already real"
+    },
+    {
+      "name": "Tractor Supply Co.",
+      "reason": "address already real"
+    },
+    {
+      "name": "Chiquito Picoso Kitchen",
+      "reason": "address already real"
+    },
+    {
+      "name": "Ayres Hotel & Spa Moreno Valley",
+      "reason": "address already real"
+    },
+    {
+      "name": "Black Bear Diner Moreno Valley",
+      "reason": "address already real"
+    },
+    {
+      "name": "Moreno Valley Plaza",
+      "reason": "address already real"
+    },
+    {
+      "name": "Portillo's Moreno Valley",
+      "reason": "address already real"
+    },
+    {
+      "name": "Dough Bowl Pizza",
+      "reason": "address already real"
+    },
+    {
+      "name": "Moreno Valley Unified School District",
+      "reason": "address already real"
+    },
+    {
+      "name": "Sola Salons",
+      "reason": "address already real"
+    },
+    {
+      "name": "Menke Real Estate & Mortgage",
+      "reason": "address already real"
+    },
+    {
+      "name": "Radiant Life Church",
+      "reason": "address already real"
+    }
+  ],
+  "noMatch": [
+    {
+      "name": "Brooke Blake Mobile Notary",
+      "currentAddress": "Address pending verification"
+    },
+    {
+      "name": "Heart 2 Heart 4 You",
+      "currentAddress": "Address pending verification"
+    },
+    {
+      "name": "Rados Properties",
+      "currentAddress": "Address pending verification"
+    },
+    {
+      "name": "Revise Cost Strategies LLC",
+      "currentAddress": "Address pending verification"
+    }
+  ]
+}

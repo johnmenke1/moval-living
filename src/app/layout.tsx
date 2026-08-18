@@ -15,6 +15,11 @@ const fraunces = Fraunces({
   axes: ['opsz'],
 })
 
+// The root tree includes NextAuth's request-aware SessionProvider. Keeping
+// the root layout dynamic prevents Next.js 16 from evaluating metadata and
+// internal error boundaries outside a request work store during build.
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.moval.living'),
   title: {

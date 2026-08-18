@@ -1,5 +1,9 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
+
+// This route consumes a one-time claim token and depends on the current
+// authenticated session. It must never be prerendered at build time.
+export const dynamic = 'force-dynamic'
 import { prisma } from '@/lib/prisma'
 import { getAutoApprovedClaimData, isClaimValid } from '@/lib/claim-policy'
 

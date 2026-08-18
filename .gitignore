@@ -6,6 +6,7 @@ node_modules/
 .env.ghl-temp.txt
 .env.test
 .env.stripe-prices
+.env.prod   # vercel env pull output
 
 # Diagnostic / one-off scratch files
 /check-db.js

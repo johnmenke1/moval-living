@@ -30,6 +30,8 @@ export default function OpenHousesPage() {
   }, [])
 
   useEffect(() => {
+    // Fetch remote listing data when the page mounts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchOpenHouses()
   }, [fetchOpenHouses])
 
@@ -48,22 +50,23 @@ export default function OpenHousesPage() {
   }, [])
 
   return (
-    <div className="bg-slate-50 min-h-screen">
-      {/* Page Header */}
-      <div className="bg-white border-b border-slate-100">
-        <div className="container-max py-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Calendar className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold text-text">Open Houses</h1>
+    <div className="min-h-screen bg-[#eef3f2]">
+      <section className="relative overflow-hidden bg-secondary text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_86%_18%,rgba(201,120,109,0.34),transparent_32%),linear-gradient(120deg,rgba(0,122,127,0.35),transparent_58%)]" />
+        <div className="relative container-max py-12 sm:py-14">
+          <div className="flex items-start gap-4">
+            <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/15"><Calendar className="h-6 w-6" /></div>
+            <div>
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-accent">Tour the neighborhood</p>
+              <h1 className="text-4xl font-bold leading-none sm:text-5xl">Open houses in MoVal.</h1>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-white/75 sm:text-lg">See what is open this week, explore the map, and find a home that feels right in person.</p>
+            </div>
           </div>
-          <p className="text-text-secondary ml-11">
-            Upcoming open house dates in Moreno Valley, CA — powered by CRMLS.
-          </p>
         </div>
-      </div>
+      </section>
 
       {/* Map — full width, above the listings */}
-      <div className="container-max py-6">
+      <div className="container-max py-7">
         {loading ? (
           <div className="w-full h-[420px] bg-slate-100 animate-pulse rounded-xl flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -90,7 +93,7 @@ export default function OpenHousesPage() {
             </p>
           </div>
         ) : (
-          <div className="h-[420px] rounded-xl overflow-hidden shadow-sm">
+          <div className="h-[420px] overflow-hidden rounded-2xl border-4 border-white shadow-xl shadow-secondary/10">
             <OpenHouseMapWrapper
               listings={listings}
               highlightedKey={highlightedKey}
@@ -104,7 +107,7 @@ export default function OpenHousesPage() {
         {/* Count */}
         {!loading && !error && listings.length > 0 && (
           <div className="flex items-center gap-2 mb-6">
-            <h2 className="text-xl font-semibold text-text">
+            <h2 className="text-2xl font-bold text-text">
               {listings.length} Listing{listings.length !== 1 ? 's' : ''} with Open Houses
             </h2>
           </div>
@@ -127,16 +130,6 @@ export default function OpenHousesPage() {
         )}
 
         {/* Error */}
-        {error && !loading && (
-          <div className="text-center py-12">
-            <p className="text-error font-medium mb-2">Failed to load open houses</p>
-            <p className="text-text-secondary text-sm mb-4">{error}</p>
-            <button onClick={fetchOpenHouses} className="btn-outline text-sm">
-              Try Again
-            </button>
-          </div>
-        )}
-
         {/* Grid */}
         {!loading && !error && listings.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

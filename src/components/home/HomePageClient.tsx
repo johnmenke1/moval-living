@@ -29,12 +29,13 @@ import {
   HelpingHand,
   Truck,
   Drama,
+  Calendar as CalendarIcon,
   type LucideIcon,
 } from 'lucide-react'
 import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
+import { EventsCallout, type UpcomingEvent } from '@/components/home/EventsCallout'
 import LiveActivityTicker from '@/components/home/LiveActivityTicker'
-import { Calendar } from 'lucide-react'
 
 // Constrained to four brand-adjacent hues (teal, navy, terracotta, warm
 // gold) instead of 22 arbitrary rainbow colors — the grid reads as one
@@ -123,9 +124,10 @@ interface HomePageClientProps {
     heroImageUrl: string | null
     publishedAt: string | null
   }>
+  upcomingEvents: UpcomingEvent[]
 }
 
-export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifePosts }: HomePageClientProps) {
+export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifePosts, upcomingEvents }: HomePageClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
 
@@ -140,12 +142,25 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
   return (
     <div className="flex flex-col">
       {/* ─── HERO ─── */}
-      {/* Brand palette only: deep navy → teal, terracotta glow, no off-brand
-          blues. The headline leads with the community voice — the directory
-          is the utility underneath it, not the identity. */}
-      <section className="relative bg-gradient-to-br from-secondary via-[#01566d] to-primary overflow-hidden">
+      {/* Layered stack: cityscape photo underneath, dark+brand gradient on top
+          (keeps the white headline readable and preserves the brand palette),
+          then the two decorative blur blobs as the brand's signature accent.
+          The photo is the LCP element — eager-loaded with high fetch priority. */}
+      <section className="relative overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://zcbtyeiwows1rc8s.public.blob.vercel-storage.com/home/home-hero-1786913867250.jpg"
+          alt="Aerial view of Moreno Valley with Box Springs Mountain in the distance"
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+        />
+        {/* Dark overlay for headline readability + brand teal tint */}
+        <div className="absolute inset-0 bg-gradient-to-br from-secondary/85 via-[#01566d]/80 to-primary/75" />
+        {/* Brand accent blobs (kept at lower opacity so the photo shows through) */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent/20 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent/15 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
 
         <div className="container-max relative py-20 md:py-28">
           <div className="max-w-3xl mx-auto text-center">
@@ -218,10 +233,18 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
       {/* ─── LIVE ACTIVITY TICKER ─── */}
       {/* "MoVal right now" — shows recent claims, upgrades, reviews, and
           nominations. Lazy-fetches from /api/public/live-activity on the
-          client, auto-rotates every 7s. Placement: between hero and the
-          Featured grid so it's visible on first paint but doesn't compete
-          with the search bar. */}
+          client, auto-rotates every 7s. Sits directly below the Hero as
+          ambient social proof before the events carousel pulls focus. */}
       <LiveActivityTicker />
+
+      {/* ─── EVENTS CALLOUT — promotes /events from the homepage ─── */}
+      {/* Carousel of the next 4 imminent events (HERO + HONORABLE_MENTION
+          tier only — curated, not a calendar dump). Sits below the live
+          activity ticker so visitors see real-time community signal first,
+          then get pulled into the upcoming-events carousel. Window is today
+          + 30 days so regional shows (RMA, Fox) booked weeks out are still
+          discoverable. Section self-hides when empty. */}
+      <EventsCallout events={upcomingEvents} />
 
       {/* ─── FEATURED & BEST OF BUSINESSES ─── */}
       <section className="section bg-white">
@@ -299,7 +322,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
                     )}
                     {post.publishedAt && (
                       <div className="flex items-center gap-1 text-xs text-text-secondary">
-                        <Calendar className="w-3 h-3" />
+                        <CalendarIcon className="w-3 h-3" />
                         {new Date(post.publishedAt).toLocaleDateString(undefined, {
                           year: 'numeric',
                           month: 'long',

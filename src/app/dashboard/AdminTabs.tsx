@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, MessageSquare, Trophy, Inbox, Users, FileText, Activity, Shield, Calendar } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Building2, MessageSquare, Trophy, Inbox, Users, FileText, Activity, Shield, Calendar, Layers } from 'lucide-react'
 import BusinessesModeration from '@/components/admin/BusinessesModeration'
 import SocialPostsModeration from '@/components/admin/SocialPostsModeration'
 import BestOfAdmin from '@/components/admin/BestOfAdmin'
@@ -9,6 +11,7 @@ import BestOfNominationsPanel from '@/components/admin/BestOfNominationsPanel'
 import GuestAuthorsPanel from '@/components/admin/GuestAuthorsPanel'
 import GuestPostsPanel from '@/components/admin/GuestPostsPanel'
 import EventSubmissionsPanel from '@/components/admin/EventSubmissionsPanel'
+import EventsAdminPanel from '@/components/admin/EventsAdminPanel'
 import DiagnosticsPanel from '@/components/admin/DiagnosticsPanel'
 import AuditsPanel from '@/components/admin/AuditsPanel'
 import { clsx } from 'clsx'
@@ -29,17 +32,20 @@ interface AdminTabsProps {
   approvedBusinesses: any[]
   eventSubmissions: any[]
   eventsForDuplicate: any[]
+  events: any[]
 }
 
-type TabKey = 'businesses' | 'social' | 'bestof' | 'bestofnominations' | 'guestauthors' | 'guestposts' | 'events' | 'audits' | 'diagnostics'
+type TabKey = 'businesses' | 'social' | 'events' | 'events-admin' | 'bestof' | 'bestofnominations' | 'guestauthors' | 'guestposts' | 'audits' | 'diagnostics'
 
 const TABS: { key: TabKey; label: string; icon: typeof Building2; count?: (p: AdminTabsProps) => number }[] = [
   { key: 'businesses', label: 'Businesses', icon: Building2,
     count: (p) => p.businesses.filter((b: any) => b.status === 'PENDING').length },
   { key: 'social', label: 'Social Posts', icon: MessageSquare,
     count: (p) => p.posts.filter((x: any) => x.status === 'PENDING').length },
-  { key: 'events', label: 'Events', icon: Calendar,
+  { key: 'events', label: 'Event Submissions', icon: Calendar,
     count: (p) => p.eventSubmissions.filter((x: any) => x.status === 'PENDING').length },
+  { key: 'events-admin', label: 'Live Events', icon: Layers,
+    count: (p) => p.events.length },
   { key: 'bestof', label: 'Best Of', icon: Trophy,
     count: (p) => p.bestOfCategories.length },
   { key: 'bestofnominations', label: 'Nominations', icon: Inbox,
@@ -52,10 +58,22 @@ const TABS: { key: TabKey; label: string; icon: typeof Building2; count?: (p: Ad
   { key: 'diagnostics', label: 'Diagnostics', icon: Activity },
 ]
 
-export default function AdminTabs({ businesses, posts, bestOfCategories, bestOfNominations, bestOfNominationCategories, guestAuthors, guestPosts, approvedBusinesses, eventSubmissions, eventsForDuplicate }: AdminTabsProps) {
-  const [active, setActive] = useState<TabKey>('businesses')
+export default function AdminTabs({ businesses, posts, bestOfCategories, bestOfNominations, bestOfNominationCategories, guestAuthors, guestPosts, approvedBusinesses, eventSubmissions, eventsForDuplicate, events }: AdminTabsProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const tabFromUrl = searchParams?.get('tab') as TabKey | null
+  const [active, setActive] = useState<TabKey>(
+    tabFromUrl && TABS.some((t) => t.key === tabFromUrl) ? tabFromUrl : 'businesses'
+  )
 
-  const props = { businesses, posts, bestOfCategories, bestOfNominations, bestOfNominationCategories, guestAuthors, guestPosts, approvedBusinesses, eventSubmissions, eventsForDuplicate }
+  const handleTabChange = (key: TabKey) => {
+    setActive(key)
+    const params = new URLSearchParams(searchParams?.toString() ?? '')
+    params.set('tab', key)
+    router.replace(`/dashboard?${params.toString()}`, { scroll: false })
+  }
+
+  const props = { businesses, posts, bestOfCategories, bestOfNominations, bestOfNominationCategories, guestAuthors, guestPosts, approvedBusinesses, eventSubmissions, eventsForDuplicate, events }
 
   return (
     <div>
@@ -70,7 +88,7 @@ export default function AdminTabs({ businesses, posts, bestOfCategories, bestOfN
                 key={key}
                 role="tab"
                 aria-selected={isActive}
-                onClick={() => setActive(key)}
+                onClick={() => handleTabChange(key)}
                 className={clsx(
                   'inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors',
                   isActive
@@ -110,6 +128,7 @@ export default function AdminTabs({ businesses, posts, bestOfCategories, bestOfN
         {active === 'guestauthors' && <GuestAuthorsPanel initialAuthors={guestAuthors} approvedBusinesses={approvedBusinesses} />}
         {active === 'guestposts' && <GuestPostsPanel initialPosts={guestPosts} authors={guestAuthors.map((a: any) => ({ id: a.id, displayName: a.displayName, slug: a.slug }))} />}
         {active === 'events' && <EventSubmissionsPanel initialSubmissions={eventSubmissions} existingEvents={eventsForDuplicate} />}
+        {active === 'events-admin' && <EventsAdminPanel events={events} />}
         {active === 'audits' && <AuditsPanel />}
         {active === 'diagnostics' && <DiagnosticsPanel />}
       </div>

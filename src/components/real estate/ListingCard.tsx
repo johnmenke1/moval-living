@@ -76,7 +76,7 @@ export function ListingCard({ listing, href }: ListingCardProps) {
   }
 
   const card = (
-    <div className="card overflow-hidden group">
+    <div className="card overflow-hidden rounded-2xl border-slate-200/80 shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl">
       {/* Image */}
       <div className="relative w-full h-52 overflow-hidden bg-slate-100">
         <img
@@ -88,6 +88,7 @@ export function ListingCard({ listing, href }: ListingCardProps) {
             target.src = PLACEHOLDER_SVG
           }}
         />
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/35 to-transparent" />
         <div className="absolute top-3 left-3">
           <span className={cn('text-xs font-bold px-2.5 py-1 rounded-full', statusInfo.className)}>
             {statusInfo.label}
@@ -108,7 +109,7 @@ export function ListingCard({ listing, href }: ListingCardProps) {
       {/* Content */}
       <div className="p-5">
         {/* Price */}
-        <div className="text-2xl font-bold text-text mb-1">
+        <div className="mb-1 text-2xl font-bold text-primary">
           {formatPrice(listing.listPrice)}
         </div>
 

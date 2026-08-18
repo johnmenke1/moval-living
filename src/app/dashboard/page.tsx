@@ -52,6 +52,7 @@ export default async function DashboardPage() {
       guestPosts,
       eventSubmissions,
       eventsForDuplicate,
+      events,
     ] = await Promise.all([
       prisma.socialPost.findMany({
         include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
@@ -136,6 +137,22 @@ export default async function DashboardPage() {
         orderBy: { startsAt: 'desc' },
         select: { id: true, slug: true, title: true, startsAt: true, venueName: true },
       }),
+      // All live events for the new Live Events admin tab (full table with edit/view).
+      // Sorted soonest-first so upcoming events surface at the top of the panel.
+      prisma.event.findMany({
+        orderBy: { startsAt: 'asc' },
+        select: {
+          id: true,
+          slug: true,
+          ticketsSlug: true,
+          title: true,
+          startsAt: true,
+          venueName: true,
+          tier: true,
+          category: true,
+          business: { select: { id: true, name: true, slug: true } },
+        },
+      }),
     ])
     // Map subCategories to the shape BestOfAdmin expects ({ id, name, nomineeCount })
     const bestOfCategoriesForAdmin = bestOfCategories.map(c => ({
@@ -195,6 +212,11 @@ export default async function DashboardPage() {
                 ...e,
                 startsAt: e.startsAt.toISOString(),
               }))}
+              events={events.map((e) => ({
+                ...e,
+                startsAt: e.startsAt.toISOString(),
+              }))}
+
             />
           </div>
         </div>

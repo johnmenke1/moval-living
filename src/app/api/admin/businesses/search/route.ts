@@ -20,7 +20,10 @@ export async function GET(req: NextRequest) {
     select: {
       id: true,
       name: true,
+      slug: true,
+      tagline: true,
       address: true,
+      city: true,
       googleRating: true,
       googleReviewCount: true,
       bestOfTags: true,

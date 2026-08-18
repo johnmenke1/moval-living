@@ -1,38 +1,51 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
-import { Calendar, MapPin, ExternalLink, ArrowRight, Sparkles, Award, Send, Ticket, Clock } from 'lucide-react'
+import { Calendar, MapPin, ExternalLink, ArrowRight, Sparkles, Award, Send, Building2, Ticket, CheckCircle } from 'lucide-react'
+import CategoryFilter from './CategoryFilter'
+import LanguageFilter from './LanguageFilter'
+import SearchBar from './SearchBar'
+import MonthNav from './MonthNav'
+import type { Metadata } from 'next'
 
-export const dynamic = 'force-dynamic'
+export const metadata: Metadata = {
+  title: 'Moreno Valley Community Events Calendar',
+  description: 'Find concerts, school sports, fundraisers, festivals, and other community events in Moreno Valley and nearby Inland Empire venues.',
+  alternates: { canonical: 'https://www.moval.living/events' },
+  openGraph: {
+    title: 'Moreno Valley Community Events Calendar',
+    description: 'What is happening in and around Moreno Valley, curated by the moval.living team.',
+    url: 'https://www.moval.living/events',
+    type: 'website',
+  },
+}
+
 export const revalidate = 3600 // 1 hour
 
 interface PageProps {
-  searchParams: Promise<{ view?: string; cat?: string; month?: string }>
+  searchParams: Promise<{ view?: string; month?: string; cat?: string; lang?: string; q?: string }>
 }
 
 type View = 'today' | 'weekend' | 'week' | 'month'
-type EventCategory = 'SPORTS' | 'HS_SPORTS' | 'COLLEGE_SPORTS' | 'LEAGUE_SPORTS' | 'MUSIC' | 'EDUCATIONAL' | 'FUNDRAISERS' | 'COMMUNITY' | 'ARTS' | 'FAMILY' | 'HOLIDAY_CELEBRATIONS' | 'FOOD_DRINK' | 'POLITICAL'
-
-const CATEGORY_LABELS: Record<EventCategory, string> = {
-  SPORTS: 'Sports',
-  HS_SPORTS: 'HS Sports',
-  COLLEGE_SPORTS: 'College Sports',
-  LEAGUE_SPORTS: 'League Sports',
-  MUSIC: 'Music',
-  EDUCATIONAL: 'Educational',
-  FUNDRAISERS: 'Fundraisers',
-  COMMUNITY: 'Community',
-  ARTS: 'Arts',
-  FAMILY: 'Family',
-  HOLIDAY_CELEBRATIONS: 'Holiday',
-  FOOD_DRINK: 'Food & Drink',
-  POLITICAL: 'Political',
-}
 
 function startOfDayUTC(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
 }
 
-function viewRange(view: View, now: Date, monthParam?: string): { start: Date; end: Date; label: string } {
+function startOfMonthUTC(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1))
+}
+
+function endOfMonthUTC(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1))
+}
+
+/** Returns the {start, end, label} range for the given view. */
+function viewRange(
+  view: View,
+  now: Date,
+  monthParam?: string,
+): { start: Date; end: Date; label: string } {
   const today = startOfDayUTC(now)
   switch (view) {
     case 'today':
@@ -42,112 +55,107 @@ function viewRange(view: View, now: Date, monthParam?: string): { start: Date; e
         label: 'Today',
       }
     case 'weekend': {
-      // Fri-Sun: find the next Friday at-or-after today
-      const dayOfWeek = today.getUTCDay() // 0=Sun, 5=Fri, 6=Sat
-      const daysUntilFriday = dayOfWeek <= 5 ? 5 - dayOfWeek : 6 // wrap-around
+      const dayOfWeek = today.getUTCDay()
+      const daysUntilFriday = dayOfWeek <= 5 ? 5 - dayOfWeek : 6
       const friday = new Date(today.getTime() + daysUntilFriday * 24 * 60 * 60 * 1000)
       const monday = new Date(friday.getTime() + 3 * 24 * 60 * 60 * 1000)
       return { start: friday, end: monday, label: 'This Weekend' }
     }
     case 'week': {
-      const sunday = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-      return { start: today, end: sunday, label: 'This Week' }
+      const inAWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+      return { start: today, end: inAWeek, label: 'This Week' }
     }
     case 'month':
     default: {
-      // Parse month param (YYYY-MM) or default to current month
-      let year: number, month: number
-      if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
-        const [y, m] = monthParam.split('-').map(Number)
-        year = y
-        month = m - 1 // JS months are 0-indexed
-      } else {
-        year = today.getUTCFullYear()
-        month = today.getUTCMonth()
-      }
-      const start = new Date(Date.UTC(year, month, 1))
-      const end = new Date(Date.UTC(year, month + 1, 1))
-      const monthLabel = start.toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'America/Los_Angeles' })
-      return { start, end, label: monthLabel }
+      // Default to the current month (UTC) unless monthParam specifies otherwise.
+      const baseDate = parseMonthParam(monthParam) ?? today
+      const start = startOfMonthUTC(baseDate)
+      const end = endOfMonthUTC(baseDate)
+      return { start, end, label: formatMonthLabel(baseDate) }
     }
   }
 }
 
-/** Build a YYYY-MM string for the month containing `d`. */
-function monthParamFor(d: Date): string {
-  const y = d.getUTCFullYear()
-  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
-  return `${y}-${m}`
+function parseMonthParam(s?: string): Date | null {
+  if (!s) return null
+  const m = s.match(/^(\d{4})-(\d{2})$/)
+  if (!m) return null
+  const year = parseInt(m[1], 10)
+  const month = parseInt(m[2], 10) - 1
+  if (isNaN(year) || isNaN(month) || month < 0 || month > 11) return null
+  return new Date(Date.UTC(year, month, 1))
 }
 
-/** Shift a YYYY-MM string by `delta` months (-1 for prev, +1 for next). */
-function shiftMonth(monthParam: string, delta: number): string {
-  const [y, m] = monthParam.split('-').map(Number)
-  const d = new Date(Date.UTC(y, m - 1 + delta, 1))
-  return monthParamFor(d)
+function formatMonthLabel(d: Date): string {
+  return d.toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
-/** Parse `cat` URL param into a validated category list. */
-function parseCategories(cat?: string): EventCategory[] {
-  if (!cat) return []
-  const valid = new Set<string>(Object.keys(CATEGORY_LABELS))
-  return cat.split(',').filter((c) => valid.has(c)) as EventCategory[]
-}
-
-/** Build a clean URL for filter links. */
-function buildHref({
-  view,
-  cat,
-  month,
-}: {
-  view?: View
-  cat?: EventCategory[]
-  month?: string | undefined
-}): string {
-  const params = new URLSearchParams()
-  if (view && view !== 'month') params.set('view', view)
-  if (cat && cat.length > 0) params.set('cat', cat.join(','))
-  if (month) params.set('month', month)
-  const qs = params.toString()
-  return qs ? `/events?${qs}` : '/events'
-}
+const VALID_CATEGORIES = new Set([
+  'HS_SPORTS',
+  'COLLEGE_SPORTS',
+  'LEAGUE_SPORTS',
+  'POLITICAL',
+  'MUSIC',
+  'ARTS',
+  'EDUCATIONAL',
+  'FAMILY',
+  'FOOD_DRINK',
+  'COMMUNITY',
+  'FUNDRAISERS',
+  'HOLIDAY_CELEBRATIONS',
+])
 
 export default async function EventsPage({ searchParams }: PageProps) {
-  const { view: rawView, cat: rawCat, month: rawMonth } = await searchParams
+  const { view: rawView, month: rawMonth, cat: rawCat, lang: rawLang, q: rawQ } = await searchParams
+  const langEs = rawLang === 'es'
+  const searchQuery = (rawQ ?? '').trim()
   const view: View = (['today', 'weekend', 'week', 'month'] as View[]).includes(
-    rawView as View
+    rawView as View,
   )
     ? (rawView as View)
     : 'month'
 
+  // For month view, use the URL month param; otherwise default to "today's month"
+  // so the MonthNav shows the right initial state.
   const now = new Date()
   const range = viewRange(view, now, rawMonth)
+  const navMonth = view === 'month'
+    ? (parseMonthParam(rawMonth) ?? startOfMonthUTC(now))
+    : startOfMonthUTC(now)
 
-  // Build the where clause. All approved events within the date range,
-  // optionally narrowed by category.
-  const selectedCategories = parseCategories(rawCat)
+  // Parse categories
+  const selectedCats = (rawCat ?? '')
+    .split(',')
+    .map((s) => s.trim().toUpperCase())
+    .filter((c) => VALID_CATEGORIES.has(c))
+
+  // Build the where clause. All approved events; category filter optional.
+  // When a text search is active (?q=...), we broaden the date window to
+  // today + 90 days so searchers see relevant upcoming events regardless
+  // of which view tab they're on ("Ravens football" should surface the
+  // next Ravens game, not be hidden by the Today/Weekend/This Week filters).
+  const searchDateEnd = searchQuery
+    ? new Date(now.getTime() + 90 * 86400000)
+    : range.end
   const where: any = {
-    startsAt: { gte: range.start, lt: range.end },
+    startsAt: { gte: searchQuery ? startOfDayUTC(now) : range.start, lt: searchDateEnd },
   }
-  if (selectedCategories.length > 0) {
-    where.category = { in: selectedCategories }
+  if (selectedCats.length > 0) {
+    where.category = { in: selectedCats }
   }
-
-  // Counts per category for chip badges (independent of selected filter).
-  const categoryCounts: Record<EventCategory, number> = {
-    SPORTS: 0, HS_SPORTS: 0, COLLEGE_SPORTS: 0, LEAGUE_SPORTS: 0,
-    MUSIC: 0, EDUCATIONAL: 0, FUNDRAISERS: 0,
-    COMMUNITY: 0, ARTS: 0, FAMILY: 0,
-    HOLIDAY_CELEBRATIONS: 0, FOOD_DRINK: 0, POLITICAL: 0,
+  if (langEs) {
+    where.esEnEspanol = true
   }
-  const allInRange = await prisma.event.findMany({
-    where: { startsAt: { gte: range.start, lt: range.end } },
-    select: { category: true },
-  })
-  for (const e of allInRange) {
-    if (e.category && e.category in categoryCounts) {
-      categoryCounts[e.category as EventCategory]++
-    }
+  if (searchQuery) {
+    // Case-insensitive substring match across the user-visible text fields.
+    // Same OR-shape as /search page so behavior is consistent end-to-end.
+    where.OR = [
+      { title: { contains: searchQuery, mode: 'insensitive' } },
+      { description: { contains: searchQuery, mode: 'insensitive' } },
+      { venueName: { contains: searchQuery, mode: 'insensitive' } },
+      { address: { contains: searchQuery, mode: 'insensitive' } },
+      { city: { contains: searchQuery, mode: 'insensitive' } },
+    ]
   }
 
   const events = await prisma.event.findMany({
@@ -155,137 +163,139 @@ export default async function EventsPage({ searchParams }: PageProps) {
     orderBy: [{ tier: 'asc' }, { startsAt: 'asc' }],
   })
 
-  const hero = events.find((e) => e.tier === 'HERO')
-  const honorable = events.filter((e) => e.tier === 'HONORABLE_MENTION')
-  const standard = events.filter((e) => e.tier === 'STANDARD')
+  const heroInRange = events.find((e) => e.tier === 'HERO')
 
-  // Hero roll-forward: if no HERO event in the visible range, find the
-  // next future HERO event (regardless of category filter) and surface it
-  // with a "next month" badge so the section always has something to show
-  // when curation exists somewhere in the calendar.
-  let heroRollForward: typeof events[number] | null = null
-  if (!hero) {
-    const nextHero = await prisma.event.findFirst({
+  // Month view falls back to the NEXT hero event if no hero exists in the
+  // current month. This keeps the section visible across months — e.g. if
+  // September's hero is set up while we're still in August, /events still
+  // shows it at the top. Today/week views stay strict (they mean "now").
+  let heroOverride: typeof events[number] | null = null
+  if (view === 'month' && !heroInRange) {
+    const now = new Date()
+    const fallback = await prisma.event.findFirst({
       where: {
         tier: 'HERO',
-        startsAt: { gte: now },
+        startsAt: { gt: range.end },
       },
       orderBy: { startsAt: 'asc' },
     })
-    heroRollForward = nextHero
+    // Only fall back to a hero that's within 90 days — anything further
+    // out is too speculative to render above the current month.
+    if (fallback && fallback.startsAt.getTime() - now.getTime() < 90 * 86400000) {
+      heroOverride = fallback
+    }
   }
+
+  const hero = heroInRange ?? heroOverride
+
+  const honorable = events.filter((e) => e.tier === 'HONORABLE_MENTION')
+  const standard = events.filter((e) => e.tier === 'STANDARD')
+
+  const isMonthView = view === 'month'
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="container-max py-10">
-          <div className="flex items-center gap-3 mb-3">
-            <Calendar className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold text-text">Community Events</h1>
+      {/* Head section — single cohesive card with brand wash + dotted calendar overlay.
+          Replaces 3 stacked 'bg-white border-b' slabs. Sticky so filters follow scroll. */}
+      <div className="sticky top-0 z-10">
+        <div className="container-max pt-6 pb-2">
+          <div
+            className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm bg-gradient-to-br from-secondary/8 via-white to-primary/5"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='1' cy='1' r='1' fill='%23015a6b' fill-opacity='0.10'/></svg>\"), linear-gradient(to bottom right, rgba(1,90,107,0.06), white, rgba(0,122,127,0.04))",
+            }}
+          >
+            <div className="relative px-5 sm:px-8 pt-6 pb-5">
+              {/* Title row */}
+              <div className="flex items-center gap-4 mb-2">
+                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary shrink-0">
+                  <Calendar className="w-7 h-7" />
+                </div>
+                <div className="min-w-0">
+                  {/* Eyebrow — small primary chip that establishes the page's
+                      identity ("Community Calendar") before the title. */}
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider mb-1.5">
+                    <Sparkles className="w-3 h-3" />
+                    Community Calendar
+                  </span>
+                  <h1 className="text-3xl sm:text-4xl font-bold text-text leading-tight">
+                    Community{' '}
+                    <span className="text-primary">Events</span>
+                  </h1>
+                  <p className="text-sm sm:text-base text-text-secondary mt-1 max-w-2xl">
+                    What&apos;s happening in and around Moreno Valley — curated by the
+                    moval.living team.
+                  </p>
+                </div>
+              </div>
+
+              {/* Search bar — case-insensitive text search across title,
+                  description, venue, address, and city. Widens the date
+                  window to today + 90 days while q is active. */}
+              <div className="mt-4">
+                <Suspense fallback={null}>
+                  <SearchBar initialQuery={searchQuery} />
+                </Suspense>
+              </div>
+
+              {/* Filter rows */}
+              <div className="mt-4 space-y-3">
+                {/* View pills — segmented control. Active tab is the only
+                    colored interior so the current view is unmistakable. */}
+                <div className="bg-slate-100/80 rounded-xl p-1 flex gap-1 w-fit max-w-full overflow-x-auto">
+                  {(['today', 'weekend', 'week', 'month'] as View[]).map((v) => {
+                    const isActive = view === v
+                    const href = v === 'month' ? '/events' : `/events?view=${v}`
+                    return (
+                      <Link
+                        key={v}
+                        href={href}
+                        className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
+                          isActive
+                            ? 'bg-primary text-white shadow-sm'
+                            : 'text-text-secondary hover:text-text'
+                        }`}
+                      >
+                        {v === 'today'
+                          ? 'Today'
+                          : v === 'weekend'
+                            ? 'Weekend'
+                            : v === 'week'
+                              ? 'This Week'
+                              : 'Month'}
+                      </Link>
+                    )
+                  })}
+                </div>
+
+                {/* Category chips + language toggle on one row */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-3 justify-between">
+                  <div className="min-w-0 flex-1">
+                    <Suspense fallback={null}>
+                      <CategoryFilter selected={selectedCats} />
+                    </Suspense>
+                  </div>
+                  <Suspense fallback={null}>
+                    <LanguageFilter active={langEs} />
+                  </Suspense>
+                </div>
+              </div>
+            </div>
           </div>
-          <p className="text-text-secondary max-w-2xl">
-            What&apos;s happening in and around Moreno Valley — from local community gatherings
-            to regional shows worth the drive. Curated by the moval.living team.
-          </p>
         </div>
       </div>
 
-      {/* Hero section — always above the filter bar. Shows the featured event
-          for the current view; falls back to the next future HERO with a
-          "next month" badge when none exist in the visible range. */}
-      {(hero || heroRollForward) && (
-        <div className="container-max pt-10">
-          <HeroCard
-            event={(hero ?? heroRollForward)!}
-            rollForward={!hero && !!heroRollForward}
-          />
+      {/* Month nav (only on month view) */}
+      {isMonthView && (
+        <div className="bg-white border-b border-slate-200">
+          <div className="container-max py-4">
+            <Suspense fallback={null}>
+              <MonthNav currentMonth={navMonth} />
+            </Suspense>
+          </div>
         </div>
       )}
-
-      {/* Filters */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 mt-10">
-        <div className="container-max py-4 space-y-3">
-          {/* View tabs + month navigation */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex gap-1 overflow-x-auto">
-              {(['today', 'weekend', 'week', 'month'] as View[]).map((v) => {
-                const isActive = view === v
-                const href = buildHref({ view: v, cat: selectedCategories, month: view === 'month' && v === 'month' ? rawMonth : undefined })
-                return (
-                  <Link
-                    key={v}
-                    href={href}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                      isActive
-                        ? 'bg-primary text-white'
-                        : 'bg-slate-100 text-text-secondary hover:bg-slate-200'
-                    }`}
-                  >
-                    {v === 'today'
-                      ? 'Today'
-                      : v === 'weekend'
-                        ? 'Weekend'
-                        : v === 'week'
-                          ? 'This Week'
-                          : 'This Month'}
-                  </Link>
-                )
-              })}
-            </div>
-
-            {/* Month picker — only visible when view=month */}
-            {view === 'month' && (
-              <div className="flex items-center gap-2">
-                <Link
-                  href={buildHref({ view: 'month', cat: selectedCategories, month: shiftMonth(rawMonth || monthParamFor(now), -1) })}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-text-secondary hover:bg-slate-200 text-sm"
-                  aria-label="Previous month"
-                >
-                  ←
-                </Link>
-                <span className="text-sm font-semibold text-text min-w-[140px] text-center">{range.label}</span>
-                <Link
-                  href={buildHref({ view: 'month', cat: selectedCategories, month: shiftMonth(rawMonth || monthParamFor(now), 1) })}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-text-secondary hover:bg-slate-200 text-sm"
-                  aria-label="Next month"
-                >
-                  →
-                </Link>
-                <Link
-                  href={buildHref({ view: 'month', cat: selectedCategories })}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-text-secondary hover:bg-slate-200 text-xs font-semibold"
-                >
-                  Today
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* Category filter chips */}
-          <div className="flex flex-wrap gap-2">
-            {(Object['entries'](CATEGORY_LABELS) as [EventCategory, string][]).map(([key, label]) => {
-              const isActive = selectedCategories.includes(key)
-              const next = isActive
-                ? selectedCategories.filter((c) => c !== key)
-                : [...selectedCategories, key]
-              return (
-                <Link
-                  key={key}
-                  href={buildHref({ view, cat: next, month: rawMonth })}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors border ${
-                    isActive
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-white text-text-secondary border-slate-200 hover:border-primary/50'
-                  }`}
-                >
-                  {label} ({categoryCounts[key]})
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-      </div>
 
       <div className="container-max py-10">
         {/* Empty state */}
@@ -294,9 +304,17 @@ export default async function EventsPage({ searchParams }: PageProps) {
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Calendar className="w-8 h-8 text-primary" />
             </div>
-            <h2 className="text-xl font-bold text-text mb-2">No events {range.label.toLowerCase()}</h2>
+            <h2 className="text-xl font-bold text-text mb-2">
+              {searchQuery
+                ? `No events matching "${searchQuery}"`
+                : `No events ${range.label.toLowerCase()}${
+                    selectedCats.length > 0 ? ' with selected filters' : ''
+                  }`}
+            </h2>
             <p className="text-text-secondary max-w-md mx-auto mb-6">
-              Know something happening? Submit an event and we&apos;ll add it to the calendar after a quick review.
+              {searchQuery
+                ? 'Try a different search term, clear the search, or browse the calendar.'
+                : 'Know something happening? Submit an event and we\u2019ll add it to the calendar after a quick review.'}
             </p>
             <Link
               href="/submit/event"
@@ -310,9 +328,10 @@ export default async function EventsPage({ searchParams }: PageProps) {
         {/* Bento grid */}
         {events.length > 0 && (
           <div className="space-y-6">
-            {/* Honorable mentions — 2-3 cards in a row. Skipped when the hero
-                is the visible-range one because that event is already shown
-                at the top; roll-forward heroes are listed below too. */}
+            {/* Hero — full width */}
+            {hero && <HeroSection event={hero} />}
+
+            {/* Honorable mentions — 2-3 cards in a row */}
             {honorable.length > 0 && (
               <section>
                 <h2 className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-3 flex items-center gap-2">
@@ -368,99 +387,138 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
 // ── Card components ─────────────────────────────────────────────────────
 
-function HeroCard({ event, rollForward }: { event: any; rollForward?: boolean }) {
+// When an event is linked to a Business, the card clicks through to the
+// business profile instead of the external source URL. Returning a plain
+// href string keeps the Link wrapper in each card clean.
+function cardHref(event: any): { href: string; external: boolean } {
+  if (event.business?.slug) {
+    return { href: `/business/${event.business.slug}`, external: false }
+  }
+  return { href: event.sourceUrl ?? '#', external: !!event.sourceUrl }
+}
+
+// Full-bleed hero section for the tier=HERO event. Image fills the
+// background with a dark gradient overlay so text stays legible on any
+// photo. CTA button is wired to ticketUrl when present; free events get
+// an RSVP-style copy change. Linked-business events keep the Hosted by
+// badge.
+function HeroSection({ event }: { event: any }) {
   const dateLabel = formatEventDate(event.startsAt)
   const venue = event.venueName ?? 'Venue TBD'
+  const target = cardHref(event)
 
-  // CTA logic: ticketUrl → "Get Tickets", sourceUrl → "View Details", else no button
-  const ctaUrl = event.ticketUrl ?? event.sourceUrl ?? null
-  const ctaLabel = event.ticketUrl
-    ? 'Get Tickets'
-    : event.sourceUrl
-      ? 'View Details'
-      : null
-  const ctaIcon = event.ticketUrl ? Ticket : ExternalLink
+  // Primary CTA: ticket link (external, opens new tab).
+  // Priority: /tickets/<ticketsSlug> (vanity 302) → ticketUrl → event detail page.
+  // The vanity URL wins when set so admins can remap a broken ticketUrl
+  // by editing ticketsSlug without breaking existing shares.
+  const primaryHref = event.ticketsSlug
+    ? `/tickets/${event.ticketsSlug}`
+    : event.ticketUrl ?? target.href
+  const primaryExternal = !!(event.ticketUrl || event.ticketsSlug) ? true : target.external
+  const primaryLabel = event.ticketsSlug || event.ticketUrl
+    ? event.isFree ? 'RSVP — Free' : 'Get tickets'
+    : 'Event details'
+  const PrimaryIcon = (event.ticketsSlug || event.ticketUrl) ? (event.isFree ? CheckCircle : Ticket) : ArrowRight
 
   return (
-    <section
-      aria-label="Featured event"
-      className="relative bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm"
-    >
-      {/* Background image — fills the card with a tinted gradient fallback */}
-      <div className="relative aspect-[16/9] md:aspect-[21/9] bg-gradient-to-br from-primary/30 via-primary/10 to-secondary/20">
+    <section className="relative rounded-2xl overflow-hidden bg-slate-900 text-white shadow-lg">
+      {/* Background image */}
+      <div className="absolute inset-0">
         {event.heroImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={event.heroImageUrl}
-            alt={event.title}
-            className="absolute inset-0 w-full h-full object-cover"
+            alt=""
+            aria-hidden
+            className="w-full h-full object-cover"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Calendar className="w-24 h-24 text-primary/30" />
+          <div className="w-full h-full bg-gradient-to-br from-primary/40 to-secondary/40" />
+        )}
+        {/* Dark overlay so text is legible on any image */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/55 to-slate-950/25" />
+      </div>
+
+      {/* Content */}
+      <div className="relative px-6 py-10 sm:px-10 sm:py-14 lg:px-14 lg:py-20 flex flex-col justify-end min-h-[420px] sm:min-h-[480px] lg:min-h-[560px]">
+        {/* Top-left chip row: badge + category */}
+        <div className="flex flex-wrap items-center gap-2 mb-auto">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs font-bold uppercase tracking-wider shadow-lg">
+            <Award className="w-3.5 h-3.5" /> This Week&apos;s Pick
+          </span>
+          {event.category && (
+            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/15 backdrop-blur text-white text-xs font-semibold uppercase tracking-wider">
+              {event.category.replace(/_/g, ' ')}
+            </span>
+          )}
+          {event.esEnEspanol && (
+            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/15 backdrop-blur text-white text-xs font-semibold uppercase tracking-wider">
+              En Español
+            </span>
+          )}
+        </div>
+
+        {/* Date pill */}
+        <div className="flex items-center gap-2 mb-3">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur text-white text-xs font-semibold">
+            <Calendar className="w-3.5 h-3.5" />
+            {dateLabel}
+          </span>
+        </div>
+
+        {/* Headline */}
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-3 max-w-3xl">
+          {event.title}
+        </h2>
+
+        {/* Venue */}
+        <div className="flex items-center gap-2 text-white/85 mb-3">
+          <MapPin className="w-4 h-4 shrink-0" />
+          <span className="text-sm">{venue}</span>
+          {event.city && event.city !== 'Moreno Valley' && (
+            <span className="text-sm text-white/85">· {event.city}</span>
+          )}
+        </div>
+
+        {/* Linked business badge */}
+        {event.business && (
+          <div className="mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur text-white text-xs font-semibold">
+              <Building2 className="w-3.5 h-3.5" />
+              Hosted by {event.business.name}
+            </span>
           </div>
         )}
 
-        {/* Top-left badge */}
-        <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs font-bold uppercase tracking-wider shadow-lg">
-          <Award className="w-3.5 h-3.5" /> Featured Event
-        </div>
+        {/* Description */}
+        {event.description && (
+          <p className="text-white/80 leading-relaxed line-clamp-3 mb-6 max-w-2xl">
+            {event.description}
+          </p>
+        )}
 
-        {/* Bottom gradient + content overlay */}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-6 md:p-10 pt-24">
-          <div className="max-w-3xl">
-            {/* Date pill */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 text-white text-xs font-semibold mb-3">
-              <Clock className="w-3.5 h-3.5" />
-              {dateLabel}
-            </div>
-
-            {/* Title */}
-            <h2 className="text-2xl md:text-4xl font-bold text-white mb-3 leading-tight">
-              {event.title}
-            </h2>
-
-            {/* Venue */}
-            <div className="flex items-center gap-2 text-white/85 mb-4">
-              <MapPin className="w-4 h-4 shrink-0" />
-              <span className="text-sm">{venue}</span>
-              {event.city && event.city !== 'Moreno Valley' && (
-                <span className="text-sm text-white/70">· {event.city}</span>
-              )}
-            </div>
-
-            {/* Description (only when present) */}
-            {event.description && (
-              <p className="text-white/85 text-sm md:text-base leading-relaxed mb-5 line-clamp-3 max-w-2xl">
-                {event.description}
-              </p>
-            )}
-
-            {/* CTA button + roll-forward badge row */}
-            <div className="flex flex-wrap items-center gap-3">
-              {ctaUrl && ctaLabel && (
-                <a
-                  href={ctaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors shadow-lg"
-                >
-                  {(() => {
-                    const Icon = ctaIcon
-                    return <Icon className="w-4 h-4" />
-                  })()}
-                  {ctaLabel}
-                  <ArrowRight className="w-4 h-4" />
-                </a>
-              )}
-              {rollForward && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 text-white text-xs font-semibold">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Next featured event
-                </span>
-              )}
-            </div>
-          </div>
+        {/* CTA row */}
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href={primaryHref}
+            target={primaryExternal ? '_blank' : undefined}
+            rel={primaryExternal ? 'noopener noreferrer' : undefined}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold text-base hover:bg-primary/90 transition-colors shadow-lg"
+          >
+            <PrimaryIcon className="w-5 h-5" />
+            {primaryLabel}
+            {primaryExternal && <ExternalLink className="w-3.5 h-3.5 opacity-75" />}
+          </a>
+          {/* Secondary link to host (only when we have a separate ticket CTA) */}
+          {event.ticketUrl && target.href !== primaryHref && (
+            <Link
+              href={target.href}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 backdrop-blur text-white font-semibold text-base hover:bg-white/20 transition-colors"
+            >
+              <Building2 className="w-4 h-4" />
+              Visit host
+            </Link>
+          )}
         </div>
       </div>
     </section>
@@ -469,11 +527,12 @@ function HeroCard({ event, rollForward }: { event: any; rollForward?: boolean })
 
 function HonorableCard({ event }: { event: any }) {
   const dateLabel = formatEventDate(event.startsAt)
+  const target = cardHref(event)
 
   return (
     <Link
-      href={event.sourceUrl ?? '#'}
-      target={event.sourceUrl ? '_blank' : undefined}
+      href={target.href}
+      target={target.external ? '_blank' : undefined}
       rel="noopener noreferrer"
       className="block bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow group"
     >
@@ -502,6 +561,12 @@ function HonorableCard({ event }: { event: any }) {
             {event.venueName}
           </p>
         )}
+        {event.business && (
+          <p className="text-xs text-primary font-semibold mt-1 flex items-center gap-1">
+            <Building2 className="w-3 h-3" />
+            {event.business.name}
+          </p>
+        )}
       </div>
     </Link>
   )
@@ -509,11 +574,12 @@ function HonorableCard({ event }: { event: any }) {
 
 function StandardCard({ event }: { event: any }) {
   const dateLabel = formatEventDate(event.startsAt)
+  const target = cardHref(event)
 
   return (
     <Link
-      href={event.sourceUrl ?? '#'}
-      target={event.sourceUrl ? '_blank' : undefined}
+      href={target.href}
+      target={target.external ? '_blank' : undefined}
       rel="noopener noreferrer"
       className="block bg-white rounded-xl border border-slate-100 overflow-hidden hover:border-primary/30 hover:shadow-sm transition-all group"
     >
@@ -539,6 +605,12 @@ function StandardCard({ event }: { event: any }) {
             {event.city && event.city !== 'Moreno Valley' && ` · ${event.city}`}
           </p>
         )}
+        {event.business && (
+          <p className="text-xs text-primary font-semibold mb-2 flex items-center gap-1">
+            <Building2 className="w-3 h-3" />
+            Hosted by {event.business.name}
+          </p>
+        )}
         {event.description && (
           <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">{event.description}</p>
         )}
@@ -547,9 +619,8 @@ function StandardCard({ event }: { event: any }) {
   )
 }
 
-function formatEventDate(d: Date | string): string {
-  const date = typeof d === 'string' ? new Date(d) : d
-  return date.toLocaleString('en-US', {
+function formatEventDate(d: Date): string {
+  return d.toLocaleString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',

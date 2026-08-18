@@ -1,10 +1,12 @@
 import { Suspense } from 'react'
+import { Building2, Sparkles, Search } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
 import { SearchFilters } from '@/components/search/SearchFilters'
+import { CompactSearchBar } from '@/components/search/CompactSearchBar'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { businessPriority } from '@/lib/business-priority'
+import { compareBusinessesForSearch } from '@/lib/business-priority'
 import type { Metadata } from 'next'
 
 interface SearchPageProps {
@@ -12,8 +14,6 @@ interface SearchPageProps {
     q?: string
     category?: string
     tier?: string
-    sort?: string
-    page?: string
     espanol?: string
   }>
 }
@@ -31,19 +31,55 @@ export const metadata: Metadata = {
   twitter: { card: 'summary', title: 'Browse Businesses', description: 'Discover local businesses in Moreno Valley, CA.' },
 }
 
-const RESULTS_PER_PAGE = 20
+type SearchBusiness = {
+  id: string
+  name: string
+  slug: string
+  tagline: string | null
+  description: string
+  address: string
+  tier: string
+  status: string
+  logo: string | null
+  coverImage: string | null
+  photos: string[]
+  isBestOfWinner: boolean
+  isExpertPartner: boolean
+  foundingPartnerSince: Date | string | null
+  seHablaEspanol: boolean
+  chamberMember: boolean
+  hispanicChamberMember: boolean
+  googleRating: number | null
+  googleReviewCount: number | null
+  // Always present in our grouped results — businesses with no category
+  // land in the synthetic "Uncategorized" bucket at the end.
+  category: { name: string; slug: string }
+  reviews: { rating: number }[]
+  _count: { reviews: number }
+  coupon?: unknown
+}
+
+type CategoryGroup = {
+  slug: string
+  name: string
+  categoryId: string | null
+  businesses: SearchBusiness[]
+}
+
+type SearchResults = {
+  total: number
+  groups: CategoryGroup[]
+  // Category-slug → display-name for the jump-to anchor nav. Same order
+  // as `groups` (alphabetical). Categories with 0 results are stripped.
+  categoryNav: Array<{ slug: string; name: string }>
+}
 
 async function getBusinesses(params: {
   q?: string
   category?: string
   tier?: string
-  sort?: string
-  page?: string
   espanol?: string
-}) {
-  const page = parseInt(params.page || '1')
-  const skip = (page - 1) * RESULTS_PER_PAGE
-
+}): Promise<SearchResults> {
   const where: Record<string, unknown> = {
     status: 'APPROVED',
   }
@@ -56,9 +92,11 @@ async function getBusinesses(params: {
     ]
   }
 
-  if (params.category) {
-    where.category = { slug: params.category }
-  }
+  // The category dropdown is a "jump to" anchor, not a filter, so we no
+  // longer scope the WHERE to a single category here. The user can still
+  // arrive on /search?category=restaurants via a deep link — we honor that
+  // by rendering the page normally and scrolling to that section on mount.
+  void params.category
 
   // "Se habla español" filter — with ~35% of Moreno Valley Spanish-speaking,
   // language is a first-class search facet, not just a badge. Linkable
@@ -67,169 +105,228 @@ async function getBusinesses(params: {
     where.seHablaEspanol = true
   }
 
-  if (params.tier === 'CHAMBER') {
-    // Show businesses affiliated with either chamber — covers the Chamber
-    // Members filter chip in the search dropdown. We AND this with any
-    // existing search query rather than overwriting it.
-    where.AND = [
-      ...(Array.isArray(where.AND) ? where.AND : []),
-      {
-        OR: [
-          { chamberMember: true },
-          { hispanicChamberMember: true },
-        ],
-      },
-    ];
-  } else if (params.tier) {
-    where.tier = params.tier.toUpperCase();
-  }
+  // Tier filter dropped (2026-08-16): the All / Featured / Free / Chamber
+  // buttons weren't earning their space per Johnny. Existing deep links
+  // with ?tier= still resolve (this param is just ignored). Within-group
+  // presentation order (EP → Featured → BestOf → Free) still uses
+  // compareBusinessesForSearch below.
 
-  let orderBy: Record<string, unknown> = { createdAt: 'desc' }
-  if (params.sort === 'rating') {
-    orderBy = { reviews: { _count: 'desc' } } as Record<string, unknown>
-  } else if (params.sort === 'name') {
-    orderBy = { name: 'asc' }
-  }
-
-  const [businesses, total] = await Promise.all([
-    prisma.business.findMany({
-      where,
-      include: {
-        category: true,
-        reviews: true,
-        _count: { select: { reviews: true } },
-      },
-      orderBy,
-      skip,
-      take: RESULTS_PER_PAGE,
-    }),
-    prisma.business.count({ where }),
-  ])
-
-  // Sort matches the homepage's 4-tier priority so listings appear in
-  // a consistent, curated order everywhere:
-  //   0 = Expert Partner (wins outright)
-  //   1 = Best Of + (FEATURED or EXPERT_PARTNER tier)
-  //   2 = (FEATURED or EXPERT_PARTNER tier) only
-  //   3 = Best Of only
-  //   4 = everything else (FREE tier)
-  // Within each tier, the user-supplied sort still applies (rating, name,
-  // or default newest-first).
-  const sorted = [...businesses].sort((a, b) => {
-    const diff = businessPriority(a) - businessPriority(b)
-    if (diff !== 0) return diff
-    if (params.sort === 'rating') {
-      return (b.googleRating ?? 0) - (a.googleRating ?? 0)
-    }
-    if (params.sort === 'name') {
-      return a.name.localeCompare(b.name)
-    }
-    return b.createdAt.getTime() - a.createdAt.getTime() // newest first
+  // No pagination — the grouped layout is the navigation. ~687 approved
+  // businesses spread across ~20 categories is scannable; we'll revisit
+  // with virtualization if the page ever feels slow.
+  const businesses = await prisma.business.findMany({
+    where,
+    include: {
+      category: true,
+      reviews: true,
+      _count: { select: { reviews: true } },
+    },
   })
 
+  // Shape into a list of category groups. Businesses with no category land
+  // in an "Uncategorized" bucket at the end (shouldn't happen given the
+  // schema, but defensive).
+  const byCategory = new Map<string, CategoryGroup>()
+  for (const b of businesses) {
+    const slug = b.category?.slug ?? '__uncategorized'
+    const name = b.category?.name ?? 'Uncategorized'
+    const categoryId = b.category?.id ?? null
+    if (!byCategory.has(slug)) {
+      byCategory.set(slug, { slug, name, categoryId, businesses: [] })
+    }
+    // Project to the minimum shape the comparator needs plus the fields
+    // BusinessCard actually consumes. Pass the whole row through — the
+    // BusinessCard prop type is loose.
+    byCategory.get(slug)!.businesses.push(b as unknown as SearchBusiness)
+  }
+
+  // Within each category: Expert Partner → Featured → BestOf → Free, each
+  // tier A→Z (compareBusinessesForSearch).
+  for (const group of byCategory.values()) {
+    group.businesses.sort(compareBusinessesForSearch)
+  }
+
+  // Sort categories alphabetically by display name. "Uncategorized" goes
+  // last regardless of locale so it doesn't surprise the reader.
+  const groups = Array.from(byCategory.values()).sort((a, b) => {
+    if (a.slug === '__uncategorized') return 1
+    if (b.slug === '__uncategorized') return -1
+    return a.name.localeCompare(b.name)
+  })
+
+  const categoryNav = groups.map(g => ({ slug: g.slug, name: g.name }))
+
   return {
-    businesses: sorted.map(b => ({
-      ...b,
-      isBestOf: b.isBestOfWinner,
-      coupon: b.coupon as {
-        headline: string
-        description?: string | null
-        code?: string | null
-        expiresAt?: string | null
-      } | null,
-    })),
-    total,
-    page,
-    totalPages: Math.ceil(total / RESULTS_PER_PAGE),
+    total: businesses.length,
+    groups,
+    categoryNav,
   }
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams
-  const { businesses, total, page, totalPages } = await getBusinesses(params)
+  const { total, groups, categoryNav } = await getBusinesses(params)
   const selectedCategory = categories.find(c => c.slug === params.category)
+
+  // Headline adapts to what's in the URL: a query gets the most prominent
+  // treatment, a deep-linked category gets the category name, and the
+  // default landing is a brand-style "Discover MoVal" heading.
+  const headline = params.q
+    ? { eyebrow: 'Search results', title: <>Results for &ldquo;{params.q}&rdquo;</> }
+    : selectedCategory
+      ? { eyebrow: 'Category', title: selectedCategory.name }
+      : { eyebrow: 'Local Business Directory', title: <>Discover <span className="text-primary">MoVal</span></> }
+
+  // Active filter detection — drives the Clear button visibility on the
+  // compact sticky bar. Anything non-default counts as active.
+  const hasActiveFilters = Boolean(params.q || params.category || params.espanol)
 
   return (
     <div className="bg-slate-50 min-h-screen">
-      {/* Search Header */}
-      <div className="bg-white border-b border-slate-100 sticky top-16 z-30">
-        <div className="container-max py-6">
-          <SearchFilters
-            categories={categories}
+      {/* Header — single cohesive card with brand wash + decorative watermark.
+          Matches the /events treatment so the two search/listing pages
+          feel like a related family. NOT sticky — only the search bar
+          sticks. This block (title + category nav + category dropdown)
+          scrolls away naturally, freeing up screen real estate once the
+          user is reading business cards. */}
+      <div className="container-max pt-6 pb-3">
+        <div
+          className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm bg-gradient-to-br from-secondary/8 via-white to-primary/5"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='1' cy='1' r='1' fill='%23015a6b' fill-opacity='0.10'/></svg>\"), linear-gradient(to bottom right, rgba(1,90,107,0.06), white, rgba(0,122,127,0.04))",
+          }}
+        >
+          {/* Decorative watermark — soft, big, behind everything */}
+          <Building2
+            aria-hidden
+            className="pointer-events-none absolute -right-8 -top-8 w-64 h-64 text-primary/[0.06] rotate-12"
+          />
+          <Building2
+            aria-hidden
+            className="pointer-events-none absolute -left-12 bottom-0 w-48 h-48 text-secondary/[0.05] -rotate-6"
+          />
+
+          <div className="relative px-5 sm:px-8 pt-6 pb-5">
+            {/* Title row */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary shrink-0">
+                <Search className="w-7 h-7" />
+              </div>
+              <div className="min-w-0">
+                {/* Eyebrow chip — small primary chip that establishes the
+                    page's identity ("Local Business Directory") before
+                    the title. Matches the events-page treatment. */}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider mb-1.5">
+                  <Sparkles className="w-3 h-3" />
+                  {headline.eyebrow}
+                </span>
+                <h1 className="text-3xl sm:text-4xl font-bold text-text leading-tight">
+                  {headline.title}
+                </h1>
+              </div>
+            </div>
+
+            {/* Filter row — only the secondary filters live here (category
+                select, language toggle). The search bar is rendered
+                separately below in the sticky compact bar so it stays
+                visible while scrolling without taking up massive real
+                estate. */}
+            <SearchFilters
+              categories={categories}
+              currentParams={params}
+              categoryNav={categoryNav}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Compact sticky search bar — search input + lang toggle + clear.
+          Sticks to the top once the header card scrolls past. Small
+          footprint so it doesn't block listings. */}
+      <div className="sticky top-16 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/70">
+        <div className="container-max py-3">
+          <CompactSearchBar
             currentParams={params}
-            resultCount={total}
+            hasActiveFilters={hasActiveFilters}
           />
         </div>
       </div>
 
+      {/* Results body */}
       <div className="container-max py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-text">
-              {params.q
-                ? `Results for "${params.q}"`
-                : selectedCategory
-                ? selectedCategory.name
-                : 'All Businesses'}
-            </h1>
-            <p className="text-text-secondary text-sm mt-0.5">
-              {total} business{total !== 1 ? 'es' : ''} found in Moreno Valley
-            </p>
-          </div>
+        {/* Result count strip — sits below the sticky header so it's always
+            visible when scrolling through long category lists. Wrapped in
+            a tinted rounded-2xl so it reads as a small 'results bar'
+            rather than bare text. */}
+        <div className="flex items-center justify-between mb-6 px-4 py-3 rounded-2xl bg-secondary/5 border border-secondary/15">
+          <p className="text-sm text-text-secondary">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white text-text text-xs font-bold mr-1.5">{total}</span>
+            business{total !== 1 ? 'es' : ''} found in Moreno Valley
+            {groups.length > 1 && (
+              <>
+                <span className="mx-2 text-slate-300">·</span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white text-text text-xs font-bold mr-1.5">{groups.length}</span>
+                categor{groups.length === 1 ? 'y' : 'ies'}
+              </>
+            )}
+          </p>
         </div>
 
-        {businesses.length === 0 ? (
+        {total === 0 ? (
           <EmptyState
             title="No businesses found"
             description={
               params.q
                 ? `We couldn't find anything matching "${params.q}". Try a different search or browse by category.`
-                : 'No businesses in this category yet. Be the first to list!'
+                : 'No businesses match these filters yet. Be the first to list!'
             }
             ctaLabel="Submit a Business"
             ctaHref="/submit"
           />
         ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-              {businesses.map(business => (
-                <BusinessCard key={business.id} business={business} />
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center gap-2">
-                {page > 1 && (
-                  <a
-                    href={`/search?${buildQueryString({ ...params, page: String(page - 1) })}`}
-                    className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-text hover:bg-slate-50 transition-colors"
-                  >
-                    ← Previous
-                  </a>
-                )}
-                <span className="px-4 py-2 text-text-secondary">
-                  Page {page} of {totalPages}
-                </span>
-                {page < totalPages && (
-                  <a
-                    href={`/search?${buildQueryString({ ...params, page: String(page + 1) })}`}
-                    className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-text hover:bg-slate-50 transition-colors"
-                  >
-                    Next →
-                  </a>
-                )}
-              </div>
-            )}
-          </>
+          <div className="space-y-10">
+            {groups.map(group => (
+              <section
+                key={group.slug}
+                id={`cat-${group.slug}`}
+                // `scroll-mt-*` clears the sticky search bar when jumping
+                // to an anchor (the search bar is much shorter now so 48
+                // is plenty).
+                className="scroll-mt-32"
+              >
+                {/* Category section header — small icon + name + count chip,
+                    with a brand-tinted gradient underline so each category
+                    reads as a distinct section (matches /events treatment).
+                    `h-px` div handles the gradient since `border-` doesn't
+                    accept gradient color stops. */}
+                <div className="mb-4 pb-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/10 text-primary">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <h2 className="text-xl font-bold text-text">{group.name}</h2>
+                    </div>
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-text-secondary text-xs font-semibold">
+                      {group.businesses.length} business{group.businesses.length !== 1 ? 'es' : ''}
+                    </span>
+                  </div>
+                  <div className="h-px bg-gradient-to-r from-primary/40 via-secondary/25 to-transparent" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {group.businesses.map(business => (
+                    <BusinessCard
+                      key={business.id}
+                      business={business as React.ComponentProps<typeof BusinessCard>['business']}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         )}
       </div>
     </div>
   )
-}
-
-function buildQueryString(params: Record<string, string | undefined>): string {
-  return new URLSearchParams(
-    Object.entries(params).filter(([, v]) => v !== undefined && v !== '') as string[][]
-  ).toString()
 }

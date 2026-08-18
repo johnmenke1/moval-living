@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Calendar,
@@ -9,14 +9,12 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
-  ChevronLeft,
-  ChevronRight,
   ExternalLink,
   Inbox,
   ImageIcon,
   Copy,
+  Pencil,
   Search,
-  Star,
 } from 'lucide-react'
 
 interface Submission {
@@ -41,9 +39,7 @@ interface Submission {
   submitterNote: string | null
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'DUPLICATE'
   createdAt: string
-  // Linked Event row id when status === APPROVED. Used by the
-  // "Promote to HERO" action — calls PATCH /api/admin/events/[id]
-  // with tier=HERO and revalidates /events.
+  /** ID of the Event this submission was promoted to (when status === 'APPROVED'). */
   promotedToEventId: string | null
 }
 
@@ -65,18 +61,12 @@ type Filter = 'PENDING' | 'APPROVED' | 'REJECTED' | 'DUPLICATE' | 'ALL'
 export default function EventSubmissionsPanel({ initialSubmissions, existingEvents }: Props) {
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions)
   const [filter, setFilter] = useState<Filter>('PENDING')
+  const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [duplicateFor, setDuplicateFor] = useState<string | null>(null)
   const [duplicateEventId, setDuplicateEventId] = useState('')
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
-
-  // Page size for the approved-events list. 25 keeps the panel scannable
-  // without forcing curators to click through dozens of pages for the
-  // 651 post-bulk-approve case. Search resets to page 1.
-  const PAGE_SIZE = 25
 
   const counts = {
     PENDING: submissions.filter((s) => s.status === 'PENDING').length,
@@ -86,18 +76,16 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
     ALL: submissions.length,
   }
 
-  // Apply status filter, then narrow by title search (case-insensitive).
-  const statusFiltered = submissions.filter((s) => filter === 'ALL' || s.status === filter)
-  const q = search.trim().toLowerCase()
-  const searched = q
-    ? statusFiltered.filter((s) => s.title.toLowerCase().includes(q))
-    : statusFiltered
-
-  // Pagination — derive from the searched subset. Reset to page 1 whenever
-  // filter or search string changes via the wrapper below.
-  const totalPages = Math.max(1, Math.ceil(searched.length / PAGE_SIZE))
-  const safePage = Math.min(page, totalPages)
-  const filtered = searched.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  // Apply status filter + case-insensitive substring match on the event
+  // title. Empty query matches everything.
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return submissions.filter((s) => {
+      if (filter !== 'ALL' && s.status !== filter) return false
+      if (!q) return true
+      return s.title.toLowerCase().includes(q)
+    })
+  }, [submissions, filter, query])
 
   // Approve creates an Event from the Submission. The API fills in:
   //   - description = sourcePostExcerpt (if available) OR title
@@ -114,8 +102,17 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Approve failed')
+      // Capture the new event id from the API response so the "Edit event"
+      // link renders immediately on the just-approved submission without a
+      // page refresh. Server pre-approval had promotedToEventId=null; the
+      // DB has it set, but client state is stale until we write it back.
+      const newEventId = data.event?.id ?? null
       setSubmissions((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, status: 'APPROVED' as const } : s))
+        prev.map((s) =>
+          s.id === id
+            ? { ...s, status: 'APPROVED' as const, promotedToEventId: newEventId ?? s.promotedToEventId }
+            : s
+        )
       )
       setExpanded(null)
       setSuccess(`Approved — card created as event "${data.event?.title ?? ''}"`)
@@ -160,35 +157,23 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Could not mark as duplicate')
+      // Carry the linked event id into local state so the "Edit event" link
+      // renders immediately on the duplicate row, matching the approve flow.
+      const linkedEventId = data.event?.id ?? null
       setSubmissions((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, status: 'DUPLICATE' as const } : s))
+        prev.map((s) =>
+          s.id === id
+            ? { ...s, status: 'DUPLICATE' as const, promotedToEventId: linkedEventId ?? s.promotedToEventId }
+            : s
+        )
       )
       setDuplicateFor(null)
       setDuplicateEventId('')
       setExpanded(null)
       setSuccess('Linked as duplicate — no new event created')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not mark as duplicate')
-    }
-  }
-
-  // Promote an APPROVED submission's linked Event to HERO tier so it
-  // surfaces at the top of /events. Calls the events PATCH endpoint
-  // (admin-auth-gated) and revalidates the public page on save.
-  const promoteToHero = async (eventId: string) => {
-    setError('')
-    try {
-      const res = await fetch(`/api/admin/events/${eventId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: 'HERO' }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Could not promote to HERO')
-      setSuccess(`Promoted to HERO — featured at the top of /events`)
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not promote to HERO')
+      setError(err instanceof Error ? err.message : 'Could not mark as duplicate')
     }
   }
 
@@ -207,12 +192,26 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
         </div>
       )}
 
+      {/* Search + filter row */}
+      <div className="mb-4">
+        <div className="relative max-w-md">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by event title…"
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          />
+        </div>
+      </div>
+
       {/* Filter pills */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
         {(['PENDING', 'APPROVED', 'REJECTED', 'DUPLICATE', 'ALL'] as Filter[]).map((f) => (
           <button
             key={f}
-            onClick={() => { setFilter(f); setPage(1) }}
+            onClick={() => setFilter(f)}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
               filter === f
                 ? 'bg-primary text-white'
@@ -229,30 +228,14 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
             </span>
           </button>
         ))}
-
-        {/* Search by event title — case-insensitive substring match. */}
-        <div className="relative ml-auto">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1)
-            }}
-            placeholder="Search event title..."
-            className="pl-9 pr-3 py-1.5 text-sm border border-slate-200 rounded-full w-64 focus:ring-2 focus:ring-primary focus:border-transparent"
-            aria-label="Search event submissions by title"
-          />
-        </div>
       </div>
 
-      {searched.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
           <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-3" />
           <p className="text-text-secondary">
-            {q
-              ? `No submissions matching "${search}".`
+            {query.trim()
+              ? `No submissions match "${query.trim()}" in this filter.`
               : 'No submissions match this filter.'}
           </p>
         </div>
@@ -507,24 +490,19 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
                     </div>
                   )}
 
-                  {s.status === 'APPROVED' && s.promotedToEventId && (
-                    <div className="space-y-3">
+                  {s.status === 'APPROVED' && (
+                    <div className="space-y-2">
                       <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg p-3">
-                        ✓ Approved and promoted to an Event. Edit the event from the public Events page or the
-                        admin dashboard to add venue address, hero image, and other details.
+                        ✓ Approved and promoted to an Event. Edit the event below to add venue address, hero image, and other details.
                       </p>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => promoteToHero(s.promotedToEventId!)}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition-colors"
+                      {s.promotedToEventId && (
+                        <Link
+                          href={`/dashboard/events/edit?id=${s.promotedToEventId}`}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
                         >
-                          <Star className="w-4 h-4" /> Promote to HERO
-                        </button>
-                        <span className="text-xs text-text-secondary">
-                          Sets Event.tier=HERO so this event shows as the featured card at the top of /events.
-                        </span>
-                      </div>
+                          <Pencil className="w-4 h-4" /> Edit event
+                        </Link>
+                      )}
                     </div>
                   )}
 
@@ -544,42 +522,6 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
             </li>
           ))}
         </ul>
-      )}
-
-      {/* Pagination — only render when there's more than one page */}
-      {searched.length > PAGE_SIZE && (
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
-          <p className="text-sm text-text-secondary">
-            Showing{' '}
-            <span className="font-semibold text-text">
-              {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, searched.length)}
-            </span>{' '}
-            of <span className="font-semibold text-text">{searched.length}</span>
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPage(Math.max(1, safePage - 1))}
-              disabled={safePage === 1}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-text hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Prev
-            </button>
-            <span className="text-sm text-text-secondary px-2">
-              Page <span className="font-semibold text-text">{safePage}</span> of {totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => setPage(Math.min(totalPages, safePage + 1))}
-              disabled={safePage === totalPages}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-text hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
       )}
     </div>
   )

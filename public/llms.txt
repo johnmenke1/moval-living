@@ -1,0 +1,27 @@
+# moval.living
+
+> A locally curated guide to Moreno Valley, California businesses, events, homes, parks, and community stories.
+
+## Primary pages
+
+- [Home](https://www.moval.living/): Local businesses, events, stories, and community resources.
+- [Search businesses](https://www.moval.living/search): Browse Moreno Valley businesses by category and keyword.
+- [Community events](https://www.moval.living/events): Calendar of events in Moreno Valley and nearby Inland Empire venues.
+- [Homes for sale](https://www.moval.living/homes): Active residential listings powered by CRMLS.
+- [Open houses](https://www.moval.living/open-houses): Upcoming open houses and map search powered by CRMLS.
+- [Parks](https://www.moval.living/parks): Moreno Valley parks and outdoor recreation guide.
+- [About Moreno Valley](https://www.moval.living/about-moreno-valley): Local context, demographics, lifestyle, and market information.
+- [Life in MoVal](https://www.moval.living/life): First-person local observations and community stories.
+- [Insights](https://www.moval.living/insights): Guest perspectives and useful local guides.
+
+## About the site
+
+moval.living is maintained as a Moreno Valley community directory and local guide. Business profiles are published listings and should be independently verified before making purchasing, safety, medical, financial, or real-estate decisions.
+
+Real-estate listing data is provided through CRMLS and includes the site's IDX disclaimer. Market information is informational, not financial or legal advice.
+
+## Contact and submissions
+
+- [List a business](https://www.moval.living/submit)
+- [Submit an event](https://www.moval.living/submit/event)
+- [Best Of nominations](https://www.moval.living/submit/best-of)

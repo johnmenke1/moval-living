@@ -17,6 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: BASE, lastModified: now, changeFrequency: 'weekly', priority: 1.0 },
     { url: `${BASE}/search`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${BASE}/parks`, lastModified: now, changeFrequency: 'weekly', priority: 0.85 },
     { url: `${BASE}/best-of`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE}/about-moreno-valley`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE}/events`, lastModified: now, changeFrequency: 'daily', priority: 0.7 },
@@ -31,6 +32,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/chamber`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
     { url: `${BASE}/hispanic-chamber`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
   ]
+
+  // Parks — /parks index is in staticPages above. Individual park
+  // detail pages live at /parks/[slug] for active parks.
+  const parks = await prisma.park.findMany({
+    select: { slug: true, updatedAt: true },
+    where: { isActive: true },
+    orderBy: { updatedAt: 'desc' },
+  })
+
+  const parkPages: MetadataRoute.Sitemap = parks.map(p => ({
+    url: `${BASE}/parks/${p.slug}`,
+    lastModified: p.updatedAt,
+    changeFrequency: 'monthly',
+    priority: 0.6,
+  }))
 
   // Dynamic business pages — APPROVED only
   const businesses = await prisma.business.findMany({
@@ -79,5 +95,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
-  return [...staticPages, ...businessPages, ...bestOfPages, ...editorialPages]
+  return [...staticPages, ...parkPages, ...businessPages, ...bestOfPages, ...editorialPages]
 }

@@ -103,8 +103,8 @@ model Business {
   guestAuthors       GuestAuthor[]
   expertPartnerLeads ExpertPartnerLead[]
   expertPartnerStats ExpertPartnerStat[]
-  events             Event[]
   audits             BusinessAudit[]
+  events             Event[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -256,19 +256,22 @@ enum EventTier {
 }
 
 enum EventCategory {
-  SPORTS
-  HS_SPORTS
-  COLLEGE_SPORTS
-  LEAGUE_SPORTS
+  // SPORTS was split into three specific categories in 2026-08 to give
+  // Moreno Valley residents more targeted filters. SPORTS itself was
+  // removed from new usage; existing rows were migrated to HS_SPORTS or
+  // COLLEGE_SPORTS in migration 20260816000000_split_sports_and_add_political.
+  HS_SPORTS         // High school athletics — CIF, MVUSD, etc.
+  COLLEGE_SPORTS    // College athletics — UCR, CBU, etc.
+  LEAGUE_SPORTS     // Adult leagues, club sports, rec leagues
+  POLITICAL         // Town halls, candidate forums, ballot events, protests
   MUSIC
+  ARTS
   EDUCATIONAL
   FUNDRAISERS
   COMMUNITY
-  ARTS
   FAMILY
-  HOLIDAY_CELEBRATIONS
   FOOD_DRINK
-  POLITICAL
+  HOLIDAY_CELEBRATIONS
 }
 
 enum SubmissionStatus {
@@ -319,32 +322,46 @@ model Submission {
 model Event {
   id                      String    @id @default(cuid())
   slug                    String    @unique
+  // Optional human-friendly shareable slug for the /tickets/[slug] route.
+  // When set, the public events listing prefers /tickets/<ticketsSlug>
+  // over /events/<slug> as the primary click target. Null = no shareable
+  // tickets page; falls back to /events/<slug> (or /business/<businessSlug>
+  // when linked to a business). Slugs must be unique across all events.
+  ticketsSlug             String?   @unique
   title                   String
   description             String?   @db.Text
   startsAt                DateTime
   endsAt                  DateTime?
   venueName               String?
   venueTag                VenueTag  @default(OTHER)
+  category                EventCategory?
   address                 String?
   city                    String?
   state                   String?
   zip                     String?
-  category                EventCategory?
   heroImageUrl            String?
   ticketUrl               String?
   isFree                  Boolean   @default(false)
+  // Mirrors Business.seHablaEspanol. When true, the event is primarily
+  // delivered in Spanish (or bilingual). Surfaced as a public filter chip
+  // and a badge on the event card.
+  esEnEspanol             Boolean   @default(false)
   tier                    EventTier @default(STANDARD)
   source                  String
   sourceUrl               String?
   sourceAuthorHandle      String?
   sourceAuthorUrl         String?
   sourcePostExcerpt       String?   @db.Text
+
+  // Optional link to a local Business listing. When set, the event card
+  // surfaces the venueName as a click-through to /business/[slug]. The
+  // back-relation on Business.events lets the business page list its events.
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   originatingSubmissionId String?
   submittedById           String?
   reviewedById            String?
   reviewedAt              DateTime?
-  businessId              String?
-  business                Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 
@@ -356,6 +373,7 @@ model Event {
   @@index([city])
   @@index([category])
   @@index([businessId])
+  @@index([esEnEspanol])
 }
 
 enum Platform {
@@ -709,4 +727,80 @@ model BusinessAudit {
   @@index([businessId])
   @@index([score])
   @@index([auditedAt])
+}
+
+
+// ── Parks & Recreation (added 2026-08-17) ──────────────────────────────────
+// City of Moreno Valley parks + Cottonwood Golf Center + Conference & Rec Center.
+// Distinct from Business because parks are not commercial entities, don't go
+// through the chamber/claim flow, and use a different amenity vocabulary.
+model Park {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  type          ParkType
+  googlePlaceId String?
+
+  // Address (denormalized for fast map rendering without Geo lookup)
+  address String?
+  // Optional secondary address for parks with a distinct sub-area that
+  // has its own street address (e.g. Morrison Park → Flight Deck Bike
+  // Park at 13460 Morrison Street). Renders as a labeled sub-line in
+  // the sidebar and as a separate Google Maps link.
+  secondaryAddress String?
+  city    String  @default("Moreno Valley")
+  state   String  @default("CA")
+  zip     String?
+
+  // Coordinates for map pins
+  latitude  Float?
+  longitude Float?
+
+  // Contact
+  phone   String?
+  website String?
+
+  // Weekly hours (JSON: { mon: [{open, close}], ... }) — null = "call for hours"
+  hoursJson Json?
+
+  // Amenity tags (free-text but constrained via lib/park-amenities constant)
+  // Examples: "pump_track", "skate_park", "water_play", "tennis", "dog_park",
+  //           "basketball", "picnic", "playground", "disc_golf", "splash_pad",
+  //           "restrooms", "walking_trails", "bbq", "wheelchair_accessible"
+  amenities String[] @default([])
+
+  // Photos (Vercel Blob URLs, captured via scripts/capture-park-photos.mts)
+  heroPhotoUrl String?
+  photoUrls    String[] @default([])
+
+  // Editorial
+  blurb       String?
+  description String?
+
+  // Structured FAQ content — array of {q: string, a: string}.
+  // Renders as <details> elements on the public detail page AND emits
+  // a Schema.org FAQPage JSON-LD block for SEO rich results.
+  faqsJson    Json?
+
+  // Curation
+  featured Boolean @default(false)
+  isActive Boolean @default(true)
+
+  // Google reputation (mirrors Business.googleRating/googleReviewCount pattern)
+  googleRating      Float?
+  googleReviewCount Int?
+
+  // Ops
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([slug])
+  @@index([featured])
+}
+
+enum ParkType {
+  PARK
+  GOLF
+  REC_CENTER
 }

@@ -1,0 +1,10 @@
+import { getPrisma } from '../src/lib/prisma.ts';
+const p = getPrisma();
+const nonNull = await p.event.groupBy({ by: ['category'], _count: { category: true }, where: { category: { not: null } } });
+console.log('Existing non-null category values:');
+if (nonNull.length === 0) console.log('  (none — all events have category = NULL)');
+else for (const r of nonNull) console.log('  ' + JSON.stringify(r) + '');
+const total = await p.event.count();
+const withCat = await p.event.count({ where: { category: { not: null } } });
+console.log(`Total events: ${total}, with category set: ${withCat}`);
+await p.$disconnect();

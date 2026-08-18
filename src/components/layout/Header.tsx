@@ -15,6 +15,7 @@ import {
   Menu,
   Sparkles,
   Tag,
+  TreePine,
   Trophy,
   X,
 } from 'lucide-react'
@@ -27,6 +28,7 @@ const navGroups = [
     items: [
       { label: 'Browse Businesses', href: '/search', icon: Compass },
       { label: 'Best Of Moreno Valley', href: '/best-of', icon: Trophy },
+      { label: 'Parks & Recreation', href: '/parks', icon: TreePine },
       { label: 'Community Events', href: '/events', icon: Calendar },
       { label: 'Local Deals', href: '/deals', icon: Tag },
       { label: 'Local Spotlights', href: '/spotlights', icon: Sparkles },
