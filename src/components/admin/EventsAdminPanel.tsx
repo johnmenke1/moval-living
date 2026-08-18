@@ -7,6 +7,7 @@ import { Calendar, Search, Pencil, Eye, Building2 } from 'lucide-react'
 export interface EventRow {
   id: string
   slug: string
+  ticketsSlug: string | null
   title: string
   startsAt: string
   venueName: string | null
@@ -153,7 +154,7 @@ export default function EventsAdminPanel({ events }: Props) {
                           <Pencil className="w-3 h-3" /> Edit
                         </Link>
                         <a
-                          href={`/events/${e.slug}`}
+                          href={e.ticketsSlug ? `/tickets/${e.ticketsSlug}` : `/events/${e.slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-text text-xs font-semibold hover:bg-slate-50 transition-colors"

@@ -28,6 +28,7 @@ export default async function EditEventPage({
     select: {
       id: true,
       slug: true,
+      ticketsSlug: true,
       title: true,
       description: true,
       startsAt: true,

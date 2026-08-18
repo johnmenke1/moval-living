@@ -408,13 +408,17 @@ function HeroSection({ event }: { event: any }) {
   const target = cardHref(event)
 
   // Primary CTA: ticket link (external, opens new tab).
-  // If no ticketUrl, fall back to the event detail page link.
-  const primaryHref = event.ticketUrl ?? target.href
-  const primaryExternal = !!event.ticketUrl ? true : target.external
-  const primaryLabel = event.ticketUrl
+  // Priority: /tickets/<ticketsSlug> (vanity 302) → ticketUrl → event detail page.
+  // The vanity URL wins when set so admins can remap a broken ticketUrl
+  // by editing ticketsSlug without breaking existing shares.
+  const primaryHref = event.ticketsSlug
+    ? `/tickets/${event.ticketsSlug}`
+    : event.ticketUrl ?? target.href
+  const primaryExternal = !!(event.ticketUrl || event.ticketsSlug) ? true : target.external
+  const primaryLabel = event.ticketsSlug || event.ticketUrl
     ? event.isFree ? 'RSVP — Free' : 'Get tickets'
     : 'Event details'
-  const PrimaryIcon = event.ticketUrl ? (event.isFree ? CheckCircle : Ticket) : ArrowRight
+  const PrimaryIcon = (event.ticketsSlug || event.ticketUrl) ? (event.isFree ? CheckCircle : Ticket) : ArrowRight
 
   return (
     <section className="relative rounded-2xl overflow-hidden bg-slate-900 text-white shadow-lg">
