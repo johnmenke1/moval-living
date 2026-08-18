@@ -235,8 +235,10 @@ export default function HomesPage() {
             <p className="mb-6 max-w-xl text-base leading-7 text-white/85 sm:text-lg">
               {dynamicSubtitle()}
             </p>
+          </div>
 
-            {/* Hero search bar — address/city/zip + price + beds + baths + type + sort */}
+          {/* Hero search bar — wider than the text column on desktop so the inputs breathe */}
+          <div className="mt-2 w-full max-w-5xl">
             <div className="rounded-2xl bg-white/95 p-3 shadow-2xl shadow-black/20 backdrop-blur">
               <div className="flex flex-wrap items-stretch gap-2">
                 {/* Location — address/city/zip free text */}
@@ -390,7 +392,6 @@ export default function HomesPage() {
                   <Search className="w-4 h-4" />
                   Search
                 </button>
-              </div>
 
               {hasActiveFilters && (
                 <div className="mt-2 flex items-center justify-end">
@@ -404,6 +405,7 @@ export default function HomesPage() {
                 </div>
               )}
             </div>
+          </div>
           </div>
         </div>
       </section>
