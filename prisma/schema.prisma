@@ -103,6 +103,7 @@ model Business {
   guestAuthors       GuestAuthor[]
   expertPartnerLeads ExpertPartnerLead[]
   expertPartnerStats ExpertPartnerStat[]
+  events             Event[]
   audits             BusinessAudit[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
@@ -256,12 +257,18 @@ enum EventTier {
 
 enum EventCategory {
   SPORTS
+  HS_SPORTS
+  COLLEGE_SPORTS
+  LEAGUE_SPORTS
   MUSIC
   EDUCATIONAL
   FUNDRAISERS
   COMMUNITY
   ARTS
   FAMILY
+  HOLIDAY_CELEBRATIONS
+  FOOD_DRINK
+  POLITICAL
 }
 
 enum SubmissionStatus {
@@ -336,6 +343,8 @@ model Event {
   submittedById           String?
   reviewedById            String?
   reviewedAt              DateTime?
+  businessId              String?
+  business                Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 
@@ -346,6 +355,7 @@ model Event {
   @@index([venueTag])
   @@index([city])
   @@index([category])
+  @@index([businessId])
 }
 
 enum Platform {

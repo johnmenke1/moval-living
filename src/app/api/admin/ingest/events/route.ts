@@ -21,12 +21,14 @@
  *         city: string           // "Moreno Valley" | "Redlands" | etc.
  *         venueTag?: string      // VenueTag enum value; defaults to OTHER
  *         description?: string   // optional editorial context
+ *         heroImageUrl?: string  // pre-uploaded Vercel Blob URL for the hero
+ *                                // (sports venue banners, etc.)
  *       }
  *     ]
  *   }
  *
  * Response:
- *   { ingested: number, results: [{ title, slug, status, error? }] }
+ *   { ingested: number, skipped: number, results: [{ title, slug, status, error? }] }
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -58,6 +60,7 @@ const ingestSchema = z.object({
         'OTHER',
       ]).optional(),
       description: z.string().trim().max(2000).optional(),
+      heroImageUrl: z.string().url().max(2000).optional(),
     })
   ),
 })
@@ -137,6 +140,9 @@ export async function POST(req: NextRequest) {
           endsAt,
           venueName: e.venueName,
           submitterNote: e.description ?? null,
+          // Pre-supplied hero image (e.g. CBU sports banner — admin
+          // doesn't need to upload anything, just pick a tier).
+          thumbnailUrl: e.heroImageUrl ?? null,
           // Mark as already-captured so admin knows this was curated
           sourceCapturedAt: new Date(),
           status: 'PENDING',

@@ -125,7 +125,9 @@ export default async function DashboardPage() {
         },
         orderBy: { createdAt: 'desc' },
       }),
-      // Event submissions for the new Events moderation tab.
+      // Event submissions for the Events tab. Lightweight by default — panel
+      // runs search/pagination client-side against this array. The expensive
+      // case is 651 approved after bulk-approve; ~200KB JSON which is fine.
       prisma.submission.findMany({
         orderBy: { createdAt: 'desc' },
       }),

@@ -13,6 +13,11 @@ import DiagnosticsPanel from '@/components/admin/DiagnosticsPanel'
 import AuditsPanel from '@/components/admin/AuditsPanel'
 import { clsx } from 'clsx'
 
+// "Live Events" tab was removed 2026-08-16: the curation workflow lives
+// inside the "Events" (submissions) tab. After approving, the submission
+// stays in the APPROVED bucket of the same list and you can edit the
+// resulting event from there. Two tabs for two states was redundant.
+
 interface AdminTabsProps {
   businesses: any[]
   posts: any[]

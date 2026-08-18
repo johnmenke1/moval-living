@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { Calendar, MapPin, ExternalLink, ArrowRight, Sparkles, Award, Send } from 'lucide-react'
+import { Calendar, MapPin, ExternalLink, ArrowRight, Sparkles, Award, Send, Ticket, Clock } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600 // 1 hour
@@ -10,16 +10,22 @@ interface PageProps {
 }
 
 type View = 'today' | 'weekend' | 'week' | 'month'
-type EventCategory = 'SPORTS' | 'MUSIC' | 'EDUCATIONAL' | 'FUNDRAISERS' | 'COMMUNITY' | 'ARTS' | 'FAMILY'
+type EventCategory = 'SPORTS' | 'HS_SPORTS' | 'COLLEGE_SPORTS' | 'LEAGUE_SPORTS' | 'MUSIC' | 'EDUCATIONAL' | 'FUNDRAISERS' | 'COMMUNITY' | 'ARTS' | 'FAMILY' | 'HOLIDAY_CELEBRATIONS' | 'FOOD_DRINK' | 'POLITICAL'
 
 const CATEGORY_LABELS: Record<EventCategory, string> = {
   SPORTS: 'Sports',
+  HS_SPORTS: 'HS Sports',
+  COLLEGE_SPORTS: 'College Sports',
+  LEAGUE_SPORTS: 'League Sports',
   MUSIC: 'Music',
   EDUCATIONAL: 'Educational',
   FUNDRAISERS: 'Fundraisers',
   COMMUNITY: 'Community',
   ARTS: 'Arts',
   FAMILY: 'Family',
+  HOLIDAY_CELEBRATIONS: 'Holiday',
+  FOOD_DRINK: 'Food & Drink',
+  POLITICAL: 'Political',
 }
 
 function startOfDayUTC(d: Date): Date {
@@ -129,8 +135,10 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   // Counts per category for chip badges (independent of selected filter).
   const categoryCounts: Record<EventCategory, number> = {
-    SPORTS: 0, MUSIC: 0, EDUCATIONAL: 0, FUNDRAISERS: 0,
+    SPORTS: 0, HS_SPORTS: 0, COLLEGE_SPORTS: 0, LEAGUE_SPORTS: 0,
+    MUSIC: 0, EDUCATIONAL: 0, FUNDRAISERS: 0,
     COMMUNITY: 0, ARTS: 0, FAMILY: 0,
+    HOLIDAY_CELEBRATIONS: 0, FOOD_DRINK: 0, POLITICAL: 0,
   }
   const allInRange = await prisma.event.findMany({
     where: { startsAt: { gte: range.start, lt: range.end } },
@@ -151,6 +159,22 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const honorable = events.filter((e) => e.tier === 'HONORABLE_MENTION')
   const standard = events.filter((e) => e.tier === 'STANDARD')
 
+  // Hero roll-forward: if no HERO event in the visible range, find the
+  // next future HERO event (regardless of category filter) and surface it
+  // with a "next month" badge so the section always has something to show
+  // when curation exists somewhere in the calendar.
+  let heroRollForward: typeof events[number] | null = null
+  if (!hero) {
+    const nextHero = await prisma.event.findFirst({
+      where: {
+        tier: 'HERO',
+        startsAt: { gte: now },
+      },
+      orderBy: { startsAt: 'asc' },
+    })
+    heroRollForward = nextHero
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -167,8 +191,20 @@ export default async function EventsPage({ searchParams }: PageProps) {
         </div>
       </div>
 
+      {/* Hero section — always above the filter bar. Shows the featured event
+          for the current view; falls back to the next future HERO with a
+          "next month" badge when none exist in the visible range. */}
+      {(hero || heroRollForward) && (
+        <div className="container-max pt-10">
+          <HeroCard
+            event={(hero ?? heroRollForward)!}
+            rollForward={!hero && !!heroRollForward}
+          />
+        </div>
+      )}
+
       {/* Filters */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 mt-10">
         <div className="container-max py-4 space-y-3">
           {/* View tabs + month navigation */}
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -274,10 +310,9 @@ export default async function EventsPage({ searchParams }: PageProps) {
         {/* Bento grid */}
         {events.length > 0 && (
           <div className="space-y-6">
-            {/* Hero — full width */}
-            {hero && <HeroCard event={hero} />}
-
-            {/* Honorable mentions — 2-3 cards in a row */}
+            {/* Honorable mentions — 2-3 cards in a row. Skipped when the hero
+                is the visible-range one because that event is already shown
+                at the top; roll-forward heroes are listed below too. */}
             {honorable.length > 0 && (
               <section>
                 <h2 className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-3 flex items-center gap-2">
@@ -333,57 +368,102 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
 // ── Card components ─────────────────────────────────────────────────────
 
-function HeroCard({ event }: { event: any }) {
+function HeroCard({ event, rollForward }: { event: any; rollForward?: boolean }) {
   const dateLabel = formatEventDate(event.startsAt)
   const venue = event.venueName ?? 'Venue TBD'
 
+  // CTA logic: ticketUrl → "Get Tickets", sourceUrl → "View Details", else no button
+  const ctaUrl = event.ticketUrl ?? event.sourceUrl ?? null
+  const ctaLabel = event.ticketUrl
+    ? 'Get Tickets'
+    : event.sourceUrl
+      ? 'View Details'
+      : null
+  const ctaIcon = event.ticketUrl ? Ticket : ExternalLink
+
   return (
-    <Link
-      href={event.sourceUrl ?? '#'}
-      target={event.sourceUrl ? '_blank' : undefined}
-      rel="noopener noreferrer"
-      className="block bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow"
+    <section
+      aria-label="Featured event"
+      className="relative bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2">
-        {/* Image */}
-        <div className="aspect-[4/3] lg:aspect-auto bg-gradient-to-br from-primary/20 to-secondary/20 relative">
-          {event.heroImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={event.heroImageUrl}
-              alt={event.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Calendar className="w-20 h-20 text-primary/30" />
-            </div>
-          )}
-          <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs font-bold uppercase tracking-wider shadow-lg">
-            <Award className="w-3.5 h-3.5" /> This Week&apos;s Pick
+      {/* Background image — fills the card with a tinted gradient fallback */}
+      <div className="relative aspect-[16/9] md:aspect-[21/9] bg-gradient-to-br from-primary/30 via-primary/10 to-secondary/20">
+        {event.heroImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={event.heroImageUrl}
+            alt={event.title}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Calendar className="w-24 h-24 text-primary/30" />
           </div>
+        )}
+
+        {/* Top-left badge */}
+        <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs font-bold uppercase tracking-wider shadow-lg">
+          <Award className="w-3.5 h-3.5" /> Featured Event
         </div>
 
-        {/* Copy */}
-        <div className="p-8 lg:p-10 flex flex-col justify-center">
-          <p className="text-sm font-semibold text-primary mb-2">{dateLabel}</p>
-          <h2 className="text-3xl lg:text-4xl font-bold text-text mb-4 leading-tight">{event.title}</h2>
-          <div className="flex items-center gap-2 text-text-secondary mb-4">
-            <MapPin className="w-4 h-4" />
-            <span className="text-sm">{venue}</span>
-            {event.city && event.city !== 'Moreno Valley' && (
-              <span className="text-sm text-text-secondary">· {event.city}</span>
+        {/* Bottom gradient + content overlay */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-6 md:p-10 pt-24">
+          <div className="max-w-3xl">
+            {/* Date pill */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 text-white text-xs font-semibold mb-3">
+              <Clock className="w-3.5 h-3.5" />
+              {dateLabel}
+            </div>
+
+            {/* Title */}
+            <h2 className="text-2xl md:text-4xl font-bold text-white mb-3 leading-tight">
+              {event.title}
+            </h2>
+
+            {/* Venue */}
+            <div className="flex items-center gap-2 text-white/85 mb-4">
+              <MapPin className="w-4 h-4 shrink-0" />
+              <span className="text-sm">{venue}</span>
+              {event.city && event.city !== 'Moreno Valley' && (
+                <span className="text-sm text-white/70">· {event.city}</span>
+              )}
+            </div>
+
+            {/* Description (only when present) */}
+            {event.description && (
+              <p className="text-white/85 text-sm md:text-base leading-relaxed mb-5 line-clamp-3 max-w-2xl">
+                {event.description}
+              </p>
             )}
-          </div>
-          {event.description && (
-            <p className="text-text-secondary leading-relaxed line-clamp-4 mb-6">{event.description}</p>
-          )}
-          <div className="inline-flex items-center gap-2 text-primary font-semibold">
-            Learn more <ArrowRight className="w-4 h-4" />
+
+            {/* CTA button + roll-forward badge row */}
+            <div className="flex flex-wrap items-center gap-3">
+              {ctaUrl && ctaLabel && (
+                <a
+                  href={ctaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors shadow-lg"
+                >
+                  {(() => {
+                    const Icon = ctaIcon
+                    return <Icon className="w-4 h-4" />
+                  })()}
+                  {ctaLabel}
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              )}
+              {rollForward && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 text-white text-xs font-semibold">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Next featured event
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </Link>
+    </section>
   )
 }
 
@@ -467,8 +547,9 @@ function StandardCard({ event }: { event: any }) {
   )
 }
 
-function formatEventDate(d: Date): string {
-  return d.toLocaleString('en-US', {
+function formatEventDate(d: Date | string): string {
+  const date = typeof d === 'string' ? new Date(d) : d
+  return date.toLocaleString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
