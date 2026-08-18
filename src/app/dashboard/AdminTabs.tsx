@@ -33,6 +33,7 @@ interface AdminTabsProps {
   eventSubmissions: any[]
   eventsForDuplicate: any[]
   events: any[]
+  archivedEvents: any[]
 }
 
 type TabKey = 'businesses' | 'social' | 'events' | 'events-admin' | 'bestof' | 'bestofnominations' | 'guestauthors' | 'guestposts' | 'audits' | 'diagnostics'
@@ -58,7 +59,7 @@ const TABS: { key: TabKey; label: string; icon: typeof Building2; count?: (p: Ad
   { key: 'diagnostics', label: 'Diagnostics', icon: Activity },
 ]
 
-export default function AdminTabs({ businesses, posts, bestOfCategories, bestOfNominations, bestOfNominationCategories, guestAuthors, guestPosts, approvedBusinesses, eventSubmissions, eventsForDuplicate, events }: AdminTabsProps) {
+export default function AdminTabs({ businesses, posts, bestOfCategories, bestOfNominations, bestOfNominationCategories, guestAuthors, guestPosts, approvedBusinesses, eventSubmissions, eventsForDuplicate, events, archivedEvents }: AdminTabsProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const tabFromUrl = searchParams?.get('tab') as TabKey | null
@@ -73,7 +74,7 @@ export default function AdminTabs({ businesses, posts, bestOfCategories, bestOfN
     router.replace(`/dashboard?${params.toString()}`, { scroll: false })
   }
 
-  const props = { businesses, posts, bestOfCategories, bestOfNominations, bestOfNominationCategories, guestAuthors, guestPosts, approvedBusinesses, eventSubmissions, eventsForDuplicate, events }
+  const props = { businesses, posts, bestOfCategories, bestOfNominations, bestOfNominationCategories, guestAuthors, guestPosts, approvedBusinesses, eventSubmissions, eventsForDuplicate, events, archivedEvents }
 
   return (
     <div>
@@ -128,7 +129,7 @@ export default function AdminTabs({ businesses, posts, bestOfCategories, bestOfN
         {active === 'guestauthors' && <GuestAuthorsPanel initialAuthors={guestAuthors} approvedBusinesses={approvedBusinesses} />}
         {active === 'guestposts' && <GuestPostsPanel initialPosts={guestPosts} authors={guestAuthors.map((a: any) => ({ id: a.id, displayName: a.displayName, slug: a.slug }))} />}
         {active === 'events' && <EventSubmissionsPanel initialSubmissions={eventSubmissions} existingEvents={eventsForDuplicate} />}
-        {active === 'events-admin' && <EventsAdminPanel events={events} />}
+        {active === 'events-admin' && <EventsAdminPanel events={events} archivedEvents={archivedEvents} />}
         {active === 'audits' && <AuditsPanel />}
         {active === 'diagnostics' && <DiagnosticsPanel />}
       </div>

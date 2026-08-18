@@ -138,6 +138,8 @@ export default async function EventsPage({ searchParams }: PageProps) {
     ? new Date(now.getTime() + 90 * 86400000)
     : range.end
   const where: any = {
+    // archivedAt: null hides soft-deleted events from public listings.
+    archivedAt: null,
     startsAt: { gte: searchQuery ? startOfDayUTC(now) : range.start, lt: searchDateEnd },
   }
   if (selectedCats.length > 0) {
@@ -175,6 +177,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
     const fallback = await prisma.event.findFirst({
       where: {
         tier: 'HERO',
+        archivedAt: null,
         startsAt: { gt: range.end },
       },
       orderBy: { startsAt: 'asc' },

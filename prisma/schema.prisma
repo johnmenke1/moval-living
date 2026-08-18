@@ -366,6 +366,12 @@ model Event {
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 
+  // Soft-delete: when non-null, the event is hidden from public listings
+  // and from the default admin Live Events view. Admin can un-archive by
+  // setting archivedAt back to null. A daily cron sets archivedAt for
+  // events 30+ days past their end (or start, if no end given).
+  archivedAt              DateTime?
+
   submissions Submission[] @relation("SubmissionToEvent")
 
   @@index([startsAt])
@@ -375,6 +381,7 @@ model Event {
   @@index([category])
   @@index([businessId])
   @@index([esEnEspanol])
+  @@index([archivedAt])
 }
 
 enum Platform {

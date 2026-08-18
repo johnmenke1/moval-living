@@ -53,6 +53,7 @@ export default async function DashboardPage() {
       eventSubmissions,
       eventsForDuplicate,
       events,
+      archivedEvents,
     ] = await Promise.all([
       prisma.socialPost.findMany({
         include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
@@ -133,13 +134,18 @@ export default async function DashboardPage() {
         orderBy: { createdAt: 'desc' },
       }),
       // Existing events for the "Mark as duplicate" picker on each submission.
+      // Hide archived events — they shouldn't be picked as duplicates.
       prisma.event.findMany({
+        where: { archivedAt: null },
         orderBy: { startsAt: 'desc' },
         select: { id: true, slug: true, title: true, startsAt: true, venueName: true },
       }),
-      // All live events for the new Live Events admin tab (full table with edit/view).
-      // Sorted soonest-first so upcoming events surface at the top of the panel.
+      // Active (non-archived) events for the Live Events admin tab. The
+      // EventsAdminPanel has a client-side toggle to show archived; that
+      // view is supported by a separate fetch below. Sorted soonest-first
+      // so upcoming events surface at the top of the panel.
       prisma.event.findMany({
+        where: { archivedAt: null },
         orderBy: { startsAt: 'asc' },
         select: {
           id: true,
@@ -147,9 +153,30 @@ export default async function DashboardPage() {
           shareUrl: true,
           title: true,
           startsAt: true,
+          endsAt: true,
           venueName: true,
           tier: true,
           category: true,
+          archivedAt: true,
+          business: { select: { id: true, name: true, slug: true } },
+        },
+      }),
+      // Archived events — separate fetch so the admin can toggle
+      // "Show archived" without an extra round-trip. Small set; cheap.
+      prisma.event.findMany({
+        where: { archivedAt: { not: null } },
+        orderBy: { archivedAt: 'desc' },
+        select: {
+          id: true,
+          slug: true,
+          shareUrl: true,
+          title: true,
+          startsAt: true,
+          endsAt: true,
+          venueName: true,
+          tier: true,
+          category: true,
+          archivedAt: true,
           business: { select: { id: true, name: true, slug: true } },
         },
       }),
@@ -215,6 +242,14 @@ export default async function DashboardPage() {
               events={events.map((e) => ({
                 ...e,
                 startsAt: e.startsAt.toISOString(),
+                endsAt: e.endsAt?.toISOString() ?? null,
+                archivedAt: e.archivedAt?.toISOString() ?? null,
+              }))}
+              archivedEvents={archivedEvents.map((e) => ({
+                ...e,
+                startsAt: e.startsAt.toISOString(),
+                endsAt: e.endsAt?.toISOString() ?? null,
+                archivedAt: e.archivedAt?.toISOString() ?? null,
               }))}
 
             />

@@ -133,6 +133,7 @@ async function getUpcomingEvents() {
   return prisma.event.findMany({
     where: {
       tier: { in: ['HERO', 'HONORABLE_MENTION'] },
+      archivedAt: null,
       startsAt: { gte: now, lte: horizon },
     },
     select: {
