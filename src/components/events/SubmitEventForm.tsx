@@ -9,6 +9,7 @@ import {
   Send,
   Calendar,
 } from 'lucide-react'
+import VenueAutocomplete, { type VenueOption } from './VenueAutocomplete'
 
 type FormState = {
   sourceUrl: string
@@ -16,7 +17,16 @@ type FormState = {
   date: string         // YYYY-MM-DD from <input type="date">
   startTime: string    // HH:MM from <input type="time">
   endTime: string      // HH:MM, optional
+  // Venue picker: user types in the autocomplete, picks one from the
+  // dropdown if a canonical Venue exists. venueId is set when they pick;
+  // address / city / state / zip are auto-filled from that Venue but the
+  // user can still edit them (in case of typos or to override).
   venueName: string
+  venueId: string | null
+  address: string
+  city: string
+  state: string
+  zip: string
   // Caption pasted by the submitter when auto-extract failed (IG captcha
   // wall, etc). Sent as `caption` to the API; the server uses it as
   // `sourcePostCaption` if non-empty, so admin reviewers see the actual
@@ -34,6 +44,11 @@ const INITIAL: FormState = {
   startTime: '',
   endTime: '',
   venueName: '',
+  venueId: null,
+  address: '',
+  city: '',
+  state: 'CA',
+  zip: '',
   caption: '',
   submitterNote: '',
   website: '',
@@ -41,6 +56,9 @@ const INITIAL: FormState = {
 
 const MAX_TITLE = 200
 const MAX_VENUE = 200
+const MAX_ADDRESS = 300
+const MAX_CITY = 100
+const MAX_ZIP = 10
 const MAX_CAPTION = 2000
 const MAX_NOTE = 600
 
@@ -98,7 +116,12 @@ export default function SubmitEventForm() {
           title: form.title,
           startsAt,
           endsAt,
-          venueName: form.venueName || undefined,
+          venueName: form.venueName.trim() || undefined,
+          venueId: form.venueId || undefined,
+          address: form.address.trim() || undefined,
+          city: form.city.trim() || undefined,
+          state: form.state.trim() || undefined,
+          zip: form.zip.trim() || undefined,
           caption: form.caption.trim() || undefined,
           submitterNote: form.submitterNote || undefined,
           website: form.website,
@@ -235,16 +258,79 @@ export default function SubmitEventForm() {
             </Field>
           </div>
 
-          <Field label="Venue name (optional)" hint={`${form.venueName.length} / ${MAX_VENUE} characters`}>
-            <input
-              type="text"
+          <Field
+            label="Venue (optional)"
+            hint={form.venueId
+              ? 'Linked to a known venue — address filled in below. You can edit if needed.'
+              : 'Type to search our venue directory, or type a custom name and add the address yourself.'}
+          >
+            <VenueAutocomplete
               value={form.venueName}
-              onChange={(e) => update('venueName', e.target.value)}
-              placeholder="e.g. Moreno Valley Mall, Fox Riverside"
-              maxLength={MAX_VENUE}
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              onChange={(next) => {
+                update('venueName', next.venueName)
+                update('venueId', next.venueId)
+              }}
+              onPick={(v) => {
+                // Auto-fill address fields from the picked Venue. User can
+                // still override any field after.
+                update('address', v.address)
+                update('city', v.city)
+                update('state', v.state)
+                update('zip', v.zip)
+              }}
             />
           </Field>
+
+          <div className="grid grid-cols-1 sm:grid-cols-6 gap-3">
+            <div className="sm:col-span-4">
+              <Field label="Address (optional)" hint={`${form.address.length} / ${MAX_ADDRESS} characters`}>
+                <input
+                  type="text"
+                  value={form.address}
+                  onChange={(e) => update('address', e.target.value)}
+                  placeholder="123 Main St"
+                  maxLength={MAX_ADDRESS}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </Field>
+            </div>
+            <div className="sm:col-span-2">
+              <Field label="City" hint={`${form.city.length} / ${MAX_CITY}`}>
+                <input
+                  type="text"
+                  value={form.city}
+                  onChange={(e) => update('city', e.target.value)}
+                  placeholder="Moreno Valley"
+                  maxLength={MAX_CITY}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </Field>
+            </div>
+            <div className="sm:col-span-1">
+              <Field label="State">
+                <input
+                  type="text"
+                  value={form.state}
+                  onChange={(e) => update('state', e.target.value)}
+                  placeholder="CA"
+                  maxLength={2}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </Field>
+            </div>
+            <div className="sm:col-span-2 sm:col-start-5">
+              <Field label="ZIP" hint={`${form.zip.length} / ${MAX_ZIP}`}>
+                <input
+                  type="text"
+                  value={form.zip}
+                  onChange={(e) => update('zip', e.target.value)}
+                  placeholder="92553"
+                  maxLength={MAX_ZIP}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </Field>
+            </div>
+          </div>
 
           <Field
             label="Post caption (optional)"

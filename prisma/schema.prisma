@@ -121,6 +121,39 @@ model Business {
   @@index([featuredAt])
 }
 
+
+model Venue {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  // Optional brand / parent org label, e.g. "University of California,
+  // Riverside" or "Moreno Valley Unified School District". Surface in
+  // admin / venue detail; not used for matching.
+  org       String?
+  address   String
+  city      String
+  state     String   @default("CA")
+  zip       String
+  // Free-text phone / parking notes / accessibility notes for the venue
+  // detail page. Not surfaced on event cards.
+  notes     String?  @db.Text
+  // Whether events at this venue typically require tickets / RSVPs / entry
+  // fees. Drives the default isFree on newly-created events at this venue
+  // (admin can override per-event).
+  isTicketed Boolean @default(false)
+  // Latitude / longitude for map embeds and distance-aware filters.
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events      Event[]
+  submissions Submission[]
+
+  @@index([name])
+  @@index([city])
+}
+
 model Category {
   id          String     @id @default(cuid())
   name        String
@@ -302,6 +335,17 @@ model Submission {
   startsAt           DateTime
   endsAt             DateTime?
   venueName          String?
+  // Optional link to the canonical Venue table. When set, the admin's
+  // promote-to-Event flow copies address / city / state / zip from this
+  // Venue (unless the submitter overrode those — those overrides win).
+  venueId  String?
+  venue    Venue?  @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  // Address snapshot at submission time. Admin can edit before promoting;
+  // promote-to-Event copies whatever is here onto the new Event row.
+  address  String?
+  city     String?
+  state    String?
+  zip      String?
   submittedById      String?
   submitterNote      String?          @db.Text
   status             SubmissionStatus @default(PENDING)
@@ -359,6 +403,15 @@ model Event {
   // back-relation on Business.events lets the business page list its events.
   businessId String?
   business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  // Optional link to the canonical Venue table. When set, address / city /
+  // state / zip / venueName are kept in sync with the Venue — the Event's
+  // own address fields become a denormalized cache for fast card rendering
+  // and for backwards compatibility with existing queries that filter on
+  // venueName / city / address. The back-relation on Venue.events lets the
+  // venue detail page list all events at this location.
+  venueId  String?
+  venue    Venue?  @relation(fields: [venueId], references: [id], onDelete: SetNull)
   originatingSubmissionId String?
   submittedById           String?
   reviewedById            String?
@@ -382,6 +435,7 @@ model Event {
   @@index([businessId])
   @@index([esEnEspanol])
   @@index([archivedAt])
+  @@index([venueId])
 }
 
 enum Platform {

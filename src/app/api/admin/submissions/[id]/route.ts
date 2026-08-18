@@ -62,8 +62,17 @@ export async function PATCH(
           startsAt: submission.startsAt,
           endsAt: submission.endsAt ?? null,
           venueName: submission.venueName ?? null,
+          venueId: submission.venueId ?? null,
           venueTag: 'OTHER', // admin can re-tag from the dashboard
           tier: 'STANDARD',
+          // Carry the address fields forward. When submission has a linked
+          // Venue (venueId set), these were populated from the Venue at
+          // submission time. When venueId is null but address/city/etc are
+          // set, the submitter typed them manually — admin can edit.
+          address: submission.address ?? null,
+          city: submission.city ?? null,
+          state: submission.state ?? null,
+          zip: submission.zip ?? null,
           // Carry the fal-generated hero image forward so the Event renders
           // immediately on /events. Admin can replace via dashboard.
           heroImageUrl: submission.thumbnailUrl ?? null,

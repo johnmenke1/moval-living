@@ -12,6 +12,17 @@ const submissionSchema = z.object({
   startsAt: z.string().trim().min(1),
   endsAt: z.string().trim().optional(),
   venueName: z.string().trim().max(200).optional(),
+  // Optional FK into the Venue table. Set when the user picks from the
+  // venue autocomplete dropdown. The server validates it exists.
+  venueId: z.string().trim().max(50).optional(),
+  // Address fields. When venueId is set, the server may overwrite these
+  // from the canonical Venue (so admin can't accidentally create an event
+  // with a mismatched address). When venueId is null, the submitter's
+  // free-text address is preserved verbatim.
+  address: z.string().trim().max(300).optional(),
+  city: z.string().trim().max(100).optional(),
+  state: z.string().trim().max(2).optional(),
+  zip: z.string().trim().max(10).optional(),
   // Caption the submitter pasted from Instagram/Facebook when our auto-
   // extract couldn't (IG serves a captcha wall to unauthenticated browsers
   // for most posts now, so this happens often). If non-empty, used as the
@@ -71,7 +82,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Validation failed — ${issues}` }, { status: 400 })
   }
 
-  const { sourceUrl, title, startsAt, endsAt, venueName, caption, submitterNote, website } = parsed.data
+  const { sourceUrl, title, startsAt, endsAt, venueName, venueId, address, city, state, zip, caption, submitterNote, website } = parsed.data
 
   // Honeypot — silently drop the submission if the hidden field is filled.
   // Don't tell the bot we caught it; just return a fake success.
@@ -106,6 +117,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid end time' }, { status: 400 })
   }
 
+  // If venueId was provided, validate it exists and pull the canonical
+  // address from the Venue. We always overwrite the submitter's address
+  // fields with the Venue's so admin doesn't see a mismatch. If the user
+  // picked a known venue, the venue wins for address; they can edit after
+  // promote if needed.
+  let resolvedVenueId: string | null = null
+  let resolvedVenueName: string | null = venueName ?? null
+  let resolvedAddress: string | null = address ?? null
+  let resolvedCity: string | null = city ?? null
+  let resolvedState: string | null = state ?? null
+  let resolvedZip: string | null = zip ?? null
+  if (venueId) {
+    const v = await prisma.venue.findUnique({ where: { id: venueId } })
+    if (!v) {
+      return NextResponse.json({ error: 'Selected venue not found' }, { status: 400 })
+    }
+    resolvedVenueId = v.id
+    // Use the canonical Venue's name + address fields. Submitter's
+    // venueName (if different) is dropped — the canonical name wins.
+    resolvedVenueName = v.name
+    resolvedAddress = v.address
+    resolvedCity = v.city
+    resolvedState = v.state
+    resolvedZip = v.zip
+  }
+
   // Detect platform + capture metadata via Playwright (real browser).
   // Best-effort — if the fetch fails we still create the Submission,
   // just with null fields for the admin to fill manually.
@@ -133,7 +170,12 @@ export async function POST(req: NextRequest) {
       title,
       startsAt: startsAtDate,
       endsAt: endsAtDate,
-      venueName: venueName ?? null,
+      venueName: resolvedVenueName,
+      venueId: resolvedVenueId,
+      address: resolvedAddress,
+      city: resolvedCity,
+      state: resolvedState,
+      zip: resolvedZip,
       submitterNote: submitterNote ?? null,
       status: 'PENDING',
     },
