@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import VenueAutocomplete from '@/components/events/VenueAutocomplete'
 import {
   ChevronLeft,
   Loader2,
@@ -60,6 +61,7 @@ export interface Event {
   startsAt: string
   endsAt: string | null
   venueName: string | null
+  venueId: string | null
   venueTag: string
   category: string | null
   address: string | null
@@ -118,7 +120,12 @@ export default function EditEventClient({ event }: { event: Event }) {
     ticketUrl: event.ticketUrl ?? '',
     tier: event.tier,
     shareUrl: event.shareUrl ?? '',
+    // Venue: now supports linking to a canonical Venue (autocomplete on
+    // focus). The address fields below are kept as user-editable in case
+    // admin wants to override a Venue's canonical address for a one-off,
+    // or for free-text venues that aren't in the directory.
     venueName: event.venueName ?? '',
+    venueId: event.venueId ?? null,
     venueTag: event.venueTag,
     category: event.category ?? '',
     address: event.address ?? '',
@@ -140,7 +147,7 @@ export default function EditEventClient({ event }: { event: Event }) {
   const [bizSearching, setBizSearching] = useState(false)
   const [showBizResults, setShowBizResults] = useState(false)
 
-  const update = (field: string, value: string | boolean) => {
+  const update = (field: string, value: string | boolean | null) => {
     setForm((prev) => ({ ...prev, [field]: value }))
     setSaved(false)
     if (field in fieldErrors) {
@@ -238,6 +245,11 @@ export default function EditEventClient({ event }: { event: Event }) {
       ticketUrl: form.ticketUrl.trim() || null,
       tier: form.tier,
       shareUrl: form.shareUrl.trim() || null,
+      // Explicit null on the wire lets the server distinguish "no change"
+      // (undefined / omitted) from "unlink from venue" (null). The form
+      // sends undefined when the user hasn't touched the venue field, null
+      // when they typed free-text without picking from the dropdown.
+      venueId: form.venueId === '' ? null : (form.venueId ?? undefined),
       venueName: form.venueName.trim() || null,
       venueTag: form.venueTag,
       category: form.category || null,
@@ -485,14 +497,33 @@ export default function EditEventClient({ event }: { event: Event }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-text mb-1.5">
-                    Venue name
+                    Venue
+                    {form.venueId && (
+                      <span className="ml-2 text-xs font-normal text-primary">(linked to directory venue)</span>
+                    )}
                   </label>
-                  <input
-                    type="text"
+                  <VenueAutocomplete
                     value={form.venueName}
-                    onChange={(e) => update('venueName', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    placeholder="e.g. Moreno Valley High School Gym"
+                    onChange={(next) => {
+                      setForm(prev => ({
+                        ...prev,
+                        venueName: next.venueName,
+                        venueId: next.venueId,
+                      }))
+                    }}
+                    onPick={(v) => {
+                      // Auto-populate address when a venue is picked. Admin
+                      // can still edit the fields after if needed.
+                      setForm(prev => ({
+                        ...prev,
+                        venueName: v.name,
+                        venueId: v.id,
+                        address: v.address,
+                        city: v.city,
+                        state: v.state,
+                        zip: v.zip,
+                      }))
+                    }}
                   />
                 </div>
                 <div>
