@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import {
   FileText, Plus, Trash2, ChevronDown, ChevronUp,
-  Loader2, Search, X, Eye, Clock, CheckCircle, XCircle, Calendar
+  Loader2, Search, X, Eye, Clock, CheckCircle, XCircle, Calendar,
+  ImagePlus, AlertCircle
 } from 'lucide-react'
 import MarkdownEditor from '@/components/admin/MarkdownEditor'
 
@@ -132,6 +133,29 @@ export default function GuestPostsPanel({
   const [createForm, setCreateForm] = useState<FormState>(blankForm())
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState('')
+
+  // Image upload state — one key per slot ('hero' or 'outing-<index>')
+  const [uploading, setUploading] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState('')
+
+  async function handleUpload(file: File, slotKey: string, folder: string): Promise<string | null> {
+    setUploadError('')
+    setUploading(slotKey)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('folder', folder)
+      const res = await fetch('/api/admin/upload-asset', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => ({} as { error?: string; url?: string }))
+      if (!res.ok || !data.url) throw new Error(data.error || 'Upload failed')
+      return data.url
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+      return null
+    } finally {
+      setUploading(null)
+    }
+  }
 
   const filtered = posts.filter(p => {
     const matchSearch =
@@ -474,23 +498,67 @@ export default function GuestPostsPanel({
                   Trip photos <span className="text-slate-400">(each with optional caption)</span>
                 </label>
                 <div className="space-y-2">
-                  {createForm.outingPhotos.map((photo, i) => (
+                  {createForm.outingPhotos.map((photo, i) => {
+                    const slotKey = `outing-${i}`
+                    return (
                     <div key={i} className="bg-slate-50 rounded-lg p-2 space-y-1.5">
-                      <div className="flex gap-2">
-                        <input
-                          value={photo.url}
-                          onChange={e => {
-                            const photos = [...createForm.outingPhotos]
-                            photos[i] = { ...photos[i], url: e.target.value }
-                            setCreateForm(f => ({ ...f, outingPhotos: photos }))
-                          }}
-                          placeholder="https://..."
-                          className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                        />
+                      <div className="flex gap-3 items-start">
+                        {photo.url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={photo.url}
+                            alt=""
+                            className="w-20 h-20 rounded-md object-cover bg-slate-100 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-20 h-20 rounded-md bg-slate-200 flex items-center justify-center text-text-secondary text-xs shrink-0">
+                            No image
+                          </div>
+                        )}
+                        <div className="flex-1 flex flex-col gap-1.5">
+                          <label className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-white text-xs font-semibold hover:bg-primary/90 cursor-pointer transition-colors w-fit">
+                            {uploading === slotKey ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <ImagePlus className="w-3 h-3" />
+                            )}
+                            {uploading === slotKey ? 'Uploading…' : photo.url ? 'Replace image' : 'Upload image'}
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/gif"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0]
+                                e.target.value = ''
+                                if (!file) return
+                                const folder = `editorial/${createForm.slug || 'unslugged'}/outing`
+                                const url = await handleUpload(file, slotKey, folder)
+                                if (url) {
+                                  const photos = [...createForm.outingPhotos]
+                                  photos[i] = { ...photos[i], url }
+                                  setCreateForm(f => ({ ...f, outingPhotos: photos }))
+                                }
+                              }}
+                            />
+                          </label>
+                          {photo.url && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const photos = [...createForm.outingPhotos]
+                                photos[i] = { ...photos[i], url: '' }
+                                setCreateForm(f => ({ ...f, outingPhotos: photos }))
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-text-secondary hover:text-red-600 w-fit"
+                            >
+                              <X className="w-3 h-3" /> Remove
+                            </button>
+                          )}
+                        </div>
                         <button
                           type="button"
                           onClick={() => setCreateForm(f => ({ ...f, outingPhotos: f.outingPhotos.filter((_, j) => j !== i) }))}
-                          className="text-slate-400 hover:text-red-500 text-sm"
+                          className="text-slate-400 hover:text-red-500 text-sm mt-1"
                         >
                           ✕
                         </button>
@@ -507,7 +575,8 @@ export default function GuestPostsPanel({
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                       />
                     </div>
-                  ))}
+                    );
+                  })}
                   <button
                     type="button"
                     onClick={() => setCreateForm(f => ({ ...f, outingPhotos: [...f.outingPhotos, { url: '', caption: '' }] }))}
@@ -533,15 +602,63 @@ export default function GuestPostsPanel({
                 />
               </div>
             )}
-            <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1">Hero Image URL</label>
-              <input
-                type="url"
-                value={createForm.heroImageUrl}
-                onChange={e => setCreateForm(f => ({ ...f, heroImageUrl: e.target.value }))}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                placeholder="https://..."
-              />
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-text-secondary mb-1">Hero Image</label>
+              {uploadError && (
+                <div className="flex items-start gap-2 p-3 mb-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+              <div className="flex items-start gap-4">
+                <div className="shrink-0">
+                  {createForm.heroImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={createForm.heroImageUrl}
+                      alt="Hero preview"
+                      className="w-40 h-40 rounded-lg object-cover bg-slate-100"
+                    />
+                  ) : (
+                    <div className="w-40 h-40 rounded-lg bg-slate-100 flex items-center justify-center text-text-secondary text-xs">
+                      No image
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-2">
+                  <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 cursor-pointer transition-colors">
+                    {uploading === 'hero' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ImagePlus className="w-4 h-4" />
+                    )}
+                    {uploading === 'hero' ? 'Uploading…' : 'Upload new image'}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        e.target.value = ''
+                        if (!file) return
+                        const folder = `editorial/${createForm.slug || 'unslugged'}`
+                        const url = await handleUpload(file, 'hero', folder)
+                        if (url) setCreateForm(f => ({ ...f, heroImageUrl: url }))
+                      }}
+                    />
+                  </label>
+                  {createForm.heroImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setCreateForm(f => ({ ...f, heroImageUrl: '' }))}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-slate-200 text-text text-sm font-medium hover:bg-slate-50 transition-colors"
+                    >
+                      <X className="w-4 h-4" /> Remove image
+                    </button>
+                  )}
+                  <p className="text-xs text-text-secondary">JPEG / PNG / WEBP / GIF. Max 10MB. Stored on Vercel Blob.</p>
+                </div>
+              </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1">Meta Title</label>

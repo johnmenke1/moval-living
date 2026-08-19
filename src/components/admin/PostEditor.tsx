@@ -10,6 +10,9 @@ import {
   CheckCircle,
   XCircle,
   Calendar,
+  ImagePlus,
+  X,
+  AlertCircle,
 } from 'lucide-react'
 import MarkdownEditor from '@/components/admin/MarkdownEditor'
 
@@ -86,6 +89,31 @@ export default function PostEditor(props: Props) {
   const [saving, setSaving] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [error, setError] = useState('')
+
+  // ---- Image upload state ----
+  // One key per upload slot. A value of 'hero' identifies the hero upload;
+  // 'outing-<index>' identifies a single photo in the OUTING gallery.
+  const [uploading, setUploading] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState('')
+
+  async function handleUpload(file: File, slotKey: string, folder: string): Promise<string | null> {
+    setUploadError('')
+    setUploading(slotKey)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('folder', folder)
+      const res = await fetch('/api/admin/upload-asset', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => ({} as { error?: string; url?: string }))
+      if (!res.ok || !data.url) throw new Error(data.error || 'Upload failed')
+      return data.url
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+      return null
+    } finally {
+      setUploading(null)
+    }
+  }
 
   // Auto-derive slug from title when blank (create mode only)
   useEffect(() => {
@@ -249,14 +277,61 @@ export default function PostEditor(props: Props) {
               minRows={20}
             />
           </Field>
-          <Field label="Hero image URL" hint="Paste a hosted image URL.">
-            <input
-              type="url"
-              value={form.heroImageUrl}
-              onChange={(e) => setField('heroImageUrl', e.target.value)}
-              placeholder="https://..."
-              className="input"
-            />
+          <Field label="Hero image" hint="JPEG / PNG / WEBP / GIF. Max 10MB. Stored on Vercel Blob.">
+            {uploadError && (
+              <div className="flex items-start gap-2 p-3 mb-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{uploadError}</span>
+              </div>
+            )}
+            <div className="flex items-start gap-4">
+              <div className="shrink-0">
+                {form.heroImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={form.heroImageUrl}
+                    alt="Hero preview"
+                    className="w-40 h-40 rounded-lg object-cover bg-slate-100"
+                  />
+                ) : (
+                  <div className="w-40 h-40 rounded-lg bg-slate-100 flex items-center justify-center text-text-secondary text-xs">
+                    No image
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 cursor-pointer transition-colors">
+                  {uploading === 'hero' ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ImagePlus className="w-4 h-4" />
+                  )}
+                  {uploading === 'hero' ? 'Uploading…' : 'Upload new image'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      e.target.value = ''
+                      if (!file) return
+                      const slotFolder = `editorial/${form.slug || 'unslugged'}`
+                      const url = await handleUpload(file, 'hero', slotFolder)
+                      if (url) setField('heroImageUrl', url)
+                    }}
+                  />
+                </label>
+                {form.heroImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setField('heroImageUrl', '')}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-slate-200 text-text text-sm font-medium hover:bg-slate-50 transition-colors"
+                  >
+                    <X className="w-4 h-4" /> Remove image
+                  </button>
+                )}
+              </div>
+            </div>
           </Field>
           {form.postType === 'LIFE' && (
             <Field label="What I'm listening to" hint="Spotify track IDs — find them in the track's Share → Copy Spotify URI (e.g. 4PTG3Z6ehGkBFwjybzWkR8).">
@@ -344,26 +419,69 @@ export default function PostEditor(props: Props) {
 
           {/* OUTING: photo gallery */}
           {form.postType === 'OUTING' && (
-            <Field label="Trip photo gallery" hint="Optional. Each photo gets its own caption below it.">
+            <Field label="Trip photo gallery" hint="Optional. Upload JPEG / PNG / WEBP / GIF (max 10MB each). Each photo gets its own caption below it.">
               <div className="space-y-3">
-                {form.outingPhotos.map((photo, i) => (
+                {form.outingPhotos.map((photo, i) => {
+                  const slotKey = `outing-${i}`
+                  return (
                   <div key={i} className="bg-slate-50 rounded-lg p-3 space-y-2">
-                    <div className="flex gap-2 items-center">
-                      <input
-                        type="url"
-                        value={photo.url}
-                        onChange={(e) => {
-                          const updated = [...form.outingPhotos]
-                          updated[i] = { ...updated[i], url: e.target.value }
-                          setField('outingPhotos', updated)
-                        }}
-                        placeholder="https://..."
-                        className="input text-sm font-mono flex-1"
-                      />
+                    <div className="flex gap-3 items-start">
+                      {photo.url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={photo.url}
+                          alt=""
+                          className="w-20 h-20 rounded-md object-cover bg-slate-100 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 rounded-md bg-slate-200 flex items-center justify-center text-text-secondary text-xs shrink-0">
+                          No image
+                        </div>
+                      )}
+                      <div className="flex-1 flex flex-col gap-2">
+                        <label className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-md bg-primary text-white text-xs font-semibold hover:bg-primary/90 cursor-pointer transition-colors w-fit">
+                          {uploading === slotKey ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <ImagePlus className="w-3 h-3" />
+                          )}
+                          {uploading === slotKey ? 'Uploading…' : photo.url ? 'Replace image' : 'Upload image'}
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              e.target.value = ''
+                              if (!file) return
+                              const slotFolder = `editorial/${form.slug || 'unslugged'}/outing`
+                              const url = await handleUpload(file, slotKey, slotFolder)
+                              if (url) {
+                                const updated = [...form.outingPhotos]
+                                updated[i] = { ...updated[i], url }
+                                setField('outingPhotos', updated)
+                              }
+                            }}
+                          />
+                        </label>
+                        {photo.url && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...form.outingPhotos]
+                              updated[i] = { ...updated[i], url: '' }
+                              setField('outingPhotos', updated)
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-text-secondary hover:text-red-600 w-fit"
+                          >
+                            <X className="w-3 h-3" /> Remove
+                          </button>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => setField('outingPhotos', form.outingPhotos.filter((_, j) => j !== i))}
-                        className="text-slate-400 hover:text-red-500 text-sm"
+                        className="text-slate-400 hover:text-red-500 text-sm mt-1"
                       >
                         ✕
                       </button>
@@ -381,7 +499,8 @@ export default function PostEditor(props: Props) {
                       className="input text-sm w-full"
                     />
                   </div>
-                ))}
+                );
+                })}
                 <button
                   type="button"
                   onClick={() => setField('outingPhotos', [...form.outingPhotos, { url: '', caption: '' }])}
