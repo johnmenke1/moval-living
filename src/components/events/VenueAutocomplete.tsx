@@ -59,8 +59,11 @@ export default function VenueAutocomplete({ value, onChange, onPick }: Props) {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  // Debounced fetch as user types
+  // Fetch venues. Re-fires whenever the query changes, OR when the dropdown
+  // opens (so the user sees the full venue list the moment they focus the
+  // field, without having to type first).
   useEffect(() => {
+    if (!open) return
     const t = setTimeout(async () => {
       const url = `/api/venues?q=${encodeURIComponent(query)}`
       if (lastFetched.current === url) return
@@ -81,7 +84,7 @@ export default function VenueAutocomplete({ value, onChange, onPick }: Props) {
       }
     }, DEBOUNCE_MS)
     return () => clearTimeout(t)
-  }, [query])
+  }, [query, open])
 
   function pick(v: VenueOption) {
     setQuery(v.name)
