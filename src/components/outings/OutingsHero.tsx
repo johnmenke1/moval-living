@@ -77,7 +77,7 @@ export function OutingsHero({ posts }: OutingsHeroProps) {
 
       {/* Foreground content */}
       <div className="relative z-10 w-full">
-        <div className="container-max pb-16 sm:pb-20 pt-32 sm:pt-40">
+        <div className="container-max pb-20 sm:pb-28 md:pb-32 pt-28 sm:pt-36">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
               <Compass className="w-4 h-4 text-white/90" />
