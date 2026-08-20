@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Calendar, ArrowRight } from 'lucide-react'
+import { AuthorLink } from './AuthorLink'
 
 interface InsightsAuthor {
   id: string
@@ -30,47 +31,6 @@ function formatDate(date: Date | null): string | null {
     month: 'long',
     day: 'numeric',
   })
-}
-
-function AuthorLine({ author }: { author: InsightsAuthor | null }) {
-  if (!author) return null
-
-  const initials = author.displayName
-    .split(' ')
-    .map(p => p[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-
-  return (
-    <Link
-      href={`/authors/${author.slug}`}
-      className="flex items-center gap-2 text-sm group/author"
-      onClick={e => e.stopPropagation()}
-    >
-      <span className="w-8 h-8 rounded-full bg-slate-100 overflow-hidden flex-shrink-0">
-        {author.photoUrl ? (
-          <img
-            src={author.photoUrl}
-            alt={author.displayName}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <span className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-semibold">
-            {initials}
-          </span>
-        )}
-      </span>
-      <span className="flex flex-col">
-        <span className="font-semibold text-text group-hover/author:text-primary transition-colors">
-          {author.displayName}
-        </span>
-        {author.companyName && (
-          <span className="text-xs text-text-secondary">{author.companyName}</span>
-        )}
-      </span>
-    </Link>
-  )
 }
 
 export function InsightsArticlesGrid({ posts }: InsightsArticlesGridProps) {
@@ -134,7 +94,14 @@ export function InsightsArticlesGrid({ posts }: InsightsArticlesGridProps) {
                     {featured.excerpt}
                   </p>
                   <div className="flex flex-wrap items-center gap-4">
-                    <AuthorLine author={featured.author} />
+                    {featured.author && (
+                      <AuthorLink
+                        slug={featured.author.slug}
+                        displayName={featured.author.displayName}
+                        companyName={featured.author.companyName}
+                        photoUrl={featured.author.photoUrl}
+                      />
+                    )}
                     {featured.publishedAt && (
                       <div className="flex items-center gap-2 text-sm text-text-secondary">
                         <Calendar className="w-4 h-4" />
@@ -184,7 +151,14 @@ export function InsightsArticlesGrid({ posts }: InsightsArticlesGridProps) {
                       {post.excerpt}
                     </p>
                     <div className="mt-4">
-                      <AuthorLine author={post.author} />
+                      {post.author && (
+                        <AuthorLink
+                          slug={post.author.slug}
+                          displayName={post.author.displayName}
+                          companyName={post.author.companyName}
+                          photoUrl={post.author.photoUrl}
+                        />
+                      )}
                     </div>
                     {post.publishedAt && (
                       <div className="flex items-center gap-2 mt-3 text-sm text-text-secondary">
