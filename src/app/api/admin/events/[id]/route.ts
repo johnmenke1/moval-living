@@ -55,6 +55,10 @@ const schema = z
       ),
     tier: eventTierEnum,
     venueName: z.string().trim().max(200).nullable(),
+    // FK into the canonical Venue table. Null = no link. When set, we
+    // also overwrite venueName/address/city/state/zip with the Venue's
+    // canonical values (so admin can't create a mismatch).
+    venueId: z.string().trim().max(50).nullable().optional(),
     venueTag: venueTagEnum,
     category: eventCategoryEnum.nullable(),
     address: z.string().trim().max(300).nullable(),
@@ -78,7 +82,7 @@ const schema = z
         'ZIP must be 5 or 9 digits'
       ),
     heroImageUrl: z.string().trim().max(2000).nullable(),
-    // Optional Share URL — when set, the public events listing uses this as
+        // Optional Share URL — when set, the public events listing uses this as
     // the primary click target instead of event.sourceUrl (the provenance URL
     // from where the event info was originally scraped). Accepts either a full
     // URL (https://moval.gov/parks-comm-svc/event-day-of-service.html) or a
@@ -167,6 +171,25 @@ export async function PATCH(
         esEnEspanol: data.esEnEspanol,
         ticketUrl: data.ticketUrl,
         tier: data.tier,
+        // Resolve venue fields. Three cases:
+        //   1. data.venueId undefined (omitted) — leave as admin typed
+        //   2. data.venueId null (explicit unlink) — set venueId to null
+        //   3. data.venueId string — overwrite venueName/address/city/state/zip
+        //      with the canonical Venue values (no mismatch allowed)
+        ...(await (async () => {
+          if (data.venueId === undefined) return {}
+          if (data.venueId === null) return { venueId: null }
+          const v = await prisma.venue.findUnique({ where: { id: data.venueId } })
+          if (!v) return { venueId: null }
+          return {
+            venueId: v.id,
+            venueName: v.name,
+            address: v.address,
+            city: v.city,
+            state: v.state,
+            zip: v.zip,
+          }
+        })()),
         venueName: data.venueName,
         venueTag: data.venueTag,
         category: data.category,
