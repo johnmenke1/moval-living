@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Providers } from '@/components/Providers'
-import { Inter, Fraunces } from 'next/font/google'
+import { Inter, Fraunces, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
@@ -13,6 +13,15 @@ const fraunces = Fraunces({
   subsets: ['latin'],
   variable: '--font-fraunces',
   axes: ['opsz'],
+})
+
+// Mono for editorial metadata — the "departure board" / "magazine fine print"
+// voice. Used on the /outings masthead for the weather stamp, issue number,
+// cover-story tabs, and rear-index files.
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-plex-mono',
 })
 
 // The root tree includes NextAuth's request-aware SessionProvider. Keeping
@@ -94,7 +103,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+    <html lang="en" className={`${inter.variable} ${fraunces.variable} ${ibmPlexMono.variable}`}>
       <head>
         <link rel="icon" href="https://movalliving.s3.us-west-1.amazonaws.com/favicon.ico" />
         {/* Geo meta tags — recognized by search engines for local intent */}

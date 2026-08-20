@@ -139,6 +139,7 @@
   --color-error: #EF4444;
   --font-sans: 'Inter', sans-serif;
   --font-heading: 'Inter', sans-serif;
+  --font-mono: var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @layer base {
