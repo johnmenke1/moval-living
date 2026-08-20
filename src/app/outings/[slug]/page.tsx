@@ -4,13 +4,28 @@ import Link from 'next/link'
 import { ArrowLeft, Calendar } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { renderMarkdown } from '@/lib/markdown'
+import OutingPhotoGallery from './OutingPhotoGallery'
+import OutingByline from './OutingByline'
 
 export const dynamic = 'force-dynamic'
 
 type Ctx = { params: Promise<{ slug: string }> }
 
 async function getPublishedOuting(slug: string) {
-  const post = await prisma.guestPost.findUnique({ where: { slug } })
+  const post = await prisma.guestPost.findUnique({
+    where: { slug },
+    include: {
+      author: {
+        select: {
+          slug: true,
+          displayName: true,
+          title: true,
+          companyName: true,
+          photoUrl: true,
+        },
+      },
+    },
+  })
   if (!post || post.status !== 'published' || post.postType !== 'OUTING' || !post.publishedAt) return null
   return post
 }
@@ -52,12 +67,12 @@ export default async function OutingPostPage({ params }: Ctx) {
 
   const html = renderMarkdown(post.body)
   // outingPhotos is stored as jsonb (array of { url, caption }) or null
-  const outingPhotosArray: { url: string; caption?: string }[] = Array.isArray(post.outingPhotos)
+  const outingPhotosArray = Array.isArray(post.outingPhotos)
     ? (post.outingPhotos as { url: string; caption?: string }[]).filter(
         (p): p is { url: string; caption?: string } =>
           typeof p?.url === 'string' && p.url !== ''
       )
-    : [] 
+    : []
 
   return (
     <article className="bg-background min-h-screen">
@@ -71,22 +86,71 @@ export default async function OutingPostPage({ params }: Ctx) {
         </Link>
       </div>
 
-      <div className="container-max py-12">
-        <div className="max-w-2xl mx-auto">
+      <div className="container-max pt-8 pb-12">
+        <div className="max-w-3xl mx-auto">
+          {/* Hero — photo-led. Image fills the top of the article; title
+              overlays the bottom-left so the photo IS the entry into the
+              piece (this is a photo essay, after all). */}
           {post.heroImageUrl && (
-            <div className="aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100 mb-10">
+            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100 mb-10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={post.heroImageUrl}
                 alt={post.title}
                 className="w-full h-full object-cover"
               />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-6 sm:p-8">
+                <h1 className="text-3xl sm:text-5xl font-bold text-white leading-tight mb-2">
+                  {post.title}
+                </h1>
+                {post.publishedAt && (
+                  <div className="flex items-center gap-1 text-sm text-white/80">
+                    <Calendar className="w-4 h-4" />
+                    {new Date(post.publishedAt).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          {/* YouTube embed — shown if youtubeVideoId is set */}
+          {/* Title block — only render when there's no hero image, so we
+              don't double up the title in two places. */}
+          {!post.heroImageUrl && (
+            <header className="mb-8">
+              <h1 className="text-4xl sm:text-5xl font-bold text-text leading-tight mb-4">
+                {post.title}
+              </h1>
+              {post.publishedAt && (
+                <div className="flex items-center gap-1 text-sm text-text-secondary">
+                  <Calendar className="w-4 h-4" />
+                  {new Date(post.publishedAt).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </div>
+              )}
+            </header>
+          )}
+
+          {/* Excerpt — sits above the body, below the hero/title. Sets
+              the reader's expectation for what they're about to dive
+              into. */}
+          <p className="text-lg text-text-secondary mb-10">{post.excerpt}</p>
+
+          <div
+            className="prose prose-base max-w-none prose-headings:font-bold prose-headings:text-text prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-3 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-2 prose-p:text-text prose-p:my-3 prose-a:text-primary hover:prose-a:underline prose-strong:font-bold prose-strong:text-text prose-img:rounded-xl prose-blockquote:border-l-4 prose-blockquote:border-l-primary prose-blockquote:text-text-secondary prose-blockquote:pl-4 prose-blockquote:my-4 prose-ul:my-3 prose-ol:my-3 prose-li:my-1"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+
+          {/* YouTube embed — sits between the body and the gallery if
+              present. */}
           {post.youtubeVideoId && (
-            <div className="mb-10">
+            <div className="mt-12">
               <div className="aspect-video rounded-2xl overflow-hidden bg-black">
                 <iframe
                   src={`https://www.youtube.com/embed/${post.youtubeVideoId}`}
@@ -100,70 +164,31 @@ export default async function OutingPostPage({ params }: Ctx) {
             </div>
           )}
 
-          <header className="mb-8">
-            <h1 className="text-4xl sm:text-5xl font-bold text-text leading-tight mb-4">
-              {post.title}
-            </h1>
-            <p className="text-lg text-text-secondary">{post.excerpt}</p>
-            {post.publishedAt && (
-              <div className="flex items-center gap-1 text-sm text-text-secondary mt-3">
-                <Calendar className="w-4 h-4" />
-                {new Date(post.publishedAt).toLocaleDateString(undefined, {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </div>
-            )}
-          </header>
-
-          <div
-            className="prose prose-base max-w-none prose-headings:font-bold prose-headings:text-text prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-3 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-2 prose-p:text-text prose-p:my-3 prose-a:text-primary hover:prose-a:underline prose-strong:font-bold prose-strong:text-text prose-img:rounded-xl prose-blockquote:border-l-4 prose-blockquote:border-l-primary prose-blockquote:text-text-secondary prose-blockquote:pl-4 prose-blockquote:my-4 prose-ul:my-3 prose-ol:my-3 prose-li:my-1"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-
-          {/* Photo gallery — shown if outingPhotos are set */}
+          {/* Trip photo gallery — click any thumbnail to enlarge. */}
           {outingPhotosArray.length > 0 && (
-            <div className="mt-12 pt-8 border-t border-slate-200">
+            <section className="mt-12 pt-8 border-t border-slate-200">
               <h2 className="text-2xl font-bold text-text mb-6">Trip Photos</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {outingPhotosArray.map((photo, i) => (
-                  <figure key={i} className="space-y-2">
-                    <div className="aspect-square rounded-xl overflow-hidden bg-slate-100">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={photo.url}
-                        alt={photo.caption || `${post.title} — photo ${i + 1}`}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                    </div>
-                    {photo.caption && (
-                      <figcaption className="text-sm text-text-secondary italic text-center px-1">
-                        {photo.caption}
-                      </figcaption>
-                    )}
-                  </figure>
-                ))}
-              </div>
-            </div>
+              <OutingPhotoGallery photos={outingPhotosArray} title={post.title} />
+            </section>
           )}
-
-          <footer className="mt-12 pt-8 border-t border-slate-200">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold text-lg">
-                JM
-              </div>
-              <div>
-                <div className="font-semibold text-text">John Menke</div>
-                <div className="text-sm text-text-secondary">
-                  eXP of California Realty · Moreno Valley
-                </div>
-              </div>
-            </div>
-          </footer>
         </div>
       </div>
+
+      {/* Byline — same shape as /life (clickable author card, or non-link
+          card when the post has no author relation). */}
+      <OutingByline
+        author={
+          post.author
+            ? {
+                slug: post.author.slug,
+                displayName: post.author.displayName,
+                title: post.author.title,
+                companyName: post.author.companyName,
+                photoUrl: post.author.photoUrl,
+              }
+            : null
+        }
+      />
     </article>
   )
 }
