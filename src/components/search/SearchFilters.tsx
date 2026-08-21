@@ -51,6 +51,18 @@ export function SearchFilters({ categories, currentParams, categoryNav }: Search
     })
   }
 
+  // Picking a category in the dropdown navigates to the dedicated
+  // /category/[slug] landing page — those pages have the real H1,
+  // canonical, JSON-LD, and FAQ for "Moreno Valley <category>"
+  // queries. Keeping the dropdown as a /search?category= filter would
+  // trap users on /search, which canonicalizes to itself and is the
+  // anti-pattern this whole feature was built to fix.
+  const goToCategory = (slug: string) => {
+    startTransition(() => {
+      router.push(`/category/${slug}`)
+    })
+  }
+
   // Deep-link support: /search?category=X arrives here with the category
   // set in the URL but the page rendered all categories. Scroll the
   // matching group into view once on mount.
@@ -89,9 +101,9 @@ export function SearchFilters({ categories, currentParams, categoryNav }: Search
           <div className="mt-3 p-3 bg-white/80 rounded-xl border border-slate-200">
             <select
               value={currentParams.category || ''}
-              onChange={(e) => updateParam('category', e.target.value)}
+              onChange={(e) => e.target.value && goToCategory(e.target.value)}
               className="input"
-              aria-label="Filter to a single category"
+              aria-label="View a single category"
             >
               <option value="">All Categories</option>
               {categories.map((cat) => (
@@ -104,13 +116,14 @@ export function SearchFilters({ categories, currentParams, categoryNav }: Search
         )}
       </div>
 
-      {/* Desktop category select (legacy deep-link filter). */}
+      {/* Desktop category select. Picking a category navigates to its
+          dedicated /category/[slug] landing page. */}
       <div className="hidden md:flex items-center gap-3">
         <select
           value={currentParams.category || ''}
-          onChange={(e) => updateParam('category', e.target.value)}
+          onChange={(e) => e.target.value && goToCategory(e.target.value)}
           className="input py-2.5 w-auto min-w-[200px] bg-white/80 backdrop-blur rounded-xl text-sm"
-          aria-label="Filter to a single category"
+          aria-label="View a single category"
         >
           <option value="">All Categories</option>
           {categories.map((cat) => (
