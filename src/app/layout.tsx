@@ -52,10 +52,6 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  alternates: {
-    canonical: 'https://www.moval.living',
-    languages: { 'en-US': 'https://www.moval.living' },
-  },
   openGraph: {
     type: 'website',
     locale: 'en_US',

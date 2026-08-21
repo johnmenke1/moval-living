@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: 'Business Spotlights — MoVal Living',
   description:
     'Short-form video spotlights featuring the people and businesses that make Moreno Valley special.',
+  alternates: { canonical: 'https://www.moval.living/spotlights' },
 }
 
 export default async function SpotlightsIndexPage() {

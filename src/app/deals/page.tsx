@@ -8,6 +8,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Deals & Coupons',
   description: 'Save money at local Moreno Valley businesses with exclusive deals and coupons',
+  alternates: { canonical: 'https://www.moval.living/deals' },
 }
 
 interface DealsPageProps {
