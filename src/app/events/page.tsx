@@ -172,10 +172,15 @@ export default async function EventsPage({ searchParams }: PageProps) {
   //   - Weekend  → events happening Friday-Sunday
   //   - Week     → events in the next 7 days
   //   - Month    → events in the current month
-  // When no HERO event exists in the current window, fall back to the next
-  // upcoming HERO event within 90 days. When even that fails, fall back to
-  // any standard event with a real hero image within the same window so
-  // there's never a "no hero" state on a populated page.
+  // Fallback chain for the MONTH view (the default):
+  //   1. HERO event in the current month
+  //   2. Any upcoming HERO event within 90 days — this surfaces the next
+  //      month's marquee pick when the current month has no HERO scheduled
+  //      yet. (e.g. viewing August when September's "Taste of the Valley"
+  //      is the next tier=HERO event.)
+  // For Today / Weekend / Week views the fallback is stricter — if there's
+  // no HERO event in that narrow window, the strip is hidden rather than
+  // showing a marquee pick that's not actually relevant to the view.
   const heroFindInWindow = async (windowStart: Date, windowEnd: Date) => {
     const tierHero = await prisma.event.findFirst({
       where: {
@@ -187,26 +192,13 @@ export default async function EventsPage({ searchParams }: PageProps) {
       include: { business: { select: { slug: true, name: true } } },
     })
     if (tierHero) return { event: tierHero, source: 'tier-hero' }
-    const anyWithImage = await prisma.event.findFirst({
-      where: {
-        archivedAt: null,
-        heroImageUrl: { not: null },
-        startsAt: { gte: windowStart, lt: windowEnd },
-      },
-      orderBy: [{ tier: 'asc' }, { startsAt: 'asc' }],
-      include: { business: { select: { slug: true, name: true } } },
-    })
-    if (anyWithImage) return { event: anyWithImage, source: 'any-with-image' }
     return null
   }
 
   let heroResult: { event: any; source: string } | null = null
 
-  // All four views use the same window-aware lookup; the only reason we
-  // branch here is to make the intent (and future per-view tweaks) explicit.
-  if (view === 'today' || view === 'weekend' || view === 'week' || view === 'month') {
-    heroResult = await heroFindInWindow(range.start, range.end)
-  }
+  // Step 1: HERO in the active view window.
+  heroResult = await heroFindInWindow(range.start, range.end)
 
   if (!heroResult) {
     const fallbackHero = await prisma.event.findFirst({
