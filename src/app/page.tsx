@@ -2,9 +2,14 @@ import { prisma } from '@/lib/prisma'
 import { HomePageClient } from '@/components/home/HomePageClient'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { compareBusinesses } from '@/lib/business-priority'
+import type { Metadata } from 'next'
 
 // Force dynamic rendering so featured businesses list is always fresh
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  alternates: { canonical: 'https://www.moval.living' },
+}
 
 const WEBSITE_SCHEMA = {
   '@context': 'https://schema.org',
