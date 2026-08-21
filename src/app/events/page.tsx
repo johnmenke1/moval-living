@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
-import { Calendar, MapPin, ExternalLink, ArrowRight, Sparkles, Award, Send, Building2, Ticket, CheckCircle } from 'lucide-react'
+import { Calendar, MapPin, Sparkles, Award, Send, Building2 } from 'lucide-react'
 import CategoryFilter from './CategoryFilter'
 import LanguageFilter from './LanguageFilter'
 import SearchBar from './SearchBar'
 import MonthNav from './MonthNav'
+import { EventsHeroStrip } from '@/components/events/EventsHeroStrip'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -165,31 +166,64 @@ export default async function EventsPage({ searchParams }: PageProps) {
     orderBy: [{ tier: 'asc' }, { startsAt: 'asc' }],
   })
 
-  const heroInRange = events.find((e) => e.tier === 'HERO')
+  // View-aware hero. Each view window gets its own `tier=HERO` event so the
+    // hero strip is always relevant to what the user is looking at:
+    //   - Today    → events happening today
+    //   - Weekend  → events happening Friday-Sunday
+    //   - Week     → events in the next 7 days
+    //   - Month    → events in the current month
+    // When no HERO event exists in the current window, fall back to the next
+    // upcoming HERO event within 90 days. When even that fails, fall back to
+    // any standard event with a real hero image within the same window so
+    // there's never a "no hero" state on a populated page.
+    const heroFindInWindow = async (windowStart: Date, windowEnd: Date) => {
+        const tierHero = await prisma.event.findFirst({
+          where: {
+            tier: 'HERO',
+            archivedAt: null,
+            startsAt: { gte: windowStart, lt: windowEnd },
+          },
+          orderBy: { startsAt: 'asc' },
+          include: { business: { select: { slug: true, name: true } } },
+        })
+        if (tierHero) return { event: tierHero, source: 'tier-hero' }
+        const anyWithImage = await prisma.event.findFirst({
+          where: {
+            archivedAt: null,
+            heroImageUrl: { not: null },
+            startsAt: { gte: windowStart, lt: windowEnd },
+          },
+          orderBy: [{ tier: 'asc' }, { startsAt: 'asc' }],
+          include: { business: { select: { slug: true, name: true } } },
+        })
+        if (anyWithImage) return { event: anyWithImage, source: 'any-with-image' }
+        return null
+      }
 
-  // Month view falls back to the NEXT hero event if no hero exists in the
-  // current month. This keeps the section visible across months — e.g. if
-  // September's hero is set up while we're still in August, /events still
-  // shows it at the top. Today/week views stay strict (they mean "now").
-  let heroOverride: typeof events[number] | null = null
-  if (view === 'month' && !heroInRange) {
-    const now = new Date()
-    const fallback = await prisma.event.findFirst({
-      where: {
-        tier: 'HERO',
-        archivedAt: null,
-        startsAt: { gt: range.end },
-      },
-      orderBy: { startsAt: 'asc' },
-    })
-    // Only fall back to a hero that's within 90 days — anything further
-    // out is too speculative to render above the current month.
-    if (fallback && fallback.startsAt.getTime() - now.getTime() < 90 * 86400000) {
-      heroOverride = fallback
+    let heroResult: { event: any; source: string } | null = null
+
+    // All four views use the same window-aware lookup; the only reason we
+    // branch here is to make the intent (and future per-view tweaks) explicit.
+    if (view === 'today' || view === 'weekend' || view === 'week' || view === 'month') {
+      heroResult = await heroFindInWindow(range.start, range.end)
     }
-  }
 
-  const hero = heroInRange ?? heroOverride
+    if (!heroResult) {
+        const fallbackHero = await prisma.event.findFirst({
+          where: {
+            tier: 'HERO',
+            archivedAt: null,
+            startsAt: { gt: now },
+          },
+          orderBy: { startsAt: 'asc' },
+          include: { business: { select: { slug: true, name: true } } },
+        })
+        if (fallbackHero && fallbackHero.startsAt.getTime() - now.getTime() < 90 * 86400000) {
+          heroResult = { event: fallbackHero, source: 'tier-hero-future' }
+        }
+      }
+
+    const hero = heroResult?.event ?? null
 
   const honorable = events.filter((e) => e.tier === 'HONORABLE_MENTION')
   const standard = events.filter((e) => e.tier === 'STANDARD')
@@ -197,40 +231,68 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const isMonthView = view === 'month'
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Head section — single cohesive card with brand wash + dotted calendar overlay.
-          Replaces 3 stacked 'bg-white border-b' slabs. Sticky on ≥sm so filters follow
-          scroll on desktop; on mobile the slab is too tall relative to the viewport
-          (~360–500px of title + search + pills + 13 categories + lang toggle), so a
-          sticky wrapper covers the hero and event cards below. Letting it scroll
-          naturally keeps the mobile experience usable. */}
+      <div className="min-h-screen bg-slate-50">
+        {/* Full-bleed photo hero strip — view-aware (Today/Weekend/Week/Month
+            each surface their own HERO event). Sits above the sticky filter
+            card so the page opens on a striking editorial image, but the
+            filters stay reachable without losing the photo. */}
+        <EventsHeroStrip
+          event={
+            hero
+              ? {
+                  id: hero.id,
+                  slug: hero.slug,
+                  title: hero.title,
+                  heroImageUrl: hero.heroImageUrl,
+                  startsAt: hero.startsAt ? hero.startsAt.toISOString() : null,
+                  venueName: hero.venueName ?? null,
+                  category: hero.category ?? null,
+                  shareUrl: hero.shareUrl ?? null,
+                  ticketUrl: hero.ticketUrl ?? null,
+                  sourceUrl: hero.sourceUrl ?? null,
+                  business: hero.business
+                    ? { slug: hero.business.slug, name: hero.business.name }
+                    : null,
+                }
+              : null
+          }
+          viewLabel={range.label}
+        />
+
+        {/* Sticky filter card — sand-colored to match the publication's warm
+            tones. Same content as before (title, subtitle, search, view pills,
+            category chips, language toggle) but restyled to feel like part of
+            the same editorial system as /outings, /life, /insights. */}
+        {/* Sticky on ≥sm so filters follow scroll on desktop; on mobile the
+            card is too tall (~360–500px of title + search + pills + 13
+            categories + lang toggle) and would cover the hero and event
+            cards below if it stuck. Letting it scroll naturally keeps
+            the mobile experience usable. */}
       <div className="sm:sticky sm:top-0 sm:z-10">
-        <div className="container-max pt-6 pb-2">
-          <div
-            className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm bg-gradient-to-br from-secondary/8 via-white to-primary/5"
-            style={{
-              backgroundImage:
-                "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='1' cy='1' r='1' fill='%23015a6b' fill-opacity='0.10'/></svg>\"), linear-gradient(to bottom right, rgba(1,90,107,0.06), white, rgba(0,122,127,0.04))",
-            }}
-          >
-            <div className="relative px-5 sm:px-8 pt-6 pb-5">
-              {/* Title row */}
-              <div className="flex items-center gap-4 mb-2">
-                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary shrink-0">
-                  <Calendar className="w-7 h-7" />
-                </div>
-                <div className="min-w-0">
-                  {/* Eyebrow — small primary chip that establishes the page's
-                      identity ("Community Calendar") before the title. */}
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider mb-1.5">
-                    <Sparkles className="w-3 h-3" />
-                    Community Calendar
-                  </span>
-                  <h1 className="text-3xl sm:text-4xl font-bold text-text leading-tight">
-                    Community{' '}
-                    <span className="text-primary">Events</span>
-                  </h1>
-                  <p className="text-sm sm:text-base text-text-secondary mt-1 max-w-2xl">
+          <div className="container-max pt-4 pb-2">
+            <div
+              className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm bg-[#ece6d7]"
+              style={{
+                backgroundImage:
+                  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='1' cy='1' r='1' fill='%23004a5c' fill-opacity='0.06'/></svg>\"), linear-gradient(to bottom right, rgba(236,230,215,1), rgba(240,239,235,1))",
+              }}
+            >
+              <div className="relative px-5 sm:px-8 pt-6 pb-5">
+                {/* Title row */}
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="min-w-0">
+                    {/* Eyebrow — small mono chip that establishes the page's
+                        identity ("Community Calendar") before the title. */}
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary/10 text-secondary font-mono text-[10px] uppercase tracking-[0.22em] mb-1.5">
+                      <Sparkles className="w-3 h-3" />
+                      Community Calendar
+                    </span>
+                    <h1
+                      className="text-3xl sm:text-4xl font-bold text-text leading-[0.98] tracking-tight"
+                      style={{ fontFamily: 'var(--font-fraunces), Inter, sans-serif' }}
+                    >
+                      What&apos;s Happening
+                    </h1>                  <p className="text-sm sm:text-base text-text-secondary mt-1 max-w-2xl">
                     What&apos;s happening in and around Moreno Valley — curated by the
                     moval.living team.
                   </p>
@@ -333,42 +395,43 @@ export default async function EventsPage({ searchParams }: PageProps) {
         )}
 
         {/* Bento grid */}
-        {events.length > 0 && (
-          <div className="space-y-6">
-            {/* Hero — full width */}
-            {hero && <HeroSection event={hero} />}
+            {events.length > 0 && (
+              <div className="space-y-6">
+                {/* The HERO event now lives at the top of the page (EventsHeroStrip),
+                    so it does not render again here. Honorable mentions and
+                    standard cards follow below. */}
 
-            {/* Honorable mentions — 2-3 cards in a row */}
-            {honorable.length > 0 && (
-              <section>
-                <h2 className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-3 flex items-center gap-2">
-                  <Award className="w-4 h-4" /> Honorable Mentions
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {honorable.map((ev) => (
-                    <HonorableCard key={ev.id} event={ev} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Standards — 2-column grid */}
-            {standard.length > 0 && (
-              <section>
-                {honorable.length > 0 && (
-                  <h2 className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-3 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" /> More Events
-                  </h2>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {standard.map((ev) => (
-                    <StandardCard key={ev.id} event={ev} />
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
+                {/* Honorable mentions — 2-3 cards in a row */}
+        {honorable.length > 0 && (
+          <section>
+            <h2 className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-3 flex items-center gap-2">
+              <Award className="w-4 h-4" /> Honorable Mentions
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {honorable.map((ev) => (
+                <HonorableCard key={ev.id} event={ev} />
+              ))}
+            </div>
+          </section>
         )}
+
+        {/* Standards — 2-column grid */}
+        {standard.length > 0 && (
+          <section>
+            {honorable.length > 0 && (
+              <h2 className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4" /> More Events
+              </h2>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {standard.map((ev) => (
+                <StandardCard key={ev.id} event={ev} />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    )}
 
         {/* Submit CTA at the bottom */}
         {events.length > 0 && (
@@ -425,129 +488,6 @@ function cardHref(event: any): { href: string; external: boolean } {
 // photo. CTA button is wired to shareUrl when present (admin override);
 // free events get an RSVP-style copy change. Linked-business events keep
 // the Hosted by badge.
-function HeroSection({ event }: { event: any }) {
-  const dateLabel = formatEventDate(event.startsAt)
-  const venue = event.venueName ?? 'Venue TBD'
-  const target = cardHref(event)
-
-  // The HeroSection uses the same priority as cardHref now (shareUrl first),
-  // so primaryHref === target.href when no ticketUrl is set. We keep the
-  // explicit `ticketUrl` branch for events that pre-date shareUrl and
-  // happen to have a ticket CTA — those still surface the secondary
-  // "Visit host" link via the business relationship.
-  const hasTicketCta = !!event.ticketUrl && !event.shareUrl
-  const primaryHref = hasTicketCta ? event.ticketUrl : target.href
-  const primaryExternal = hasTicketCta || target.external
-  const primaryLabel = primaryHref
-    ? event.isFree ? 'RSVP — Free' : 'Event details'
-    : 'Event details'
-  const PrimaryIcon = primaryHref ? (event.isFree ? CheckCircle : ArrowRight) : ArrowRight
-
-  return (
-    <section className="relative rounded-2xl overflow-hidden bg-slate-900 text-white shadow-lg">
-      {/* Background image */}
-      <div className="absolute inset-0">
-        {event.heroImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={event.heroImageUrl}
-            alt=""
-            aria-hidden
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/40 to-secondary/40" />
-        )}
-        {/* Dark overlay so text is legible on any image */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/55 to-slate-950/25" />
-      </div>
-
-      {/* Content */}
-      <div className="relative px-6 py-10 sm:px-10 sm:py-14 lg:px-14 lg:py-20 flex flex-col justify-end min-h-[420px] sm:min-h-[480px] lg:min-h-[560px]">
-        {/* Top-left chip row: badge + category */}
-        <div className="flex flex-wrap items-center gap-2 mb-auto">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs font-bold uppercase tracking-wider shadow-lg">
-            <Award className="w-3.5 h-3.5" /> This Week&apos;s Pick
-          </span>
-          {event.category && (
-            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/15 backdrop-blur text-white text-xs font-semibold uppercase tracking-wider">
-              {event.category.replace(/_/g, ' ')}
-            </span>
-          )}
-          {event.esEnEspanol && (
-            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/15 backdrop-blur text-white text-xs font-semibold uppercase tracking-wider">
-              En Español
-            </span>
-          )}
-        </div>
-
-        {/* Date pill */}
-        <div className="flex items-center gap-2 mb-3">
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur text-white text-xs font-semibold">
-            <Calendar className="w-3.5 h-3.5" />
-            {dateLabel}
-          </span>
-        </div>
-
-        {/* Headline */}
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-3 max-w-3xl">
-          {event.title}
-        </h2>
-
-        {/* Venue */}
-        <div className="flex items-center gap-2 text-white/85 mb-3">
-          <MapPin className="w-4 h-4 shrink-0" />
-          <span className="text-sm">{venue}</span>
-          {event.city && event.city !== 'Moreno Valley' && (
-            <span className="text-sm text-white/85">· {event.city}</span>
-          )}
-        </div>
-
-        {/* Linked business badge */}
-        {event.business && (
-          <div className="mb-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur text-white text-xs font-semibold">
-              <Building2 className="w-3.5 h-3.5" />
-              Hosted by {event.business.name}
-            </span>
-          </div>
-        )}
-
-        {/* Description */}
-        {event.description && (
-          <p className="text-white/80 leading-relaxed line-clamp-3 mb-6 max-w-2xl">
-            {event.description}
-          </p>
-        )}
-
-        {/* CTA row */}
-        <div className="flex flex-wrap items-center gap-3">
-          <a
-            href={primaryHref}
-            target={primaryExternal ? '_blank' : undefined}
-            rel={primaryExternal ? 'noopener noreferrer' : undefined}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold text-base hover:bg-primary/90 transition-colors shadow-lg"
-          >
-            <PrimaryIcon className="w-5 h-5" />
-            {primaryLabel}
-            {primaryExternal && <ExternalLink className="w-3.5 h-3.5 opacity-75" />}
-          </a>
-          {/* Secondary link to host (only when we have a separate ticket CTA) */}
-          {event.ticketUrl && target.href !== primaryHref && (
-            <Link
-              href={target.href}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 backdrop-blur text-white font-semibold text-base hover:bg-white/20 transition-colors"
-            >
-              <Building2 className="w-4 h-4" />
-              Visit host
-            </Link>
-          )}
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function HonorableCard({ event }: { event: any }) {
   const dateLabel = formatEventDate(event.startsAt)
   const target = cardHref(event)
