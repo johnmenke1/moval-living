@@ -79,7 +79,7 @@ export function EventsHero({ event, viewLabel }: EventsHeroProps) {
   const venue = [event.venueName, event.city && event.city !== 'Moreno Valley' ? event.city : null].filter(Boolean).join(' · ')
 
   return (
-    <section className="relative min-h-[70vh] sm:min-h-[75vh] flex items-center justify-center overflow-hidden bg-slate-950 text-white">
+    <section className="relative min-h-[70vh] sm:min-h-[75vh] flex items-center overflow-hidden bg-slate-950 text-white">
       {/* Background photo */}
       <div className="absolute inset-0 z-0">
         {event.heroImageUrl ? (
@@ -92,48 +92,44 @@ export function EventsHero({ event, viewLabel }: EventsHeroProps) {
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-primary/50 to-secondary/60" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/30 to-slate-950/70" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-slate-950/30" />
       </div>
 
-      {/* Top rail: mono metadata */}
-      <div className="absolute top-0 left-0 right-0 z-10">
-        <div className="container-max pt-6 sm:pt-8">
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent text-white text-[10px] uppercase tracking-[0.22em] font-semibold shadow-sm">
-              <span className="relative inline-flex h-1.5 w-1.5">
-                <span className="absolute inset-0 inline-flex h-full w-full animate-ping rounded-full bg-white opacity-60" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
-              </span>
-              {viewLabel}&apos;s Pick
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[10px] uppercase tracking-[0.22em] font-semibold">
-              <Calendar className="w-3 h-3" />
-              {day}
-            </span>
-            {time && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[10px] uppercase tracking-[0.22em] font-semibold">
-                <Clock className="w-3 h-3" />
-                {time}
-              </span>
-            )}
-            {category && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[10px] uppercase tracking-[0.22em] font-semibold">
-                {category}
-              </span>
-            )}
-            {event.isFree && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500/90 text-white text-[10px] uppercase tracking-[0.22em] font-semibold">
-                Free
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Centered content */}
+      {/* Left-aligned content */}
       <div className="relative z-10 w-full">
-        <div className="container-max px-6 sm:px-8 text-center">
-          <div className="max-w-4xl mx-auto">
+        <div className="container-max px-6 sm:px-8 py-20 sm:py-28">
+          <div className="max-w-4xl">
+            {/* Metadata pills immediately above title */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent text-white text-[10px] uppercase tracking-[0.22em] font-semibold shadow-sm">
+                <span className="relative inline-flex h-1.5 w-1.5">
+                  <span className="absolute inset-0 inline-flex h-full w-full animate-ping rounded-full bg-white opacity-60" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+                </span>
+                {viewLabel}&apos;s Pick
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[10px] uppercase tracking-[0.22em] font-semibold">
+                <Calendar className="w-3 h-3" />
+                {day}
+              </span>
+              {time && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[10px] uppercase tracking-[0.22em] font-semibold">
+                  <Clock className="w-3 h-3" />
+                  {time}
+                </span>
+              )}
+              {category && (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[10px] uppercase tracking-[0.22em] font-semibold">
+                  {category}
+                </span>
+              )}
+              {event.isFree && (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500/90 text-white text-[10px] uppercase tracking-[0.22em] font-semibold">
+                  Free
+                </span>
+              )}
+            </div>
+
             <h1
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[0.95] tracking-tight mb-3"
               style={{ fontFamily: 'var(--font-fraunces), Inter, sans-serif' }}
@@ -141,13 +137,13 @@ export function EventsHero({ event, viewLabel }: EventsHeroProps) {
               {event.title}
             </h1>
             {venue && (
-              <div className="flex items-center justify-center gap-2 text-white/85 mb-5 text-sm sm:text-base">
+              <div className="flex items-center gap-2 text-white/85 mb-5 text-sm sm:text-base">
                 <MapPin className="w-4 h-4 shrink-0" />
                 <span>{venue}</span>
               </div>
             )}
             {event.description && (
-              <p className="text-white/80 leading-relaxed line-clamp-2 mb-6 max-w-2xl mx-auto text-base sm:text-lg">
+              <p className="text-white/80 leading-relaxed line-clamp-2 mb-6 max-w-2xl text-base sm:text-lg">
                 {event.description}
               </p>
             )}
