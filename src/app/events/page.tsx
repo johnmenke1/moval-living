@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
 import { Calendar, MapPin, Sparkles, Award, Send, Building2 } from 'lucide-react'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildEvent, type Event as EventSchema } from '@/lib/seo-schema'
 import CategoryFilter from './CategoryFilter'
 import LanguageFilter from './LanguageFilter'
 import MonthNav from './MonthNav'
@@ -223,8 +225,21 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const isMonthView = view === 'month'
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Full-bleed immersive hero above filters */}
+    <>
+      {/* Schema.org Event JSON-LD for every visible event. Multiple
+          <script type="application/ld+json"> tags are valid — Google
+          parses each one independently. AI crawlers (GPTBot, ClaudeBot,
+          PerplexityBot) read raw HTML so this lands in their initial
+          payload too. For the richest indexing, each Event also needs
+          its own detail page — see /events/[slug] (separate commit). */}
+      {events.flatMap((ev) => {
+        const schema = eventToSchema(ev)
+        return schema ? [{ key: ev.id, schema }] : []
+      }).map(({ key, schema }) => (
+        <JsonLd key={`evt-${key}`} schema={buildEvent(schema)} />
+      ))}
+      <div className="min-h-screen bg-background">
+        {/* Full-bleed immersive hero above filters */}
       <EventsHero
         event={
           hero
@@ -352,8 +367,76 @@ export default async function EventsPage({ searchParams }: PageProps) {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   )
+}
+
+// ── Event → Schema.org JSON-LD ─────────────────────────────────────────────
+
+// Map a Prisma Event row to the input shape that buildEvent() expects, then
+// emit the schema. Returns null when the event is missing fields Google
+// requires (startDate). The shape follows schema.org/Event strictly so we
+// stay eligible for Event rich results.
+function eventToSchema(event: any): EventSchema | null {
+  if (!event.startsAt) return null
+  const startIso = event.startsAt.toISOString()
+  const endIso = event.endsAt ? event.endsAt.toISOString() : startIso
+
+  // Address is stored as denormalized strings (street, city, state, zip).
+  // Schema.org wants a PostalAddress; build one only when at least one
+  // component is populated so we don't emit empty nested objects.
+  const hasAddress =
+    event.address || event.city || event.state || event.zip || event.venueName
+  const location = hasAddress
+    ? {
+        type: 'Place' as const,
+        name: event.venueName ?? undefined,
+        address: {
+          streetAddress: event.address ?? '',
+          addressLocality: event.city ?? '',
+          addressRegion: event.state ?? '',
+          postalCode: event.zip ?? '',
+          addressCountry: 'US',
+        },
+      }
+    : undefined
+
+  return {
+    type: 'Event',
+    name: event.title,
+    description: event.description ?? event.title,
+    startDate: startIso,
+    endDate: endIso,
+    eventStatus: 'EventScheduled',
+    eventAttendanceMode: 'OfflineEventAttendanceMode',
+    location,
+    organizer: event.business?.name
+      ? {
+          type: 'Organization' as const,
+          name: event.business.name,
+          url: event.business.slug
+            ? `https://www.moval.living/business/${event.business.slug}`
+            : undefined,
+        }
+      : undefined,
+    image: event.heroImageUrl ?? undefined,
+    offers:
+      event.ticketUrl && !event.isFree
+        ? {
+            price: '0',
+            priceCurrency: 'USD',
+            url: event.ticketUrl,
+            availability: 'https://schema.org/InStock',
+          }
+        : event.isFree
+          ? {
+              price: '0',
+              priceCurrency: 'USD',
+              availability: 'https://schema.org/InStock',
+            }
+          : undefined,
+  }
 }
 
 // ── Card components ─────────────────────────────────────────────────────
