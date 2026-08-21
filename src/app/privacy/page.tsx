@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'Privacy Policy — moval.living',
   description:
     'Privacy Policy for moval.living. Covers data collection, CCPA rights, 10DLC messaging privacy, cookies, and how to contact us about your data.',
+  alternates: { canonical: 'https://www.moval.living/privacy' },
 }
 
 export default function PrivacyPage() {

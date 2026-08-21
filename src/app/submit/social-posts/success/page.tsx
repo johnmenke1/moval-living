@@ -1,5 +1,12 @@
 import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Post Submitted — moval.living',
+  description: 'Your community post has been submitted and is awaiting review.',
+  alternates: { canonical: 'https://www.moval.living/submit/social-posts/success' },
+}
 
 export default function SubmitSocialPostSuccessPage() {
   return (

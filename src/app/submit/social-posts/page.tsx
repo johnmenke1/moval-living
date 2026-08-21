@@ -1,6 +1,14 @@
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import SubmitPostForm from '@/components/social/SubmitPostForm'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Submit a Social Post — moval.living',
+  description:
+    'Share a community highlight, event, or special for Moreno Valley. We review every post before it goes live.',
+  alternates: { canonical: 'https://www.moval.living/submit/social-posts' },
+}
 
 export default async function SubmitSocialPostPage() {
   const businesses = await prisma.business.findMany({

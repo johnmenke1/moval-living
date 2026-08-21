@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'Terms of Service — moval.living',
   description:
     'Terms of Service for moval.living, the Moreno Valley local business directory. Covers account use, business listings, paid plans, messaging consent, and 10DLC compliance.',
+  alternates: { canonical: 'https://www.moval.living/terms' },
 }
 
 export default function TermsPage() {

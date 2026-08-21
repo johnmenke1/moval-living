@@ -6,6 +6,7 @@ export const metadata = {
   title: 'Pricing — moval.living',
   description:
     'Upgrade your moval.listing to Featured or become a Moreno Valley Expert Partner. Real local exposure, every month.',
+  alternates: { canonical: 'https://www.moval.living/pricing' },
 }
 
 // Page is dynamic — uses searchParams for category pre-select

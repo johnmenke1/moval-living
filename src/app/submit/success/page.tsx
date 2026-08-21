@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Submission Received',
   description: 'Your business listing has been submitted successfully.',
+  alternates: { canonical: 'https://www.moval.living/submit/success' },
 }
 
 interface Props {

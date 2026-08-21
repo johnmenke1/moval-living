@@ -88,6 +88,7 @@ export async function generateMetadata({ params }: ListingDetailPageProps): Prom
   return {
     title: `${listing.address} — ${listing.listPrice.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })} | Moval Living`,
     description: listing.publicRemarks?.slice(0, 160) ?? `${listing.bedrooms ?? ''} bed, ${listing.bathrooms ?? ''} bath home in ${listing.city}, ${listing.state}`,
+    alternates: { canonical: `https://www.moval.living/listing/${key}` },
   }
 }
 

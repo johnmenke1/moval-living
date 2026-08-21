@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: 'About Moreno Valley, CA — Demographics, Lifestyle & Market Stats',
   description:
     'Learn about Moreno Valley, CA: population, demographics, top employers, schools, lifestyle, and current real estate market stats. Founded by 30-year Moreno Valley resident John Menke (DRE #01959317).',
+  alternates: { canonical: 'https://www.moval.living/about-moreno-valley' },
 }
 
 // Market statistics come from the live database and must not be evaluated
