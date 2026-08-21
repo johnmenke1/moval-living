@@ -442,6 +442,16 @@ function eventToSchema(event: any): EventSchema | null {
 // ── Card components ─────────────────────────────────────────────────────
 
 function cardHref(event: any): { href: string; external: boolean } {
+  // Internal /events/[slug] is now the primary click target so each event
+  // earns its own indexed URL. shareUrl/ticketUrl/sourceUrl still live on
+  // the detail page as CTAs (see /events/[slug]/page.tsx). External link
+  // target (ticket sites etc.) stays one click away but Google indexes
+  // the internal page first, capturing the long-tail traffic.
+  if (event.slug) {
+    return { href: `/events/${event.slug}`, external: false }
+  }
+  // Fallback for events without a slug (shouldn't happen — slug is @unique
+  // and required — but kept defensive in case of data drift).
   if (event.shareUrl) {
     return { href: event.shareUrl, external: true }
   }

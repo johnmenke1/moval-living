@@ -112,6 +112,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
+  // Event detail pages — every non-archived event with a slug. The
+  // /events/[slug] route renders Schema.org Event JSON-LD server-side
+  // and gives each event its own indexable URL for "things to do in
+  // Moreno Valley" long-tail queries. Priority boosts HERO events.
+  const eventRows = await prisma.event.findMany({
+    where: { archivedAt: null },
+    select: { slug: true, updatedAt: true, tier: true },
+    orderBy: { updatedAt: 'desc' },
+  })
+
+  const eventPages: MetadataRoute.Sitemap = eventRows.map((ev) => ({
+    url: `${BASE}/events/${ev.slug}`,
+    lastModified: ev.updatedAt,
+    changeFrequency: 'weekly',
+    priority: ev.tier === 'HERO' ? 0.8 : ev.tier === 'HONORABLE_MENTION' ? 0.7 : 0.6,
+  }))
+
   // Expert Partner detail pages — Business rows that opted into the
   // Expert Partner program. The detail route uses expertPartnerSlug
   // (falls back to slug if missing).
@@ -154,6 +171,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...businessPages,
     ...bestOfPages,
     ...editorialPages,
+    ...eventPages,
     ...partnerPages,
     ...authorPages,
   ]
