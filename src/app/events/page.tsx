@@ -199,8 +199,12 @@ export default async function EventsPage({ searchParams }: PageProps) {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Head section — single cohesive card with brand wash + dotted calendar overlay.
-          Replaces 3 stacked 'bg-white border-b' slabs. Sticky so filters follow scroll. */}
-      <div className="sticky top-0 z-10">
+          Replaces 3 stacked 'bg-white border-b' slabs. Sticky on ≥sm so filters follow
+          scroll on desktop; on mobile the slab is too tall relative to the viewport
+          (~360–500px of title + search + pills + 13 categories + lang toggle), so a
+          sticky wrapper covers the hero and event cards below. Letting it scroll
+          naturally keeps the mobile experience usable. */}
+      <div className="sm:sticky sm:top-0 sm:z-10">
         <div className="container-max pt-6 pb-2">
           <div
             className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm bg-gradient-to-br from-secondary/8 via-white to-primary/5"
