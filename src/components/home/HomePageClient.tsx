@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   Search,
@@ -130,6 +130,8 @@ interface HomePageClientProps {
 export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifePosts, upcomingEvents }: HomePageClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
+  const [dockStuck, setDockStuck] = useState(false)
+  const dockSentinelRef = useRef<HTMLDivElement | null>(null)
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -139,13 +141,96 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
     window.location.href = `/search?${params.toString()}`
   }
 
+  // Toggle dock shadow once the sentinel (placed just above the sticky strip
+  // on mobile) scrolls out of view. Uses IntersectionObserver — no extra dep.
+  // Sentry ref so we tear down on unmount and on viewport changes.
+  useEffect(() => {
+    const node = dockSentinelRef.current
+    if (!node) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setDockStuck(!entry.isIntersecting),
+      { threshold: 0, rootMargin: '0px' },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
+  // Shared search form + quick category pills. Renders inside the photo hero
+  // on md+ and inside the mobile sticky dock below md.
+  const renderFilterChrome = (variant: 'hero' | 'dock') => {
+    const formClass =
+      variant === 'hero'
+        ? 'bg-white rounded-2xl p-2 shadow-2xl max-w-2xl mx-auto'
+        : 'bg-white rounded-xl p-1.5 shadow-sm border border-slate-200'
+    const pillsClass =
+      variant === 'hero'
+        ? 'flex flex-wrap justify-center gap-2 mt-6'
+        : 'flex gap-2 overflow-x-auto py-2 -mx-4 px-4 scrollbar-hide'
+    const pillClass =
+      variant === 'hero'
+        ? 'text-sm text-white/80 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full transition-all duration-150'
+        : 'text-xs whitespace-nowrap text-text bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-colors'
+    return (
+      <>
+        <form onSubmit={handleSearch} className={formClass}>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="What are you looking for?"
+                className="w-full pl-12 pr-4 py-3.5 rounded-xl text-text placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-slate-50"
+              />
+            </div>
+            <select
+              value={selectedCategory}
+              onChange={e => setSelectedCategory(e.target.value)}
+              className="sm:w-48 px-4 py-3.5 rounded-xl text-text bg-slate-50 border-0 focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
+            >
+              <option value="">All Categories</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.slug}>{cat.name}</option>
+              ))}
+            </select>
+            <button type="submit" className="btn-accent flex items-center justify-center gap-2 py-3.5 px-8">
+              Search
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </form>
+
+        <div className={pillsClass}>
+          {categories.slice(0, 5).map(cat => (
+            <Link
+              key={cat.id}
+              href={`/search?category=${cat.slug}`}
+              className={pillClass}
+            >
+              {cat.name}
+            </Link>
+          ))}
+          <Link
+            href="/search?espanol=1"
+            className={pillClass}
+          >
+            Se habla español
+          </Link>
+        </div>
+      </>
+    )
+  }
+
   return (
     <div className="flex flex-col">
       {/* ─── HERO ─── */}
       {/* Layered stack: cityscape photo underneath, dark+brand gradient on top
           (keeps the white headline readable and preserves the brand palette),
           then the two decorative blur blobs as the brand's signature accent.
-          The photo is the LCP element — eager-loaded with high fetch priority. */}
+          The photo is the LCP element — eager-loaded with high fetch priority.
+          On mobile we drop the search form + pills out of the hero and into
+          the sticky FilterDock below, so filters stay reachable while scrolling. */}
       <section className="relative overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -162,7 +247,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
         <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent/15 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
 
-        <div className="container-max relative py-20 md:py-28">
+        <div className="container-max relative py-16 md:py-28">
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white text-sm px-4 py-1.5 rounded-full mb-6">
               <MapPin className="w-4 h-4 text-[#8fd4d7]" />
@@ -178,57 +263,29 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
               The restaurants, shops, events, and stories that make MoVal home — curated by locals, for locals.
             </p>
 
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="bg-white rounded-2xl p-2 shadow-2xl max-w-2xl mx-auto">
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="What are you looking for?"
-                    className="w-full pl-12 pr-4 py-3.5 rounded-xl text-text placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-slate-50"
-                  />
-                </div>
-                <select
-                  value={selectedCategory}
-                  onChange={e => setSelectedCategory(e.target.value)}
-                  className="sm:w-48 px-4 py-3.5 rounded-xl text-text bg-slate-50 border-0 focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
-                >
-                  <option value="">All Categories</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.slug}>{cat.name}</option>
-                  ))}
-                </select>
-                <button type="submit" className="btn-accent flex items-center justify-center gap-2 py-3.5 px-8">
-                  Search
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </form>
-
-            {/* Quick category pills */}
-            <div className="flex flex-wrap justify-center gap-2 mt-6">
-              {categories.slice(0, 5).map(cat => (
-                <Link
-                  key={cat.id}
-                  href={`/search?category=${cat.slug}`}
-                  className="text-sm text-white/80 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full transition-all duration-150"
-                >
-                  {cat.name}
-                </Link>
-              ))}
-              <Link
-                href="/search?espanol=1"
-                className="text-sm text-white/80 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full transition-all duration-150"
-              >
-                Se habla español
-              </Link>
+            {/* Filters inside the hero — desktop & tablet only. On mobile the
+                same chrome is rendered in the sticky dock below. */}
+            <div className="hidden md:block">
+              {renderFilterChrome('hero')}
             </div>
           </div>
         </div>
       </section>
+
+      {/* ─── MOBILE FILTER DOCK ─── */}
+      {/* Sentinel above the dock lets us toggle a subtle shadow once the strip
+          pins to the top of the viewport. The dock itself is only visible on
+          mobile (md:hidden) so desktop behavior is unchanged. */}
+      <div ref={dockSentinelRef} aria-hidden="true" className="h-0 md:hidden" />
+      <div
+        className={`md:hidden sticky top-0 z-30 bg-white transition-shadow ${
+          dockStuck ? 'shadow-md border-b border-slate-200' : ''
+        }`}
+      >
+        <div className="container-max py-3">
+          {renderFilterChrome('dock')}
+        </div>
+      </div>
 
       {/* ─── LIVE ACTIVITY TICKER ─── */}
       {/* "MoVal right now" — shows recent claims, upgrades, reviews, and
