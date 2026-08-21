@@ -27,8 +27,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/submit`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE}/link`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/submit/best-of`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE}/submit/event`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/life`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE}/insights`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${BASE}/outings`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${BASE}/spotlights`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${BASE}/partners`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
+    { url: `${BASE}/homes`, lastModified: now, changeFrequency: 'daily', priority: 0.85 },
     { url: `${BASE}/chamber`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
     { url: `${BASE}/hispanic-chamber`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
   ]
@@ -77,23 +82,79 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
-  // Dynamic editorial posts — Life in MoVal (LIFE) + Guest Insights (GUEST)
-  // Both already have their own [slug] route handler and force-dynamic rendering;
-  // surfacing them here is what makes Google actually find the articles.
+  // Dynamic editorial posts — all four postTypes:
+  //   LIFE      → /life/[slug]
+  //   GUEST     → /insights/[slug]
+  //   OUTING    → /outings/[slug]
+  //   SPOTLIGHT → /spotlights/[slug]
+  // Surfacing all four means crawlers can discover outings & spotlights
+  // through the sitemap even before external links point at them.
   const editorialPosts = await prisma.guestPost.findMany({
-    where: { status: 'published', postType: { in: ['LIFE', 'GUEST'] } },
+    where: {
+      status: 'published',
+      postType: { in: ['LIFE', 'GUEST', 'OUTING', 'SPOTLIGHT'] },
+    },
     select: { slug: true, postType: true, publishedAt: true, updatedAt: true },
     orderBy: { publishedAt: 'desc' },
   })
 
+  const postTypeToPath: Record<string, string> = {
+    LIFE: 'life',
+    GUEST: 'insights',
+    OUTING: 'outings',
+    SPOTLIGHT: 'spotlights',
+  }
+
   const editorialPages: MetadataRoute.Sitemap = editorialPosts.map(p => ({
-    url: `${BASE}/${
-      p.postType === 'GUEST' ? 'insights' : 'life'
-    }/${p.slug}`,
+    url: `${BASE}/${postTypeToPath[p.postType] ?? 'life'}/${p.slug}`,
     lastModified: p.updatedAt ?? p.publishedAt ?? now,
     changeFrequency: 'monthly',
     priority: 0.6,
   }))
 
-  return [...staticPages, ...parkPages, ...businessPages, ...bestOfPages, ...editorialPages]
+  // Expert Partner detail pages — Business rows that opted into the
+  // Expert Partner program. The detail route uses expertPartnerSlug
+  // (falls back to slug if missing).
+  const partners = await prisma.business.findMany({
+    select: { slug: true, expertPartnerSlug: true, updatedAt: true },
+    where: { status: 'APPROVED', isExpertPartner: true, expertPartnerSlug: { not: null } },
+    orderBy: { updatedAt: 'desc' },
+  })
+
+  const partnerPages: MetadataRoute.Sitemap = partners.map(p => ({
+    url: `${BASE}/partners/${p.expertPartnerSlug ?? p.slug}`,
+    lastModified: p.updatedAt,
+    changeFrequency: 'weekly',
+    priority: 0.6,
+  }))
+
+  // Active guest authors with at least one published post — author
+  // profile pages at /authors/[slug]. We filter to active authors and
+  // rely on the detail route's own published-post filter to avoid
+  // surfacing empty profiles.
+  const authors = await prisma.guestAuthor.findMany({
+    select: { slug: true, updatedAt: true, _count: { select: { posts: true } } },
+    where: {
+      isActive: true,
+      posts: { some: { status: 'published' } },
+    },
+    orderBy: { updatedAt: 'desc' },
+  })
+
+  const authorPages: MetadataRoute.Sitemap = authors.map(a => ({
+    url: `${BASE}/authors/${a.slug}`,
+    lastModified: a.updatedAt,
+    changeFrequency: 'monthly',
+    priority: 0.5,
+  }))
+
+  return [
+    ...staticPages,
+    ...parkPages,
+    ...businessPages,
+    ...bestOfPages,
+    ...editorialPages,
+    ...partnerPages,
+    ...authorPages,
+  ]
 }
