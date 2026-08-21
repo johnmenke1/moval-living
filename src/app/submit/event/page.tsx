@@ -1,9 +1,11 @@
 import SubmitEventForm from '@/components/events/SubmitEventForm'
+import type { Metadata } from 'next'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Submit an Event — moval.living',
   description:
     'Share a community event for Moreno Valley and the surrounding area. We review every submission personally.',
+  alternates: { canonical: 'https://www.moval.living/submit/event' },
 }
 
 export default function SubmitEventPage() {

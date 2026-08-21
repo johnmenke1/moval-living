@@ -1,5 +1,13 @@
 import { Suspense } from 'react'
 import ForgotPasswordForm from './ForgotPasswordForm'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Reset Your Password — moval.living',
+  description: 'Request a password reset link for your moval.living account.',
+  alternates: { canonical: 'https://www.moval.living/forgot-password' },
+  robots: { index: false, follow: false },
+}
 
 export const dynamic = 'force-dynamic'
 
