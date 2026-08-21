@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowLeft, Calendar } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { renderMarkdown } from '@/lib/markdown'
+import { JsonLd } from '@/components/seo/JsonLd'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,95 +57,224 @@ export default async function SpotlightPostPage({ params }: Ctx) {
   const html = renderMarkdown(post.body)
   const author = post.author
 
+  const url = `https://www.moval.living/spotlights/${post.slug}`
+
+  // JSON-LD: Article with author. Falls back to Organization when the
+  // post has no author (the visible byline already handles null
+  // author with a fallback UI).
+  const articleSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.excerpt,
+    image: post.heroImageUrl ? [post.heroImageUrl] : undefined,
+    datePublished: post.publishedAt?.toISOString(),
+    dateModified: post.updatedAt.toISOString(),
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    author: author
+      ? {
+          '@type': 'Person',
+          name: author.displayName,
+          url: `https://www.moval.living/authors/${author.slug}`,
+          ...(author.title ? { jobTitle: author.title } : {}),
+          ...(author.companyName
+            ? {
+                worksFor: {
+                  '@type': 'Organization',
+                  name: author.companyName,
+                  url: author.companyUrl ?? undefined,
+                },
+              }
+            : {}),
+          ...(author.linkedinUrl
+            ? {
+                sameAs: [
+                  author.linkedinUrl,
+                  ...(author.twitterUrl ? [author.twitterUrl] : []),
+                ].filter(Boolean),
+              }
+            : author.twitterUrl
+              ? { sameAs: [author.twitterUrl] }
+              : {}),
+        }
+      : {
+          '@type': 'Organization',
+          name: 'MoVal Living',
+          url: 'https://www.moval.living',
+        },
+    publisher: {
+      '@type': 'Organization',
+      name: 'MoVal Living',
+      url: 'https://www.moval.living',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://www.moval.living/logo.png',
+      },
+    },
+  }
+
+  const personSchema = author
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'Person',
+        name: author.displayName,
+        url: `https://www.moval.living/authors/${author.slug}`,
+        ...(author.title ? { jobTitle: author.title } : {}),
+        description: author.bio,
+        image: author.photoUrl ?? undefined,
+        ...(author.companyName
+          ? {
+              worksFor: {
+                '@type': 'Organization',
+                name: author.companyName,
+                url: author.companyUrl ?? undefined,
+              },
+            }
+          : {}),
+        sameAs: [
+          author.personalSiteUrl,
+          author.companyUrl,
+          author.linkedinUrl,
+          author.twitterUrl,
+          author.facebookUrl,
+          author.instagramUrl,
+        ].filter((x): x is string => Boolean(x)),
+      }
+    : null
+
+  // JSON-LD: VideoObject when the spotlight has a YouTube video.
+  // spotlights are short-form video by definition; without a youtubeVideoId
+  // we still emit Article (it's a written spotlight, not a video one).
+  // The VideoObject surface feeds Google Video Search and the AI engines
+  // that index video content (some won't index a video page that doesn't
+  // emit VideoObject at all).
+  const videoSchema = post.youtubeVideoId
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'VideoObject',
+        name: post.title,
+        description: post.excerpt,
+        ...(post.heroImageUrl ? { thumbnailUrl: post.heroImageUrl } : {}),
+        uploadDate: post.publishedAt?.toISOString(),
+        contentUrl: `https://www.youtube.com/watch?v=${post.youtubeVideoId}`,
+        embedUrl: `https://www.youtube.com/embed/${post.youtubeVideoId}`,
+      }
+    : null
+
+  // FAQ JSON-LD — only when faqItems are present
+  type FaqItem = { question: string; answer: string }
+  const faqItems: FaqItem[] = Array.isArray(post.faqItems) ? (post.faqItems as FaqItem[]) : []
+  const faqSchema = faqItems.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqItems.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: item.answer,
+          },
+        })),
+      }
+    : null
+
   return (
-    <article className="bg-background min-h-screen">
-      <div className="container-max pt-8">
-        <Link
-          href="/spotlights"
-          className="inline-flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-primary"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Business Spotlights
-        </Link>
-      </div>
+    <>
+      <JsonLd schema={articleSchema} />
+      {personSchema && <JsonLd schema={personSchema} />}
+      {videoSchema && <JsonLd schema={videoSchema} />}
+      {faqSchema && <JsonLd schema={faqSchema} />}
 
-      <div className="container-max py-12">
-        <div className="max-w-2xl mx-auto">
-          {post.heroImageUrl && (
-            <div className="aspect-video overflow-hidden rounded-2xl bg-slate-100 mb-10">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={post.heroImageUrl}
-                alt={post.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
+      <article className="bg-background min-h-screen">
+        <div className="container-max pt-8">
+          <Link
+            href="/spotlights"
+            className="inline-flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-primary"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Business Spotlights
+          </Link>
+        </div>
 
-          {/* YouTube embed — shown if youtubeVideoId is set */}
-          {post.youtubeVideoId && (
-            <div className="mb-10">
-              <div className="aspect-video rounded-2xl overflow-hidden bg-black">
-                <iframe
-                  src={`https://www.youtube.com/embed/${post.youtubeVideoId}`}
-                  title={post.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  loading="lazy"
-                  className="w-full h-full"
+        <div className="container-max py-12">
+          <div className="max-w-2xl mx-auto">
+            {post.heroImageUrl && (
+              <div className="aspect-video overflow-hidden rounded-2xl bg-slate-100 mb-10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={post.heroImageUrl}
+                  alt={post.title}
+                  className="w-full h-full object-cover"
                 />
               </div>
-            </div>
-          )}
+            )}
 
-          <header className="mb-8">
-            <h1 className="text-4xl sm:text-5xl font-bold text-text leading-tight mb-4">
-              {post.title}
-            </h1>
-            <p className="text-lg text-text-secondary">{post.excerpt}</p>
-            {post.publishedAt && (
-              <div className="flex items-center gap-1 text-sm text-text-secondary mt-3">
-                <Calendar className="w-4 h-4" />
-                {new Date(post.publishedAt).toLocaleDateString(undefined, {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
+            {/* YouTube embed — shown if youtubeVideoId is set */}
+            {post.youtubeVideoId && (
+              <div className="mb-10">
+                <div className="aspect-video rounded-2xl overflow-hidden bg-black">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${post.youtubeVideoId}`}
+                    title={post.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    loading="lazy"
+                    className="w-full h-full"
+                  />
+                </div>
               </div>
             )}
-          </header>
 
-          <div
-            className="prose prose-base max-w-none prose-headings:font-bold prose-headings:text-text prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-3 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-2 prose-p:text-text prose-p:my-3 prose-a:text-primary hover:prose-a:underline prose-strong:font-bold prose-strong:text-text prose-img:rounded-xl prose-blockquote:border-l-4 prose-blockquote:border-l-primary prose-blockquote:text-text-secondary prose-blockquote:pl-4 prose-blockquote:my-4 prose-ul:my-3 prose-ol:my-3 prose-li:my-1"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
+            <header className="mb-8">
+              <h1 className="text-4xl sm:text-5xl font-bold text-text leading-tight mb-4">
+                {post.title}
+              </h1>
+              <p className="text-lg text-text-secondary">{post.excerpt}</p>
+              {post.publishedAt && (
+                <div className="flex items-center gap-1 text-sm text-text-secondary mt-3">
+                  <Calendar className="w-4 h-4" />
+                  {new Date(post.publishedAt).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </div>
+              )}
+            </header>
 
-          {author && (
-            <footer className="mt-12 pt-8 border-t border-slate-200">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-slate-100 overflow-hidden">
-                  {author.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={author.photoUrl}
-                      alt={author.displayName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold text-lg">
-                      {author.displayName.split(' ').map((p) => p[0]).slice(0, 2).join('')}
-                    </div>
-                  )}
+            <div
+              className="prose prose-base max-w-none prose-headings:font-bold prose-headings:text-text prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-3 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-2 prose-p:text-text prose-p:my-3 prose-a:text-primary hover:prose-a:underline prose-strong:font-bold prose-strong:text-text prose-img:rounded-xl prose-blockquote:border-l-4 prose-blockquote:border-l-primary prose-blockquote:text-text-secondary prose-blockquote:pl-4 prose-blockquote:my-4 prose-ul:my-3 prose-ol:my-3 prose-li:my-1"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+
+            {author && (
+              <footer className="mt-12 pt-8 border-t border-slate-200">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 overflow-hidden">
+                    {author.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={author.photoUrl}
+                        alt={author.displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold text-lg">
+                        {author.displayName.split(' ').map((p) => p[0]).slice(0, 2).join('')}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-text">{author.displayName}</div>
+                    {author.title && <div className="text-sm text-text-secondary">{author.title}</div>}
+                  </div>
                 </div>
-                <div>
-                  <div className="font-semibold text-text">{author.displayName}</div>
-                  {author.title && <div className="text-sm text-text-secondary">{author.title}</div>}
-                </div>
-              </div>
-            </footer>
-          )}
+              </footer>
+            )}
+          </div>
         </div>
-      </div>
-    </article>
+      </article>
+    </>
   )
 }
