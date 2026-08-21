@@ -14,6 +14,33 @@
 - [Life in MoVal](https://www.moval.living/life): First-person local observations and community stories.
 - [Insights](https://www.moval.living/insights): Guest perspectives and useful local guides.
 
+## Categories
+
+Browse Moreno Valley businesses by category. Each page has a hand-written intro, live business count, FAQ block, and Schema.org ItemList + BreadcrumbList + FAQPage JSON-LD for AI crawlers.
+
+- [Restaurants & Dining](https://www.moval.living/category/restaurants): Local eateries, cafes, food trucks, and catering.
+- [Contractors & Construction](https://www.moval.living/category/contractors): Home builders, remodelers, plumbers, electricians.
+- [Healthcare & Medical](https://www.moval.living/category/healthcare): Doctors, dentists, clinics, pharmacies, specialists.
+- [Retail & Shopping](https://www.moval.living/category/retail): Boutiques, shops, stores, and e-commerce locals.
+- [Auto Repair](https://www.moval.living/category/auto-repair): Auto repair shops, mechanics, body shops, tire shops, car washes, and towing.
+- [Auto Dealers](https://www.moval.living/category/auto-dealers): New and used car dealerships, dealer groups, and vehicle sales.
+- [Churches](https://www.moval.living/category/churches): Churches, ministries, and other faith communities.
+- [Property Management](https://www.moval.living/category/property-management): Apartment communities, shopping centers, plazas, and other managed properties.
+- [Non-Profits](https://www.moval.living/category/non-profits): Charitable, civic, cultural, and service organizations serving Moreno Valley.
+- [Supply & Logistics](https://www.moval.living/category/supply-logistics): Trucking, warehousing, distribution, foreign trade zones, material handling, and wholesale supply.
+- [Entertainment](https://www.moval.living/category/entertainment): Movie theaters, bowling alleys, trampoline parks, escape rooms, immersive experiences, event venues, and live entertainment.
+- [Professional Services](https://www.moval.living/category/professional): Attorneys, accountants, real estate, marketing, business consulting.
+- [Insurance Services](https://www.moval.living/category/insurance): Auto, home, life, health, and commercial insurance agents.
+- [Dispensaries](https://www.moval.living/category/dispensaries): Licensed cannabis dispensaries and delivery services.
+- [Hospitality](https://www.moval.living/category/hospitality): Hotels, motels, inns, and extended-stay lodging.
+- [Service Clubs](https://www.moval.living/category/service-clubs): Rotary, Lions, Kiwanis, Optimist, Elks, and similar community service clubs.
+- [Beauty & Wellness](https://www.moval.living/category/beauty): Salons, spas, gyms, yoga, nails, barbers.
+- [Home Services](https://www.moval.living/category/home-services): Landscaping, cleaning, pest control, HVAC, painting.
+- [Education & Tutoring](https://www.moval.living/category/education): Schools, tutors, music lessons, driving instructors.
+- [Pets & Veterinary](https://www.moval.living/category/pets): Vets, pet stores, grooming, dog walking, boarding.
+- [Banks & Financial](https://www.moval.living/category/finance): Banks, credit unions, loan officers, financial advisors.
+- [Real Estate & Mortgage](https://www.moval.living/category/real-estate): Realtors, mortgage brokers, title companies, property managers.
+
 ## About the site
 
 moval.living is maintained as a Moreno Valley community directory and local guide. Business profiles are published listings and should be independently verified before making purchasing, safety, medical, financial, or real-estate decisions.

@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
+import { categories as directoryCategories } from '@/data/categories'
 
 const BASE = 'https://www.moval.living'
 
@@ -37,6 +38,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/chamber`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
     { url: `${BASE}/hispanic-chamber`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
   ]
+
+  // Category landing pages — 22 static slugs from src/data/categories.ts.
+  // /category/[slug] is the dedicated page for queries like "Moreno
+  // Valley restaurants" and "plumbers in Moreno Valley" — the
+  // directory's highest-leverage SEO surface.
+  const categoryPages: MetadataRoute.Sitemap = directoryCategories.map(c => ({
+    url: `${BASE}/category/${c.slug}`,
+    lastModified: now,
+    changeFrequency: 'weekly',
+    priority: 0.8,
+  }))
 
   // Parks — /parks index is in staticPages above. Individual park
   // detail pages live at /parks/[slug] for active parks.
@@ -167,6 +179,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticPages,
+    ...categoryPages,
     ...parkPages,
     ...businessPages,
     ...bestOfPages,
