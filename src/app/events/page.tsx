@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { Calendar, MapPin, Sparkles, Award, Send, Building2 } from 'lucide-react'
 import CategoryFilter from './CategoryFilter'
 import LanguageFilter from './LanguageFilter'
-import SearchBar from './SearchBar'
 import MonthNav from './MonthNav'
-import { EventsHeroStrip } from '@/components/events/EventsHeroStrip'
+import EventsToolbar from './EventsToolbar'
+import { EventsHero } from '@/components/events/EventsHero'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -167,63 +167,63 @@ export default async function EventsPage({ searchParams }: PageProps) {
   })
 
   // View-aware hero. Each view window gets its own `tier=HERO` event so the
-    // hero strip is always relevant to what the user is looking at:
-    //   - Today    → events happening today
-    //   - Weekend  → events happening Friday-Sunday
-    //   - Week     → events in the next 7 days
-    //   - Month    → events in the current month
-    // When no HERO event exists in the current window, fall back to the next
-    // upcoming HERO event within 90 days. When even that fails, fall back to
-    // any standard event with a real hero image within the same window so
-    // there's never a "no hero" state on a populated page.
-    const heroFindInWindow = async (windowStart: Date, windowEnd: Date) => {
-        const tierHero = await prisma.event.findFirst({
-          where: {
-            tier: 'HERO',
-            archivedAt: null,
-            startsAt: { gte: windowStart, lt: windowEnd },
-          },
-          orderBy: { startsAt: 'asc' },
-          include: { business: { select: { slug: true, name: true } } },
-        })
-        if (tierHero) return { event: tierHero, source: 'tier-hero' }
-        const anyWithImage = await prisma.event.findFirst({
-          where: {
-            archivedAt: null,
-            heroImageUrl: { not: null },
-            startsAt: { gte: windowStart, lt: windowEnd },
-          },
-          orderBy: [{ tier: 'asc' }, { startsAt: 'asc' }],
-          include: { business: { select: { slug: true, name: true } } },
-        })
-        if (anyWithImage) return { event: anyWithImage, source: 'any-with-image' }
-        return null
-      }
+  // hero strip is always relevant to what the user is looking at:
+  //   - Today    → events happening today
+  //   - Weekend  → events happening Friday-Sunday
+  //   - Week     → events in the next 7 days
+  //   - Month    → events in the current month
+  // When no HERO event exists in the current window, fall back to the next
+  // upcoming HERO event within 90 days. When even that fails, fall back to
+  // any standard event with a real hero image within the same window so
+  // there's never a "no hero" state on a populated page.
+  const heroFindInWindow = async (windowStart: Date, windowEnd: Date) => {
+    const tierHero = await prisma.event.findFirst({
+      where: {
+        tier: 'HERO',
+        archivedAt: null,
+        startsAt: { gte: windowStart, lt: windowEnd },
+      },
+      orderBy: { startsAt: 'asc' },
+      include: { business: { select: { slug: true, name: true } } },
+    })
+    if (tierHero) return { event: tierHero, source: 'tier-hero' }
+    const anyWithImage = await prisma.event.findFirst({
+      where: {
+        archivedAt: null,
+        heroImageUrl: { not: null },
+        startsAt: { gte: windowStart, lt: windowEnd },
+      },
+      orderBy: [{ tier: 'asc' }, { startsAt: 'asc' }],
+      include: { business: { select: { slug: true, name: true } } },
+    })
+    if (anyWithImage) return { event: anyWithImage, source: 'any-with-image' }
+    return null
+  }
 
-    let heroResult: { event: any; source: string } | null = null
+  let heroResult: { event: any; source: string } | null = null
 
-    // All four views use the same window-aware lookup; the only reason we
-    // branch here is to make the intent (and future per-view tweaks) explicit.
-    if (view === 'today' || view === 'weekend' || view === 'week' || view === 'month') {
-      heroResult = await heroFindInWindow(range.start, range.end)
+  // All four views use the same window-aware lookup; the only reason we
+  // branch here is to make the intent (and future per-view tweaks) explicit.
+  if (view === 'today' || view === 'weekend' || view === 'week' || view === 'month') {
+    heroResult = await heroFindInWindow(range.start, range.end)
+  }
+
+  if (!heroResult) {
+    const fallbackHero = await prisma.event.findFirst({
+      where: {
+        tier: 'HERO',
+        archivedAt: null,
+        startsAt: { gt: now },
+      },
+      orderBy: { startsAt: 'asc' },
+      include: { business: { select: { slug: true, name: true } } },
+    })
+    if (fallbackHero && fallbackHero.startsAt.getTime() - now.getTime() < 90 * 86400000) {
+      heroResult = { event: fallbackHero, source: 'tier-hero-future' }
     }
+  }
 
-    if (!heroResult) {
-        const fallbackHero = await prisma.event.findFirst({
-          where: {
-            tier: 'HERO',
-            archivedAt: null,
-            startsAt: { gt: now },
-          },
-          orderBy: { startsAt: 'asc' },
-          include: { business: { select: { slug: true, name: true } } },
-        })
-        if (fallbackHero && fallbackHero.startsAt.getTime() - now.getTime() < 90 * 86400000) {
-          heroResult = { event: fallbackHero, source: 'tier-hero-future' }
-        }
-      }
-
-    const hero = heroResult?.event ?? null
+  const hero = heroResult?.event ?? null
 
   const honorable = events.filter((e) => e.tier === 'HONORABLE_MENTION')
   const standard = events.filter((e) => e.tier === 'STANDARD')
@@ -231,129 +231,42 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const isMonthView = view === 'month'
 
   return (
-      <div className="min-h-screen bg-slate-50">
-        {/* Full-bleed photo hero strip — view-aware (Today/Weekend/Week/Month
-            each surface their own HERO event). Sits above the sticky filter
-            card so the page opens on a striking editorial image, but the
-            filters stay reachable without losing the photo. */}
-        <EventsHeroStrip
-          event={
-            hero
-              ? {
-                  id: hero.id,
-                  slug: hero.slug,
-                  title: hero.title,
-                  heroImageUrl: hero.heroImageUrl,
-                  startsAt: hero.startsAt ? hero.startsAt.toISOString() : null,
-                  venueName: hero.venueName ?? null,
-                  category: hero.category ?? null,
-                  shareUrl: hero.shareUrl ?? null,
-                  ticketUrl: hero.ticketUrl ?? null,
-                  sourceUrl: hero.sourceUrl ?? null,
-                  business: hero.business
-                    ? { slug: hero.business.slug, name: hero.business.name }
-                    : null,
-                }
-              : null
-          }
-          viewLabel={range.label}
+    <div className="min-h-screen bg-background">
+      {/* Full-bleed immersive hero above filters */}
+      <EventsHero
+        event={
+          hero
+            ? {
+                id: hero.id,
+                title: hero.title,
+                heroImageUrl: hero.heroImageUrl,
+                startsAt: hero.startsAt,
+                venueName: hero.venueName ?? null,
+                city: hero.city ?? null,
+                category: hero.category ?? null,
+                description: hero.description ?? null,
+                isFree: hero.isFree ?? null,
+                shareUrl: hero.shareUrl ?? null,
+                ticketUrl: hero.ticketUrl ?? null,
+                sourceUrl: hero.sourceUrl ?? null,
+                business: hero.business
+                  ? { slug: hero.business.slug, name: hero.business.name }
+                  : null,
+              }
+            : null
+        }
+        viewLabel={range.label}
+      />
+
+      {/* Slim sticky filter toolbar */}
+      <Suspense fallback={null}>
+        <EventsToolbar
+          view={view}
+          searchQuery={searchQuery}
+          selectedCats={selectedCats}
+          langEs={langEs}
         />
-
-        {/* Sticky filter card — sand-colored to match the publication's warm
-            tones. Same content as before (title, subtitle, search, view pills,
-            category chips, language toggle) but restyled to feel like part of
-            the same editorial system as /outings, /life, /insights. */}
-        {/* Sticky on ≥sm so filters follow scroll on desktop; on mobile the
-            card is too tall (~360–500px of title + search + pills + 13
-            categories + lang toggle) and would cover the hero and event
-            cards below if it stuck. Letting it scroll naturally keeps
-            the mobile experience usable. */}
-      <div className="sm:sticky sm:top-0 sm:z-10">
-          <div className="container-max pt-4 pb-2">
-            <div
-              className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm bg-[#ece6d7]"
-              style={{
-                backgroundImage:
-                  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='1' cy='1' r='1' fill='%23004a5c' fill-opacity='0.06'/></svg>\"), linear-gradient(to bottom right, rgba(236,230,215,1), rgba(240,239,235,1))",
-              }}
-            >
-              <div className="relative px-5 sm:px-8 pt-6 pb-5">
-                {/* Title row */}
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="min-w-0">
-                    {/* Eyebrow — small mono chip that establishes the page's
-                        identity ("Community Calendar") before the title. */}
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary/10 text-secondary font-mono text-[10px] uppercase tracking-[0.22em] mb-1.5">
-                      <Sparkles className="w-3 h-3" />
-                      Community Calendar
-                    </span>
-                    <h1
-                      className="text-3xl sm:text-4xl font-bold text-text leading-[0.98] tracking-tight"
-                      style={{ fontFamily: 'var(--font-fraunces), Inter, sans-serif' }}
-                    >
-                      What&apos;s Happening
-                    </h1>                  <p className="text-sm sm:text-base text-text-secondary mt-1 max-w-2xl">
-                    What&apos;s happening in and around Moreno Valley — curated by the
-                    moval.living team.
-                  </p>
-                </div>
-              </div>
-
-              {/* Search bar — case-insensitive text search across title,
-                  description, venue, address, and city. Widens the date
-                  window to today + 90 days while q is active. */}
-              <div className="mt-4">
-                <Suspense fallback={null}>
-                  <SearchBar initialQuery={searchQuery} />
-                </Suspense>
-              </div>
-
-              {/* Filter rows */}
-              <div className="mt-4 space-y-3">
-                {/* View pills — segmented control. Active tab is the only
-                    colored interior so the current view is unmistakable. */}
-                <div className="bg-slate-100/80 rounded-xl p-1 flex gap-1 w-fit max-w-full overflow-x-auto">
-                  {(['today', 'weekend', 'week', 'month'] as View[]).map((v) => {
-                    const isActive = view === v
-                    const href = v === 'month' ? '/events' : `/events?view=${v}`
-                    return (
-                      <Link
-                        key={v}
-                        href={href}
-                        className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
-                          isActive
-                            ? 'bg-primary text-white shadow-sm'
-                            : 'text-text-secondary hover:text-text'
-                        }`}
-                      >
-                        {v === 'today'
-                          ? 'Today'
-                          : v === 'weekend'
-                            ? 'Weekend'
-                            : v === 'week'
-                              ? 'This Week'
-                              : 'Month'}
-                      </Link>
-                    )
-                  })}
-                </div>
-
-                {/* Category chips + language toggle on one row */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-3 justify-between">
-                  <div className="min-w-0 flex-1">
-                    <Suspense fallback={null}>
-                      <CategoryFilter selected={selectedCats} />
-                    </Suspense>
-                  </div>
-                  <Suspense fallback={null}>
-                    <LanguageFilter active={langEs} />
-                  </Suspense>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </Suspense>
 
       {/* Month nav (only on month view) */}
       {isMonthView && (
@@ -395,43 +308,39 @@ export default async function EventsPage({ searchParams }: PageProps) {
         )}
 
         {/* Bento grid */}
-            {events.length > 0 && (
-              <div className="space-y-6">
-                {/* The HERO event now lives at the top of the page (EventsHeroStrip),
-                    so it does not render again here. Honorable mentions and
-                    standard cards follow below. */}
-
-                {/* Honorable mentions — 2-3 cards in a row */}
-        {honorable.length > 0 && (
-          <section>
-            <h2 className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-3 flex items-center gap-2">
-              <Award className="w-4 h-4" /> Honorable Mentions
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {honorable.map((ev) => (
-                <HonorableCard key={ev.id} event={ev} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Standards — 2-column grid */}
-        {standard.length > 0 && (
-          <section>
+        {events.length > 0 && (
+          <div className="space-y-6">
+            {/* Honorable mentions */}
             {honorable.length > 0 && (
-              <h2 className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4" /> More Events
-              </h2>
+              <section>
+                <h2 className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-3 flex items-center gap-2">
+                  <Award className="w-4 h-4" /> Honorable Mentions
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {honorable.map((ev) => (
+                    <HonorableCard key={ev.id} event={ev} />
+                  ))}
+                </div>
+              </section>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {standard.map((ev) => (
-                <StandardCard key={ev.id} event={ev} />
-              ))}
-            </div>
-          </section>
+
+            {/* Standards */}
+            {standard.length > 0 && (
+              <section>
+                {honorable.length > 0 && (
+                  <h2 className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-3 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" /> More Events
+                  </h2>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {standard.map((ev) => (
+                    <StandardCard key={ev.id} event={ev} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
         )}
-      </div>
-    )}
 
         {/* Submit CTA at the bottom */}
         {events.length > 0 && (
@@ -457,19 +366,6 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
 // ── Card components ─────────────────────────────────────────────────────
 
-// When an event is linked to a Business, the card clicks through to the
-// business profile instead of the external source URL. Returning a plain
-// Returns the href for an event card's outermost <Link>/<a>. Priority:
-//   1. shareUrl (admin-set override — full URL or path slug)
-//   2. sourceUrl (provenance URL where event info was scraped)
-//   3. linked business page (internal)
-//   4. ticketUrl (legacy — kept for events that pre-date the shareUrl field)
-//   5. '#' fallback (renders a dead link, never the case for active events)
-//
-// The function preserves the legacy `external` boolean so callers don't
-// have to reason about it. shareUrl / sourceUrl / ticketUrl are external
-// (admin-set URLs the user clicks open in a new tab); business links are
-// internal.
 function cardHref(event: any): { href: string; external: boolean } {
   if (event.shareUrl) {
     return { href: event.shareUrl, external: true }
@@ -483,11 +379,6 @@ function cardHref(event: any): { href: string; external: boolean } {
   return { href: event.sourceUrl ?? '#', external: !!event.sourceUrl }
 }
 
-// Full-bleed hero section for the tier=HERO event. Image fills the
-// background with a dark gradient overlay so text stays legible on any
-// photo. CTA button is wired to shareUrl when present (admin override);
-// free events get an RSVP-style copy change. Linked-business events keep
-// the Hosted by badge.
 function HonorableCard({ event }: { event: any }) {
   const dateLabel = formatEventDate(event.startsAt)
   const target = cardHref(event)
@@ -501,7 +392,6 @@ function HonorableCard({ event }: { event: any }) {
     >
       <div className="aspect-[16/9] bg-gradient-to-br from-primary/10 to-secondary/10 relative">
         {event.heroImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={event.heroImageUrl}
             alt={event.title}
@@ -548,7 +438,6 @@ function StandardCard({ event }: { event: any }) {
     >
       {event.heroImageUrl && (
         <div className="aspect-[16/9] bg-gradient-to-br from-primary/10 to-secondary/10 relative overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={event.heroImageUrl}
             alt={event.title}
