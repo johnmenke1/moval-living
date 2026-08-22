@@ -172,7 +172,8 @@ export default async function BestOfCategoryPage({ params }: Props) {
                 .filter((x): x is { sub: string; name: string } => x !== null)
                 .slice(0, 4)
               if (subWinners.length > 0) {
-                const category = cat.name.toLowerCase()
+                // Strip leading "Best " to avoid "the best best X" doubling.
+                const category = cat.name.replace(/^best\s+/i, '').toLowerCase()
                 const list = subWinners
                   .map(sw => `${sw.name} (${sw.sub})`)
                   .join(', ')
