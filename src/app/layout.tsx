@@ -15,10 +15,18 @@ const fraunces = Fraunces({
   axes: ['opsz'],
 })
 
-// The root tree includes NextAuth's request-aware SessionProvider. Keeping
-// the root layout dynamic prevents Next.js 16 from evaluating metadata and
-// internal error boundaries outside a request work store during build.
-export const dynamic = 'force-dynamic'
+// The root tree includes NextAuth's SessionProvider (in a 'use client'
+// boundary at src/components/Providers.tsx, so it doesn't require a
+// request work store). The previous 'force-dynamic' here was defensive
+// against an early Next.js 16 + NextAuth incompatibility where metadata
+// evaluation needed a request context, but it also propagated to every
+// child route and broke per-page ISR — the homepage's revalidate=300
+// (set in src/app/page.tsx) was being overridden, so every visit hit
+// the DB. Removing the override lets each route decide its own cache
+// strategy. If the original Next.js 16 symptom resurfaces, the right
+// fix is a more targeted dynamic = 'force-dynamic' on the specific
+// route that needs it, not a global override.
+// export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.moval.living'),
