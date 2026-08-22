@@ -184,12 +184,15 @@ model Owner {
   emailConsentAt   DateTime?
   smsConsentAt     DateTime?
   smsConsentSource String? // e.g. 'claim-form', 'submit-form', 'landing-page'
+  // Best-Of voting activity (v1.5: powers "you haven't voted yet" digests)
+  lastBestOfVoteAt DateTime?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   accounts         Account[]
   sessions         Session[]
   business         Business?
   guestAuthors     GuestAuthor[]
+  bestOfVotes      BestOfVote[]
 }
 
 enum UserRole {
@@ -497,6 +500,7 @@ model BestOfNominee {
   displayOrder Int            @default(0)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+  votes        BestOfVote[]
 
   @@unique([categoryId, businessId])
   @@index([categoryId])
@@ -566,6 +570,37 @@ model BestOfNomination {
   @@index([nominatorEmail])
   @@index([businessId])
 }
+
+// ── Best-Of Vote (registered voters) ─────────────────────────────────────
+// One row per (voter, nominee). Voter name + image are snapshotted at
+// vote-time so historical share cards keep rendering correctly even if
+// the voter later changes their profile or deletes their account.
+//
+// Anti-abuse: voting requires a registered, signed-in Owner with a
+// verified email. The cost-of-attack shifts from "100 throwaway emails"
+// to "100 fake accounts", which is orders of magnitude harder. See
+// `.hermes/plans/2026-08-22_best-of-registered-voters.md` for the threat
+// model and the magic-link approach this replaced.
+model BestOfVote {
+  id                  String        @id @default(cuid())
+  voter               Owner         @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  voterId             String
+  nominee             BestOfNominee @relation(fields: [nomineeId], references: [id], onDelete: Cascade)
+  nomineeId           String
+  // Snapshotted at vote time. Old share cards continue to render even
+  // if the voter changes their name or removes their avatar.
+  voterNameSnapshot   String
+  voterImageSnapshot  String?
+  createdAt           DateTime      @default(now())
+
+  // One vote per user per nominee. Enforced at the DB level so concurrent
+  // double-taps + tab races can't create duplicates — the second INSERT
+  // collides and the route handler returns 409.
+  @@unique([voterId, nomineeId], name: "voterId_nomineeId")
+  @@index([nomineeId, createdAt(sort: Desc)])
+  @@index([voterId, createdAt(sort: Desc)])
+}
+
 
 // ── Guest Author / Guest Post ─────────────────────────────────────────────
 
