@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import { SlidersHorizontal, Store, ChevronDown } from 'lucide-react'
+import { SlidersHorizontal, Store, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SearchFiltersProps {
@@ -126,13 +126,15 @@ export function SearchFilters({ categories, currentParams, categoryNav }: Search
         )}
       </div>
 
-      {/* Category jump-to pills — hidden when actively filtering by category. */}
+      {/* Category jump-to pills — now act as quick category filters so the
+          behavior matches the dropdown. Selecting one narrows the map and
+          grid; the active pill is highlighted. */}
       {!isFiltered && categoryNav.length > 1 && (
-        <nav aria-label="Jump to category" className="hidden md:flex flex-wrap gap-2 pt-1">
+        <nav aria-label="Filter by category" className="hidden md:flex flex-wrap gap-2 pt-1">
           {categoryNav.map((cat) => (
-            <a
+            <button
               key={cat.slug}
-              href={`#cat-${cat.slug}`}
+              onClick={() => goToCategory(cat.slug)}
               className={cn(
                 'inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors',
                 'bg-white/70 border border-slate-200 text-text-secondary hover:border-primary/40 hover:text-primary',
@@ -140,27 +142,39 @@ export function SearchFilters({ categories, currentParams, categoryNav }: Search
             >
               <Store className="w-3 h-3" />
               {cat.name}
-            </a>
+            </button>
           ))}
         </nav>
       )}
 
-      {/* Mobile: category pills below the toggle; hidden when filtered. */}
+      {/* Mobile: category pills below the toggle; filter behavior. */}
       {!isFiltered && categoryNav.length > 1 && (
-        <nav aria-label="Jump to category" className="md:hidden flex flex-wrap gap-2">
+        <nav aria-label="Filter by category" className="md:hidden flex flex-wrap gap-2">
           {categoryNav.map((cat) => (
-            <a
+            <button
               key={cat.slug}
-              href={`#cat-${cat.slug}`}
+              onClick={() => goToCategory(cat.slug)}
               className={cn(
                 'inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors',
                 'bg-white/70 border border-slate-200 text-text-secondary',
               )}
             >
               {cat.name}
-            </a>
+            </button>
           ))}
         </nav>
+      )}
+
+      {/* Clear filter chip — appears when a category is selected so the user
+          can return to the full directory/map view. */}
+      {isFiltered && (
+        <button
+          onClick={() => goToCategory('')}
+          className="inline-flex items-center gap-1.5 self-start text-xs font-semibold px-3 py-1.5 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors"
+        >
+          <X className="w-3 h-3" />
+          Clear category filter
+        </button>
       )}
     </div>
   )
