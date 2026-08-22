@@ -1,10 +1,13 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import { ChevronLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { BusinessCard } from '@/components/business/BusinessCard'
+import { VoteButton } from '@/components/best-of/VoteButton'
+import { VotersFeed } from '@/components/best-of/VotersFeed'
 
 interface Props {
   params: Promise<{ category: string }>
@@ -138,6 +141,65 @@ export default async function BestOfCategoryPage({ params }: Props) {
   const categorySchema = buildBestOfCategorySchema(cat)
   const itemListSchema = buildNomineesItemList(cat)
 
+  // Voting: read the session once, then fetch (a) the current user's
+  // existing votes so each card can render "Voted ✓" vs "Vote" without
+  // a client-side flash, (b) the vote totals per nominee so the
+  // voters feed can render counts inline without a per-card roundtrip,
+  // and (c) the recent-voters slice for each nominee (max 12 each).
+  const session = await auth()
+  const voterId = session?.user?.id ?? null
+  const allNomineeIds = nominees.map((n) => n.id)
+  const [userVotes, votesByNominee, recentVotersRaw] = await Promise.all([
+    voterId
+      ? prisma.bestOfVote.findMany({
+          where: { voterId, nomineeId: { in: allNomineeIds } },
+          select: { id: true, nomineeId: true },
+        })
+      : Promise.resolve([]),
+    allNomineeIds.length > 0
+      ? prisma.bestOfVote.groupBy({
+          by: ['nomineeId'],
+          where: { nomineeId: { in: allNomineeIds } },
+          _count: { _all: true },
+        })
+      : Promise.resolve([]),
+    allNomineeIds.length > 0
+      ? prisma.bestOfVote.findMany({
+          where: { nomineeId: { in: allNomineeIds } },
+          orderBy: [{ nomineeId: 'asc' }, { createdAt: 'desc' }],
+          // 12 most recent per nominee — groupBy + take isn't supported,
+          // so we over-fetch and bucket client-side. With 16 categories ×
+          // 12 voters = 192 rows max, the over-fetch is bounded.
+          take: allNomineeIds.length * 12,
+          select: {
+            nomineeId: true,
+            voterNameSnapshot: true,
+            voterImageSnapshot: true,
+            createdAt: true,
+          },
+        })
+      : Promise.resolve([]),
+  ])
+  const userVoteByNominee = new Map(userVotes.map((v) => [v.nomineeId, v.id]))
+  const totalVotesByNominee = new Map(
+    votesByNominee.map((v) => [v.nomineeId, v._count._all]),
+  )
+  // Bucket the recent voters per nominee (truncate to 12).
+  const recentVotersByNominee = new Map<
+    string,
+    { name: string; image: string | null; votedAt: string }[]
+  >()
+  for (const v of recentVotersRaw) {
+    const list = recentVotersByNominee.get(v.nomineeId) ?? []
+    if (list.length >= 12) continue
+    list.push({
+      name: v.voterNameSnapshot,
+      image: v.voterImageSnapshot,
+      votedAt: v.createdAt.toISOString(),
+    })
+    recentVotersByNominee.set(v.nomineeId, list)
+  }
+
   return (
     <>
       {categorySchema && <JsonLd schema={categorySchema} />}
@@ -243,7 +305,16 @@ export default async function BestOfCategoryPage({ params }: Props) {
         {cat.subCategories.length > 0 ? (
           // Parent category — show each sub-category as a titled section
           // with home-style business cards listed inline below.
-          <SubCategorySections subCategories={cat.subCategories} />
+          <SubCategorySections
+            subCategories={cat.subCategories}
+            voteData={{
+              userVoteByNominee,
+              totalVotesByNominee,
+              recentVotersByNominee,
+              categorySlug: slug,
+              signedIn: Boolean(session?.user?.id),
+            }}
+          />
         ) : nominees.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-5xl mb-4">{emoji}</p>
@@ -257,6 +328,12 @@ export default async function BestOfCategoryPage({ params }: Props) {
                 key={nominee.id}
                 nominee={nominee}
                 rank={idx + 1}
+                categorySlug={slug}
+                signedIn={Boolean(session?.user?.id)}
+                initialVoted={userVoteByNominee.has(nominee.id)}
+                initialVoteId={userVoteByNominee.get(nominee.id)}
+                totalVotes={totalVotesByNominee.get(nominee.id) ?? 0}
+                recentVoters={recentVotersByNominee.get(nominee.id) ?? []}
               />
             ))}
           </div>
@@ -313,7 +390,25 @@ type Nominee = {
 // overlays a small winner / rank ribbon so winners stay visually distinct
 // from runner-ups.
 
-function BestOfCardWrapper({ nominee, rank }: { nominee: Nominee; rank: number }) {
+function BestOfCardWrapper({
+  nominee,
+  rank,
+  categorySlug,
+  signedIn,
+  initialVoted,
+  initialVoteId,
+  totalVotes,
+  recentVoters,
+}: {
+  nominee: Nominee
+  rank: number
+  categorySlug: string
+  signedIn: boolean
+  initialVoted: boolean
+  initialVoteId?: string
+  totalVotes: number
+  recentVoters: { name: string; image: string | null; votedAt: string }[]
+}) {
   const { business } = nominee
   return (
     <div className="relative">
@@ -339,6 +434,24 @@ function BestOfCardWrapper({ nominee, rank }: { nominee: Nominee; rank: number }
           &ldquo;{nominee.notes}&rdquo;
         </p>
       )}
+
+      {/* Voting: button + recent-voters feed (registered voters, see
+          .hermes/plans/2026-08-22_best-of-registered-voters.md) */}
+      <div className="mt-3 px-1">
+        <VoteButton
+          nomineeId={nominee.id}
+          nomineeName={business.name}
+          categorySlug={categorySlug}
+          initialVoted={initialVoted}
+          initialVoteId={initialVoteId}
+          signedIn={signedIn}
+        />
+        <VotersFeed
+          voters={recentVoters}
+          total={totalVotes}
+          displayed={recentVoters.length}
+        />
+      </div>
     </div>
   )
 }
@@ -365,7 +478,24 @@ type SubCategoryRow = {
   _count: { nominees: number }
 }
 
-function SubCategorySections({ subCategories }: { subCategories: SubCategoryRow[] }) {
+interface VoteDataMaps {
+  userVoteByNominee: Map<string, string>
+  totalVotesByNominee: Map<string, number>
+  recentVotersByNominee: Map<
+    string,
+    { name: string; image: string | null; votedAt: string }[]
+  >
+  categorySlug: string
+  signedIn: boolean
+}
+
+function SubCategorySections({
+  subCategories,
+  voteData,
+}: {
+  subCategories: SubCategoryRow[]
+  voteData: VoteDataMaps
+}) {
   return (
     <div className="space-y-12">
       {subCategories.map(sub => (
@@ -393,6 +523,12 @@ function SubCategorySections({ subCategories }: { subCategories: SubCategoryRow[
                   key={nominee.id}
                   nominee={nominee}
                   rank={idx + 1}
+                  categorySlug={voteData.categorySlug}
+                  signedIn={voteData.signedIn}
+                  initialVoted={voteData.userVoteByNominee.has(nominee.id)}
+                  initialVoteId={voteData.userVoteByNominee.get(nominee.id)}
+                  totalVotes={voteData.totalVotesByNominee.get(nominee.id) ?? 0}
+                  recentVoters={voteData.recentVotersByNominee.get(nominee.id) ?? []}
                 />
               ))}
             </div>
