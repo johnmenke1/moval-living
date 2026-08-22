@@ -19,6 +19,7 @@
  */
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Loader2, Check, Vote as VoteIcon, AlertCircle } from 'lucide-react'
 
@@ -174,6 +175,22 @@ export function VoteButton({
         >
           Retract vote
         </button>
+      )}
+
+      {!signedIn && (
+        <p className="text-xs text-text-secondary text-center">
+          New to MoVal.living?{' '}
+          <Link
+            href={buildLoginRedirectUrl(
+              typeof window !== 'undefined'
+                ? window.location.pathname + window.location.search
+                : `/best-of/${categorySlug}`,
+            ).replace('/login', '/register')}
+            className="text-primary hover:underline font-medium"
+          >
+            Create an account
+          </Link>
+        </p>
       )}
 
       {error && (
