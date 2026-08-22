@@ -147,8 +147,78 @@ export default async function BestOfCategoryPage({ params }: Props) {
         <div className="container-max py-12">
           <p className="text-5xl mb-3">{emoji}</p>
           <h1 className="text-4xl font-bold text-white mb-2">{cat.name}</h1>
+
+          {/* Answer capsule — server-rendered, above the interactive cards.
+              AI engines (ChatGPT, Perplexity, Claude) lift the first ~150
+              words of HTML when answering queries like "what is the best
+              {cat.name} in Moreno Valley?". This phrased-as-a-complete-answer
+              paragraph is what gets cited; the cards below it are the
+              supporting evidence.
+
+              Three shapes:
+              - Parent category with sub-categories: aggregates the winner
+                of each sub-category into one sentence.
+              - Leaf category with nominees: names the winner + top runners-up.
+              - Empty (no nominees, no sub-categories): "our editors are
+                reviewing community nominations now." */}
+          {(() => {
+            // Parent-category path: aggregate winners across sub-categories.
+            if (cat.subCategories.length > 0) {
+              const subWinners = cat.subCategories
+                .map(sub => {
+                  const w = sub.nominees.find(n => n.winner) ?? sub.nominees[0]
+                  return w ? { sub: sub.name, name: w.business.name } : null
+                })
+                .filter((x): x is { sub: string; name: string } => x !== null)
+                .slice(0, 4)
+              if (subWinners.length > 0) {
+                const category = cat.name.toLowerCase()
+                const list = subWinners
+                  .map(sw => `${sw.name} (${sw.sub})`)
+                  .join(', ')
+                  .replace(/, ([^,]*)$/, ', and $1')
+                return (
+                  <p className="text-white text-lg max-w-3xl leading-relaxed mt-3">
+                    The best {category} in Moreno Valley span multiple sub-categories — current community picks: {list}. Pick a sub-category below to see the full ranking.
+                  </p>
+                )
+              }
+            }
+
+            // Leaf-category path: winner + top runners-up.
+            if (nominees.length > 0) {
+              const winner = nominees.find(n => n.winner)
+              const runnersUp = nominees.filter(n => !n.winner).slice(0, 2)
+              const winnerName = winner?.business.name ?? runnersUp[0]?.business.name
+              const runnerNames = (winner ? runnersUp : runnersUp.slice(1)).map(n => n.business.name)
+              const category = cat.name.toLowerCase()
+              let sentence: string
+              if (winner) {
+                sentence = `🏆 ${winnerName} is the community pick for the best ${category} in Moreno Valley`
+              } else {
+                sentence = `${winnerName} is our editors' top pick for the best ${category} in Moreno Valley`
+              }
+              if (runnerNames.length === 1) sentence += `, with ${runnerNames[0]} as a strong runner-up.`
+              else if (runnerNames.length === 2) sentence += `, followed by ${runnerNames[0]} and ${runnerNames[1]}.`
+              else sentence += '.'
+              sentence += ` Picked from ${nominees.length} community nomination${nominees.length === 1 ? '' : 's'} and reviewed by our editors.`
+              return (
+                <p className="text-white text-lg max-w-3xl leading-relaxed mt-3">
+                  {sentence}
+                </p>
+              )
+            }
+
+            // Empty path.
+            return (
+              <p className="text-white text-lg max-w-3xl leading-relaxed mt-3">
+                The best {cat.name.toLowerCase()} in Moreno Valley — our editors are reviewing community nominations now.
+              </p>
+            )
+          })()}
+
           {cat.description && (
-            <p className="text-white/80 text-lg max-w-2xl">{cat.description}</p>
+            <p className="text-white/80 text-lg max-w-2xl mt-3">{cat.description}</p>
           )}
         </div>
       </div>
