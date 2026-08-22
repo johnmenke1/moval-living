@@ -46,9 +46,28 @@ export default async function InsightsIndexPage() {
     take: 50,
   })
 
+  // Answer capsule — server-rendered, first ~150 words of HTML.
+  // AI engines lift this for queries like 'Moreno Valley moving
+  // guides' or 'local expert takes'. Shape: count + unique author
+  // count + 3 most recent (title + author display name).
+  const insightCount = posts.length
+  const uniqueAuthors = new Set(posts.filter(p => p.author).map(p => p.author!.id)).size
+  const recentItems = posts
+    .slice(0, 3)
+    .map(p => `“${p.title}”${p.author ? ` by ${p.author.displayName}` : ''}`)
+    .filter(Boolean)
+  const insightsCapsule = insightCount === 0
+    ? 'Insights is a forthcoming collection of essays from local Moreno Valley voices — community members writing about life in the valley.'
+    : `Insights is a collection of ${insightCount} essay${insightCount === 1 ? '' : 's'} from ${uniqueAuthors} local Moreno Valley voice${uniqueAuthors === 1 ? '' : 's'} — professionals, business owners, and community members writing about life in the valley. Recent contributions: ${recentItems.join('; ')}.`
+
   return (
     <div className="min-h-screen">
       <InsightsHero />
+      <div className="container-max pt-8 pb-2">
+        <p className="text-base sm:text-lg text-text leading-relaxed max-w-3xl">
+          {insightsCapsule}
+        </p>
+      </div>
       <InsightsArticlesGrid
         posts={posts.map(p => ({
           slug: p.slug,
