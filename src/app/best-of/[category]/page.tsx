@@ -188,10 +188,15 @@ export default async function BestOfCategoryPage({ params }: Props) {
             // Leaf-category path: winner + top runners-up.
             if (nominees.length > 0) {
               const winner = nominees.find(n => n.winner)
-              const runnersUp = nominees.filter(n => !n.winner).slice(0, 2)
+              const runnersUp = nominees.filter(n => n.winner).length === 1
+                ? nominees.filter(n => !n.winner).slice(0, 2)
+                : nominees.slice(0, 2) // multi-winner category: no runner-up framing
               const winnerName = winner?.business.name ?? runnersUp[0]?.business.name
               const runnerNames = (winner ? runnersUp : runnersUp.slice(1)).map(n => n.business.name)
-              const category = cat.name.toLowerCase()
+              // Many category names already start with "Best" ("Best Coffeehouse").
+              // Strip the leading "Best " so the sentence doesn't read
+              // "The best best coffeehouse in Moreno Valley...".
+              const category = cat.name.replace(/^best\s+/i, '').toLowerCase()
               let sentence: string
               if (winner) {
                 sentence = `🏆 ${winnerName} is the community pick for the best ${category} in Moreno Valley`
