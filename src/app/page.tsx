@@ -4,8 +4,15 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { compareBusinesses } from '@/lib/business-priority'
 import type { Metadata } from 'next'
 
-// Force dynamic rendering so featured businesses list is always fresh
-export const dynamic = 'force-dynamic'
+// Homepage is curated, not algorithmic: only Best-Of winners and Featured/
+// Expert Partner listings. Order: BestOf+Featured/EP → Featured/EP only →
+// BestOf-only. No FREE listings.
+//
+// ISR (300s revalidation) replaces the previous `force-dynamic`. With
+// admin mutations calling revalidatePath('/') on tier/status changes, an
+// admin edit appears on the next request — not 5 minutes later — while
+// every other visitor hits the prerendered cache.
+export const revalidate = 300
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://www.moval.living' },
@@ -98,16 +105,26 @@ const ORGANIZATION_SCHEMA = {
 }
 
 async function getCategoryCounts() {
-  // Single grouped query — count APPROVED businesses per category slug.
-  const rows = await prisma.business.findMany({
+  // Single aggregate query — prisma.groupBy counts APPROVED businesses
+  // per categoryId in the DB instead of pulling every row and
+  // reducing in JS. On a 500-business DB this is ~30x less data over
+  // the wire and skips the JS-side Map build.
+  const groups = await prisma.business.groupBy({
+    by: ['categoryId'],
     where: { status: 'APPROVED' },
-    select: { category: { select: { slug: true } } },
+    _count: { _all: true },
   })
+
+  // Map categoryId → slug with one small query, then join the counts.
+  const categories = await prisma.category.findMany({
+    select: { id: true, slug: true },
+  })
+  const idToSlug = new Map(categories.map((c) => [c.id, c.slug]))
+
   const counts: Record<string, number> = {}
-  for (const r of rows) {
-    const slug = r.category?.slug
-    if (!slug) continue
-    counts[slug] = (counts[slug] ?? 0) + 1
+  for (const g of groups) {
+    const slug = idToSlug.get(g.categoryId)
+    if (slug) counts[slug] = g._count._all
   }
   return counts
 }
