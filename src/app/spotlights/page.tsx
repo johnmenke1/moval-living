@@ -19,14 +19,25 @@ export default async function SpotlightsIndexPage() {
     take: 50,
   })
 
+  // Answer capsule — server-rendered, first ~150 words of HTML.
+  // AI engines lift this for queries like 'Moreno Valley business
+  // video spotlights'. Shape: count + most recent title.
+  const spotlightCount = posts.length
+  const spotlightCapsule = spotlightCount === 0
+    ? 'Spotlights launches soon — short-form video profiles of the people and businesses that make Moreno Valley special.'
+    : `Spotlights are short-form video profiles of the people and businesses that make Moreno Valley special. ${spotlightCount} video${spotlightCount === 1 ? '' : 's'} published so far — newest: “${posts[0].title}”.`
+
   return (
     <div className="bg-background min-h-screen">
       <div className="container-max py-12">
         <header className="max-w-2xl mb-10">
           <h1 className="text-4xl sm:text-5xl font-bold text-text mb-3">Business Spotlights</h1>
-          <p className="text-lg text-text-secondary">
+          <p className="text-lg text-text-secondary mb-6">
             Short-form video spotlights featuring the people and businesses that make Moreno Valley
             worth talking about.
+          </p>
+          <p className="text-base sm:text-lg text-text leading-relaxed">
+            {spotlightCapsule}
           </p>
         </header>
 
