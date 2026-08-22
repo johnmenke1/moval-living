@@ -4,30 +4,12 @@ export const alt = 'Best Of MoVal'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-// Font loading: Vercel does NOT include /public in the function's filesystem
-// at /var/task/public/ — public files are served via the edge CDN only.
-// The fs.readFile(process.cwd() + 'public/...') pattern works locally but
-// ENOENTs on Vercel. The working pattern is fetch() against the deployed
-// origin (Vercel edge serves /public at the same hostname, cached aggressively).
-let _fontsCache: { fraunces: ArrayBuffer; inter: ArrayBuffer } | null = null
-async function loadFonts() {
-  if (_fontsCache) return _fontsCache
-  const [fraunces, inter] = await Promise.all([
-    fetch('https://www.moval.living/fonts/Fraunces-Bold.ttf').then(r => {
-      if (!r.ok) throw new Error(`Fraunces fetch failed: ${r.status}`)
-      return r.arrayBuffer()
-    }),
-    fetch('https://www.moval.living/fonts/Inter-SemiBold.ttf').then(r => {
-      if (!r.ok) throw new Error(`Inter fetch failed: ${r.status}`)
-      return r.arrayBuffer()
-    }),
-  ])
-  _fontsCache = { fraunces, inter }
-  return _fontsCache
-}
-
+// Minimal repro: no fonts, no DB, just a colored rectangle. If THIS renders
+// we know the route + ImageResponse work; the previous 500s were from fonts.
+// If THIS also 500s, the issue is something deeper (Next 16 OG route config,
+// runtime, build artifact).
 export default async function OGImage() {
-  const fonts = await loadFonts()
+  console.log('[opengraph-image] handler invoked')
 
   return new ImageResponse(
     (
@@ -38,23 +20,14 @@ export default async function OGImage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundImage:
-            'linear-gradient(135deg, #00405c 0%, #007a7f 100%)',
+          backgroundColor: '#007a7f',
           color: '#f0efeb',
-          fontFamily: 'Inter',
-          fontSize: 88,
-          fontWeight: 600,
+          fontSize: 64,
         }}
       >
         Best Of MoVal
       </div>
     ),
-    {
-      ...size,
-      fonts: [
-        { name: 'Fraunces', data: fonts.fraunces, weight: 700, style: 'normal' },
-        { name: 'Inter', data: fonts.inter, weight: 600, style: 'normal' },
-      ],
-    },
+    { ...size },
   )
 }
