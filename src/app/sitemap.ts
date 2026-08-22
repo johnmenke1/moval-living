@@ -5,11 +5,15 @@ import { categories as directoryCategories } from '@/data/categories'
 const BASE = 'https://www.moval.living'
 
 // Sitemap pulls from live DB (businesses, Best-Of categories, editorial
-// posts). Without force-dynamic, Vercel prerenders this at build time and
-// the prerender survives subsequent deploys — admin-curated additions
-// stay invisible until the cache expires naturally. force-dynamic ensures
-// every request hits the live DB. Same fix as src/app/best-of/page.tsx.
-export const dynamic = 'force-dynamic'
+// posts, events, partners, authors). The previous `force-dynamic` meant
+// every crawler hit — Google, Bing, AI engines — re-ran six queries and
+// pulled up to 5,000 rows from Neon. ISR with a 1-hour window replaces
+// that: a fresh prerender rebuilds on the first request after expiry,
+// and admin mutations call revalidatePath('/sitemap.xml') to invalidate
+// the cache immediately on approval/delete. Crawlers see a stale
+// snapshot for at most an hour between admin edits; the cost moves
+// from "per-request, forever" to "per-request, hourly."
+export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
