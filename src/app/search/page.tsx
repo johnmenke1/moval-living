@@ -1,11 +1,12 @@
 import { Suspense } from 'react'
-import { Building2, Sparkles, Search } from 'lucide-react'
+import { Building2, Sparkles, Search, MapPin } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
 import { SearchFilters } from '@/components/search/SearchFilters'
 import { CompactSearchBar } from '@/components/search/CompactSearchBar'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SearchMapWrapper } from '@/components/map/SearchMapWrapper'
 import { compareBusinessesForSearch } from '@/lib/business-priority'
 import type { Metadata } from 'next'
 
@@ -57,6 +58,8 @@ type SearchBusiness = {
   reviews: { rating: number }[]
   _count: { reviews: number }
   coupon?: unknown
+  latitude?: number | null
+  longitude?: number | null
 }
 
 type CategoryGroup = {
@@ -72,6 +75,25 @@ type SearchResults = {
   // Category-slug → display-name for the jump-to anchor nav. Same order
   // as `groups` (alphabetical). Categories with 0 results are stripped.
   categoryNav: Array<{ slug: string; name: string }>
+  mapItems: Array<{
+    id: string
+    slug: string
+    name: string
+    address: string
+    city: string
+    state: string
+    zip: string
+    latitude: number
+    longitude: number
+    category: { name: string; slug: string }
+    tier: string
+    isExpertPartner: boolean
+    isBestOfWinner: boolean
+    foundingPartnerSince: Date | string | null
+    googleRating: number | null
+    googleReviewCount: number | null
+    hasCoupon: boolean
+  }>
 }
 
 async function getBusinesses(params: {
@@ -123,6 +145,31 @@ async function getBusinesses(params: {
     },
   })
 
+  // Project to the map dataset and the grouped display dataset. Drop
+  // businesses missing coordinates from the map view (common for older
+  // imports) while still including them in the category list.
+  const mapItems = businesses
+    .filter((b) => b.latitude != null && b.longitude != null)
+    .map((b) => ({
+      id: b.id,
+      slug: b.slug,
+      name: b.name,
+      address: b.address,
+      city: b.city,
+      state: b.state,
+      zip: b.zip,
+      latitude: b.latitude as number,
+      longitude: b.longitude as number,
+      category: { name: b.category.name, slug: b.category.slug },
+      tier: b.tier,
+      isExpertPartner: b.isExpertPartner,
+      isBestOfWinner: b.isBestOfWinner,
+      foundingPartnerSince: b.foundingPartnerSince,
+      googleRating: b.googleRating,
+      googleReviewCount: b.googleReviewCount,
+      hasCoupon: b.hasCoupon,
+    })) as SearchResults['mapItems']
+
   // Shape into a list of category groups. Businesses with no category land
   // in an "Uncategorized" bucket at the end (shouldn't happen given the
   // schema, but defensive).
@@ -160,12 +207,13 @@ async function getBusinesses(params: {
     total: businesses.length,
     groups,
     categoryNav,
+    mapItems,
   }
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams
-  const { total, groups, categoryNav } = await getBusinesses(params)
+  const { total, groups, categoryNav, mapItems } = await getBusinesses(params)
   const selectedCategory = categories.find(c => c.slug === params.category)
 
   // Headline adapts to what's in the URL: a query gets the most prominent
@@ -255,6 +303,56 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
       {/* Results body */}
       <div className="container-max py-8">
+        {/* Interactive map — placed above the listing grid so spatial discovery
+            happens before the user dives into category cards. Wrapped in a
+            subtle white card so it sits apart from the slate-50 page background.
+            No markers show when all results lack coordinates; the map still
+            renders centered on Moreno Valley with a count chip. */}
+        {mapItems.length > 0 && (
+          <section className="mb-10" aria-label="Businesses on a map">
+            <div className="flex items-center justify-between mb-4 px-1">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-text">Explore on the map</h2>
+                  <p className="text-sm text-text-secondary">
+                    {mapItems.length} business{mapItems.length !== 1 ? 'es' : ''} with locations
+                    {total - mapItems.length > 0 && (
+                      <span className="text-text-secondary/70"> · {total - mapItems.length} without map locations</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Suspense fallback={<div className="w-full h-[420px] bg-slate-100 animate-pulse rounded-2xl" />}>
+              <SearchMapWrapper businesses={mapItems} />
+            </Suspense>
+
+            {/* Legend for marker tiers */}
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-text-secondary px-1">
+              <span className="font-semibold text-text">Pin guide:</span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: '#D97706' }} />
+                Expert Partner
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: '#F97316' }} />
+                Featured
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: '#007A7F' }} />
+                Best of MoVal
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: '#00405C' }} />
+                Standard
+              </span>
+            </div>
+          </section>
+        )}
+
         {/* Result count strip — sits below the sticky header so it's always
             visible when scrolling through long category lists. Wrapped in
             a tinted rounded-2xl so it reads as a small 'results bar'
