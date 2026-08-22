@@ -1,22 +1,24 @@
 import { ImageResponse } from 'next/og'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
 export const alt = 'Best Of MoVal'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-let _frauncesCache: ArrayBuffer | null = null
+// Fonts at project root (./fonts/), not in public/. Next bundles anything
+// reachable via the static module graph. /public/ is served via the edge
+// CDN only and is NOT in /var/task/public/ at runtime (ENOENT confirmed
+// in 5deef95 logs).
+let _frauncesCache: Buffer | null = null
 async function loadFraunces() {
   if (_frauncesCache) return _frauncesCache
-  const r = await fetch('https://www.moval.living/fonts/Fraunces-Bold.ttf')
-  if (!r.ok) throw new Error(`Fraunces fetch failed: ${r.status}`)
-  _frauncesCache = await r.arrayBuffer()
+  _frauncesCache = await readFile(join(process.cwd(), 'fonts/Fraunces-Bold.ttf'))
   return _frauncesCache
 }
 
 export default async function OGImage() {
-  console.log('[opengraph-image] loading Fraunces')
   const fraunces = await loadFraunces()
-  console.log(`[opengraph-image] Fraunces loaded: ${fraunces.byteLength} bytes`)
 
   return new ImageResponse(
     (
