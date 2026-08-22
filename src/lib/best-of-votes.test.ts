@@ -12,6 +12,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { Prisma } from '@prisma/client'
+import { castVoteSchema, buildVoteSnapshot, CastVoteError } from './best-of-votes'
 
 describe('BestOfVote model shape', () => {
   it('exposes the registered-voter schema fields', () => {
@@ -48,5 +49,57 @@ describe('BestOfVote model shape', () => {
 describe('Owner model shape', () => {
   it('exposes lastBestOfVoteAt for tracking voter activity', () => {
     expect(Prisma.OwnerScalarFieldEnum.lastBestOfVoteAt).toBe('lastBestOfVoteAt')
+  })
+})
+
+describe('castVoteSchema', () => {
+  // Minimal zod payload shape — the route handler builds the rest (voterId
+  // from session, snapshot fields from Owner lookup).
+  it('rejects empty body', () => {
+    expect(() => castVoteSchema.parse({})).toThrow()
+  })
+
+  it('rejects missing nomineeId', () => {
+    expect(() => castVoteSchema.parse({ nomineeId: '' })).toThrow()
+  })
+
+  it('accepts a valid nomineeId', () => {
+    const parsed = castVoteSchema.parse({ nomineeId: 'cuid_abc123' })
+    expect(parsed.nomineeId).toBe('cuid_abc123')
+  })
+})
+
+describe('buildVoteSnapshot', () => {
+  it('captures voter display name + image at vote time', () => {
+    const snapshot = buildVoteSnapshot({
+      id: 'owner_123',
+      name: 'Sarah K.',
+      image: 'https://example.com/avatars/sarah.jpg',
+      emailVerified: new Date(),
+    })
+    expect(snapshot.voterNameSnapshot).toBe('Sarah K.')
+    expect(snapshot.voterImageSnapshot).toBe('https://example.com/avatars/sarah.jpg')
+  })
+
+  it('falls back to a derived name when name is null', () => {
+    const snapshot = buildVoteSnapshot({
+      id: 'owner_456',
+      name: null,
+      image: null,
+      emailVerified: new Date(),
+    })
+    expect(snapshot.voterNameSnapshot).toBe('MoVal member')
+    expect(snapshot.voterImageSnapshot).toBeNull()
+  })
+
+  it('throws CastVoteError if the voter is not email-verified', () => {
+    expect(() =>
+      buildVoteSnapshot({
+        id: 'owner_789',
+        name: 'Pat Q.',
+        image: null,
+        emailVerified: null,
+      })
+    ).toThrow(CastVoteError)
   })
 })

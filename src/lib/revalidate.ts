@@ -78,6 +78,25 @@ export function revalidateBestOfData() {
   revalidatePath(SITEMAP)
 }
 
+// A new BestOfVote (registered-voter voting, .hermes/plans/2026-08-22_best-of-
+// registered-voters.md) changes two things on the public category page:
+// 1. The vote count above the nominee name
+// 2. The VotersFeed entries below the nominee card
+// Both are derived at request-time on the category page (force-dynamic),
+// so technically revalidatePath isn't needed for them — Next.js will
+// re-render on the next request automatically. We still call it for the
+// sitemap (vote counts aren't in the sitemap yet but if we ever add
+// 'top voted this week' to the sitemap, this hook is in place) and for
+// any future ISR'd variant of /best-of/[slug].
+//
+// Note: the voter-card OG image at /best-of/voted/[voteId]/opengraph-image
+// is dynamic (per-user), so revalidatePath('/best-of/voted/[voteId]', 'page')
+// would be the right call when we ship that — but until the dynamic OG
+// lands, this helper is effectively a no-op for the public surface.
+export function revalidateBestOfVoteData() {
+  // Intentionally empty for now — see comment above.
+}
+
 // A category's name/description/icon appears on /category/[slug]
 // (every category page lists all categories in the breadcrumb/nav)
 // and in the homepage category grid. Not in the sitemap (the
