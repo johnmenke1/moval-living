@@ -278,7 +278,7 @@ export default function LinkInBioPage() {
               '@context': 'https://schema.org',
               '@type': 'Organization',
               '@id': 'https://www.moval.living/#organization',
-              name: 'moval.living',
+              name: 'MoVal Living',  // display name (canonical: Title Case)
               url: 'https://www.moval.living',
               logo: 'https://movalliving.s3.us-west-1.amazonaws.com/moval-living-logo.png',
               sameAs: [
@@ -293,7 +293,7 @@ export default function LinkInBioPage() {
               '@type': 'WebPage',
               '@id': 'https://www.moval.living/link',
               url: 'https://www.moval.living/link',
-              name: 'moval.living — Link in Bio',
+              name: 'Link in Bio',
               description:
                 'Every door into moval.living in one place: best of Moreno Valley, local businesses, events, and deals.',
               isPartOf: { '@id': 'https://www.moval.living/#website' },

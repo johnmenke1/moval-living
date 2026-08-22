@@ -22,9 +22,17 @@ export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.moval.living'),
+  // Canonical brand convention (verified 2026-08-22, Johnny):
+  //   name:    'MoVal Living'  (display name, Title Case)
+  //   url:     'https://www.moval.living'  (technical URL, lowercase)
+  //   email:   'hello@moval.living'  (contact, lowercase)
+  // URL slugs and the template suffix use the lowercase form; the
+  // display name in titles, OG metadata, and Schema.org `name` uses
+  // 'MoVal Living'. Per-page titles should NOT include the brand in
+  // their text — the template below appends ' | MoVal Living' for them.
   title: {
-    default: 'moval.living — Moreno Valley Local Business Directory',
-    template: '%s | moval.living',
+    default: 'MoVal Living — Moreno Valley Local Business Directory',
+    template: '%s | MoVal Living',
   },
   description:
     'Discover trusted local businesses in Moreno Valley, CA. Restaurants, contractors, healthcare, retail and more — all in one place.',
@@ -38,9 +46,9 @@ export const metadata: Metadata = {
     'Moreno Valley healthcare',
     'Moreno Valley shopping',
   ],
-  authors: [{ name: 'moval.living', url: 'https://www.moval.living' }],
-  creator: 'moval.living',
-  publisher: 'moval.living',
+  authors: [{ name: 'MoVal Living', url: 'https://www.moval.living' }],
+  creator: 'MoVal Living',
+  publisher: 'MoVal Living',
   robots: {
     index: true,
     follow: true,
@@ -56,8 +64,8 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://www.moval.living',
-    siteName: 'moval.living',
-    title: 'moval.living — Moreno Valley Local Business Directory',
+    siteName: 'MoVal Living',
+    title: 'MoVal Living — Moreno Valley Local Business Directory',
     description: 'Your trusted guide to local businesses in Moreno Valley, California.',
     images: [
       {

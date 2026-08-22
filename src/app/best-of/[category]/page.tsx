@@ -96,7 +96,7 @@ function buildBestOfCategorySchema(cat: Awaited<ReturnType<typeof getCategory>>)
     url: `https://www.moval.living/best-of/${cat.slug}`,
     publisher: {
       '@type': 'Organization',
-      name: 'moval.living',
+      name: 'MoVal Living',  // display name (canonical: Title Case)
       url: 'https://www.moval.living',
     },
   }

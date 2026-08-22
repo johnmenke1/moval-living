@@ -14,12 +14,12 @@ export const metadata: Metadata = {
 const WEBSITE_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
-  name: 'moval.living',
-  url: 'https://www.moval.living',
+  name: 'MoVal Living',  // display name (canonical: Title Case)
+  url: 'https://www.moval.living',  // URL stays lowercase
   description: 'Discover trusted local businesses in Moreno Valley, CA.',
   publisher: {
     '@type': 'Organization',
-    name: 'moval.living',
+    name: 'MoVal Living',
     url: 'https://www.moval.living',
   },
   potentialAction: {
@@ -46,9 +46,9 @@ const ORGANIZATION_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   '@id': 'https://www.moval.living/#organization',
-  name: 'moval.living',
+  name: 'MoVal Living',  // display name (canonical: Title Case)
   alternateName: 'MoVal Living',
-  url: 'https://www.moval.living',
+  url: 'https://www.moval.living',  // URL stays lowercase
   description: 'Your trusted guide to local businesses in Moreno Valley, California.',
   logo: {
     '@type': 'ImageObject',
