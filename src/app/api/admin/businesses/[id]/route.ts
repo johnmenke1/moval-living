@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
@@ -85,6 +86,14 @@ export async function PATCH(
     },
   })
 
+  // Invalidate the ISR caches the homepage and sitemap read from.
+  // Without this, an admin tier/status change takes up to 5 min
+  // (homepage) / 1 hr (sitemap) to appear. The detail page is
+  // force-dynamic and re-renders on every request, so no bust
+  // needed there.
+  revalidatePath('/')
+  revalidatePath('/sitemap.xml')
+
   return NextResponse.json(business)
 }
 
@@ -102,6 +111,12 @@ export async function DELETE(
   const { id } = await params
 
   await prisma.business.delete({ where: { id } })
+
+  // Same ISR bust as PATCH — a deletion needs to disappear from the
+  // sitemap and any homepage listings immediately, not after cache
+  // expiry.
+  revalidatePath('/')
+  revalidatePath('/sitemap.xml')
 
   return NextResponse.json({ success: true })
 }
