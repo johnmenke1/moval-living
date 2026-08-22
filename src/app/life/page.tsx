@@ -34,9 +34,27 @@ export default async function LifeIndexPage() {
     take: 50,
   })
 
+  // Answer capsule — server-rendered, first ~150 words of HTML.
+  // AI engines (ChatGPT, Perplexity) lift this for queries like
+  // 'what is it like to live in Moreno Valley?' The shape is a
+  // complete factual answer: count + 3 most recent titles.
+  const lifeCount = posts.length
+  const recentTitles = posts
+    .slice(0, 3)
+    .map(p => `“${p.title}”`)
+    .filter(Boolean)
+  const lifeCapsule = lifeCount === 0
+    ? 'Life in MoVal is a journal of what makes Moreno Valley a remarkable place to live — first essay coming soon.'
+    : `Life in MoVal is a journal of ${lifeCount} essay${lifeCount === 1 ? '' : 's'} on what makes Moreno Valley a remarkable place to live. Recent stories: ${recentTitles.join(', ')}.`
+
   return (
     <div className="min-h-screen">
       <LifeHero />
+      <div className="container-max pt-8 pb-2">
+        <p className="text-base sm:text-lg text-text leading-relaxed max-w-3xl">
+          {lifeCapsule}
+        </p>
+      </div>
       <LifeArticlesGrid
         posts={posts.map(p => ({
           slug: p.slug,
