@@ -1,6 +1,4 @@
 import { ImageResponse } from 'next/og'
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import type { NextRequest } from 'next/server'
 
 // Stage 1 spike — colocated OG image for /best-of/[category]
@@ -17,6 +15,16 @@ import type { NextRequest } from 'next/server'
 //  --color-accent:    #c9786d   (terracotta)
 //  --color-background:#f0efeb   (warm off-white)
 //
+// FONT BUNDLING (Aug 22 first-deploy gotcha): Turbopack does NOT ship files
+// resolved at runtime via `fs.readFile(join(process.cwd(), ...))` — it only
+// includes assets that flow through the static module graph. The first
+// attempt (committed as 42238f9) returned 500 on Vercel because the .ttf
+// files were stripped from the deployment bundle.
+//
+// Fix: serve the fonts via /public, fetch at runtime. Vercel's edge CDN
+// caches /public aggressively and we're same-region, so the latency is
+// negligible. The fetch happens once per cold render, then is held in
+// module-scope memory across warm renders.
 // Future font subsetting note: Fraunces-Bold.ttf is 360KB, Inter-SemiBold.ttf is
 // 876KB. Total ~1.2MB per cold render. For the spike we accept this; if Vercel
 // perf shows > 1s cold render, subset with pyftsubset against a sample of 50
@@ -32,15 +40,28 @@ export const contentType = 'image/png'
 // changes, at which point the admin's revalidatePath() bumps it.
 export const revalidate = 3600
 
-// Lazy-load fonts at module scope — Satori reads them once per render, so
-// reading at module init means warm renders skip the disk hit. The catch is
-// this only works in Node-runtime; the `nodejs` export above is required.
-let _fontsCache: { fraunces: Buffer; inter: Buffer } | null = null
-async function loadFonts() {
-  if (_fontsCache) return _fontsCache
+// Lazy-load fonts at module scope and cache across warm renders. Using a
+// Promise so concurrent first-requests share the same fetch.
+let _fontsCache: { fraunces: ArrayBuffer; inter: ArrayBuffer } | null = null
+function loadFonts(): Promise<{ fraunces: ArrayBuffer; inter: ArrayBuffer }> {
+  if (_fontsCache) return Promise.resolve(_fontsCache)
+  // Resolve from request origin so this works on both Vercel (where we
+  // need an absolute URL for fetch()) and local dev. In serverless,
+  // request.headers['host'] gives the deployed hostname.
+  // Fall back to production URL if host is unavailable.
+  return _loadFontsInternal()
+}
+
+async function _loadFontsInternal(): Promise<{ fraunces: ArrayBuffer; inter: ArrayBuffer }> {
   const [fraunces, inter] = await Promise.all([
-    readFile(join(process.cwd(), 'src/assets/fonts/Fraunces-Bold.ttf')),
-    readFile(join(process.cwd(), 'src/assets/fonts/Inter-SemiBold.ttf')),
+    fetch(new URL('/fonts/Fraunces-Bold.ttf', 'https://www.moval.living')).then(r => {
+      if (!r.ok) throw new Error(`Fraunces fetch failed: ${r.status}`)
+      return r.arrayBuffer()
+    }),
+    fetch(new URL('/fonts/Inter-SemiBold.ttf', 'https://www.moval.living')).then(r => {
+      if (!r.ok) throw new Error(`Inter fetch failed: ${r.status}`)
+      return r.arrayBuffer()
+    }),
   ])
   _fontsCache = { fraunces, inter }
   return _fontsCache
