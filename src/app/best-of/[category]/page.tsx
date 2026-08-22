@@ -73,28 +73,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const pageUrl = `https://www.moval.living/best-of/${slug}`
   const description = cat.description || `Our editor's pick for ${cat.name} in Moreno Valley.`
   return {
-    title: cat.name,
-    description,
-    alternates: { canonical: pageUrl },
-    openGraph: {
-      type: 'website',
-      url: pageUrl,
       title: cat.name,
       description,
-      // Colocated opengraph-image.tsx generates a 1200x630 PNG via
-      // next/og. Next 16 wires this up automatically — the URL is served
-      // from the same route segment so Next caches + revalidates the
-      // image per `revalidate` in opengraph-image.tsx (3600s ISR).
-      images: [{ url: `/best-of/${slug}/opengraph-image`, width: 1200, height: 630, alt: cat.name }],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: cat.name,
-      description,
-      images: [`/best-of/${slug}/opengraph-image`],
-    },
+      alternates: { canonical: pageUrl },
+      openGraph: {
+        type: 'website',
+        url: pageUrl,
+        title: cat.name,
+        description,
+        // Static 1200x630 PNG generated at build time via
+        // scripts/render-og-cards.mjs → public/og/[slug].png. Regenerated
+        // whenever winners or category info change. Served from Vercel
+        // edge — instant, no runtime render.
+        images: [{ url: `https://www.moval.living/og/${slug}.png`, width: 1200, height: 630, alt: cat.name }],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: cat.name,
+        description,
+        images: [`https://www.moval.living/og/${slug}.png`],
+      },
+    }
   }
-}
 
 function buildBestOfCategorySchema(cat: Awaited<ReturnType<typeof getCategory>>) {
   if (!cat) return null

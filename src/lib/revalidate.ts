@@ -63,10 +63,17 @@ export function revalidateAuthorData() {
 }
 
 // Best-Of categories appear in the sitemap (every published
-// BestOfCategory) and on /best-of (list, currently force-dynamic)
+// BestOfCategory), on /best-of (list, currently force-dynamic),
 // plus detail pages. Promoting a nominee to winner also affects
 // the business listing, so callers that touch both should call
 // both helpers — revalidateBusinessData and revalidateBestOfData.
+//
+// NOTE: OG cards (public/og/[slug].png) are static PNGs generated
+// at build time via scripts/render-og-cards.mjs. They are NOT
+// served via revalidatePath — when a winner or category info
+// changes, run `node scripts/render-og-cards.mjs` and commit
+// the regenerated PNGs. The cards themselves don't appear here
+// because static /public/ assets have no ISR layer.
 export function revalidateBestOfData() {
   revalidatePath(SITEMAP)
 }
