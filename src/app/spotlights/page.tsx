@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Business Spotlights — MoVal Living',
+  title: 'Business Spotlights',
   description:
     'Short-form video spotlights featuring the people and businesses that make Moreno Valley special.',
   alternates: { canonical: 'https://www.moval.living/spotlights' },

@@ -120,7 +120,6 @@ function buildBusinessSchema(business: Awaited<ReturnType<typeof getBusiness>> &
 
   if (business.logo) schema.logo = { '@type': 'ImageObject', url: business.logo }
   if (business.coverImage) schema.image = business.coverImage
-  if (business.website) schema.url = business.website
   if (business.email) schema.email = business.email
   if (business.phone) schema.telephone = business.phone
 
@@ -136,6 +135,18 @@ function buildBusinessSchema(business: Awaited<ReturnType<typeof getBusiness>> &
     }
   }
 
+  // sameAs — external cross-references for entity consolidation.
+  // External website lives here (NOT in url — url must anchor to the
+  // listing page so Google resolves the entity to moval.living instead
+  // of splitting it across domains).
+  const sameAs: string[] = []
+  if (business.website) sameAs.push(business.website)
+  if (business.facebook) sameAs.push(business.facebook)
+  if (business.instagram) sameAs.push(business.instagram)
+  if (business.yelp) sameAs.push(business.yelp)
+  if (business.googleBusiness) sameAs.push(`https://www.google.com/maps?cid=${business.googleBusiness}`)
+  if (sameAs.length > 0) schema.sameAs = sameAs
+
   // Aggregate rating
   if (business.googleRating != null && business.googleReviewCount != null) {
     schema.aggregateRating = {
@@ -146,14 +157,6 @@ function buildBusinessSchema(business: Awaited<ReturnType<typeof getBusiness>> &
       worstRating: 1,
     }
   }
-
-  // Same-as social links
-  const sameAs: string[] = []
-  if (business.facebook) sameAs.push(business.facebook)
-  if (business.instagram) sameAs.push(business.instagram)
-  if (business.yelp) sameAs.push(business.yelp)
-  if (business.googleBusiness) sameAs.push(`https://www.google.com/maps?cid=${business.googleBusiness}`)
-  if (sameAs.length > 0) schema.sameAs = sameAs
 
   // Category
   if (business.category) schema.category = business.category.name
