@@ -1,8 +1,8 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
-import { SlidersHorizontal, X, Store, ChevronDown } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { SlidersHorizontal, Store, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SearchFiltersProps {
@@ -26,8 +26,10 @@ interface SearchFiltersProps {
  * the header card scrolls away naturally once the user is reading
  * listings.
  *
- * What lives here: category dropdown (legacy deep-link filter) and the
- * category jump-to pill nav (alphabetical, scrolls on click).
+ * What lives here: category dropdown filter and the category jump-to pill
+ * nav (alphabetical, scrolls on click). When a category is selected in the
+ * dropdown, /search is filtered in-place so the map and card grid narrow
+ * together.
  *
  * What dropped: tier filter (Featured/Free/Chamber) — Johnny flagged those
  * buttons as not earning their space; users can still filter by tier via
@@ -51,39 +53,23 @@ export function SearchFilters({ categories, currentParams, categoryNav }: Search
     })
   }
 
-  // Picking a category in the dropdown navigates to the dedicated
-  // /category/[slug] landing page — those pages have the real H1,
-  // canonical, JSON-LD, and FAQ for "Moreno Valley <category>"
-  // queries. Keeping the dropdown as a /search?category= filter would
-  // trap users on /search, which canonicalizes to itself and is the
-  // anti-pattern this whole feature was built to fix.
+  // Picking a category in the dropdown filters /search in-place. The map
+  // and card grid both narrow to that category. We still keep the
+  // /category/[slug] landing pages as canonical SEO pages; a small link
+  // on the filtered view points there for search engines.
   const goToCategory = (slug: string) => {
-    startTransition(() => {
-      router.push(`/category/${slug}`)
-    })
+    updateParam('category', slug)
   }
 
-  // Deep-link support: /search?category=X arrives here with the category
-  // set in the URL but the page rendered all categories. Scroll the
-  // matching group into view once on mount.
-  useEffect(() => {
-    if (currentParams.category && typeof window !== 'undefined') {
-      // Wait one frame so the layout settles.
-      const id = window.requestAnimationFrame(() => {
-        const el = document.getElementById(`cat-${currentParams.category}`)
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      })
-      return () => window.cancelAnimationFrame(id)
-    }
-  }, [currentParams.category])
-
-  const hasMobileFilters = Boolean(currentParams.category)
+  // When a category is actively selected, the page renders only that
+  // category's section, so the jump-to pills are hidden.
+  const isFiltered = Boolean(currentParams.category)
+  const hasMobileFilters = isFiltered
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Mobile filter toggle — kept for the legacy deep-link category
-          dropdown. Mobile users get a tap-to-expand panel since the
-          dropdown takes a row of its own at narrow widths. */}
+      {/* Mobile filter toggle — category dropdown lives in the expandable
+          panel. Selecting a category filters /search in-place. */}
       <div className="md:hidden">
         <button
           onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -91,7 +77,7 @@ export function SearchFilters({ categories, currentParams, categoryNav }: Search
         >
           <span className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4" />
-            {currentParams.category
+            {isFiltered
               ? `Category: ${categories.find(c => c.slug === currentParams.category)?.name ?? 'Unknown'}`
               : 'Browse by category'}
           </span>
@@ -101,7 +87,7 @@ export function SearchFilters({ categories, currentParams, categoryNav }: Search
           <div className="mt-3 p-3 bg-white/80 rounded-xl border border-slate-200">
             <select
               value={currentParams.category || ''}
-              onChange={(e) => e.target.value && goToCategory(e.target.value)}
+              onChange={(e) => goToCategory(e.target.value)}
               className="input"
               aria-label="View a single category"
             >
@@ -116,12 +102,11 @@ export function SearchFilters({ categories, currentParams, categoryNav }: Search
         )}
       </div>
 
-      {/* Desktop category select. Picking a category navigates to its
-          dedicated /category/[slug] landing page. */}
+      {/* Desktop category select. Picking a category filters /search. */}
       <div className="hidden md:flex items-center gap-3">
         <select
           value={currentParams.category || ''}
-          onChange={(e) => e.target.value && goToCategory(e.target.value)}
+          onChange={(e) => goToCategory(e.target.value)}
           className="input py-2.5 w-auto min-w-[200px] bg-white/80 backdrop-blur rounded-xl text-sm"
           aria-label="View a single category"
         >
@@ -134,59 +119,47 @@ export function SearchFilters({ categories, currentParams, categoryNav }: Search
         </select>
 
         {/* Sub-label clarifying this is a secondary filter row */}
-        {categoryNav.length > 1 && (
+        {!isFiltered && categoryNav.length > 1 && (
           <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
             Jump to:
           </span>
         )}
       </div>
 
-      {/* Category jump-to pills — scroll away with the header card so
-          they naturally disappear once the user is reading listings.
-          Pill style matches the /events segmented control treatment. */}
-      {categoryNav.length > 1 && (
+      {/* Category jump-to pills — hidden when actively filtering by category. */}
+      {!isFiltered && categoryNav.length > 1 && (
         <nav aria-label="Jump to category" className="hidden md:flex flex-wrap gap-2 pt-1">
-          {categoryNav.map((cat) => {
-            const active = currentParams.category === cat.slug
-            return (
-              <a
-                key={cat.slug}
-                href={`#cat-${cat.slug}`}
-                className={cn(
-                  'inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors',
-                  active
-                    ? 'bg-primary text-white'
-                    : 'bg-white/70 border border-slate-200 text-text-secondary hover:border-primary/40 hover:text-primary',
-                )}
-              >
-                <Store className="w-3 h-3" />
-                {cat.name}
-              </a>
-            )
-          })}
+          {categoryNav.map((cat) => (
+            <a
+              key={cat.slug}
+              href={`#cat-${cat.slug}`}
+              className={cn(
+                'inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors',
+                'bg-white/70 border border-slate-200 text-text-secondary hover:border-primary/40 hover:text-primary',
+              )}
+            >
+              <Store className="w-3 h-3" />
+              {cat.name}
+            </a>
+          ))}
         </nav>
       )}
 
-      {/* Mobile: category pills below the toggle, scroll away with header. */}
-      {categoryNav.length > 1 && (
+      {/* Mobile: category pills below the toggle; hidden when filtered. */}
+      {!isFiltered && categoryNav.length > 1 && (
         <nav aria-label="Jump to category" className="md:hidden flex flex-wrap gap-2">
-          {categoryNav.map((cat) => {
-            const active = currentParams.category === cat.slug
-            return (
-              <a
-                key={cat.slug}
-                href={`#cat-${cat.slug}`}
-                className={cn(
-                  'inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors',
-                  active
-                    ? 'bg-primary text-white'
-                    : 'bg-white/70 border border-slate-200 text-text-secondary',
-                )}
-              >
-                {cat.name}
-              </a>
-            )
-          })}
+          {categoryNav.map((cat) => (
+            <a
+              key={cat.slug}
+              href={`#cat-${cat.slug}`}
+              className={cn(
+                'inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors',
+                'bg-white/70 border border-slate-200 text-text-secondary',
+              )}
+            >
+              {cat.name}
+            </a>
+          ))}
         </nav>
       )}
     </div>
