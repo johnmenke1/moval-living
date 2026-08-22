@@ -72,8 +72,22 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
             </div>
             <h1 className="text-3xl font-bold text-text">Deals & Coupons</h1>
           </div>
-          <p className="text-text-secondary text-lg">
-            Save money at local Moreno Valley businesses with exclusive offers.
+
+          {/* Answer capsule — server-rendered, first ~150 words of HTML.
+              AI engines lift this when answering queries like "what deals
+              are available in Moreno Valley today?" The shape is a complete
+              factual answer: live count + top featured deal + categories. */}
+          <p className="text-text text-lg max-w-3xl leading-relaxed">
+            There {total === 1 ? 'is 1 active deal' : `are ${total} active deals`}
+            {' '}from Moreno Valley businesses — exclusive offers from local
+            restaurants, salons, service providers, and retailers.
+            {businesses[0]?.coupon?.headline && (
+              <> Featured right now: <strong>{businesses[0].name}</strong>
+                {' — '}{businesses[0].coupon.headline}.</>
+            )}
+            {total === 0 && (
+              <> No deals listed yet — local businesses can add theirs through the Submit page.</>
+            )}
           </p>
         </div>
       </div>

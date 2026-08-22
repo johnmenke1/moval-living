@@ -241,29 +241,32 @@ export default async function EventsPage({ searchParams }: PageProps) {
       <div className="min-h-screen bg-background">
         {/* Full-bleed immersive hero above filters */}
       <EventsHero
-        event={
-          hero
-            ? {
-                id: hero.id,
-                title: hero.title,
-                heroImageUrl: hero.heroImageUrl,
-                startsAt: hero.startsAt,
-                venueName: hero.venueName ?? null,
-                city: hero.city ?? null,
-                category: hero.category ?? null,
-                description: hero.description ?? null,
-                isFree: hero.isFree ?? null,
-                shareUrl: hero.shareUrl ?? null,
-                ticketUrl: hero.ticketUrl ?? null,
-                sourceUrl: hero.sourceUrl ?? null,
-                business: hero.business
-                  ? { slug: hero.business.slug, name: hero.business.name }
-                  : null,
+              event={
+                hero
+                  ? {
+                      id: hero.id,
+                      title: hero.title,
+                      heroImageUrl: hero.heroImageUrl,
+                      startsAt: hero.startsAt,
+                      venueName: hero.venueName ?? null,
+                      city: hero.city ?? null,
+                      category: hero.category ?? null,
+                      description: hero.description ?? null,
+                      isFree: hero.isFree ?? null,
+                      shareUrl: hero.shareUrl ?? null,
+                      ticketUrl: hero.ticketUrl ?? null,
+                      sourceUrl: hero.sourceUrl ?? null,
+                      business: hero.business
+                        ? { slug: hero.business.slug, name: hero.business.name }
+                        : null,
+                    }
+                  : null
               }
-            : null
-        }
-        viewLabel={range.label}
-      />
+              viewLabel={range.label}
+              eventCount={events.length}
+              nextEventTitle={events[0]?.title ?? null}
+              nextEventCategory={events[0]?.category?.replace(/_/g, ' ') ?? null}
+            />
 
       {/* Slim sticky filter toolbar */}
       <Suspense fallback={null}>

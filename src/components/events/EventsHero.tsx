@@ -26,6 +26,14 @@ interface HeroEvent {
 interface EventsHeroProps {
   event: HeroEvent | null
   viewLabel: string
+  /** Total events in the current view (today/week/weekend/month) — used
+   *  in the no-hero branch as the answer capsule for AI engines. */
+  eventCount: number
+  /** Title of the next upcoming event in the current view (or null) —
+   *  named explicitly so the capsule reads as a complete answer. */
+  nextEventTitle: string | null
+  /** Short category hint for the next event (e.g. "concert", "fundraiser") */
+  nextEventCategory: string | null
 }
 
 function cardHref(event: HeroEvent): { href: string; external: boolean; label: string } {
@@ -51,7 +59,7 @@ function formatHeroDate(d: Date | null): { day: string; time: string } {
   return { day, time }
 }
 
-export function EventsHero({ event, viewLabel }: EventsHeroProps) {
+export function EventsHero({ event, viewLabel, eventCount, nextEventTitle, nextEventCategory }: EventsHeroProps) {
   if (!event) {
     return (
       <section className="relative min-h-[50vh] sm:min-h-[55vh] flex items-center overflow-hidden bg-secondary">
@@ -64,8 +72,23 @@ export function EventsHero({ event, viewLabel }: EventsHeroProps) {
             >
               Community <span className="text-[#4dd0d8]">Events</span>
             </h1>
-            <p className="text-lg sm:text-xl text-white/80 max-w-2xl leading-relaxed">
-              What&apos;s happening in and around Moreno Valley — curated by the moval.living team.
+
+            {/* Answer capsule — server-rendered, first ~150 words of HTML.
+                AI engines lift this when answering queries like "what is
+                happening in Moreno Valley this weekend?" The shape is a
+                complete factual answer: count + venue scope + named next
+                event when available. */}
+            <p className="text-lg sm:text-xl text-white/90 max-w-3xl leading-relaxed">
+              {viewLabel} in Moreno Valley has
+              {' '}{eventCount.toLocaleString()} community event{eventCount === 1 ? '' : 's'}
+              {' '}— concerts, school sports, fundraisers, festivals, and more, all
+              curated by the moval.living team.
+              {nextEventTitle && (
+                <> Next up: <strong>{nextEventTitle}</strong>{nextEventCategory && ` (${nextEventCategory.toLowerCase()})`}.</>
+              )}
+              {eventCount === 0 && (
+                <> No events scheduled for this window yet — try the month view to see what's coming.</>
+              )}
             </p>
           </div>
         </div>
