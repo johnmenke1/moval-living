@@ -140,12 +140,22 @@ export default async function BestOfPage() {
               ~150 words of HTML when answering direct questions, so this
               is phrased as a complete answer rather than marketing copy. */}
           <p className="text-white text-lg max-w-3xl leading-relaxed">
-            The Best Of Moreno Valley is our community-driven guide to the
-            {' '}{categoryCount} most-loved local businesses across food,
-            services, and lifestyle — chosen by {nomineeCount.toLocaleString()}+
-            {' '}community nominations and reviewed by our editors.
-            {' '}{winnerCount > 0 && (
-              <>Right now {winnerCount} winner{winnerCount === 1 ? '' : 's'} have been crowned, with new picks added monthly.</>
+            {categoryCount === 0 ? (
+              <>The Best Of Moreno Valley is our community-driven guide to the
+                most-loved local businesses across food, services, and
+                lifestyle — our editors are reviewing the first round of
+                community nominations now.</>
+            ) : (
+              <>
+                The Best Of Moreno Valley is our community-driven guide to the
+                {' '}{categoryCount} most-loved local business categories across food,
+                services, and lifestyle — drawn from
+                {' '}{nomineeCount.toLocaleString()} community nomination{nomineeCount === 1 ? '' : 's'}{' '}
+                and reviewed by our editors.
+                {' '}{winnerCount > 0 && (
+                  <>Right now {winnerCount} winner{winnerCount === 1 ? '' : 's'} have been crowned, with new picks added monthly.</>
+                )}
+              </>
             )}
           </p>
         </div>
