@@ -95,20 +95,23 @@ function nameFontSize(name: string): number {
   return 50
 }
 
-export default async function OGImage(
-  { params }: { params: Promise<{ category: string }> },
-) {
-  const { category: slug } = await params
-  const cat = await getCategoryForOG(slug)
+export default async function OGImage({
+  params,
+}: {
+  params: Promise<{ category: string }>
+}) {
+  try {
+    const { category: slug } = await params
+    const cat = await getCategoryForOG(slug)
 
-  // Fall back to a generic MoVal card if the slug doesn't exist or isn't
-  // published. Avoids 500s on social scrapers hitting stale URLs.
-  const displayName = cat?.name ?? 'Best Of Moreno Valley'
-  const nomineeCount = cat?._count.nominees ?? 0
-  const subtitle = cat?.description?.slice(0, 110) ??
-    `${nomineeCount} ${nomineeCount === 1 ? 'nominee' : 'nominees'} · community voting`
+    // Fall back to a generic MoVal card if the slug doesn't exist or isn't
+    // published. Avoids 500s on social scrapers hitting stale URLs.
+    const displayName = cat?.name ?? 'Best Of Moreno Valley'
+    const nomineeCount = cat?._count.nominees ?? 0
+    const subtitle = cat?.description?.slice(0, 110) ??
+      `${nomineeCount} ${nomineeCount === 1 ? 'nominee' : 'nominees'} · community voting`
 
-  const fonts = await loadFonts()
+    const fonts = await loadFonts()
 
   return new ImageResponse(
     (
@@ -260,4 +263,11 @@ export default async function OGImage(
       ],
     },
   )
+  } catch (err) {
+    // Surface the actual error to the Vercel logs so we can debug.
+    // Without this, Satori/ImageResponse failures produce an empty 500 body
+    // with X-Matched-Path: /500 and zero information in the response.
+    console.error('[opengraph-image] render failed:', err)
+    throw err
+  }
 }
