@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { SlidersHorizontal, Store, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -26,10 +26,11 @@ interface SearchFiltersProps {
  * the header card scrolls away naturally once the user is reading
  * listings.
  *
- * What lives here: category dropdown filter and the category jump-to pill
- * nav (alphabetical, scrolls on click). When a category is selected in the
- * dropdown, /search is filtered in-place so the map and card grid narrow
- * together.
+ * What lives here: category dropdown filter and the category filter-pill
+ * nav. Selecting a category in the dropdown OR clicking a pill narrows
+ * the /search results in-place — the map and card grid both narrow to
+ * that category. The page snaps back to the top on filter change so the
+ * narrowed map stays visible above the fold (see scrollTo effect above).
  *
  * What dropped: tier filter (Featured/Free/Chamber) — Johnny flagged those
  * buttons as not earning their space; users can still filter by tier via
@@ -40,6 +41,24 @@ export function SearchFilters({ categories, currentParams, categoryNav }: Search
   const searchParams = useSearchParams()
   const [, startTransition] = useTransition()
   const [showMobileFilters, setShowMobileFilters] = useState(false)
+
+  // When the user clicks a category pill/dropdown to filter /search, the
+  // page re-renders server-side but the browser scroll position is
+  // preserved — which usually leaves them scrolled past the head card
+  // and past the map, so they "lose the map" visually even though it's
+  // still on the page. Snap the viewport back to the top of the page
+  // when the active category changes (filter just applied), but not on
+  // the very first render (initial mount) so we don't yank the user up
+  // from a deep-link /search?category=... they've already scrolled.
+  const prevCategoryRef = useRef<string | undefined>(currentParams.category)
+  useEffect(() => {
+    const prev = prevCategoryRef.current
+    const next = currentParams.category
+    if (prev !== next && next !== undefined) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    prevCategoryRef.current = next
+  }, [currentParams.category])
 
   const updateParam = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString())
