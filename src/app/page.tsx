@@ -32,18 +32,69 @@ const WEBSITE_SCHEMA = {
   },
 }
 
+// Top-level Organization entity for the homepage. This is the canonical
+// "moval.living" entity that Google and AI engines consolidate against
+// — every field here helps them resolve us as a single trusted local
+// source (the foundation of GEO: engines cite entities they can resolve).
+//
+// Sources verified 2026-08-21:
+//  - address: src/components/layout/Footer.tsx:60-61
+//  - social: src/components/layout/Footer.tsx:76, 85, 94, 103
+//  - email: src/components/layout/Footer.tsx:66-67
+//  - logo: /public/logo.png (same path the Article schema uses)
 const ORGANIZATION_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
+  '@id': 'https://www.moval.living/#organization',
   name: 'moval.living',
+  alternateName: 'MoVal Living',
   url: 'https://www.moval.living',
   description: 'Your trusted guide to local businesses in Moreno Valley, California.',
+  logo: {
+    '@type': 'ImageObject',
+    url: 'https://www.moval.living/logo.png',
+  },
+  image: 'https://www.moval.living/logo.png',
+  // sameAs consolidates us across platforms — Google checks both ways
+  // (the entity says "I am also this profile") so these URLs must match
+  // the footer's href attributes exactly.
+  sameAs: [
+    'https://www.instagram.com/moval_living/',
+    'https://www.facebook.com/moval.living/',
+    'https://www.linkedin.com/company/moval-living',
+    'https://www.tiktok.com/@moval.living',
+  ],
+  // contactPoint is the modern Schema.org shape (top-level `email` was
+  // deprecated in 2014). listing both English and Spanish matches the
+  // site's Se habla español support and the IE demographic.
+  contactPoint: [
+    {
+      '@type': 'ContactPoint',
+      contactType: 'customer support',
+      email: 'hello@moval.living',
+      availableLanguage: ['English', 'Spanish'],
+    },
+  ],
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: '23110 Atlantic Circle, Suite F',
+    addressLocality: 'Moreno Valley',
+    addressRegion: 'CA',
+    postalCode: '92553',
+    addressCountry: 'US',
+  },
   areaServed: {
     '@type': 'City',
     name: 'Moreno Valley',
     addressRegion: 'CA',
     addressCountry: 'US',
   },
+  // We don't list founder / foundingDate in the schema — those facts
+  // aren't publicly stated anywhere on the site (the LLC paperwork
+  // isn't signed yet), and Schema.org fields that don't match visible
+  // site content get flagged by E-E-A-T checks as misleading. Add them
+  // back when the legal entity is signed and an /about page states
+  // them publicly.
 }
 
 async function getCategoryCounts() {
