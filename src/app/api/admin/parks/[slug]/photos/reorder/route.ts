@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
 import { del } from '@vercel/blob'
+import { revalidateParkData } from '@/lib/revalidate'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,6 +89,9 @@ export async function POST(
       }
     }),
   )
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+
+  revalidateParkData()
 
   return NextResponse.json({ park: updated })
 }

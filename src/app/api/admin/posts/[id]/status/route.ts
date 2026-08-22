@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { transitionPostStatus, guestPostStatusSchema, checkPostCadence } from '@/lib/guest-content'
+import { revalidatePostData } from '@/lib/revalidate'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -63,6 +64,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
     return NextResponse.json(post)
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error'
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+    revalidatePostData()
     return NextResponse.json({ error: message }, { status: 400 })
   }
 }

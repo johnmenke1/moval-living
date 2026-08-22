@@ -22,6 +22,7 @@ import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { put } from '@vercel/blob'
+import { revalidateEventData } from '@/lib/revalidate'
 
 const FAL_MODEL = 'fal-ai/recraft/v3/text-to-image'
 const FAL_BASE = 'https://queue.fal.run'
@@ -154,6 +155,8 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ eventId: event.id, slug: event.slug, status: 'success', heroImageUrl })
   } catch (err) {
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+    revalidateEventData()
     return NextResponse.json({
       eventId: event.id,
       slug: event.slug,

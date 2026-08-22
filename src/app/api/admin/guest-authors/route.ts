@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
+import { revalidateAuthorData } from '@/lib/revalidate'
 
 const CreateGuestAuthorSchema = z.object({
   displayName: z.string().min(1),
@@ -75,6 +76,9 @@ export async function POST(req: NextRequest) {
       business: { select: { id: true, name: true, slug: true, logo: true } },
     },
   })
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+
+  revalidateAuthorData()
 
   return NextResponse.json({ ...author, postCount: author._count.posts }, { status: 201 })
 }

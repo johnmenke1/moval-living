@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { revalidateBestOfData, revalidateBusinessData } from '@/lib/revalidate'
 
 const UpdateNomineeSchema = z.object({
   winner: z.boolean().optional(),
@@ -76,6 +77,11 @@ export async function DELETE(
       data: { isBestOfWinner: false },
     })
   }
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+
+  revalidateBusinessData()
+
+  revalidateBestOfData()
 
   return NextResponse.json({ success: true })
 }

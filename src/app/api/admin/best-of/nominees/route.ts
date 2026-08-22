@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { revalidateBestOfData } from '@/lib/revalidate'
 
 const CreateNomineeSchema = z.object({
   categoryId: z.string().min(1),
@@ -79,6 +80,9 @@ export async function POST(req: NextRequest) {
     data: { categoryId, businessId, winner: winner ?? false, notes, displayOrder: displayOrder ?? 0 },
     include: { business: { select: { name: true } } },
   })
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+
+  revalidateBestOfData()
 
   return NextResponse.json(nominee, { status: 201 })
 }

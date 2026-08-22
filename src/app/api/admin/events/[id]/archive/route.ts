@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidateEventData } from '@/lib/revalidate'
 
 // PATCH /api/admin/events/[id]/archive
 // Body: { archived: boolean }
@@ -54,9 +54,8 @@ export async function PATCH(
   })
 
   // Revalidate the public events page so the change is visible immediately.
-  revalidatePath('/events')
-  revalidatePath('/')
-
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+  revalidateEventData()
   return NextResponse.json({
     event: {
       id: updated.id,

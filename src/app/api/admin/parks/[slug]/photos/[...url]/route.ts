@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { del } from '@vercel/blob'
+import { revalidateParkData } from '@/lib/revalidate'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,6 +56,9 @@ export async function DELETE(
   } catch (e) {
     console.warn(`[parks/photos/delete] failed to delete ${url}:`, e)
   }
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+
+  revalidateParkData()
 
   return NextResponse.json({ park: updated })
 }

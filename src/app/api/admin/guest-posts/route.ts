@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
+import { revalidatePostData } from '@/lib/revalidate'
 import {
   guestPostCreateSchema,
   createGuestPost,
@@ -63,6 +64,9 @@ export async function POST(req: NextRequest) {
       },
     },
   })
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+
+  revalidatePostData()
 
   return NextResponse.json(post, { status: 201 })
 }

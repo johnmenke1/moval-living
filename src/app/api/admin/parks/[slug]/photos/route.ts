@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { put } from '@vercel/blob'
+import { revalidateParkData } from '@/lib/revalidate'
 
 export const runtime = 'nodejs'
 
@@ -65,6 +66,9 @@ export async function POST(
     where: { slug },
     data: { photoUrls: newPhotoUrls, heroPhotoUrl: newHero },
   })
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+
+  revalidateParkData()
 
   return NextResponse.json({ park: updated, url: blob.url })
 }

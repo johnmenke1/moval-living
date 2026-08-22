@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
+import { revalidateAuthorData } from '@/lib/revalidate'
 
 const UpdateGuestAuthorSchema = z.object({
   displayName: z.string().min(1).optional(),
@@ -73,6 +74,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   await prisma.guestAuthor.delete({ where: { id } })
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+
+  revalidateAuthorData()
 
   return NextResponse.json({ success: true })
 }

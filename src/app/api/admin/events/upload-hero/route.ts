@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { put } from '@vercel/blob'
+import { revalidateEventData } from '@/lib/revalidate'
 
 export const runtime = 'nodejs'
 
@@ -56,6 +57,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: blob.url })
   } catch (err) {
     console.error('[admin/events/upload-hero] error', err)
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+    revalidateEventData()
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Upload failed' },
       { status: 500 }

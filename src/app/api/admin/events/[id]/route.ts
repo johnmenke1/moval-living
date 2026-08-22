@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { revalidateEventData } from '@/lib/revalidate'
 
 // Event metadata that admins can edit. Slug, source fields, and id are immutable.
 // Keep enum values in sync with prisma/schema.prisma.
@@ -215,6 +216,8 @@ export async function PATCH(
     return NextResponse.json({ ok: true, event: updated })
   } catch (err) {
     console.error('[admin/events/[id] PATCH] error', err)
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+    revalidateEventData()
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Save failed' },
       { status: 500 }

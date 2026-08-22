@@ -28,6 +28,7 @@ import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { put } from '@vercel/blob'
+import { revalidateEventData } from '@/lib/revalidate'
 
 const schema = z.object({
   eventIds: z.array(z.string()).optional(),
@@ -129,6 +130,9 @@ export async function POST(req: NextRequest) {
       })
     }
   }
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+
+  revalidateEventData()
 
   return NextResponse.json({
     updated: results.filter(r => r.status === 'success').length,

@@ -20,7 +20,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { put } from '@vercel/blob'
-import { revalidatePath } from 'next/cache'
+import { revalidateEventData } from '@/lib/revalidate'
 
 const ALLOWED_MIME = new Set([
   'image/jpeg',
@@ -107,9 +107,8 @@ export async function POST(
     data: { heroImageUrl: blob.url },
     select: { id: true, slug: true, heroImageUrl: true },
   })
-
-  revalidatePath('/events')
-
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+  revalidateEventData()
   return NextResponse.json({
     eventId: updated.id,
     slug: updated.slug,

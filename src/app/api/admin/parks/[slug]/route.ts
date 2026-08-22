@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
 import { AMENITY_SLUGS } from '@/lib/park-amenities'
+import { revalidateParkData } from '@/lib/revalidate'
 
 export const dynamic = 'force-dynamic'
 
@@ -108,5 +109,7 @@ export async function GET(
   if (!park) {
     return NextResponse.json({ error: 'Park not found' }, { status: 404 })
   }
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+  revalidateParkData()
   return NextResponse.json({ park })
 }

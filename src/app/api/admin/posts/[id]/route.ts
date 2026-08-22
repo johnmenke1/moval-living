@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { revalidatePostData } from '@/lib/revalidate'
 import {
   guestPostUpdateSchema,
   updateGuestPost,
@@ -48,5 +49,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   }
   const { id } = await params
   await prisma.guestPost.delete({ where: { id } })
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+  revalidatePostData()
   return NextResponse.json({ ok: true })
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
+import { revalidateBusinessData } from '@/lib/revalidate'
 
 // GET /api/admin/businesses — list all businesses (admin only)
 export async function GET() {
@@ -18,6 +19,9 @@ export async function GET() {
     },
     orderBy: { createdAt: 'desc' },
   })
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+
+  revalidateBusinessData()
 
   return NextResponse.json(businesses)
 }

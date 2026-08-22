@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
+import { revalidateBusinessData } from '@/lib/revalidate'
 
 const updateSchema = z.object({
   status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
@@ -86,13 +86,9 @@ export async function PATCH(
     },
   })
 
-  // Invalidate the ISR caches the homepage and sitemap read from.
-  // Without this, an admin tier/status change takes up to 5 min
-  // (homepage) / 1 hr (sitemap) to appear. The detail page is
-  // force-dynamic and re-renders on every request, so no bust
-  // needed there.
-  revalidatePath('/')
-  revalidatePath('/sitemap.xml')
+  // Invalidate the ISR caches that show businesses (homepage +
+  // sitemap). See src/lib/revalidate.ts for the per-family path map.
+  revalidateBusinessData()
 
   return NextResponse.json(business)
 }
@@ -112,11 +108,8 @@ export async function DELETE(
 
   await prisma.business.delete({ where: { id } })
 
-  // Same ISR bust as PATCH — a deletion needs to disappear from the
-  // sitemap and any homepage listings immediately, not after cache
-  // expiry.
-  revalidatePath('/')
-  revalidatePath('/sitemap.xml')
+  // Same ISR bust as PATCH (see src/lib/revalidate.ts).
+  revalidateBusinessData()
 
   return NextResponse.json({ success: true })
 }

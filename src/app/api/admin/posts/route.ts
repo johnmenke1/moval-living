@@ -7,6 +7,7 @@ import {
   checkPostCadence,
 } from '@/lib/guest-content'
 import { prisma } from '@/lib/prisma'
+import { revalidatePostData } from '@/lib/revalidate'
 
 // GET /api/admin/posts — list posts (optionally filtered by status)
 export async function GET(req: Request) {
@@ -55,6 +56,8 @@ export async function POST(req: Request) {
     return NextResponse.json(post, { status: 201 })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error'
+  // ISR cache bust — see src/lib/revalidate.ts for the path map.
+    revalidatePostData()
     return NextResponse.json({ error: message }, { status: 400 })
   }
 }
