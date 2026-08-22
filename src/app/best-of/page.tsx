@@ -112,6 +112,18 @@ export default async function BestOfPage() {
   const regularTopLevel = categories.filter(c => !c.isSection && !c.parentCategoryId)
   const hasSubCategoryGroups = regularTopLevel.some(c => c.subCategories.length > 0)
 
+  // Answer capsule stats (server-rendered, in the first ~150 words of HTML —
+  // AI engines lift this verbatim when answering "what is Best Of in
+  // Moreno Valley?" style queries). Source numbers are computed from the
+  // same `categories` + `overallWinners` arrays the page renders below,
+  // so the capsule can't drift from what's visible.
+  const winnerCount = overallWinners.length
+  const categoryCount = categories.length
+  const nomineeCount = categories.reduce(
+    (sum, c) => sum + c.nominees.length + c.subCategories.reduce((s, sc) => s + sc._count.nominees, 0),
+    0,
+  )
+
   return (
     <div className="bg-slate-50 min-h-screen">
 
@@ -122,8 +134,19 @@ export default async function BestOfPage() {
             <Trophy className="w-8 h-8 text-white/80" />
             <h1 className="text-4xl font-bold text-white">Best of Moreno Valley</h1>
           </div>
-          <p className="text-white/80 text-lg max-w-2xl">
-            Curated by our editors — the local spots that make Moreno Valley great.
+
+          {/* Answer capsule — specific, factual, server-rendered. AI engines
+              (ChatGPT, Perplexity, Google AI Overviews) lift the first
+              ~150 words of HTML when answering direct questions, so this
+              is phrased as a complete answer rather than marketing copy. */}
+          <p className="text-white text-lg max-w-3xl leading-relaxed">
+            The Best Of Moreno Valley is our community-driven guide to the
+            {' '}{categoryCount} most-loved local businesses across food,
+            services, and lifestyle — chosen by {nomineeCount.toLocaleString()}+
+            {' '}community nominations and reviewed by our editors.
+            {' '}{winnerCount > 0 && (
+              <>Right now {winnerCount} winner{winnerCount === 1 ? '' : 's'} have been crowned, with new picks added monthly.</>
+            )}
           </p>
         </div>
       </div>
