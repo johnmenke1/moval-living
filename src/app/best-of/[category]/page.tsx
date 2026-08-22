@@ -81,8 +81,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: pageUrl,
       title: cat.name,
       description,
+      // Colocated opengraph-image.tsx generates a 1200x630 PNG via
+      // next/og. Next 16 wires this up automatically — the URL is served
+      // from the same route segment so Next caches + revalidates the
+      // image per `revalidate` in opengraph-image.tsx (3600s ISR).
+      images: [{ url: `/best-of/${slug}/opengraph-image`, width: 1200, height: 630, alt: cat.name }],
     },
-    twitter: { card: 'summary', title: cat.name, description },
+    twitter: {
+      card: 'summary_large_image',
+      title: cat.name,
+      description,
+      images: [`/best-of/${slug}/opengraph-image`],
+    },
   }
 }
 
