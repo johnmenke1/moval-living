@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { averageRating, formatPhone } from '@/lib/utils'
@@ -245,18 +246,24 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
           <div className="lg:col-span-2 space-y-6">
             {/* Header Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-              {/* Cover Image — falls back to logo (centered, no crop) if no cover set */}
+              {/* Cover Image — falls back to logo (centered, no crop) if no cover set.
+                  next/image with fill + priority for LCP. `sizes` matches the
+                  rendered column width on each breakpoint so mobile users
+                  don't download the full-width desktop image. */}
               <div className="relative h-56 md:h-72 bg-gradient-to-br from-primary/20 to-secondary/20">
                 {business.coverImage || business.logo ? (
-                  <img
+                  <Image
                     src={business.coverImage || business.logo!}
                     alt={business.name}
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 66vw"
                     className={
                       // Square logo in wide hero: contain+center so it doesn't get cropped.
                       // Cover images are wide and should fill the hero normally.
                       !business.coverImage && business.logo
-                        ? 'w-full h-full object-contain p-8'
-                        : 'w-full h-full object-cover'
+                        ? 'object-contain p-8'
+                        : 'object-cover'
                     }
                   />
                 ) : (
@@ -277,9 +284,12 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                     // relative + z-10 keeps the logo above the cover image,
                     // since both render in normal flow and the cover image
                     // would otherwise paint over the negative-margin logo.
-                    <img
+                    // next/image with explicit width/height prevents CLS.
+                    <Image
                       src={business.logo}
                       alt={`${business.name} logo`}
+                      width={80}
+                      height={80}
                       className="relative z-10 w-20 h-20 rounded-xl object-cover border-2 border-white shadow-md -mt-14 sm:-mt-16 mb-2 sm:mb-0 bg-white"
                     />
                   )}
@@ -382,12 +392,14 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                           href={url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-primary transition-colors group"
+                          className="block relative aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-primary transition-colors group"
                         >
-                          <img
+                          <Image
                             src={url}
                             alt={`${business.name} photo ${i + 1}`}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            fill
+                            sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                            className="object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         </a>
                       ))}
