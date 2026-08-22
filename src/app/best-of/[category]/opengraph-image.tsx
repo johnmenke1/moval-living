@@ -1,5 +1,4 @@
 import { ImageResponse } from 'next/og'
-import type { NextRequest } from 'next/server'
 
 // Stage 1 spike — colocated OG image for /best-of/[category]
 //
@@ -97,7 +96,6 @@ function nameFontSize(name: string): number {
 }
 
 export default async function OGImage(
-  _req: NextRequest,
   { params }: { params: Promise<{ category: string }> },
 ) {
   const { category: slug } = await params
