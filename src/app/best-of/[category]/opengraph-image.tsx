@@ -4,12 +4,19 @@ export const alt = 'Best Of MoVal'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-// Minimal repro: no fonts, no DB, just a colored rectangle. If THIS renders
-// we know the route + ImageResponse work; the previous 500s were from fonts.
-// If THIS also 500s, the issue is something deeper (Next 16 OG route config,
-// runtime, build artifact).
+let _frauncesCache: ArrayBuffer | null = null
+async function loadFraunces() {
+  if (_frauncesCache) return _frauncesCache
+  const r = await fetch('https://www.moval.living/fonts/Fraunces-Bold.ttf')
+  if (!r.ok) throw new Error(`Fraunces fetch failed: ${r.status}`)
+  _frauncesCache = await r.arrayBuffer()
+  return _frauncesCache
+}
+
 export default async function OGImage() {
-  console.log('[opengraph-image] handler invoked')
+  console.log('[opengraph-image] loading Fraunces')
+  const fraunces = await loadFraunces()
+  console.log(`[opengraph-image] Fraunces loaded: ${fraunces.byteLength} bytes`)
 
   return new ImageResponse(
     (
@@ -22,12 +29,16 @@ export default async function OGImage() {
           justifyContent: 'center',
           backgroundColor: '#007a7f',
           color: '#f0efeb',
+          fontFamily: 'Fraunces',
           fontSize: 64,
         }}
       >
         Best Of MoVal
       </div>
     ),
-    { ...size },
+    {
+      ...size,
+      fonts: [{ name: 'Fraunces', data: fraunces, weight: 700, style: 'normal' }],
+    },
   )
 }
