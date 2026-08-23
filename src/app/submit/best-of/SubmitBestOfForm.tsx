@@ -11,6 +11,9 @@ import {
   Send,
 } from 'lucide-react'
 
+const REASON_MIN = 80
+const REASON_MAX = 600
+
 type FormState = {
   businessName: string
   categoryName: string
@@ -31,9 +34,6 @@ const INITIAL: FormState = {
   emailOptIn: false,
   website: '',
 }
-
-const REASON_MIN = 80
-const REASON_MAX = 600
 
 export default function SubmitBestOfForm() {
   const [form, setForm] = useState<FormState>(INITIAL)
@@ -72,7 +72,6 @@ export default function SubmitBestOfForm() {
         throw new Error(data?.error || 'Submission failed — please try again')
       }
       setSubmitted({ nominationId: data.nominationId })
-      // Scroll the success card into view
       setTimeout(() => {
         document.getElementById('nomination-success')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }, 100)
@@ -83,12 +82,11 @@ export default function SubmitBestOfForm() {
     }
   }
 
-  // ── Success state ─────────────────────────────────────────────────────────
   if (submitted) {
     return (
       <div
         id="nomination-success"
-        className="bg-white rounded-2xl border border-slate-100 p-10 text-center"
+        className="bg-white rounded-2xl border border-slate-100 p-8 sm:p-10 text-center"
       >
         <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
           <CheckCircle className="w-9 h-9 text-green-600" />
@@ -102,7 +100,7 @@ export default function SubmitBestOfForm() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/best-of"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
           >
             <Trophy className="w-4 h-4" /> See Best Of
           </Link>
@@ -112,7 +110,7 @@ export default function SubmitBestOfForm() {
               setForm(INITIAL)
               setSubmitted(null)
             }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-200 text-text text-sm font-medium hover:bg-slate-50 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-text text-sm font-medium hover:bg-slate-50 transition-colors"
           >
             <RefreshCw className="w-4 h-4" /> Nominate another
           </button>
@@ -121,11 +119,10 @@ export default function SubmitBestOfForm() {
     )
   }
 
-  // ── Form ──────────────────────────────────────────────────────────────────
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white rounded-2xl border border-slate-100 p-6 sm:p-8 space-y-6"
+      className="bg-white rounded-2xl border border-slate-100 p-6 sm:p-8 space-y-8"
     >
       {error && (
         <div className="flex items-start gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
@@ -134,14 +131,14 @@ export default function SubmitBestOfForm() {
         </div>
       )}
 
-      {/* ── Section 1 — The business ───────────────────────────────────── */}
+      {/* Section 1 — The business */}
       <div>
         <h2 className="text-lg font-bold text-text mb-1">Tell us about the business</h2>
         <p className="text-sm text-text-secondary mb-5">
           Don&apos;t worry if there&apos;s no category yet — suggest one in the next field.
         </p>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           <Field label="Business name" required>
             <input
               type="text"
@@ -189,51 +186,51 @@ export default function SubmitBestOfForm() {
         </div>
       </div>
 
-      {/* ── Section 2 — About you ──────────────────────────────────────── */}
-      <div className="pt-2 border-t border-slate-100">
-        <h2 className="text-lg font-bold text-text mb-1 mt-6">About you</h2>
+      {/* Section 2 — About you */}
+      <div className="pt-6 border-t border-slate-100">
+        <h2 className="text-lg font-bold text-text mb-1">About you</h2>
         <p className="text-sm text-text-secondary mb-5">
           So we can let you know if your nomination makes the list.
         </p>
 
-        <div className="space-y-4">
-          <Field label="Your name" required>
-            <input
-              type="text"
-              required
-              value={form.nominatorName}
-              onChange={e => update('nominatorName', e.target.value)}
-              placeholder="First and last"
-              maxLength={120}
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-            />
-          </Field>
+        <div className="space-y-5">
+          <div className="grid sm:grid-cols-2 gap-5">
+            <Field label="Your name" required>
+              <input
+                type="text"
+                required
+                value={form.nominatorName}
+                onChange={e => update('nominatorName', e.target.value)}
+                placeholder="First and last"
+                maxLength={120}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </Field>
 
-          <Field label="Your email" required>
-            <input
-              type="email"
-              required
-              value={form.nominatorEmail}
-              onChange={e => update('nominatorEmail', e.target.value)}
-              placeholder="you@example.com"
-              maxLength={320}
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-            />
-          </Field>
-
-          <div className="space-y-3 pt-1">
-            <Checkbox
-              checked={form.emailOptIn}
-              onChange={v => update('emailOptIn', v)}
-              label={
-                <>
-                  Send me moval.living news &amp; updates <span className="text-text-secondary font-normal">(newsletter, new Best-Of picks, local spotlights)</span>
-                </>
-              }
-            />
+            <Field label="Your email" required>
+              <input
+                type="email"
+                required
+                value={form.nominatorEmail}
+                onChange={e => update('nominatorEmail', e.target.value)}
+                placeholder="you@example.com"
+                maxLength={320}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </Field>
           </div>
 
-          {/* Honeypot — hidden from real users via CSS. Bots fill every field. */}
+          <Checkbox
+            checked={form.emailOptIn}
+            onChange={v => update('emailOptIn', v)}
+            label={
+              <>
+                Send me moval.living news &amp; updates <span className="text-text-secondary font-normal">(newsletter, new Best-Of picks, local spotlights)</span>
+              </>
+            }
+          />
+
+          {/* Honeypot — hidden from real users via CSS. */}
           <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }}>
             <label htmlFor="website-hp">Website</label>
             <input
@@ -248,9 +245,9 @@ export default function SubmitBestOfForm() {
         </div>
       </div>
 
-      {/* ── Submit ─────────────────────────────────────────────────────── */}
-      <div className="pt-2 border-t border-slate-100">
-        <p className="text-xs text-text-secondary mt-4 mb-4">
+      {/* Submit */}
+      <div className="pt-6 border-t border-slate-100">
+        <p className="text-xs text-text-secondary mb-4">
           By submitting, you agree we may contact you about this nomination. We don&apos;t share your
           email with anyone.
         </p>
@@ -290,7 +287,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-text-secondary mb-1.5">
+      <label className="block text-sm font-medium text-text mb-1.5">
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
