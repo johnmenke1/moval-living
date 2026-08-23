@@ -123,8 +123,11 @@ export function VoteButton({
       setVoteId(data.voteId)
       // Cookie hint for client-side state across navigations
       document.cookie = `${VOTED_STATE_COOKIE_PREFIX}${nomineeId}=${data.voteId}; Max-Age=2592000; Path=/; SameSite=Lax`
-      // Refresh server data so the vote count + voters feed update
-      startTransition(() => router.refresh())
+      // Send the voter to the share-card landing page so they can
+      // immediately share their pick. The page is fully shareable
+      // (no auth required) so this works for the voter AND anyone
+      // they forward the URL to.
+      router.push(`/best-of/voted/${data.voteId}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not record your vote')
     } finally {
