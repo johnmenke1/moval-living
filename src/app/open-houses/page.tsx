@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Calendar, MapPin, Loader2 } from 'lucide-react'
+import { Calendar, MapPin, Loader2, Clock, Home } from 'lucide-react'
 import { OpenHouseMapWrapper } from '@/components/map/OpenHouseMapWrapper'
 import { OpenHouseCard } from '@/components/real estate/OpenHouseCard'
 import type { OpenHouseListing } from '@/app/api/trestle/open-houses/route'
@@ -49,17 +49,103 @@ export default function OpenHousesPage() {
     return () => window.removeEventListener('oh:highlight', handler)
   }, [])
 
+  // Compute next open house window for the hero subtitle.
+  const nextOpenHouse = (() => {
+    if (listings.length === 0) return null
+    const now = new Date()
+    const all = listings.flatMap((l) =>
+      l.openHouses.map((oh) => ({
+        date: new Date(oh.openHouseDate + 'T00:00:00'),
+      })),
+    )
+    const future = all.filter((d) => d.date >= now)
+    if (future.length === 0) return null
+    future.sort((a, b) => a.date.getTime() - b.date.getTime())
+    return future[0]
+  })()
+
+  const formatHeroDate = (d: Date) => {
+    const today = new Date()
+    const isToday =
+      d.getFullYear() === today.getFullYear() &&
+      d.getMonth() === today.getMonth() &&
+      d.getDate() === today.getDate()
+    if (isToday) return 'today'
+    const tomorrow = new Date(today)
+    tomorrow.setDate(today.getDate() + 1)
+    const isTomorrow =
+      d.getFullYear() === tomorrow.getFullYear() &&
+      d.getMonth() === tomorrow.getMonth() &&
+      d.getDate() === tomorrow.getDate()
+    if (isTomorrow) return 'tomorrow'
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  }
+
   return (
     <div className="min-h-screen bg-[#eef3f2]">
-      <section className="relative overflow-hidden bg-secondary text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_86%_18%,rgba(201,120,109,0.34),transparent_32%),linear-gradient(120deg,rgba(0,122,127,0.35),transparent_58%)]" />
-        <div className="relative container-max py-12 sm:py-14">
-          <div className="flex items-start gap-4">
-            <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/15"><Calendar className="h-6 w-6" /></div>
-            <div>
-              <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-accent">Tour the neighborhood</p>
-              <h1 className="text-4xl font-bold leading-none sm:text-5xl">Open houses in MoVal.</h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-white/75 sm:text-lg">See what is open this week, explore the map, and find a home that feels right in person.</p>
+      {/* ─── HERO ─── */}
+      <section className="relative overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/open-houses-hero-collage.png"
+          alt="Moreno Valley open houses — home exterior, welcoming front door, modern kitchen, and agent showing buyers a home"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+          loading="eager"
+          decoding="async"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-secondary/95 via-secondary/65 to-primary/25" />
+        <div className="absolute inset-0 bg-gradient-to-br from-secondary/50 via-transparent to-accent/15" />
+
+        <div className="relative container-max py-16 sm:py-20 md:py-24">
+          <div className="max-w-3xl mx-auto text-center">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-white/15 backdrop-blur-sm border border-white/20 text-white mb-5">
+              <Home className="w-3.5 h-3.5" />
+              Open Houses
+            </span>
+
+            <h1
+              className="text-4xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight leading-[1.05] mb-5"
+              style={{ fontFamily: 'var(--font-fraunces), Inter, sans-serif' }}
+            >
+              Tour a home in MoVal{' '}
+              <span className="italic font-semibold text-[#8fd4d7]">this weekend.</span>
+            </h1>
+
+            <p className="text-lg sm:text-xl text-white/85 leading-relaxed mb-8 max-w-2xl mx-auto">
+              {loading ? (
+                'Loading the latest open house schedule…'
+              ) : error ? (
+                'See what is open this week, explore the map, and find a home that feels right in person.'
+              ) : listings.length === 0 ? (
+                'No open houses are scheduled right now. Check back soon, or browse all active listings.'
+              ) : nextOpenHouse ? (
+                <>
+                  Next open house is {formatHeroDate(nextOpenHouse.date)}.{' '}
+                  {listings.length} listing{listings.length !== 1 ? 's' : ''} with upcoming tours —
+                  use the map to plan your route.
+                </>
+              ) : (
+                <>
+                  {listings.length} listing{listings.length !== 1 ? 's' : ''} with upcoming tours —
+                  see what is open this week and find a home that feels right in person.
+                </>
+              )}
+            </p>
+
+            {/* Stats chips */}
+            <div className="flex flex-wrap justify-center gap-3 text-sm font-medium">
+              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white">
+                <Calendar className="w-3.5 h-3.5" />
+                {loading ? '—' : listings.length} {listings.length === 1 ? 'listing' : 'listings'}
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white">
+                <Clock className="w-3.5 h-3.5" />
+                Updated weekly
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white">
+                <MapPin className="w-3.5 h-3.5" />
+                Moreno Valley
+              </span>
             </div>
           </div>
         </div>
@@ -132,7 +218,7 @@ export default function OpenHousesPage() {
         {/* Error */}
         {/* Grid */}
         {!loading && !error && listings.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:cols-2 lg:grid-cols-3 gap-6">
             {listings.map((listing) => (
               <div
                 key={listing.listingKey}
