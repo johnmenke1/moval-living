@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect, useTransition } from 'react'
+import { useState, useMemo, useCallback, useEffect, useTransition, useRef } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { ParksHeadCard } from '@/components/parks/ParksHeadCard'
 import { ParksCompactBar } from '@/components/parks/ParksCompactBar'
@@ -39,6 +39,7 @@ export function ParksClient({ parks }: ParksClientProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [, startTransition] = useTransition()
+  const filtersRef = useRef<HTMLDivElement | null>(null)
 
   // Read URL params on mount
   const query = searchParams.get('q') ?? ''
@@ -193,12 +194,19 @@ export function ParksClient({ parks }: ParksClientProps) {
 
   const hasActiveFilters = Boolean(query || typeFromUrl || amenitiesFromUrl.length > 0)
 
+  const scrollToFilters = () => {
+    filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
       <ParksHeadCard
         parkCount={counts.park}
         golfCount={counts.golf}
         recCount={counts.rec}
+        query={query}
+        onQueryChange={setQuery}
+        onSearchFocus={scrollToFilters}
       />
 
       <ParksCompactBar
@@ -212,7 +220,7 @@ export function ParksClient({ parks }: ParksClientProps) {
       />
 
       {/* Non-sticky head card content (scrolls with listings): type tabs + amenity chips */}
-      <div className="mt-6 mb-4 rounded-2xl bg-white border border-slate-200 shadow-sm p-5">
+      <div ref={filtersRef} className="mt-6 mb-4 rounded-2xl bg-white border border-slate-200 shadow-sm p-5">
         <ParkFiltersPanel
           selectedAmenities={amenitiesFromUrl}
           selectedType={typeFromUrl ?? undefined}
