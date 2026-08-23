@@ -1,7 +1,9 @@
 import { prisma } from '@/lib/prisma'
-import { Trophy, Plus } from 'lucide-react'
+import { Plus, Trophy } from 'lucide-react'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { BestOfHero } from '@/components/best-of/BestOfHero'
+import { BestOfMethodology } from '@/components/best-of/BestOfMethodology'
 
 // Always re-render against the live DB so admin changes to categories
 // (add/move/promote-to-section) appear immediately. Without this, Next.js
@@ -110,13 +112,8 @@ export default async function BestOfPage() {
   // Separate sections from regular categories
   const sections = categories.filter(c => c.isSection && !c.parentCategoryId)
   const regularTopLevel = categories.filter(c => !c.isSection && !c.parentCategoryId)
-  const hasSubCategoryGroups = regularTopLevel.some(c => c.subCategories.length > 0)
 
-  // Answer capsule stats (server-rendered, in the first ~150 words of HTML —
-  // AI engines lift this verbatim when answering "what is Best Of in
-  // Moreno Valley?" style queries). Source numbers are computed from the
-  // same `categories` + `overallWinners` arrays the page renders below,
-  // so the capsule can't drift from what's visible.
+  // Stats passed to the hero and methodology sections
   const winnerCount = overallWinners.length
   const categoryCount = categories.length
   const nomineeCount = categories.reduce(
@@ -126,40 +123,9 @@ export default async function BestOfPage() {
 
   return (
     <div className="bg-slate-50 min-h-screen">
+      <BestOfHero categoryCount={categoryCount} nomineeCount={nomineeCount} winnerCount={winnerCount} />
 
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-primary to-secondary">
-        <div className="container-max py-14">
-          <div className="flex items-center gap-3 mb-4">
-            <Trophy className="w-8 h-8 text-white/80" />
-            <h1 className="text-4xl font-bold text-white">Best of Moreno Valley</h1>
-          </div>
-
-          {/* Answer capsule — specific, factual, server-rendered. AI engines
-              (ChatGPT, Perplexity, Google AI Overviews) lift the first
-              ~150 words of HTML when answering direct questions, so this
-              is phrased as a complete answer rather than marketing copy. */}
-          <p className="text-white text-lg max-w-3xl leading-relaxed">
-            {categoryCount === 0 ? (
-              <>The Best Of Moreno Valley is our community-driven guide to the
-                most-loved local businesses across food, services, and
-                lifestyle — our editors are reviewing the first round of
-                community nominations now.</>
-            ) : (
-              <>
-                The Best Of Moreno Valley is our community-driven guide to the
-                {' '}{categoryCount} most-loved local business categories across food,
-                services, and lifestyle — drawn from
-                {' '}{nomineeCount.toLocaleString()} community nomination{nomineeCount === 1 ? '' : 's'}{' '}
-                and reviewed by our editors.
-                {' '}{winnerCount > 0 && (
-                  <>Right now {winnerCount} winner{winnerCount === 1 ? '' : 's'} have been crowned, with new picks added monthly.</>
-                )}
-              </>
-            )}
-          </p>
-        </div>
-      </div>
+      <BestOfMethodology />
 
       <div className="container-max py-10 space-y-16">
 
@@ -189,7 +155,7 @@ export default async function BestOfPage() {
           </div>
         ) : (
           <>
-            {/* Section groups (e.g. Food & Hospitality, Professional Services) */}
+            {/* Section groups (e.g. Food & Hospitality) */}
             {sections.map(section => (
               <CategorySection key={section.id} section={section} categories={categories} />
             ))}
@@ -303,8 +269,6 @@ function CategorySection({
 // ── Parent category with sub-category pills ───────────────────────────────────
 
 function ParentCategoryBlock({ parent }: { parent: CategoryRow }) {
-  const hasWinner = parent.nominees.length > 0
-
   return (
     <section>
       {/* Category header */}
@@ -341,7 +305,6 @@ function ParentCategoryBlock({ parent }: { parent: CategoryRow }) {
 
 function CategoryBlock({ cat }: { cat: CategoryRow }) {
   const totalNominees = cat.nominees.length
-  const winner = cat.nominees[0]?.business
 
   return (
     <Link
