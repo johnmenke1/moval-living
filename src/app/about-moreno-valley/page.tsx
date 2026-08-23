@@ -42,22 +42,28 @@ export default async function AboutMorenoValleyPage() {
 
   return (
     <div className="bg-background min-h-screen">
-      <section className="relative overflow-hidden bg-secondary text-white">
+      <section className="relative overflow-hidden">
+        {/* Reuse the Life page collage hero image for a consistent editorial feel. */}
         <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: 'url("https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1600&q=80")',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: 'url(/life-hero-collage.png)' }}
+          aria-hidden="true"
         />
-        <div className="container-max relative section py-20">
+        <div className="absolute inset-0 bg-gradient-to-t from-secondary/95 via-secondary/70 to-primary/30" aria-hidden="true" />
+
+        <div className="container-max relative py-20 sm:py-28 md:py-32">
           <div className="max-w-3xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium backdrop-blur-sm">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium backdrop-blur-sm border border-white/20">
               <MapPin className="h-4 w-4" /> Riverside County, Southern California
             </div>
-            <h1 className="mb-4 text-4xl font-bold leading-tight md:text-5xl">Moreno Valley, California</h1>
-            <p className="text-xl leading-relaxed text-white/80">
+            <h1
+              className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight leading-[1.05]"
+              style={{ fontFamily: 'var(--font-fraunces), Inter, sans-serif' }}
+            >
+              Moreno Valley,{' '}
+              <span className="italic font-semibold text-[#8fd4d7]">California</span>
+            </h1>
+            <p className="text-xl leading-relaxed text-white/85">
               A thriving, diverse city of 215,000+ residents in the heart of Southern California.
               Known for its strong community roots, affordable housing, and proximity to
               everything that makes Southern California great — from beaches to mountains to world-class employment.
