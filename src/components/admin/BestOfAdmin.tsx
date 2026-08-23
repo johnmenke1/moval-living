@@ -6,6 +6,7 @@ import {
   RefreshCw, ExternalLink, AlertCircle, CheckCircle, Search,
   PlusCircle, ChevronDown, ChevronUp, ImagePlus, Loader2, Link as LinkIcon,
 } from 'lucide-react'
+import { BestOfVoterActivity } from './BestOfVoterActivity'
 
 // Locale-stable number formatter for hydration safety. Without an explicit
 // locale, toLocaleString() can produce different output on the server (en-US)
@@ -547,18 +548,22 @@ export default function BestOfAdmin({ initialCategories }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Trophy className="w-5 h-5 text-primary" />
+    <div className="space-y-4">
+      {/* Voter activity dashboard — registered-voter voting, see
+          .hermes/plans/2026-08-22_best-of-registered-voters.md */}
+      <BestOfVoterActivity />
+      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-bold text-text text-lg">Best Of</h2>
+              <p className="text-xs text-text-secondary">{categories.length} categories</p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-bold text-text text-lg">Best Of</h2>
-            <p className="text-xs text-text-secondary">{categories.length} categories</p>
-          </div>
-        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setEditingCategory(undefined); setShowCategoryModal(true) }}
@@ -941,6 +946,7 @@ export default function BestOfAdmin({ initialCategories }: Props) {
           onClose={() => { setShowCategoryModal(false); setEditingCategory(undefined) }}
         />
       )}
+      </div>
     </div>
   )
 }
