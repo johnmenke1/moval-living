@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { Status } from '@prisma/client'
-import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus, FileText, Users, Sparkles } from 'lucide-react'
+import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus, FileText, Users, Sparkles, User } from 'lucide-react'
 import DashboardUpgradeWidget from './DashboardUpgradeWidget'
 import AdminTabs from './AdminTabs'
 
@@ -211,6 +211,12 @@ export default async function DashboardPage() {
                   <Settings className="w-4 h-4" /> Edit My Listing
                 </Link>
               )}
+              <Link
+                href="/dashboard/profile"
+                className="btn-outline inline-flex items-center justify-center gap-2"
+              >
+                <User className="w-4 h-4" /> Profile
+              </Link>
               <Link href="/dashboard/add" className="btn-primary inline-flex items-center justify-center gap-2">
                 <Plus className="w-4 h-4" /> Add Business
               </Link>
@@ -263,8 +269,23 @@ export default async function DashboardPage() {
     return (
       <div className="bg-slate-50 min-h-screen">
         <div className="container-max py-8">
-          <h1 className="text-3xl font-bold text-text mb-1">Business Dashboard</h1>
-          <p className="text-text-secondary mb-8">Manage your moval.living listing</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-text mb-1">Business Dashboard</h1>
+              <p className="text-text-secondary">Manage your moval.living listing</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Link
+                href="/dashboard/profile"
+                className="btn-outline inline-flex items-center justify-center gap-2"
+              >
+                <User className="w-4 h-4" /> Profile
+              </Link>
+              <Link href="/claim" className="btn-primary">
+                Claim Your Business
+              </Link>
+            </div>
+          </div>
           <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
             <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
               <Building2 className="w-8 h-8 text-slate-400" />
@@ -342,6 +363,12 @@ export default async function DashboardPage() {
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
                 >
                   <Settings className="w-4 h-4" /> Edit Listing
+                </Link>
+                <Link
+                  href="/dashboard/profile"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  <User className="w-4 h-4" /> Profile
                 </Link>
               </nav>
               <div className="p-4 border-t border-slate-100">
