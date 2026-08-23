@@ -1,41 +1,17 @@
 'use client'
 
-/**
- * VoteButton — registered-voter voting action.
- *
- * Renders one of three states:
- *   - Anonymous:  "Sign in to vote" → redirects to /login?returnTo=...
- *   - Signed in, hasn't voted: "Vote" → POSTs and flips to "Voted ✓"
- *   - Signed in, already voted: "Voted ✓ · Retract" → DELETE on retract
- *
- * Optimistic UI: we flip to the new state before the network call
- * resolves, and roll back on error. The success toast + retract UI
- * gives Google Reviews-style feedback.
- *
- * The button knows whether the user has already voted via the
- * `initialVoted` prop, which the server component computes from the
- * session before rendering. This avoids a flash of "Vote" → "Voted"
- * on first paint.
- */
-
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Loader2, Check, Vote as VoteIcon, AlertCircle } from 'lucide-react'
-
-// Helpers live in a separate file so unit tests can import them without
-// pulling React into the test runner. We both import (for internal use)
-// and re-export (so consumers can import everything from this file).
 import {
   VOTED_STATE_COOKIE_PREFIX,
   buildLoginRedirectUrl,
-  buildReturnTo,
 } from './vote-button-helpers'
 
 export {
   VOTED_STATE_COOKIE_PREFIX,
   buildLoginRedirectUrl,
-  buildReturnTo,
 }
 
 interface VoteButtonProps {
@@ -45,6 +21,7 @@ interface VoteButtonProps {
   initialVoted: boolean
   initialVoteId?: string
   signedIn: boolean
+  variant?: 'default' | 'small'
 }
 
 export function VoteButton({
@@ -54,6 +31,7 @@ export function VoteButton({
   initialVoted,
   initialVoteId,
   signedIn,
+  variant = 'default',
 }: VoteButtonProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -65,7 +43,6 @@ export function VoteButton({
   async function handleClick() {
     setError(null)
 
-    // Anonymous → send to /login with a returnTo back to this page
     if (!signedIn) {
       const target = buildLoginRedirectUrl(
         typeof window !== 'undefined'
@@ -76,7 +53,6 @@ export function VoteButton({
       return
     }
 
-    // Already voted → show retract UI
     if (voted && voteId) {
       const ok = window.confirm(
         `Retract your vote for ${nomineeName}? You can vote again later.`,
@@ -84,9 +60,7 @@ export function VoteButton({
       if (!ok) return
       setLoading(true)
       try {
-        const res = await fetch(`/api/best-of/votes/${voteId}`, {
-          method: 'DELETE',
-        })
+        const res = await fetch(`/api/best-of/votes/${voteId}`, { method: 'DELETE' })
         if (!res.ok && res.status !== 204) {
           const body = await res.json().catch(() => ({}))
           throw new Error(body.error ?? 'Could not retract vote')
@@ -103,9 +77,7 @@ export function VoteButton({
       return
     }
 
-    // Cast vote
     setLoading(true)
-    // Optimistic update — flip UI before the request resolves
     setVoted(true)
     try {
       const res = await fetch('/api/best-of/votes', {
@@ -114,19 +86,13 @@ export function VoteButton({
         body: JSON.stringify({ nomineeId }),
       })
       if (!res.ok) {
-        // Roll back optimistic update
         setVoted(false)
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error ?? 'Could not record your vote')
       }
       const data = await res.json()
       setVoteId(data.voteId)
-      // Cookie hint for client-side state across navigations
       document.cookie = `${VOTED_STATE_COOKIE_PREFIX}${nomineeId}=${data.voteId}; Max-Age=2592000; Path=/; SameSite=Lax`
-      // Send the voter to the share-card landing page so they can
-      // immediately share their pick. The page is fully shareable
-      // (no auth required) so this works for the voter AND anyone
-      // they forward the URL to.
       router.push(`/best-of/voted/${data.voteId}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not record your vote')
@@ -138,8 +104,44 @@ export function VoteButton({
   const buttonLabel = !signedIn
     ? 'Sign in to vote'
     : voted
-      ? `Voted ✓ for ${nomineeName}`
-      : `Vote for ${nomineeName}`
+      ? 'Voted'
+      : 'Vote'
+
+  if (variant === 'small') {
+    return (
+      <div className="space-y-1">
+        <button
+          type="button"
+          onClick={handleClick}
+          disabled={loading || isPending}
+          aria-pressed={voted}
+          aria-label={buttonLabel}
+          className={[
+            'inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold text-xs transition-all',
+            voted
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+              : 'bg-primary text-white hover:bg-primary/90',
+            (loading || isPending) && 'opacity-60 cursor-wait',
+          ].filter(Boolean).join(' ')}
+        >
+          {loading || isPending ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : voted ? (
+            <Check className="w-3.5 h-3.5" />
+          ) : (
+            <VoteIcon className="w-3.5 h-3.5" />
+          )}
+          <span>{buttonLabel}</span>
+        </button>
+        {error && (
+          <div className="flex items-start gap-1 text-xs text-red-700">
+            <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-2">
@@ -155,9 +157,7 @@ export function VoteButton({
             ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
             : 'bg-gradient-to-br from-[#007a7f] to-[#00405c] text-white hover:shadow-md hover:from-[#008a8f] hover:to-[#00556e]',
           (loading || isPending) && 'opacity-60 cursor-wait',
-        ]
-          .filter(Boolean)
-          .join(' ')}
+        ].filter(Boolean).join(' ')}
       >
         {loading || isPending ? (
           <Loader2 className="w-4 h-4 animate-spin" />

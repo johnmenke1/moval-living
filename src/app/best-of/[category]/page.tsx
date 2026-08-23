@@ -1,11 +1,10 @@
-import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { ChevronLeft, Plus } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
-import { ChevronLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 import { JsonLd } from '@/components/seo/JsonLd'
-import { BusinessCard } from '@/components/business/BusinessCard'
+import { BestOfNomineeCard } from '@/components/best-of/BestOfNomineeCard'
 import { VoteButton } from '@/components/best-of/VoteButton'
 import { VotersFeed } from '@/components/best-of/VotersFeed'
 
@@ -21,8 +20,6 @@ async function getCategory(slug: string) {
         orderBy: [{ winner: 'desc' }, { displayOrder: 'asc' }],
         include: {
           business: {
-            // Shape mirrors BusinessCard's props so we can drop the
-            // business straight into the home-style card component.
             select: {
               id: true, name: true, slug: true, tagline: true, description: true,
               address: true, city: true, state: true, zip: true,
@@ -31,6 +28,7 @@ async function getCategory(slug: string) {
               isBestOfWinner: true, isExpertPartner: true, foundingPartnerSince: true,
               website: true, phone: true, email: true,
               googleRating: true, googleReviewCount: true,
+              seHablaEspanol: true, chamberMember: true, hispanicChamberMember: true,
               category: { select: { name: true, slug: true } },
               reviews: { select: { rating: true } },
               _count: { select: { reviews: true } },
@@ -54,6 +52,7 @@ async function getCategory(slug: string) {
                   isBestOfWinner: true, isExpertPartner: true, foundingPartnerSince: true,
                   website: true, phone: true, email: true,
                   googleRating: true, googleReviewCount: true,
+                  seHablaEspanol: true, chamberMember: true, hispanicChamberMember: true,
                   category: { select: { name: true, slug: true } },
                   reviews: { select: { rating: true } },
                   _count: { select: { reviews: true } },
@@ -68,7 +67,6 @@ async function getCategory(slug: string) {
   })
 }
 
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { category: slug } = await params
   const cat = await getCategory(slug)
@@ -76,28 +74,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const pageUrl = `https://www.moval.living/best-of/${slug}`
   const description = cat.description || `Our editor's pick for ${cat.name} in Moreno Valley.`
   return {
+    title: cat.name,
+    description,
+    alternates: { canonical: pageUrl },
+    openGraph: {
+      type: 'website',
+      url: pageUrl,
       title: cat.name,
       description,
-      alternates: { canonical: pageUrl },
-      openGraph: {
-        type: 'website',
-        url: pageUrl,
-        title: cat.name,
-        description,
-        // Static 1200x630 PNG generated at build time via
-        // scripts/render-og-cards.mjs → public/og/[slug].png. Regenerated
-        // whenever winners or category info change. Served from Vercel
-        // edge — instant, no runtime render.
-        images: [{ url: `https://www.moval.living/og/${slug}.png`, width: 1200, height: 630, alt: cat.name }],
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title: cat.name,
-        description,
-        images: [`https://www.moval.living/og/${slug}.png`],
-      },
-    }
+      images: [{ url: `https://www.moval.living/og/${slug}.png`, width: 1200, height: 630, alt: cat.name }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: cat.name,
+      description,
+      images: [`https://www.moval.living/og/${slug}.png`],
+    },
   }
+}
 
 function buildBestOfCategorySchema(cat: Awaited<ReturnType<typeof getCategory>>) {
   if (!cat) return null
@@ -109,7 +103,7 @@ function buildBestOfCategorySchema(cat: Awaited<ReturnType<typeof getCategory>>)
     url: `https://www.moval.living/best-of/${cat.slug}`,
     publisher: {
       '@type': 'Organization',
-      name: 'MoVal Living',  // display name (canonical: Title Case)
+      name: 'MoVal Living',
       url: 'https://www.moval.living',
     },
   }
@@ -134,43 +128,38 @@ function buildNomineesItemList(cat: Awaited<ReturnType<typeof getCategory>>) {
 export default async function BestOfCategoryPage({ params }: Props) {
   const { category: slug } = await params
   const cat = await getCategory(slug)
-  if (!cat) notFound()
+  if (!cat) return null
 
   const nominees = cat.nominees
   const emoji = cat.icon ? getCategoryEmoji(cat.icon) : '⭐'
   const categorySchema = buildBestOfCategorySchema(cat)
   const itemListSchema = buildNomineesItemList(cat)
 
-  // Voting: read the session once, then fetch (a) the current user's
-  // existing votes so each card can render "Voted ✓" vs "Vote" without
-  // a client-side flash, (b) the vote totals per nominee so the
-  // voters feed can render counts inline without a per-card roundtrip,
-  // and (c) the recent-voters slice for each nominee (max 12 each).
   const session = await auth()
   const voterId = session?.user?.id ?? null
   const allNomineeIds = nominees.map((n) => n.id)
+  const allSubNomineeIds = cat.subCategories.flatMap(sub => sub.nominees.map(n => n.id))
+  const everyNomineeId = [...allNomineeIds, ...allSubNomineeIds]
+
   const [userVotes, votesByNominee, recentVotersRaw] = await Promise.all([
-    voterId
+    voterId && everyNomineeId.length > 0
       ? prisma.bestOfVote.findMany({
-          where: { voterId, nomineeId: { in: allNomineeIds } },
+          where: { voterId, nomineeId: { in: everyNomineeId } },
           select: { id: true, nomineeId: true },
         })
       : Promise.resolve([]),
-    allNomineeIds.length > 0
+    everyNomineeId.length > 0
       ? prisma.bestOfVote.groupBy({
           by: ['nomineeId'],
-          where: { nomineeId: { in: allNomineeIds } },
+          where: { nomineeId: { in: everyNomineeId } },
           _count: { _all: true },
         })
       : Promise.resolve([]),
-    allNomineeIds.length > 0
+    everyNomineeId.length > 0
       ? prisma.bestOfVote.findMany({
-          where: { nomineeId: { in: allNomineeIds } },
+          where: { nomineeId: { in: everyNomineeId } },
           orderBy: [{ nomineeId: 'asc' }, { createdAt: 'desc' }],
-          // 12 most recent per nominee — groupBy + take isn't supported,
-          // so we over-fetch and bucket client-side. With 16 categories ×
-          // 12 voters = 192 rows max, the over-fetch is bounded.
-          take: allNomineeIds.length * 12,
+          take: everyNomineeId.length * 12,
           select: {
             nomineeId: true,
             voterNameSnapshot: true,
@@ -180,15 +169,10 @@ export default async function BestOfCategoryPage({ params }: Props) {
         })
       : Promise.resolve([]),
   ])
+
   const userVoteByNominee = new Map(userVotes.map((v) => [v.nomineeId, v.id]))
-  const totalVotesByNominee = new Map(
-    votesByNominee.map((v) => [v.nomineeId, v._count._all]),
-  )
-  // Bucket the recent voters per nominee (truncate to 12).
-  const recentVotersByNominee = new Map<
-    string,
-    { name: string; image: string | null; votedAt: string }[]
-  >()
+  const totalVotesByNominee = new Map(votesByNominee.map((v) => [v.nomineeId, v._count._all]))
+  const recentVotersByNominee = new Map<string, { name: string; image: string | null; votedAt: string }[]>()
   for (const v of recentVotersRaw) {
     const list = recentVotersByNominee.get(v.nomineeId) ?? []
     if (list.length >= 12) continue
@@ -200,152 +184,387 @@ export default async function BestOfCategoryPage({ params }: Props) {
     recentVotersByNominee.set(v.nomineeId, list)
   }
 
+  const signedIn = Boolean(session?.user?.id)
+
   return (
     <>
       {categorySchema && <JsonLd schema={categorySchema} />}
       {itemListSchema && <JsonLd schema={itemListSchema} />}
       <div className="bg-slate-50 min-h-screen">
-      {/* Back nav */}
-      <div className="bg-white border-b border-slate-100">
-        <div className="container-max py-4">
-          <Link href="/best-of" className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-primary transition-colors">
-            <ChevronLeft className="w-4 h-4" /> All Best Of Categories
-          </Link>
+        {/* Back nav */}
+        <div className="bg-white border-b border-slate-100">
+          <div className="container-max py-4">
+            <Link href="/best-of" className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-primary transition-colors">
+              <ChevronLeft className="w-4 h-4" /> All Best Of Categories
+            </Link>
+          </div>
         </div>
-      </div>
 
-      {/* Category header */}
-      <div className="bg-gradient-to-br from-primary to-secondary">
-        <div className="container-max py-12">
-          <p className="text-5xl mb-3">{emoji}</p>
-          <h1 className="text-4xl font-bold text-white mb-2">{cat.name}</h1>
+        {/* Category header */}
+        <div className="bg-gradient-to-br from-primary to-secondary">
+          <div className="container-max py-12 md:py-16">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-3xl">{emoji}</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
+                Best Of Moreno Valley
+              </span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{cat.name}</h1>
+            <AnswerCapsule cat={cat} nominees={nominees} />
+            {cat.description && (
+              <p className="text-white/80 text-base md:text-lg max-w-2xl mt-4">{cat.description}</p>
+            )}
+          </div>
+        </div>
 
-          {/* Answer capsule — server-rendered, above the interactive cards.
-              AI engines (ChatGPT, Perplexity, Claude) lift the first ~150
-              words of HTML when answering queries like "what is the best
-              {cat.name} in Moreno Valley?". This phrased-as-a-complete-answer
-              paragraph is what gets cited; the cards below it are the
-              supporting evidence.
-
-              Three shapes:
-              - Parent category with sub-categories: aggregates the winner
-                of each sub-category into one sentence.
-              - Leaf category with nominees: names the winner + top runners-up.
-              - Empty (no nominees, no sub-categories): "our editors are
-                reviewing community nominations now." */}
-          {(() => {
-            // Parent-category path: aggregate winners across sub-categories.
-            if (cat.subCategories.length > 0) {
-              const subWinners = cat.subCategories
-                .map(sub => {
-                  const w = sub.nominees.find(n => n.winner) ?? sub.nominees[0]
-                  return w ? { sub: sub.name, name: w.business.name } : null
-                })
-                .filter((x): x is { sub: string; name: string } => x !== null)
-                .slice(0, 4)
-              if (subWinners.length > 0) {
-                // Strip leading "Best " to avoid "the best best X" doubling.
-                const category = cat.name.replace(/^best\s+/i, '').toLowerCase()
-                const list = subWinners
-                  .map(sw => `${sw.name} (${sw.sub})`)
-                  .join(', ')
-                  .replace(/, ([^,]*)$/, ', and $1')
-                return (
-                  <p className="text-white text-lg max-w-3xl leading-relaxed mt-3">
-                    The best {category} in Moreno Valley span multiple sub-categories — current community picks: {list}. Pick a sub-category below to see the full ranking.
-                  </p>
-                )
-              }
-            }
-
-            // Leaf-category path: winner + top runners-up.
-            if (nominees.length > 0) {
-              const winner = nominees.find(n => n.winner)
-              const runnersUp = nominees.filter(n => n.winner).length === 1
-                ? nominees.filter(n => !n.winner).slice(0, 2)
-                : nominees.slice(0, 2) // multi-winner category: no runner-up framing
-              const winnerName = winner?.business.name ?? runnersUp[0]?.business.name
-              const runnerNames = (winner ? runnersUp : runnersUp.slice(1)).map(n => n.business.name)
-              // Many category names already start with "Best" ("Best Coffeehouse").
-              // Strip the leading "Best " so the sentence doesn't read
-              // "The best best coffeehouse in Moreno Valley...".
-              const category = cat.name.replace(/^best\s+/i, '').toLowerCase()
-              let sentence: string
-              if (winner) {
-                sentence = `🏆 ${winnerName} is the community pick for the best ${category} in Moreno Valley`
-              } else {
-                sentence = `${winnerName} is our editors' top pick for the best ${category} in Moreno Valley`
-              }
-              if (runnerNames.length === 1) sentence += `, with ${runnerNames[0]} as a strong runner-up.`
-              else if (runnerNames.length === 2) sentence += `, followed by ${runnerNames[0]} and ${runnerNames[1]}.`
-              else sentence += '.'
-              sentence += ` Picked from ${nominees.length} community nomination${nominees.length === 1 ? '' : 's'} and reviewed by our editors.`
-              return (
-                <p className="text-white text-lg max-w-3xl leading-relaxed mt-3">
-                  {sentence}
-                </p>
-              )
-            }
-
-            // Empty path.
-            return (
-              <p className="text-white text-lg max-w-3xl leading-relaxed mt-3">
-                The best {cat.name.toLowerCase()} in Moreno Valley — our editors are reviewing community nominations now.
-              </p>
-            )
-          })()}
-
-          {cat.description && (
-            <p className="text-white/80 text-lg max-w-2xl mt-3">{cat.description}</p>
+        <div className="container-max py-10 md:py-14">
+          {cat.subCategories.length > 0 ? (
+            <div className="space-y-16">
+              {cat.subCategories.map(sub => (
+                <SubCategorySection
+                  key={sub.id}
+                  sub={sub}
+                  categorySlug={slug}
+                  signedIn={signedIn}
+                  userVoteByNominee={userVoteByNominee}
+                  totalVotesByNominee={totalVotesByNominee}
+                  recentVotersByNominee={recentVotersByNominee}
+                />
+              ))}
+            </div>
+          ) : nominees.length === 0 ? (
+            <EmptyState emoji={emoji} />
+          ) : (
+            <NomineeList
+              nominees={nominees}
+              categorySlug={slug}
+              signedIn={signedIn}
+              userVoteByNominee={userVoteByNominee}
+              totalVotesByNominee={totalVotesByNominee}
+              recentVotersByNominee={recentVotersByNominee}
+            />
           )}
         </div>
-      </div>
 
-      <div className="container-max py-10">
-        {cat.subCategories.length > 0 ? (
-          // Parent category — show each sub-category as a titled section
-          // with home-style business cards listed inline below.
-          <SubCategorySections
-            subCategories={cat.subCategories}
-            voteData={{
-              userVoteByNominee,
-              totalVotesByNominee,
-              recentVotersByNominee,
-              categorySlug: slug,
-              signedIn: Boolean(session?.user?.id),
-            }}
-          />
-        ) : nominees.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-5xl mb-4">{emoji}</p>
-            <h2 className="text-xl font-bold text-text mb-2">Coming Soon</h2>
-            <p className="text-text-secondary">Our editors are working on this pick. Check back soon!</p>
+        {/* Bottom CTA */}
+        <section className="bg-white border-t border-slate-100">
+          <div className="container-max py-12">
+            <div className="max-w-2xl mx-auto text-center">
+              <h2 className="text-2xl font-bold text-text mb-3">Think someone else belongs here?</h2>
+              <p className="text-text-secondary mb-6">
+                Nominations are open year-round. If your favorite MoVal business isn&apos;t listed, tell us about it.
+              </p>
+              <Link
+                href="/submit/best-of"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Nominate a business
+              </Link>
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {nominees.map((nominee, idx) => (
-              <BestOfCardWrapper
-                key={nominee.id}
-                nominee={nominee}
-                rank={idx + 1}
-                categorySlug={slug}
-                signedIn={Boolean(session?.user?.id)}
-                initialVoted={userVoteByNominee.has(nominee.id)}
-                initialVoteId={userVoteByNominee.get(nominee.id)}
-                totalVotes={totalVotesByNominee.get(nominee.id) ?? 0}
-                recentVoters={recentVotersByNominee.get(nominee.id) ?? []}
-              />
-            ))}
-          </div>
-        )}
+        </section>
       </div>
-    </div>
     </>
   )
 }
 
-// Shape needed to feed BusinessCard. Mirrors BusinessCard's prop shape
-// closely so we can drop a `nominee.business` straight into it.
+function AnswerCapsule({ cat, nominees }: { cat: Awaited<ReturnType<typeof getCategory>>; nominees: Nominee[] }) {
+  if (!cat) return null
+
+  if (cat.subCategories.length > 0) {
+    const subWinners = cat.subCategories
+      .map(sub => {
+        const w = sub.nominees.find(n => n.winner) ?? sub.nominees[0]
+        return w ? { sub: sub.name, name: w.business.name } : null
+      })
+      .filter((x): x is { sub: string; name: string } => x !== null)
+      .slice(0, 4)
+    if (subWinners.length > 0) {
+      const category = cat.name.replace(/^best\s+/i, '').toLowerCase()
+      const list = subWinners.map(sw => `${sw.name} (${sw.sub})`).join(', ').replace(/, ([^,]*)$/, ', and $1')
+      return (
+        <p className="text-white text-lg max-w-3xl leading-relaxed">
+          The best {category} in Moreno Valley span multiple sub-categories — current community picks: {list}.
+        </p>
+      )
+    }
+  }
+
+  if (nominees.length > 0) {
+    const winner = nominees.find(n => n.winner)
+    const runnersUp = nominees.filter(n => n.winner).length === 1
+      ? nominees.filter(n => !n.winner)
+      : nominees.slice(1)
+    const winnerName = winner?.business.name ?? nominees[0]?.business.name
+    const category = cat.name.replace(/^best\s+/i, '').toLowerCase()
+    let sentence: string
+    if (winner) {
+      sentence = `🏆 ${winnerName} is the community pick for the best ${category} in Moreno Valley`
+    } else {
+      sentence = `${winnerName} is our editors' top pick for the best ${category} in Moreno Valley`
+    }
+    if (runnersUp.length === 1) sentence += `, with ${runnersUp[0].business.name} also nominated.`
+    else if (runnersUp.length >= 2) {
+      const names = runnersUp.slice(0, 2).map(n => n.business.name)
+      sentence += `, with ${names.join(' and ')} and other local nominees also in the running.`
+    } else sentence += '.'
+    sentence += ` Picked from ${nominees.length} community nomination${nominees.length === 1 ? '' : 's'} and reviewed by our editors.`
+    return <p className="text-white text-lg max-w-3xl leading-relaxed">{sentence}</p>
+  }
+
+  return <p className="text-white text-lg max-w-3xl leading-relaxed">The best {cat.name.toLowerCase()} in Moreno Valley — our editors are reviewing community nominations now.</p>
+}
+
+function EmptyState({ emoji }: { emoji: string }) {
+  return (
+    <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
+      <p className="text-5xl mb-4">{emoji}</p>
+      <h2 className="text-xl font-bold text-text mb-2">Coming Soon</h2>
+      <p className="text-text-secondary">Our editors are working on this pick. Check back soon!</p>
+    </div>
+  )
+}
+
+function NomineeList({
+  nominees,
+  categorySlug,
+  signedIn,
+  userVoteByNominee,
+  totalVotesByNominee,
+  recentVotersByNominee,
+}: {
+  nominees: Nominee[]
+  categorySlug: string
+  signedIn: boolean
+  userVoteByNominee: Map<string, string>
+  totalVotesByNominee: Map<string, number>
+  recentVotersByNominee: Map<string, { name: string; image: string | null; votedAt: string }[]>
+}) {
+  const winner = nominees.find(n => n.winner)
+  const winners = nominees.filter(n => n.winner)
+  const nonWinners = nominees.filter(n => !n.winner)
+
+  return (
+    <div className="space-y-12">
+      {winner && winners.length === 1 && (
+        <section>
+          <div className="flex items-center gap-2 mb-5">
+            <span className="text-2xl">🏆</span>
+            <h2 className="text-2xl font-bold text-text">Winner</h2>
+          </div>
+          <div className="max-w-3xl mx-auto">
+            <CardWithVote
+              nominee={winner}
+              variant="winner"
+              rank={1}
+              categorySlug={categorySlug}
+              signedIn={signedIn}
+              userVoteByNominee={userVoteByNominee}
+              totalVotesByNominee={totalVotesByNominee}
+              recentVotersByNominee={recentVotersByNominee}
+            />
+          </div>
+        </section>
+      )}
+
+      {winners.length > 1 && (
+        <section>
+          <div className="flex items-center gap-2 mb-5">
+            <span className="text-2xl">🏆</span>
+            <h2 className="text-2xl font-bold text-text">Winners</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {winners.map((nominee, idx) => (
+              <CardWithVote
+                key={nominee.id}
+                nominee={nominee}
+                variant="winner"
+                rank={idx + 1}
+                categorySlug={categorySlug}
+                signedIn={signedIn}
+                userVoteByNominee={userVoteByNominee}
+                totalVotesByNominee={totalVotesByNominee}
+                recentVotersByNominee={recentVotersByNominee}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {nonWinners.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-5">
+            <span className="text-2xl">⭐</span>
+            <h2 className="text-2xl font-bold text-text">Nominees</h2>
+            <span className="text-sm text-text-secondary ml-2">{nonWinners.length} business{nonWinners.length === 1 ? '' : 'es'} in the running</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {nonWinners.map((nominee, idx) => (
+              <CardWithVote
+                key={nominee.id}
+                nominee={nominee}
+                variant="nominee"
+                rank={idx + 1}
+                categorySlug={categorySlug}
+                signedIn={signedIn}
+                userVoteByNominee={userVoteByNominee}
+                totalVotesByNominee={totalVotesByNominee}
+                recentVotersByNominee={recentVotersByNominee}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+function SubCategorySection({
+  sub,
+  categorySlug,
+  signedIn,
+  userVoteByNominee,
+  totalVotesByNominee,
+  recentVotersByNominee,
+}: {
+  sub: SubCategoryRow
+  categorySlug: string
+  signedIn: boolean
+  userVoteByNominee: Map<string, string>
+  totalVotesByNominee: Map<string, number>
+  recentVotersByNominee: Map<string, { name: string; image: string | null; votedAt: string }[]>
+}) {
+  const winner = sub.nominees.find(n => n.winner)
+  const winners = sub.nominees.filter(n => n.winner)
+  const nonWinners = sub.nominees.filter(n => !n.winner)
+  const emoji = sub.icon ? getCategoryEmoji(sub.icon) : '🏆'
+
+  return (
+    <section>
+      <div className="flex items-center gap-3 mb-6">
+        <span className="text-2xl">{emoji}</span>
+        <h2 className="text-xl sm:text-2xl font-bold text-text">{sub.name}</h2>
+        {sub._count.nominees > 0 && (
+          <span className="text-xs bg-slate-100 text-text-secondary px-2 py-0.5 rounded-full">
+            {sub._count.nominees} {sub._count.nominees === 1 ? 'nominee' : 'nominees'}
+          </span>
+        )}
+      </div>
+
+      {sub.nominees.length === 0 ? (
+        <div className="bg-white border border-slate-100 rounded-2xl p-6 text-center text-text-secondary">
+          No nominees yet. <Link href="/submit/best-of" className="text-primary hover:underline">Be the first to nominate one</Link>.
+        </div>
+      ) : (
+        <div className="space-y-10">
+          {winner && winners.length === 1 && (
+            <div className="max-w-3xl">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-text-secondary mb-3">Winner</h3>
+              <CardWithVote
+                nominee={winner}
+                variant="winner"
+                rank={1}
+                categorySlug={categorySlug}
+                signedIn={signedIn}
+                userVoteByNominee={userVoteByNominee}
+                totalVotesByNominee={totalVotesByNominee}
+                recentVotersByNominee={recentVotersByNominee}
+              />
+            </div>
+          )}
+
+          {winners.length > 1 && (
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-text-secondary mb-3">Winners</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+                {winners.map((nominee, idx) => (
+                  <CardWithVote
+                    key={nominee.id}
+                    nominee={nominee}
+                    variant="winner"
+                    rank={idx + 1}
+                    categorySlug={categorySlug}
+                    signedIn={signedIn}
+                    userVoteByNominee={userVoteByNominee}
+                    totalVotesByNominee={totalVotesByNominee}
+                    recentVotersByNominee={recentVotersByNominee}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {nonWinners.length > 0 && (
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-text-secondary mb-3">Nominees</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {nonWinners.map((nominee, idx) => (
+                  <CardWithVote
+                    key={nominee.id}
+                    nominee={nominee}
+                    variant="nominee"
+                    rank={idx + 1}
+                    categorySlug={categorySlug}
+                    signedIn={signedIn}
+                    userVoteByNominee={userVoteByNominee}
+                    totalVotesByNominee={totalVotesByNominee}
+                    recentVotersByNominee={recentVotersByNominee}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function CardWithVote({
+  nominee,
+  variant,
+  rank,
+  categorySlug,
+  signedIn,
+  userVoteByNominee,
+  totalVotesByNominee,
+  recentVotersByNominee,
+}: {
+  nominee: Nominee
+  variant: 'winner' | 'nominee'
+  rank: number
+  categorySlug: string
+  signedIn: boolean
+  userVoteByNominee: Map<string, string>
+  totalVotesByNominee: Map<string, number>
+  recentVotersByNominee: Map<string, { name: string; image: string | null; votedAt: string }[]>
+}) {
+  const totalVotes = totalVotesByNominee.get(nominee.id) ?? 0
+  const recentVoters = recentVotersByNominee.get(nominee.id) ?? []
+
+  return (
+    <div>
+      <BestOfNomineeCard
+        business={nominee.business}
+        variant={variant}
+        rank={rank}
+        notes={nominee.notes}
+      />
+      <div className="mt-3 px-1">
+        <VoteButton
+          nomineeId={nominee.id}
+          nomineeName={nominee.business.name}
+          categorySlug={categorySlug}
+          initialVoted={userVoteByNominee.has(nominee.id)}
+          initialVoteId={userVoteByNominee.get(nominee.id)}
+          signedIn={signedIn}
+          variant={variant === 'nominee' ? 'small' : 'default'}
+        />
+        <VotersFeed voters={recentVoters} total={totalVotes} displayed={recentVoters.length} />
+      </div>
+    </div>
+  )
+}
 
 type Nominee = {
   id: string
@@ -380,94 +599,14 @@ type Nominee = {
     email: string | null
     googleRating: number | null
     googleReviewCount: number | null
+    seHablaEspanol: boolean
+    chamberMember: boolean
+    hispanicChamberMember: boolean
     category: { name: string; slug: string }
     reviews: Array<{ rating: number }>
     _count: { reviews: number }
   }
 }
-
-// Wrapper that drops the home-style BusinessCard onto a nominee and
-// overlays a small winner / rank ribbon so winners stay visually distinct
-// from runner-ups.
-
-function BestOfCardWrapper({
-  nominee,
-  rank,
-  categorySlug,
-  signedIn,
-  initialVoted,
-  initialVoteId,
-  totalVotes,
-  recentVoters,
-}: {
-  nominee: Nominee
-  rank: number
-  categorySlug: string
-  signedIn: boolean
-  initialVoted: boolean
-  initialVoteId?: string
-  totalVotes: number
-  recentVoters: { name: string; image: string | null; votedAt: string }[]
-}) {
-  const { business } = nominee
-  return (
-    <div className="relative">
-      <BusinessCard business={business} />
-
-      {/* Winner ribbon (top-right) */}
-      {nominee.winner && (
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-gradient-to-br from-amber-400 to-amber-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg border border-amber-300">
-          🏆 Winner
-        </div>
-      )}
-
-      {/* Runner-up rank ribbon (top-left, only when there's a winner above) */}
-      {!nominee.winner && rank > 1 && (
-        <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-slate-800/85 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">
-          #{rank}
-        </div>
-      )}
-
-      {/* Editorial notes — show below the card if present */}
-      {nominee.notes && (
-        <p className="mt-2 text-sm text-text-secondary italic px-1">
-          &ldquo;{nominee.notes}&rdquo;
-        </p>
-      )}
-
-      {/* Voting: button + recent-voters feed (registered voters, see
-          .hermes/plans/2026-08-22_best-of-registered-voters.md) */}
-      <div className="mt-3 px-1">
-        <VoteButton
-          nomineeId={nominee.id}
-          nomineeName={business.name}
-          categorySlug={categorySlug}
-          initialVoted={initialVoted}
-          initialVoteId={initialVoteId}
-          signedIn={signedIn}
-        />
-        <VotersFeed
-          voters={recentVoters}
-          total={totalVotes}
-          displayed={recentVoters.length}
-        />
-      </div>
-    </div>
-  )
-}
-
-function getCategoryEmoji(icon: string): string {
-  const map: Record<string, string> = {
-    Taco: '🌮', Coffee: '☕', Beef: '🍔', Pizza: '🍕',
-    Sunrise: '🌅', Flame: '🔥', ShoppingBag: '🛍️', Heart: '💑',
-    Trophy: '🏆', UtensilsCrossed: '🍽️', Wrench: '🔧', Scissors: '✂️',
-    Droplets: '💧', Trees: '🌳', Building: '🏢', PawPrint: '🐾',
-    Activity: '🏃',
-  }
-  return map[icon] ?? '⭐'
-}
-
-// ── Parent category: titled sections with home-style business cards ─────────
 
 type SubCategoryRow = {
   id: string
@@ -478,63 +617,13 @@ type SubCategoryRow = {
   _count: { nominees: number }
 }
 
-interface VoteDataMaps {
-  userVoteByNominee: Map<string, string>
-  totalVotesByNominee: Map<string, number>
-  recentVotersByNominee: Map<
-    string,
-    { name: string; image: string | null; votedAt: string }[]
-  >
-  categorySlug: string
-  signedIn: boolean
-}
-
-function SubCategorySections({
-  subCategories,
-  voteData,
-}: {
-  subCategories: SubCategoryRow[]
-  voteData: VoteDataMaps
-}) {
-  return (
-    <div className="space-y-12">
-      {subCategories.map(sub => (
-        <section key={sub.id}>
-          {/* Sub-category title */}
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-2xl">{sub.icon ? getCategoryEmoji(sub.icon) : '🏆'}</span>
-            <h2 className="text-xl sm:text-2xl font-bold text-text">{sub.name}</h2>
-            {sub._count.nominees > 0 && (
-              <span className="text-xs bg-slate-100 text-text-secondary px-2 py-0.5 rounded-full">
-                {sub._count.nominees} {sub._count.nominees === 1 ? 'pick' : 'picks'}
-              </span>
-            )}
-          </div>
-
-          {/* Cards inline */}
-          {sub.nominees.length === 0 ? (
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 text-center text-text-secondary">
-              No winner assigned yet.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sub.nominees.map((nominee, idx) => (
-                <BestOfCardWrapper
-                  key={nominee.id}
-                  nominee={nominee}
-                  rank={idx + 1}
-                  categorySlug={voteData.categorySlug}
-                  signedIn={voteData.signedIn}
-                  initialVoted={voteData.userVoteByNominee.has(nominee.id)}
-                  initialVoteId={voteData.userVoteByNominee.get(nominee.id)}
-                  totalVotes={voteData.totalVotesByNominee.get(nominee.id) ?? 0}
-                  recentVoters={voteData.recentVotersByNominee.get(nominee.id) ?? []}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      ))}
-    </div>
-  )
+function getCategoryEmoji(icon: string): string {
+  const map: Record<string, string> = {
+    Taco: '🌮', Coffee: '☕', Beef: '🍔', Pizza: '🍕',
+    Sunrise: '🌅', Flame: '🔥', ShoppingBag: '🛍️', Heart: '💑',
+    Trophy: '🏆', UtensilsCrossed: '🍽️', Wrench: '🔧', Scissors: '✂️',
+    Droplets: '💧', Trees: '🌳', Building: '🏢', PawPrint: '🐾',
+    Activity: '🏃', Home: '🏠', Car: '🚗', Briefcase: '💼',
+  }
+  return map[icon] ?? '⭐'
 }
