@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { ownerOwnsReview } from '@/app/dashboard/profile/review-delete-helpers'
+import {
+  buildReviewEditPayload,
+  validateReviewEdit,
+  type ReviewEditInput,
+} from '@/app/dashboard/profile/review-edit-helpers'
 
 /**
  * DELETE /api/reviews/[reviewId]
@@ -70,4 +75,94 @@ export async function DELETE(
   await prisma.review.delete({ where: { id: reviewId } })
 
   return NextResponse.json({ ok: true })
+}
+
+/**
+ * PATCH /api/reviews/[reviewId]
+ *
+ * Updates the content and/or rating of a Review row owned by the
+ * current Owner. Mirrors the DELETE authorization model.
+ *
+ * Only `content` and `rating` are editable — `authorName`,
+ * `authorEmail`, `response`, and `flagged` are intentionally not
+ * settable from this endpoint. The first two are snapshotted
+ * display fields (same pattern as BestOfVote and BestOfNomination),
+ * `response` is the business's reply (admin-only), and `flagged` is
+ * the moderation flag (admin-only).
+ *
+ * Returns:
+ *   - 200 { ok: true, review: <updated row> } on success
+ *   - 400 { error } on validation failure
+ *   - 401 { error: 'Sign in to edit your review' } when no session
+ *   - 403 { error: "You can only edit your own reviews" } on ownership fail
+ *   - 404 { error: 'Review not found' } when the reviewId doesn't exist
+ */
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ reviewId: string }> },
+) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: 'Sign in to edit your review' },
+      { status: 401 },
+    )
+  }
+
+  const { reviewId } = await params
+
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json(
+      { error: 'Invalid JSON body' },
+      { status: 400 },
+    )
+  }
+
+  if (typeof body !== 'object' || body === null) {
+    return NextResponse.json({ error: 'Body must be an object' }, { status: 400 })
+  }
+
+  const input: ReviewEditInput = body as ReviewEditInput
+  const validation = validateReviewEdit(input)
+  if (validation) {
+    return NextResponse.json(
+      { error: validation.message, field: validation.field },
+      { status: 400 },
+    )
+  }
+
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+    select: { id: true, ownerId: true, authorEmail: true },
+  })
+
+  if (!review) {
+    return NextResponse.json({ error: 'Review not found' }, { status: 404 })
+  }
+
+  if (
+    !ownerOwnsReview(review, session.user.id, session.user.email ?? null)
+  ) {
+    return NextResponse.json(
+      { error: "You can only edit your own reviews" },
+      { status: 403 },
+    )
+  }
+
+  const data = buildReviewEditPayload(input)
+  const updated = await prisma.review.update({
+    where: { id: reviewId },
+    data,
+    select: {
+      id: true,
+      rating: true,
+      content: true,
+      updatedAt: true,
+    },
+  })
+
+  return NextResponse.json({ ok: true, review: updated })
 }
