@@ -193,6 +193,7 @@ model Owner {
   business         Business?
   guestAuthors     GuestAuthor[]
   bestOfVotes      BestOfVote[]
+  reviews          Review[]
 }
 
 enum UserRole {
@@ -230,6 +231,10 @@ model Review {
   id          String   @id @default(cuid())
   businessId  String
   business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  ownerId     String?  // Tied to an Owner account when the reviewer was logged in,
+                       // or matched by authorEmail on backfill. NULL for legacy
+                       // anonymous reviews with no matching email.
+  owner       Owner?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   authorName  String
   authorEmail String?
   rating      Int
@@ -241,6 +246,7 @@ model Review {
 
   @@index([businessId])
   @@index([flagged])
+  @@index([ownerId])
 }
 
 model SocialPost {

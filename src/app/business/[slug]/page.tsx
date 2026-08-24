@@ -213,6 +213,12 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
   const business = await getBusiness(slug)
   if (!business) notFound()
 
+  // Fetch the current session so the review form can pre-populate
+  // authorName/authorEmail for logged-in owners. This makes the
+  // review form much friendlier for users who already have an
+  // account — they don't have to type their name and email again.
+  const session = await auth()
+
   const rating = averageRating(business.reviews)
   const hours = business.hours as Record<string, { open: string; close: string; closed: boolean }> | null
   const localBusinessSchema = buildBusinessSchema(business)
@@ -520,6 +526,11 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
               businessId={business.id}
               businessSlug={business.slug}
               initialReviews={business.reviews}
+              session={
+                session?.user?.id
+                  ? { name: session.user.name ?? null, email: session.user.email ?? '' }
+                  : null
+              }
               googleBusinessId={business.googleBusiness}
               googleRating={business.googleRating}
               googleReviewCount={business.googleReviewCount}

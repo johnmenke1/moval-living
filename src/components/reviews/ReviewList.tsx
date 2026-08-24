@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Star, Send, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { buildReviewPrefill } from '@/lib/review-owner-helpers'
 
 interface Review {
   id: string
@@ -25,19 +26,28 @@ interface ReviewListProps {
   businessId: string
   businessSlug: string
   initialReviews: Review[]
+  /** Optional session — when present, the form pre-populates
+   *  authorName/authorEmail and locks the fields so the review is
+   *  reliably tied to the logged-in Owner. */
+  session?: { name: string | null; email: string } | null
   googleBusinessId?: string | null
   googleRating?: number | null
   googleReviewCount?: number | null
   googleMapsUrl?: string | null
 }
 
-export function ReviewList({ businessId, businessSlug, initialReviews, googleBusinessId, googleRating, googleReviewCount, googleMapsUrl }: ReviewListProps) {
+export function ReviewList({ businessId, businessSlug, initialReviews, session, googleBusinessId, googleRating, googleReviewCount, googleMapsUrl }: ReviewListProps) {
   const [reviews, setReviews] = useState<Review[]>(initialReviews)
   const [showForm, setShowForm] = useState(false)
   const [hoverRating, setHoverRating] = useState(0)
   const [rating, setRating] = useState(0)
-  const [authorName, setAuthorName] = useState('')
-  const [authorEmail, setAuthorEmail] = useState('')
+  // When the user is logged in, pre-populate from their profile and
+  // lock the fields. The "use different name" link lets them opt
+  // out for a single review without affecting their profile.
+  const prefill = buildReviewPrefill(session ?? null)
+  const [authorName, setAuthorName] = useState(prefill.authorName)
+  const [authorEmail, setAuthorEmail] = useState(prefill.authorEmail)
+  const [nameLocked, setNameLocked] = useState(prefill.prefillLocked)
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -177,7 +187,18 @@ export function ReviewList({ businessId, businessSlug, initialReviews, googleBus
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="label">Your Name <span className="text-error">*</span></label>
+              <label className="label">
+                Your Name <span className="text-error">*</span>
+                {nameLocked && (
+                  <button
+                    type="button"
+                    onClick={() => setNameLocked(false)}
+                    className="ml-2 text-xs font-normal text-primary hover:underline"
+                  >
+                    Use a different name
+                  </button>
+                )}
+              </label>
               <input
                 type="text"
                 value={authorName}
@@ -185,16 +206,22 @@ export function ReviewList({ businessId, businessSlug, initialReviews, googleBus
                 className="input"
                 placeholder="Jane Smith"
                 required
+                readOnly={nameLocked}
+                aria-readonly={nameLocked}
               />
             </div>
             <div>
-              <label className="label">Email (optional, not published)</label>
+              <label className="label">
+                Email {session ? '(linked to your account)' : '(optional, not published)'}
+              </label>
               <input
                 type="email"
                 value={authorEmail}
                 onChange={e => setAuthorEmail(e.target.value)}
                 className="input"
                 placeholder="jane@email.com"
+                readOnly={Boolean(session)}
+                aria-readonly={Boolean(session)}
               />
             </div>
           </div>

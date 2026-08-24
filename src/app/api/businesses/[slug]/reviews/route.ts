@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
+import { normalizeReviewEmail } from '@/lib/review-owner-helpers'
 
 export async function POST(
   request: Request,
@@ -22,11 +24,19 @@ export async function POST(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
+    // If the reviewer is signed in, link the review to their Owner
+    // account. authorName/authorEmail are still snapshotted so the
+    // review retains its display identity even if the user later
+    // renames themselves in /dashboard/profile.
+    const session = await auth()
+    const ownerId = session?.user?.id ?? null
+
     const review = await prisma.review.create({
       data: {
         businessId: business.id,
+        ownerId,
         authorName: authorName.trim(),
-        authorEmail: authorEmail?.trim() || null,
+        authorEmail: normalizeReviewEmail(authorEmail) || null,
         rating,
         content: content.trim(),
       },
