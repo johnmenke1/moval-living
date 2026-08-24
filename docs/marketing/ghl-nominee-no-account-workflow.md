@@ -115,18 +115,24 @@ The `community-member` tag is applied to every nominated contact (logged-in or n
 - **Branch B (no — has an account):** end workflow (the contact is
   a real user now; the companion workflow will remove the tag).
 
-### Step 7 — Email 2 (still-no-account branch only): "One more thing — vote on the Best-Of"
+### Step 7 — Email 2 (still-no-account branch only): "Voting opens soon — your account's not set up yet"
 
 - **Action:** Send Email
-- **Tone:** slightly more direct than email 1, but still warm. Frame
-  it as "the categories are open for voting" rather than "you should
-  have done this yesterday."
-- **Content outline:**
-  - Hi {{first_name}}, quick follow-up on the nomination.
-  - The categories you nominated are now in the running for votes.
-  - Voting takes 30 seconds and only requires that you set a password.
-  - Big colorful button → same register URL with pre-fill.
-  - Sign off the same way as email 1.
+- **Template:** `Register to Vote — Email 2` (HTML lives in
+  `docs/marketing/email-template-register-to-vote-2.html`, GHL
+  metadata in `docs/marketing/email-template-register-to-vote-2-meta.md`).
+- **Subject / From:** same as Email 1 — see the meta file. **Match
+  the From name + email exactly across both emails + the thank-you
+  transactional email; mismatched senders tank deliverability.**
+- **Merge fields:** `{{contact.first_name}}`, `{{contact.last_name}}`,
+  `{{contact.email}}`. Same set as Email 1.
+- **Body outline:**
+  - Hi {{first_name}}, quick follow-up on the nomination you sent a few days ago.
+  - "What's coming" section: voting opens soon, 30 sec per pick, need an account to vote.
+  - "Why set up your account now" section: 20 seconds, info pre-filled, no scrambling day-of.
+  - Big button → same register URL with pre-fill.
+  - Promise a separate "voting is open" email when voting actually launches.
+  - Sign off the same way as Email 1.
 
 ### Step 8 — Wait 7 days, then end
 
@@ -185,10 +191,12 @@ becomes "Branch: Account Created = true" which is reliable.
   metadata (subject, preview text, from name, merge field
   declarations) is in `docs/marketing/email-template-register-to-vote-meta.md`.
 
-- **Email 2 content.** I wrote the structural outline in Step 7
-  above. The full HTML for email 2 can mirror email 1's template —
-  the styling is identical, just different copy. **Easy to add if
-  the AI agent wants a second raw-HTML file.**
+- **Email 2 content.** Full HTML for email 2 is now in
+  `docs/marketing/email-template-register-to-vote-2.html` — same
+  paste-ready format as email 1, GHL metadata in
+  `docs/marketing/email-template-register-to-vote-2-meta.md`,
+  browser-openable preview at
+  `docs/preview-email-register-to-vote-2.html`.
 
 ---
 
