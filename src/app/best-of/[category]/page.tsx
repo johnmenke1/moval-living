@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ChevronLeft, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import type { Metadata } from 'next'
@@ -7,6 +7,7 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { BestOfNomineeCard } from '@/components/best-of/BestOfNomineeCard'
 import { VoteButton } from '@/components/best-of/VoteButton'
 import { VotersFeed } from '@/components/best-of/VotersFeed'
+import { BestOfCategoryHero } from '@/components/best-of/BestOfCategoryHero'
 
 interface Props {
   params: Promise<{ category: string }>
@@ -186,36 +187,26 @@ export default async function BestOfCategoryPage({ params }: Props) {
 
   const signedIn = Boolean(session?.user?.id)
 
+  // Compute hero stats
+  const winnerCount = nominees.filter(n => n.winner).length
+  const totalNomineeCount = nominees.length + cat.subCategories.flatMap(s => s.nominees).length
+  const totalVoteCount = Array.from(totalVotesByNominee.values()).reduce((a, b) => a + b, 0)
+
   return (
     <>
       {categorySchema && <JsonLd schema={categorySchema} />}
       {itemListSchema && <JsonLd schema={itemListSchema} />}
       <div className="bg-slate-50 min-h-screen">
-        {/* Back nav */}
-        <div className="bg-white border-b border-slate-100">
-          <div className="container-max py-4">
-            <Link href="/best-of" className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-primary transition-colors">
-              <ChevronLeft className="w-4 h-4" /> All Best Of Categories
-            </Link>
-          </div>
-        </div>
-
-        {/* Category header */}
-        <div className="bg-gradient-to-br from-primary to-secondary">
-          <div className="container-max py-12 md:py-16">
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-3xl">{emoji}</span>
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
-                Best Of Moreno Valley
-              </span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{cat.name}</h1>
-            <AnswerCapsule cat={cat} nominees={nominees} />
-            {cat.description && (
-              <p className="text-white/80 text-base md:text-lg max-w-2xl mt-4">{cat.description}</p>
-            )}
-          </div>
-        </div>
+        <BestOfCategoryHero
+          slug={slug}
+          name={cat.name}
+          description={cat.description}
+          emoji={emoji}
+          nomineeCount={totalNomineeCount}
+          winnerCount={winnerCount}
+          voteCount={totalVoteCount}
+          capsule={<AnswerCapsule cat={cat} nominees={nominees} />}
+        />
 
         <div className="container-max py-10 md:py-14">
           {cat.subCategories.length > 0 ? (
@@ -282,11 +273,7 @@ function AnswerCapsule({ cat, nominees }: { cat: Awaited<ReturnType<typeof getCa
     if (subWinners.length > 0) {
       const category = cat.name.replace(/^best\s+/i, '').toLowerCase()
       const list = subWinners.map(sw => `${sw.name} (${sw.sub})`).join(', ').replace(/, ([^,]*)$/, ', and $1')
-      return (
-        <p className="text-white text-lg max-w-3xl leading-relaxed">
-          The best {category} in Moreno Valley span multiple sub-categories — current community picks: {list}.
-        </p>
-      )
+      return <>{`The best ${category} in Moreno Valley — current community picks include ${list}.`}</>
     }
   }
 
@@ -299,7 +286,7 @@ function AnswerCapsule({ cat, nominees }: { cat: Awaited<ReturnType<typeof getCa
     const category = cat.name.replace(/^best\s+/i, '').toLowerCase()
     let sentence: string
     if (winner) {
-      sentence = `🏆 ${winnerName} is the community pick for the best ${category} in Moreno Valley`
+      sentence = `${winnerName} is the community pick for the best ${category} in Moreno Valley`
     } else {
       sentence = `${winnerName} is our editors' top pick for the best ${category} in Moreno Valley`
     }
@@ -308,11 +295,10 @@ function AnswerCapsule({ cat, nominees }: { cat: Awaited<ReturnType<typeof getCa
       const names = runnersUp.slice(0, 2).map(n => n.business.name)
       sentence += `, with ${names.join(' and ')} and other local nominees also in the running.`
     } else sentence += '.'
-    sentence += ` Picked from ${nominees.length} community nomination${nominees.length === 1 ? '' : 's'} and reviewed by our editors.`
-    return <p className="text-white text-lg max-w-3xl leading-relaxed">{sentence}</p>
+    return <>{sentence}</>
   }
 
-  return <p className="text-white text-lg max-w-3xl leading-relaxed">The best {cat.name.toLowerCase()} in Moreno Valley — our editors are reviewing community nominations now.</p>
+  return <>The best {cat.name.toLowerCase()} in Moreno Valley — our editors are reviewing community nominations now.</>
 }
 
 function EmptyState({ emoji }: { emoji: string }) {
