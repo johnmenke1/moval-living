@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { ProfileForm } from './ProfileForm'
+import { YourReviews } from './YourReviews'
+import { buildReviewsPageResponse } from './your-reviews-helpers'
 
 export const metadata: Metadata = {
   title: 'Profile — moval.living',
@@ -34,6 +36,32 @@ export default async function ProfilePage() {
     redirect('/login?returnTo=/dashboard/profile')
   }
 
+  // Server-side fetch for the reviews list — hydrates the client
+  // component with no flash of empty state. The client then polls
+  // /api/profile/reviews every 30s for updates.
+  const reviewRows = await prisma.review.findMany({
+    where: { ownerId: owner.id },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+    select: {
+      id: true,
+      rating: true,
+      content: true,
+      authorName: true,
+      authorEmail: true,
+      response: true,
+      flagged: true,
+      createdAt: true,
+      business: { select: { id: true, name: true, slug: true } },
+    },
+  })
+  const initialReviews = reviewRows.map((r) =>
+    buildReviewsPageResponse({
+      ...r,
+      createdAt: r.createdAt.toISOString(),
+    }),
+  )
+
   return (
     <div className="bg-slate-50 min-h-screen py-10">
       <div className="max-w-2xl mx-auto px-4">
@@ -52,6 +80,14 @@ export default async function ProfilePage() {
           email={owner.email}
           emailVerified={Boolean(owner.emailVerified)}
         />
+
+        <section className="mt-8">
+          <h2 className="text-lg font-bold text-text mb-3">Your reviews</h2>
+          <p className="text-xs text-text-secondary mb-3">
+            Reviews you&apos;ve left on local businesses, newest first.
+          </p>
+          <YourReviews initialReviews={initialReviews} />
+        </section>
 
         <p className="mt-8 text-xs text-text-secondary text-center">
           Want to change your email address? That requires a confirmation
