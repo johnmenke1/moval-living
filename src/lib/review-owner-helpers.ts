@@ -56,3 +56,40 @@ export function normalizeReviewEmail(email: string | null | undefined): string {
 export function canBackfillReview(review: { authorEmail: string | null }): boolean {
   return Boolean(normalizeReviewEmail(review.authorEmail))
 }
+
+/**
+ * Find an Owner id by exact normalized email match.
+ *
+ * Used by the review backfill script to link legacy anonymous reviews
+ * (no ownerId) to their original reviewer, by matching Review.authorEmail
+ * against Owner.email. Case-insensitive (Postgres `mode: 'insensitive'`
+ * does the right thing for `LOWER()`-equivalent matching).
+ *
+ * Returns `null` when:
+ *   - The email is empty / malformed
+ *   - No Owner row exists with this email
+ *
+ * Note: there can be multiple Owner rows for the same email (a soft edge
+ * case — duplicate signups, etc.). We pick the OLDEST row by createdAt
+ * so the original reviewer's account gets the credit, not a later signup
+ * with the same address.
+ */
+type OwnerLookup = {
+  owner: {
+    findFirst: (args: unknown) => Promise<{ id: string } | null>
+  }
+}
+
+export async function matchOwnerByEmail(
+  prisma: OwnerLookup,
+  rawEmail: string | null | undefined,
+): Promise<string | null> {
+  const email = normalizeReviewEmail(rawEmail)
+  if (!email) return null
+  const owner = await prisma.owner.findFirst({
+    where: { email: { equals: email, mode: 'insensitive' } },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true },
+  })
+  return owner?.id ?? null
+}

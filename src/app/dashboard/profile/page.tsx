@@ -4,6 +4,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { ProfileForm } from './ProfileForm'
 import { YourReviews } from './YourReviews'
+import { EmailChangeForm } from './EmailChangeForm'
 import { buildReviewsPageResponse } from './your-reviews-helpers'
 
 export const metadata: Metadata = {
@@ -89,17 +90,7 @@ export default async function ProfilePage() {
           <YourReviews initialReviews={initialReviews} />
         </section>
 
-        <p className="mt-8 text-xs text-text-secondary text-center">
-          Want to change your email address? That requires a confirmation
-          flow and isn&apos;t available yet — email{' '}
-          <a
-            href="mailto:hello@moval.living"
-            className="text-primary hover:underline"
-          >
-            hello@moval.living
-          </a>{' '}
-          if you need a hand.
-        </p>
+        <EmailChangeForm currentEmail={owner.email} />
       </div>
     </div>
   )
