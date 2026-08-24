@@ -14,10 +14,12 @@
  *     across the navigation. Polling handles it without coordination.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Star, AlertCircle, MessageSquare, ExternalLink } from 'lucide-react'
+import { Star, AlertCircle, MessageSquare, ExternalLink, Trash2, Loader2 } from 'lucide-react'
 import type { ReviewPageItem } from './your-reviews-helpers'
+import { buildDeleteConfirmPrompt } from './review-delete-helpers'
 
 interface YourReviewsProps {
   initialReviews: ReviewPageItem[]
@@ -35,6 +37,103 @@ function Stars({ rating }: { rating: number }) {
         />
       ))}
     </div>
+  )
+}
+
+function ReviewRow({
+  review,
+  onDeleted,
+}: {
+  review: ReviewPageItem
+  onDeleted: (id: string) => void
+}) {
+  const router = useRouter()
+  const [pending, startTransition] = useTransition()
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleDelete() {
+    if (deleting || pending) return
+    const confirmed = window.confirm(
+      buildDeleteConfirmPrompt(review.business.name),
+    )
+    if (!confirmed) return
+
+    setError(null)
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/reviews/${review.id}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Could not delete your review')
+      }
+      onDeleted(review.id)
+      // Trigger a router refresh so any cache that holds the deleted
+      // review (server component tree, anyone) re-renders.
+      startTransition(() => router.refresh())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not delete')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <article className="p-5">
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="min-w-0">
+          <Link
+            href={`/business/${review.business.slug}`}
+            className="text-sm font-bold text-text hover:text-primary transition-colors inline-flex items-center gap-1"
+          >
+            {review.business.name}
+            <ExternalLink className="w-3 h-3 text-text-secondary" />
+          </Link>
+          <div className="flex items-center gap-2 mt-1">
+            <Stars rating={review.rating} />
+            <span className="text-xs text-text-secondary">
+              {review.formattedDate}
+            </span>
+            {review.flagged && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                <AlertCircle className="w-3 h-3" />
+                Under review
+              </span>
+            )}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting || pending}
+          aria-label={`Delete your review of ${review.business.name}`}
+          className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-red-600 disabled:opacity-50 disabled:cursor-wait px-2 py-1 rounded transition-colors"
+        >
+          {deleting ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Trash2 className="w-3.5 h-3.5" />
+          )}
+          Delete
+        </button>
+      </div>
+      <p className="text-sm text-text whitespace-pre-wrap leading-relaxed">
+        {review.content}
+      </p>
+      {review.response && (
+        <div className="mt-3 pl-3 border-l-2 border-primary/30 text-xs text-text-secondary italic">
+          <span className="font-semibold not-italic text-primary">
+            Business response:
+          </span>{' '}
+          {review.response}
+        </div>
+      )}
+      {error && (
+        <p className="mt-2 text-xs text-red-600">{error}</p>
+      )}
+    </article>
   )
 }
 
@@ -59,6 +158,12 @@ export function YourReviews({ initialReviews }: YourReviewsProps) {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to refresh')
     }
+  }
+
+  function handleDeleted(id: string) {
+    // Optimistic remove — the row disappears immediately, the polling
+    // load() call 30s later will confirm the server-side state matches.
+    setReviews((prev) => prev.filter((r) => r.id !== id))
   }
 
   useEffect(() => {
@@ -100,42 +205,7 @@ export function YourReviews({ initialReviews }: YourReviewsProps) {
         </div>
       )}
       {reviews.map((r) => (
-        <article key={r.id} className="p-5">
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="min-w-0">
-              <Link
-                href={`/business/${r.business.slug}`}
-                className="text-sm font-bold text-text hover:text-primary transition-colors inline-flex items-center gap-1"
-              >
-                {r.business.name}
-                <ExternalLink className="w-3 h-3 text-text-secondary" />
-              </Link>
-              <div className="flex items-center gap-2 mt-1">
-                <Stars rating={r.rating} />
-                <span className="text-xs text-text-secondary">
-                  {r.formattedDate}
-                </span>
-                {r.flagged && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
-                    <AlertCircle className="w-3 h-3" />
-                    Under review
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <p className="text-sm text-text whitespace-pre-wrap leading-relaxed">
-            {r.content}
-          </p>
-          {r.response && (
-            <div className="mt-3 pl-3 border-l-2 border-primary/30 text-xs text-text-secondary italic">
-              <span className="font-semibold not-italic text-primary">
-                Business response:
-              </span>{' '}
-              {r.response}
-            </div>
-          )}
-        </article>
+        <ReviewRow key={r.id} review={r} onDeleted={handleDeleted} />
       ))}
     </div>
   )
