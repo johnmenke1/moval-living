@@ -7,16 +7,12 @@ const { Pool } = require('pg')
 
 // Load DATABASE_URL from .env.local (gitignored) since this is run
 // outside the Next.js runtime that auto-loads env vars. pg + Node
-// don't read .env files by default.
-require('fs').readFileSync('.env.local', 'utf8')
-  .split(/\r?\n/)
-  .forEach((line) => {
-    const m = line.match(/^DATABASE_URL=(.+)$/)
-    if (m && !process.env.DATABASE_URL) {
-      process.env.DATABASE_URL = m[1].replace(/^["']|["']$/g, '')
-    }
-  })
-
+// don't read .env files by default. See scripts/apply-helpers.cjs
+// for the shared loader + checksum strategy (uses the FILE
+// post-CRLF-normalization to match what Prisma CLI reads on
+// subsequent migrate status calls).
+const { loadDatabaseUrl, buildMigrationId, checksumMigrationFile } = require('./apply-helpers.cjs')
+loadDatabaseUrl()
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 })
@@ -58,10 +54,7 @@ $$;
 `
 
 const migrationName = '20260824040000_add_email_change_request'
-const checksum = require('crypto')
-  .createHash('sha256')
-  .update(tableSql + indexSql + fkSql)
-  .digest('hex')
+const checksum = checksumMigrationFile(migrationName)
 
 ;(async () => {
   const client = await pool.connect()
@@ -77,7 +70,7 @@ const checksum = require('crypto')
        ) VALUES (
          $1, $2, NOW(), $3, NULL, NULL, NOW(), 3
        )`,
-      [`m_${migrationName.slice(-30)}`, checksum, migrationName],
+      [buildMigrationId(migrationName), checksum, migrationName],
     )
     await client.query('COMMIT')
     console.log('✅ Applied', migrationName)

@@ -1,7 +1,17 @@
 -- Migration: add_best_of
 -- Created: 2026-07-29
 -- Best Of pages: BestOfCategory, BestOfEntry, BestOfScore models
-
+--
+-- NOTE: BestOfEntry was renamed to BestOfNominee shortly after this
+-- migration shipped (see BestOfNominee model added later). The
+-- references to BestOfEntry / BestOfScore in this file are the
+-- ORIGINAL names from when the migration ran. In the live DB today,
+-- the table is `BestOfNominee`. DO NOT try to "fix" the SQL —
+-- applying this file as-written would fail because BestOfEntry
+-- no longer exists. This file stays here purely for history +
+-- checksum stability. See prisma/migrations/20260815000000_add_
+-- best_of_nomination for the rename that took effect in the DB.
+--
 -- 1. BestOfCategory
 CREATE TABLE "BestOfCategory" (
   "id" TEXT NOT NULL,
