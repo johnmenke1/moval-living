@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import {
   syncNominatorToGHL,
   attachGhlContactId,
@@ -99,6 +100,14 @@ export async function POST(req: NextRequest) {
   })
   const businessId = candidate?.id ?? null
 
+  // If the nominator is signed in, link the nomination to their Owner
+  // account so it shows up in /dashboard/profile alongside their reviews
+  // and votes. nominatorName + nominatorEmail stay authoritative for
+  // display (snapshot pattern, same as Review + BestOfVote). Anonymous
+  // submissions still work — ownerId stays null.
+  const session = await auth()
+  const ownerId = session?.user?.id ?? null
+
   // Save the nomination locally first — GHL/SES failures must not block
   // the form. Everything downstream is fire-and-forget.
   const nomination = await prisma.bestOfNomination.create({
@@ -109,6 +118,7 @@ export async function POST(req: NextRequest) {
       nominatorName: parsed.data.nominatorName,
       nominatorEmail: parsed.data.nominatorEmail,
       reason: parsed.data.reason,
+      ownerId,
       emailOptIn: parsed.data.emailOptIn ?? false,
       smsOptIn: false, // never collected by this form
       emailConsentAt: parsed.data.emailOptIn ? new Date() : null,
