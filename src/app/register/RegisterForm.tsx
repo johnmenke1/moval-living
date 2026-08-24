@@ -10,9 +10,14 @@ export default function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const returnTo = searchParams.get('returnTo') || '/'
+  // Pre-fill from query params when the user is arriving from a flow
+  // that already collected this info (e.g. the Best-Of nomination
+  // success page). Values are sanity-clamped before they're used.
+  const nameFromQuery = (searchParams.get('name') ?? '').slice(0, 120)
+  const emailFromQuery = (searchParams.get('email') ?? '').slice(0, 320)
 
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const [name, setName] = useState(nameFromQuery)
+  const [email, setEmail] = useState(emailFromQuery)
   const [password, setPassword] = useState('')
   const [emailOptIn, setEmailOptIn] = useState(false)
   const [showPassword, setShowPassword] = useState(false)

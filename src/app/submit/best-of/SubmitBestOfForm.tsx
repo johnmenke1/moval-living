@@ -9,6 +9,7 @@ import {
   ChevronRight,
   RefreshCw,
   Send,
+  UserPlus,
 } from 'lucide-react'
 
 const REASON_MIN = 80
@@ -39,7 +40,9 @@ export default function SubmitBestOfForm() {
   const [form, setForm] = useState<FormState>(INITIAL)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [submitted, setSubmitted] = useState<{ nominationId: string } | null>(null)
+  const [submitted, setSubmitted] = useState<
+    { nominationId: string; accountCreated: boolean } | null
+  >(null)
 
   const update = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -71,7 +74,10 @@ export default function SubmitBestOfForm() {
       if (!res.ok) {
         throw new Error(data?.error || 'Submission failed — please try again')
       }
-      setSubmitted({ nominationId: data.nominationId })
+      setSubmitted({
+        nominationId: data.nominationId,
+        accountCreated: Boolean(data.accountCreated),
+      })
       setTimeout(() => {
         document.getElementById('nomination-success')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }, 100)
@@ -97,6 +103,37 @@ export default function SubmitBestOfForm() {
           review every nomination personally — if we move forward, you&apos;ll see it on the Best Of
           page soon.
         </p>
+
+        {/* Registration nudge — only shown when the nominator wasn't
+            already signed in at submit time. The point is to convert
+            high-intent nominators into account holders (who can then
+            vote) at the moment their motivation is highest. Pre-fills
+            name + email so it's a 1-field form (just a password). */}
+        {!submitted.accountCreated && (
+          <div className="max-w-md mx-auto mb-6 p-5 rounded-xl bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/20 text-left">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <UserPlus className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-text mb-1">
+                  Set a password to also vote
+                </p>
+                <p className="text-xs text-text-secondary mb-3 leading-relaxed">
+                  Your nomination is in. You can also vote on the Best Of picks once
+                  the categories open — takes about 20 seconds.
+                </p>
+                <Link
+                  href={`/register?name=${encodeURIComponent(form.nominatorName)}&email=${encodeURIComponent(form.nominatorEmail)}&returnTo=${encodeURIComponent('/best-of')}`}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  <UserPlus className="w-3.5 h-3.5" /> Create your account
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/best-of"

@@ -119,6 +119,10 @@ export async function POST(req: NextRequest) {
       nominatorEmail: parsed.data.nominatorEmail,
       reason: parsed.data.reason,
       ownerId,
+      // Mirror of ownerId-set-at-submit-time. Used by the success
+      // page to decide whether to show the registration-nudge CTA
+      // and by GHL tagging to fire the no-account follow-up workflow.
+      accountCreated: ownerId !== null,
       emailOptIn: parsed.data.emailOptIn ?? false,
       smsOptIn: false, // never collected by this form
       emailConsentAt: parsed.data.emailOptIn ? new Date() : null,
@@ -136,6 +140,7 @@ export async function POST(req: NextRequest) {
     email: parsed.data.nominatorEmail,
     emailOptIn: parsed.data.emailOptIn ?? false,
     submittedAt: nomination.createdAt,
+    accountCreated: nomination.accountCreated,
   })
     .then(async (res) => {
       if (res.ok && res.contactId) {
@@ -169,5 +174,12 @@ export async function POST(req: NextRequest) {
     adminLink,
   })
 
-  return NextResponse.json({ ok: true, nominationId: nomination.id })
+  return NextResponse.json({
+    ok: true,
+    nominationId: nomination.id,
+    // Mirrors BestOfNomination.accountCreated — lets the success page
+    // decide whether to show the "Set a password to also vote" CTA.
+    // True iff the nominator had an active Owner session at submit time.
+    accountCreated: nomination.accountCreated,
+  })
 }

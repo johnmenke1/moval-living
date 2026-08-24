@@ -581,6 +581,13 @@ model BestOfNomination {
   nominatorEmail String
   reason         String @db.Text
 
+  // True iff the nominator had an active session (ownerId set) at submit
+  // time. False for the public-form path. Powers the post-submit
+  // "set a password to also vote" CTA on the success page + a GHL
+  // tag (nominee-no-account) that triggers the registration-nudge
+  // follow-up workflow.
+  accountCreated Boolean  @default(false)
+
   // Tie the nomination to the nominator's Owner row if they were logged
   // in when submitting. NULL for legacy anonymous nominations and for
   // nominators without an account (the form is public). nominatorName

@@ -4,7 +4,10 @@
  * Three responsibilities, called from the POST route in this order:
  *   1. syncNominatorToGHL() — push the nominator to GoHighLevel as a Contact
  *      with tag 'community-member' and source 'best-of-nomination'.
- *      Best-effort: GHL outage must NOT block the form from saving locally.
+ *      If the nominator DIDN'T have an account at submit-time, also
+ *      tag them 'nominee-no-account' so a follow-up workflow can
+ *      nudge them to register and vote. Best-effort: GHL outage
+ *      must NOT block the form from saving locally.
  *   2. sendThankYouEmail() — fire-and-forget SES thank-you email to the
  *      nominator. Same voice as the cold-outreach templates.
  *   3. The admin notification (when a new PENDING arrives) is handled
@@ -20,6 +23,10 @@ import { prisma } from './prisma'
 const GHL_API_BASE = 'https://services.leadconnectorhq.com'
 const GHL_API_VERSION = '2021-07-28'
 const COMMUNITY_MEMBER_TAG = 'community-member'
+// Fired on nominators who submitted via the public form (no Owner session).
+// Triggers the GHL follow-up workflow that nudges them to register so they
+// can vote. NOT fired on nominations from logged-in Owners.
+const NO_ACCOUNT_TAG = 'nominee-no-account'
 const BEST_OF_SOURCE = 'best-of-nomination'
 
 // ── GHL mirror ────────────────────────────────────────────────────────────
@@ -39,6 +46,10 @@ interface NominatorInput {
   // Captured at submission time — used as a custom field so GHL workflows
   // can filter "this came in via the best-of nomination form".
   submittedAt: Date
+  // True iff the nominator had an active Owner session at submit time.
+  // Drives the `nominee-no-account` tag on the GHL contact, which
+  // gates the "you should register so you can vote" follow-up workflow.
+  accountCreated: boolean
 }
 
 /**
@@ -95,6 +106,14 @@ export async function syncNominatorToGHL(input: NominatorInput): Promise<GhlSync
       // compliance; a downstream GHL workflow can read it from the
       // community-member tag or a custom field. The community-member tag
       // + source 'best-of-nomination' are the workflow signals.
+      //
+      // Tags:
+      //   - 'community-member' — always, mirrors the existing behavior.
+      //   - 'nominee-no-account' — only when accountCreated === false.
+      //     The GHL follow-up workflow gates on this tag.
+      const tags = [COMMUNITY_MEMBER_TAG]
+      if (!input.accountCreated) tags.push(NO_ACCOUNT_TAG)
+
       const createRes = await fetch(`${GHL_API_BASE}/contacts/`, {
         method: 'POST',
         headers,
@@ -104,7 +123,7 @@ export async function syncNominatorToGHL(input: NominatorInput): Promise<GhlSync
           lastName,
           email: input.email,
           source: BEST_OF_SOURCE,
-          tags: [COMMUNITY_MEMBER_TAG],
+          tags,
         }),
       })
 
@@ -117,11 +136,20 @@ export async function syncNominatorToGHL(input: NominatorInput): Promise<GhlSync
     } else {
       // Existing contact — patch tags + source. (See comment above re:
       // marketingConsent — not settable via the Contacts API.)
+      //
+      // For existing contacts we PATCH to the full intended tag set.
+      // If they later register and vote, the GHL workflow will REMOVE
+      // the nominee-no-account tag (the workflow trigger handles that).
+      // We always re-assert community-member so the tag is stable
+      // across renominations.
+      const tags = [COMMUNITY_MEMBER_TAG]
+      if (!input.accountCreated) tags.push(NO_ACCOUNT_TAG)
+
       const patchRes = await fetch(`${GHL_API_BASE}/contacts/${contactId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({
-          tags: [COMMUNITY_MEMBER_TAG],
+          tags,
           source: BEST_OF_SOURCE,
         }),
       })
