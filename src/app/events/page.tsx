@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
-import { Calendar, MapPin, Sparkles, Award, Send, Building2 } from 'lucide-react'
+import { Calendar, MapPin, Sparkles, Award, Send, Building2, Users } from 'lucide-react'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildEvent, type Event as EventSchema } from '@/lib/seo-schema'
 import CategoryFilter from './CategoryFilter'
@@ -166,6 +166,14 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const events = await prisma.event.findMany({
     where,
     orderBy: [{ tier: 'asc' }, { startsAt: 'asc' }],
+    include: {
+      business: { select: { slug: true, name: true } },
+      _count: {
+        select: {
+          attendees: { where: { status: 'GOING' } },
+        },
+      },
+    },
   })
 
   // View-aware hero. Each view window gets its own `tier=HERO` event so the
@@ -508,6 +516,12 @@ function HonorableCard({ event }: { event: any }) {
             {event.business.name}
           </p>
         )}
+        {(event._count?.attendees ?? 0) > 0 && (
+          <p className="text-xs text-text-secondary mt-2 flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            {event._count.attendees} going
+          </p>
+        )}
       </div>
     </Link>
   )
@@ -549,6 +563,12 @@ function StandardCard({ event }: { event: any }) {
           <p className="text-xs text-primary font-semibold mb-2 flex items-center gap-1">
             <Building2 className="w-3 h-3" />
             Hosted by {event.business.name}
+          </p>
+        )}
+        {(event._count?.attendees ?? 0) > 0 && (
+          <p className="text-xs text-text-secondary mb-2 flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            {event._count.attendees} going
           </p>
         )}
         {event.description && (

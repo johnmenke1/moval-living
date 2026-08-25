@@ -1,24 +1,26 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildEvent } from '@/lib/seo-schema'
 import {
   Calendar,
-  Clock,
   MapPin,
   ExternalLink,
   ArrowLeft,
   Ticket,
   Building2,
+  Users,
 } from 'lucide-react'
+import { RsvpButtons } from './RsvpButtons'
 
 interface PageProps {
   params: Promise<{ slug: string }>
 }
 
-// Detail pages change every admin edit; never prerender, always read live.
+// Detail pages change every admin edit and RSVP; never prerender, always read live.
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -61,6 +63,42 @@ export default async function EventDetailPage({ params }: PageProps) {
   })
 
   if (!event || event.archivedAt) notFound()
+
+  const session = await auth()
+  const isAuthenticated = Boolean(session?.user?.id)
+
+  // Aggregate RSVP counts and, if logged in, the current user's status.
+  const [attendeeCounts, myAttendee, attendees] = await Promise.all([
+    prisma.eventAttendee.groupBy({
+      by: ['status'],
+      where: { eventId: event.id },
+      _count: { status: true },
+    }),
+    isAuthenticated
+      ? prisma.eventAttendee.findUnique({
+          where: {
+            eventId_ownerId: {
+              eventId: event.id,
+              ownerId: session!.user!.id,
+            },
+          },
+          select: { status: true },
+        })
+      : null,
+    prisma.eventAttendee.findMany({
+      where: { eventId: event.id },
+      orderBy: { createdAt: 'asc' },
+      take: 24,
+      select: {
+        status: true,
+        owner: { select: { id: true, name: true, image: true } },
+      },
+    }),
+  ])
+
+  const goingCount = attendeeCounts.find((c) => c.status === 'GOING')?._count.status ?? 0
+  const interestedCount = attendeeCounts.find((c) => c.status === 'INTERESTED')?._count.status ?? 0
+  const myStatus = myAttendee?.status ?? null
 
   // Schema.org Event JSON-LD (server-rendered so AI crawlers see it).
   const eventSchema = buildEvent({
@@ -117,9 +155,7 @@ export default async function EventDetailPage({ params }: PageProps) {
   const primaryCta = pickCta(event)
   const hostBusiness = event.business
 
-  // Related events at the same venue or in the same category — surface
-  // long-tail keep-earning traffic from a single indexed event page.
-  // We pick the strongest OR-clause from what's actually populated.
+  // Related events at the same venue or in the same category.
   const relatedOrClauses: any[] = []
   if (event.venueId) relatedOrClauses.push({ venueId: event.venueId })
   else if (event.venueName) relatedOrClauses.push({ venueName: event.venueName })
@@ -190,6 +226,15 @@ export default async function EventDetailPage({ params }: PageProps) {
                   )}
                 </p>
               )}
+              <div className="mt-4 flex items-center gap-3 text-white/80 text-sm">
+                <span className="inline-flex items-center gap-1.5">
+                  <Users className="w-4 h-4" />
+                  {goingCount} going
+                </span>
+                {interestedCount > 0 && (
+                  <span className="text-white/60">· {interestedCount} interested</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -198,7 +243,7 @@ export default async function EventDetailPage({ params }: PageProps) {
         <div className="container-max py-10 sm:py-12">
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Description */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               {event.description ? (
                 <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8">
                   <h2 className="text-xl font-bold text-text mb-4">About this event</h2>
@@ -214,11 +259,49 @@ export default async function EventDetailPage({ params }: PageProps) {
                 </div>
               )}
 
+              {/* Attendee list */}
+              {attendees.length > 0 && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8">
+                  <h2 className="text-xl font-bold text-text mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-primary" />
+                    Who&apos;s coming
+                  </h2>
+                  <div className="flex flex-wrap gap-3">
+                    {attendees.map((a) => (
+                      <div
+                        key={a.owner.id}
+                        className="flex items-center gap-2 bg-slate-50 rounded-full pl-1 pr-3 py-1 border border-slate-100"
+                        title={a.status === 'GOING' ? 'Going' : 'Interested'}
+                      >
+                        {a.owner.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={a.owner.image}
+                            alt=""
+                            className="w-7 h-7 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                            {(a.owner.name ?? 'U').charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="text-sm text-text font-medium">
+                          {a.owner.name ?? 'A guest'}
+                        </span>
+                        {a.status === 'INTERESTED' && (
+                          <span className="text-[10px] text-text-secondary">interested</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Host business */}
               {hostBusiness && (
                 <Link
                   href={`/business/${hostBusiness.slug}`}
-                  className="mt-6 block bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 hover:border-primary/40 transition-colors"
+                  className="block bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 hover:border-primary/40 transition-colors"
                 >
                   <p className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-2 flex items-center gap-2">
                     <Building2 className="w-4 h-4" /> Hosted by
@@ -234,7 +317,7 @@ export default async function EventDetailPage({ params }: PageProps) {
 
               {/* Related events */}
               {related.length > 0 && (
-                <div className="mt-8">
+                <div>
                   <h2 className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-3">
                     More at this venue or in this category
                   </h2>
@@ -274,7 +357,7 @@ export default async function EventDetailPage({ params }: PageProps) {
               )}
             </div>
 
-            {/* Sidebar — details + CTA */}
+            {/* Sidebar — details + CTA + RSVP */}
             <aside className="space-y-4">
               <div className="bg-white rounded-2xl border border-slate-200 p-5">
                 <h2 className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-3">
@@ -309,7 +392,7 @@ export default async function EventDetailPage({ params }: PageProps) {
                   )}
                   {event.startsAt && (
                     <div className="flex items-start gap-2">
-                      <Clock className="w-4 h-4 text-text-secondary mt-0.5 shrink-0" />
+                      <Calendar className="w-4 h-4 text-text-secondary mt-0.5 shrink-0" />
                       <dd>
                         <p className="text-text">
                           {event.startsAt.toLocaleTimeString('en-US', {
@@ -325,13 +408,21 @@ export default async function EventDetailPage({ params }: PageProps) {
                 </dl>
               </div>
 
+              <RsvpButtons
+                slug={slug}
+                initialStatus={myStatus}
+                goingCount={goingCount}
+                interestedCount={interestedCount}
+                isAuthenticated={isAuthenticated}
+              />
+
               {/* Primary CTA — pick the most actionable link */}
               {primaryCta && (
                 <a
                   href={primaryCta.href}
                   target={primaryCta.external ? '_blank' : undefined}
                   rel={primaryCta.external ? 'noopener noreferrer' : undefined}
-                  className="flex items-center justify-center gap-2 w-full px-5 py-3.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors"
+                  className="flex items-center justify-center gap-2 w-full px-5 py-3.5 rounded-xl bg-secondary text-white font-semibold hover:bg-secondary/90 transition-colors"
                 >
                   {primaryCta.icon === 'ticket' ? <Ticket className="w-4 h-4" /> : <ExternalLink className="w-4 h-4" />}
                   {primaryCta.label}

@@ -196,6 +196,7 @@ model Owner {
   reviews          Review[]
   bestOfNominations BestOfNomination[]
   emailChangeRequests EmailChangeRequest[]
+  eventAttendees   EventAttendee[]
 }
 
 enum UserRole {
@@ -470,6 +471,7 @@ model Event {
   archivedAt              DateTime?
 
   submissions Submission[] @relation("SubmissionToEvent")
+  attendees   EventAttendee[]
 
   @@index([startsAt])
   @@index([tier])
@@ -480,6 +482,27 @@ model Event {
   @@index([esEnEspanol])
   @@index([archivedAt])
   @@index([venueId])
+}
+
+enum EventAttendeeStatus {
+  GOING
+  INTERESTED
+}
+
+model EventAttendee {
+  id        String              @id @default(cuid())
+  eventId   String
+  event     Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ownerId   String
+  owner     Owner               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  status    EventAttendeeStatus
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@unique([eventId, ownerId])
+  @@index([eventId])
+  @@index([ownerId])
+  @@index([status])
 }
 
 enum Platform {

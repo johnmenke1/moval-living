@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { ProfileForm } from './ProfileForm'
 import { YourReviews } from './YourReviews'
 import { EmailChangeForm } from './EmailChangeForm'
+import { YourEvents } from './YourEvents'
 import { buildReviewsPageResponse } from './your-reviews-helpers'
 
 export const metadata: Metadata = {
@@ -63,6 +64,45 @@ export default async function ProfilePage() {
     }),
   )
 
+  // Server-side fetch for the user's RSVPed events.
+  const attendeeRows = await prisma.eventAttendee.findMany({
+    where: { ownerId: owner.id },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      status: true,
+      event: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          startsAt: true,
+          venueName: true,
+          city: true,
+          heroImageUrl: true,
+        },
+      },
+    },
+  })
+
+  const toProfileEvent = (r: (typeof attendeeRows)[number]) => ({
+    id: r.event.id,
+    attendeeId: r.id,
+    slug: r.event.slug,
+    title: r.event.title,
+    startsAt: r.event.startsAt.toISOString(),
+    venueName: r.event.venueName,
+    city: r.event.city,
+    heroImageUrl: r.event.heroImageUrl,
+  })
+
+  const initialAttending = attendeeRows
+    .filter((r) => r.status === 'GOING')
+    .map(toProfileEvent)
+  const initialInterested = attendeeRows
+    .filter((r) => r.status === 'INTERESTED')
+    .map(toProfileEvent)
+
   return (
     <div className="bg-slate-50 min-h-screen py-10">
       <div className="max-w-2xl mx-auto px-4">
@@ -88,6 +128,14 @@ export default async function ProfilePage() {
             Reviews you&apos;ve left on local businesses, newest first.
           </p>
           <YourReviews initialReviews={initialReviews} />
+        </section>
+
+        <section className="mt-8">
+          <h2 className="text-lg font-bold text-text mb-3">Your events</h2>
+          <p className="text-xs text-text-secondary mb-3">
+            Events you&apos;ve said you&apos;re attending or interested in.
+          </p>
+          <YourEvents initialAttending={initialAttending} initialInterested={initialInterested} />
         </section>
 
         <EmailChangeForm currentEmail={owner.email} />
