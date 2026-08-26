@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import {
   Check,
@@ -22,18 +22,6 @@ const BOOKING_URL = 'https://api.headsuphq.com/widget/booking/muZA0UoHRwtxiYTTlK
 const PHONE_NUMBER = '+1 888-887-5950'
 const PHONE_HREF = 'tel:+18888875950'
 
-const featuredFeatures = [
-  { label: 'Basic listing', free: true, featured: true },
-  { label: 'Contact info & map', free: true, featured: true },
-  { label: 'Up to 3 photos', free: true, featured: true },
-  { label: 'Reviews & ratings', free: true, featured: true },
-  { label: 'Featured badge on listing', free: false, featured: true },
-  { label: 'Homepage featured section', free: false, featured: true },
-  { label: 'Priority search ranking', free: false, featured: true },
-  { label: 'Up to 10 photos', free: false, featured: true },
-  { label: 'Coupons & deals', free: false, featured: true },
-]
-
 const tiers = [
   {
     id: 'foundation',
@@ -50,8 +38,6 @@ const tiers = [
       'Mobile-friendly design',
       '48-hour email support',
     ],
-    accent: 'border-[#007a7f]/30',
-    glow: 'from-[#007a7f]/10 to-transparent',
   },
   {
     id: 'premium',
@@ -73,8 +59,6 @@ const tiers = [
       'Mobile-friendly design',
       'Priority email support',
     ],
-    accent: 'border-amber-400/40',
-    glow: 'from-amber-400/15 to-transparent',
   },
 ]
 
@@ -183,58 +167,16 @@ function LeadForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <input
-          type="text"
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          placeholder="Your name *"
-          required
-          className="input"
-        />
-        <input
-          type="text"
-          name="business"
-          value={form.business}
-          onChange={handleChange}
-          placeholder="Business name"
-          className="input"
-        />
+        <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Your name *" required className="input" />
+        <input type="text" name="business" value={form.business} onChange={handleChange} placeholder="Business name" className="input" />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <input
-          type="email"
-          name="email"
-          value={form.email}
-          onChange={handleChange}
-          placeholder="Email address *"
-          required
-          className="input"
-        />
-        <input
-          type="tel"
-          name="phone"
-          value={form.phone}
-          onChange={handleChange}
-          placeholder="Phone number"
-          className="input"
-        />
+        <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="Email address *" required className="input" />
+        <input type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="Phone number" className="input" />
       </div>
-      <textarea
-        name="message"
-        value={form.message}
-        onChange={handleChange}
-        placeholder="Tell us about your business and what you need..."
-        rows={4}
-        required
-        className="input resize-none"
-      />
+      <textarea name="message" value={form.message} onChange={handleChange} placeholder="Tell us about your business and what you need..." rows={4} required className="input resize-none" />
       {error && <p className="text-error text-sm">{error}</p>}
-      <button
-        type="submit"
-        disabled={submitting}
-        className="btn-primary w-full flex items-center justify-center gap-2"
-      >
+      <button type="submit" disabled={submitting} className="btn-primary w-full flex items-center justify-center gap-2">
         {submitting ? 'Sending...' : 'Send Message'}
         <Send className="w-4 h-4" />
       </button>
@@ -249,18 +191,14 @@ function ContactSection() {
       <div className="container-max">
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-0 rounded-3xl overflow-hidden border border-slate-200 bg-white">
-            <div className="p-8 sm:p-10 lg:p-12">
+            <div className="p-8 sm:p-10 lg:p-12 border-b lg:border-b-0 lg:border-r border-slate-100">
               <div className="mb-8">
                 <span className="inline-flex items-center gap-2 text-[#007a7f] text-sm font-semibold uppercase tracking-wider mb-3">
                   <MessageSquare className="w-4 h-4" />
                   Send a Message
                 </span>
-                <h2 className="text-3xl sm:text-4xl font-bold text-[#1a2e35] mb-3">
-                  Tell us what you&apos;re building
-                </h2>
-                <p className="text-[#5a6c72]">
-                  Fill this out and we&apos;ll get back to you with next steps — usually the same day.
-                </p>
+                <h2 className="text-3xl sm:text-4xl font-bold text-[#1a2e35] mb-3">Tell us what you&apos;re building</h2>
+                <p className="text-[#5a6c72]">Fill this out and we&apos;ll get back to you with next steps — usually the same day.</p>
               </div>
               <LeadForm />
             </div>
@@ -274,20 +212,11 @@ function ContactSection() {
                   <Clock className="w-4 h-4" />
                   Prefer to Talk?
                 </span>
-                <h2 className="text-3xl sm:text-4xl font-bold text-[#1a2e35] mb-3">
-                  Book a call or ring us
-                </h2>
-                <p className="text-[#5a6c72] mb-8">
-                  No pressure, no pitch deck. We&apos;ll answer your questions and show you what a real build looks like.
-                </p>
+                <h2 className="text-3xl sm:text-4xl font-bold text-[#1a2e35] mb-3">Book a call or ring us</h2>
+                <p className="text-[#5a6c72] mb-8">No pressure, no pitch deck. We&apos;ll answer your questions and show you what a real build looks like.</p>
 
                 <div className="space-y-4">
-                  <a
-                    href={BOOKING_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 hover:border-[#007a7f]/30 hover:shadow-md transition-all"
-                  >
+                  <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 hover:border-[#007a7f]/30 hover:shadow-md transition-all">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#007a7f]/10 text-[#007a7f] group-hover:scale-110 transition-transform">
                       <Calendar className="w-6 h-6" />
                     </div>
@@ -298,10 +227,7 @@ function ContactSection() {
                     <ArrowRight className="w-5 h-5 text-[#5a6c72] group-hover:text-[#007a7f] transition-colors" />
                   </a>
 
-                  <a
-                    href={PHONE_HREF}
-                    className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 hover:border-[#c9786d]/30 hover:shadow-md transition-all"
-                  >
+                  <a href={PHONE_HREF} className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 hover:border-[#c9786d]/30 hover:shadow-md transition-all">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#c9786d]/10 text-[#c9786d] group-hover:scale-110 transition-transform">
                       <Phone className="w-6 h-6" />
                     </div>
@@ -329,48 +255,45 @@ function ContactSection() {
 
 function DemoBrowser() {
   const [playing, setPlaying] = useState(true)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  const toggle = () => {
+    if (!videoRef.current) return
+    if (playing) videoRef.current.pause()
+    else videoRef.current.play()
+    setPlaying(!playing)
+  }
 
   return (
-    <div className="relative mx-auto max-w-5xl perspective-1000">
-      <div className="relative rounded-2xl border border-slate-200 bg-[#0B1215] shadow-2xl shadow-teal-900/20 overflow-hidden transform md:rotate-x-2 md:rotate-y-1 transition-transform duration-700 hover:rotate-0">
+    <div className="relative mx-auto max-w-5xl">
+      <div className="relative rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
         {/* Browser chrome */}
-        <div className="flex items-center gap-2 border-b border-white/10 bg-[#151e23] px-4 py-3">
+        <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-3">
           <div className="flex gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-rose-500/80" />
-            <span className="h-3 w-3 rounded-full bg-amber-400/80" />
-            <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
+            <span className="h-3 w-3 rounded-full bg-rose-400" />
+            <span className="h-3 w-3 rounded-full bg-amber-400" />
+            <span className="h-3 w-3 rounded-full bg-emerald-400" />
           </div>
-          <div className="ml-4 flex-1 rounded-lg bg-black/30 px-3 py-1.5 text-xs text-slate-500 truncate flex items-center justify-between">
-            <span>freshman-inspired-demo.moval.living</span>
-            <button
-              type="button"
-              onClick={() => setPlaying(p => !p)}
-              className="ml-2 p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-              aria-label={playing ? 'Pause video' : 'Play video'}
-            >
+          <div className="ml-4 flex-1 rounded-lg bg-slate-100 px-3 py-1.5 text-xs text-slate-500 truncate flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Globe className="w-3 h-3" />
+              acme-moval.com
+            </span>
+            <button type="button" onClick={toggle} className="ml-2 p-1 rounded hover:bg-slate-200 text-slate-500 transition-colors" aria-label={playing ? 'Pause video' : 'Play video'}>
               {playing ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
             </button>
           </div>
         </div>
 
         {/* Demo site content with video background */}
-        <div className="relative min-h-[360px] sm:min-h-[420px] flex flex-col justify-between overflow-hidden">
-          <video
-            src="/web-design-hero-demo.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/60" />
+        <div className="relative min-h-[360px] sm:min-h-[420px] flex flex-col justify-between overflow-hidden bg-black">
+          <video ref={videoRef} src="/web-design-hero-demo.mp4" autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/50" />
 
           {/* Demo nav */}
           <div className="relative flex items-center justify-between border-b border-white/10 px-6 sm:px-10 py-5">
-            <div className="text-white font-bold tracking-tight text-sm sm:text-base">
-              ACME <span className="text-[#ff2936]">.</span>
-            </div>
-            <div className="hidden sm:flex items-center gap-6 text-[10px] text-white/60 uppercase tracking-[0.15em]">
+            <div className="text-white font-bold tracking-tight text-sm sm:text-base">ACME <span className="text-[#ff2936]">.</span></div>
+            <div className="hidden sm:flex items-center gap-6 text-[10px] text-white/70 uppercase tracking-[0.15em]">
               <span>Services</span>
               <span>Work</span>
               <span>About</span>
@@ -382,18 +305,9 @@ function DemoBrowser() {
           <div className="relative flex-1 flex items-center px-6 sm:px-10 py-10">
             <div className="max-w-xl">
               <p className="text-[#ff2936] text-xs uppercase tracking-[0.2em] font-semibold mb-4">Moreno Valley</p>
-              <h3
-                className="text-white text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[0.95] mb-6"
-                style={{ fontFamily: "var(--font-fraunces), 'Times New Roman', serif" }}
-              >
-                Built for the <em className="not-italic text-white/80">locals</em>.
-              </h3>
-              <p className="text-white/70 text-sm sm:text-base max-w-md leading-relaxed mb-6">
-                A website designed to turn every visitor into a lead — mobile-first, fast, and impossible to miss in local search.
-              </p>
-              <div className="inline-flex items-center gap-2 text-black bg-white px-5 py-2.5 text-sm font-semibold">
-                Get a Quote <ArrowRight className="w-4 h-4" />
-              </div>
+              <h3 className="text-white text-4xl sm:text-5xl md:text-6xl font-serif font-extralight tracking-tight leading-[0.95] mb-6">Built for the <em className="not-italic text-white/80">locals</em>.</h3>
+              <p className="text-white/80 text-sm sm:text-base max-w-md leading-relaxed mb-6">A website designed to turn every visitor into a lead — mobile-first, fast, and impossible to miss in local search.</p>
+              <div className="inline-flex items-center gap-2 text-black bg-white px-5 py-2.5 text-sm font-semibold rounded-lg">Get a Quote <ArrowRight className="w-4 h-4" /></div>
             </div>
           </div>
 
@@ -406,7 +320,7 @@ function DemoBrowser() {
             ].map(stat => (
               <div key={stat.label} className="p-4 text-center border-r border-white/10 last:border-r-0">
                 <div className="text-white text-xl sm:text-2xl font-extralight tracking-tight">{stat.value}</div>
-                <div className="text-white/40 text-[10px] uppercase tracking-widest">{stat.label}</div>
+                <div className="text-white/50 text-[10px] uppercase tracking-widest">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -444,26 +358,14 @@ export default function WebDesignClient() {
             <Sparkles className="w-4 h-4" />
             Setup & onboarding (a $497 value) is on us — limited time
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-5">
-            A website that works as hard as your business does
-          </h1>
-          <p className="text-white/85 text-lg max-w-2xl mx-auto mb-10">
-            Custom websites for local businesses, built and maintained by the team behind moval.living. No contracts. Cancel anytime.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
-            <a
-              href={BOOKING_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-accent px-8 py-4 text-base"
-            >
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-5">A website that works as hard as your business does</h1>
+          <p className="text-white/85 text-lg max-w-2xl mx-auto mb-10">Custom websites for local businesses, built and maintained by the team behind moval.living. No contracts. Cancel anytime.</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-24">
+            <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="btn-accent px-8 py-4 text-base">
               <Calendar className="w-5 h-5" />
               Book a free call
             </a>
-            <Link
-              href="#pricing"
-              className="inline-flex items-center gap-2 rounded-lg border-2 border-white/30 bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-4 transition-colors"
-            >
+            <Link href="#pricing" className="inline-flex items-center gap-2 rounded-lg border-2 border-white/30 bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-4 transition-colors">
               See pricing <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
@@ -499,12 +401,8 @@ export default function WebDesignClient() {
               <Sparkles className="w-4 h-4" />
               What you get
             </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1a2e35] mb-5">
-              Not just a website. A lead machine.
-            </h2>
-            <p className="text-lg text-[#5a6c72]">
-              Every site is designed around the things that actually drive revenue for local businesses.
-            </p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1a2e35] mb-5">Not just a website. A lead machine.</h2>
+            <p className="text-lg text-[#5a6c72]">Every site is designed around the things that actually drive revenue for local businesses.</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -516,10 +414,7 @@ export default function WebDesignClient() {
               { icon: Globe, title: 'Local SEO', body: 'Technical SEO, fast load times, and schema markup so your business shows up when locals search.' },
               { icon: Check, title: 'Hosting & maintenance', body: 'Security updates, backups, uptime monitoring, and edits handled by us — not another todo on your list.' },
             ].map(card => (
-              <div
-                key={card.title}
-                className="group bg-white rounded-2xl border border-slate-200 p-7 hover:border-[#007a7f]/30 hover:shadow-md transition-all"
-              >
+              <div key={card.title} className="group bg-white rounded-2xl border border-slate-200 p-7 hover:border-[#007a7f]/30 hover:shadow-md transition-all">
                 <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#007a7f]/10 text-[#007a7f] group-hover:scale-110 transition-transform">
                   <card.icon className="w-6 h-6" />
                 </div>
@@ -539,67 +434,48 @@ export default function WebDesignClient() {
               <Sparkles className="w-4 h-4" />
               Simple pricing
             </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1a2e35] mb-5">
-              One monthly fee. Everything included.
-            </h2>
-            <p className="text-lg text-[#5a6c72]">
-              No setup fee right now. No contracts. Just a website and marketing system that runs itself.
-            </p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1a2e35] mb-5">One monthly fee. Everything included.</h2>
+            <p className="text-lg text-[#5a6c72]">No setup fee right now. No contracts. Just a website and marketing system that runs itself.</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {tiers.map((tier, i) => (
-              <div
-                key={tier.id}
-                className={clsx(
-                  'relative rounded-3xl border bg-[#f0efeb] p-8 sm:p-10 overflow-hidden',
-                  tier.accent
-                )}
-              >
-                <div className={clsx('absolute -top-24 -right-24 w-64 h-64 bg-gradient-to-br rounded-full blur-3xl opacity-40', tier.glow)} />
+              <div key={tier.id} className={clsx('relative rounded-3xl border p-8 sm:p-10 overflow-hidden', i === 1 ? 'border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-yellow-50 shadow-lg' : 'border-2 border-[#007a7f] bg-white')}>
                 {tier.badge && (
-                  <div className="absolute top-6 right-6 rounded-full bg-amber-400/10 border border-amber-400/20 px-3 py-1 text-xs font-bold text-amber-700 uppercase tracking-wider">
-                    {tier.badge}
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                    <span className="bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 text-sm font-bold px-4 py-1 rounded-full flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      {tier.badge}
+                    </span>
                   </div>
                 )}
-                <div className="relative">
-                  <h3 className="text-2xl font-bold text-[#1a2e35] mb-2">{tier.name}</h3>
-                  <p className="text-[#5a6c72] mb-6 min-h-[3rem]">{tier.description}</p>
-                  <div className="flex items-baseline gap-1 mb-8">
-                    <span className="text-5xl sm:text-6xl font-bold text-[#1a2e35]">{tier.price}</span>
-                    <span className="text-[#5a6c72] font-medium">{tier.period}</span>
-                  </div>
-
-                  <ul className="space-y-2 mb-8">
-                    {tier.features.map(feature => (
-                      <li key={feature} className="flex items-start gap-3 text-sm text-[#1a2e35]">
-                        <Check className={clsx('w-5 h-5 flex-shrink-0 mt-0.5', i === 1 ? 'text-amber-500' : 'text-[#007a7f]')} />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <a
-                    href={BOOKING_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={clsx(
-                      'w-full inline-flex items-center justify-center gap-2 rounded-xl font-semibold px-6 py-4 transition-colors',
-                      i === 1
-                        ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 hover:from-amber-600 hover:to-yellow-500'
-                        : 'bg-[#007a7f] text-white hover:bg-[#006a70]'
-                    )}
-                  >
-                    Book a Free Call <ArrowRight className="w-4 h-4" />
-                  </a>
+                <h3 className={clsx('text-2xl font-bold mb-2 flex items-center gap-2', i === 1 ? 'text-[#1a2e35]' : 'text-[#1a2e35]')}>
+                  {i === 1 ? <Sparkles className="w-6 h-6 text-amber-500" /> : <Globe className="w-6 h-6 text-[#007a7f]" />}
+                  {tier.name}
+                </h3>
+                <p className="text-[#5a6c72] mb-6 min-h-[3rem]">{tier.description}</p>
+                <div className="flex items-baseline gap-1 mb-8">
+                  <span className="text-5xl sm:text-6xl font-bold text-[#1a2e35]">{tier.price}</span>
+                  <span className="text-[#5a6c72] font-medium">{tier.period}</span>
                 </div>
+
+                <ul className="space-y-2 mb-8">
+                  {tier.features.map(feature => (
+                    <li key={feature} className="flex items-start gap-3 text-sm text-[#1a2e35]">
+                      <Check className={clsx('w-5 h-5 flex-shrink-0 mt-0.5', i === 1 ? 'text-amber-500' : 'text-[#007a7f]')} />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className={clsx('w-full inline-flex items-center justify-center gap-2 rounded-xl font-semibold px-6 py-4 transition-colors', i === 1 ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 hover:from-amber-600 hover:to-yellow-500' : 'bg-[#007a7f] text-white hover:bg-[#006a70]')}>
+                  Book a Free Call <ArrowRight className="w-4 h-4" />
+                </a>
               </div>
             ))}
           </div>
 
-          <p className="text-center text-[#5a6c72] mt-10 text-sm">
-            Setup & onboarding (a $497 value) is currently waived for new clients.
-          </p>
+          <p className="text-center text-[#5a6c72] mt-10 text-sm">Setup & onboarding (a $497 value) is currently waived for new clients.</p>
         </div>
       </section>
 
@@ -611,9 +487,7 @@ export default function WebDesignClient() {
               <Clock className="w-4 h-4" />
               How it works
             </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1a2e35] mb-5">
-              From first call to live site in under two weeks
-            </h2>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1a2e35] mb-5">From first call to live site in under two weeks</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
@@ -622,9 +496,7 @@ export default function WebDesignClient() {
                 <div className="text-6xl font-bold text-[#007a7f]/10 mb-4">{step.step}</div>
                 <div className="mb-3 flex items-center gap-3">
                   <h3 className="text-xl font-bold text-[#1a2e35]">{step.title}</h3>
-                  <span className="rounded-full bg-white border border-slate-200 px-2.5 py-0.5 text-xs text-[#5a6c72]">
-                    {step.time}
-                  </span>
+                  <span className="rounded-full bg-white border border-slate-200 px-2.5 py-0.5 text-xs text-[#5a6c72]">{step.time}</span>
                 </div>
                 <p className="text-[#5a6c72] leading-relaxed text-sm">{step.body}</p>
               </div>
@@ -647,33 +519,14 @@ export default function WebDesignClient() {
 
             <div className="space-y-4">
               {faqs.map((faq, i) => (
-                <div
-                  key={i}
-                  className={clsx(
-                    'rounded-2xl border border-slate-200 bg-[#f0efeb] overflow-hidden transition-colors',
-                    openFaq === i && 'border-[#007a7f]/30 bg-white'
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    className="w-full flex items-center justify-between gap-4 p-6 text-left"
-                  >
+                <div key={i} className={clsx('rounded-2xl border border-slate-200 bg-[#f0efeb] overflow-hidden transition-colors', openFaq === i && 'border-[#007a7f]/30 bg-white')}>
+                  <button type="button" onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between gap-4 p-6 text-left">
                     <span className="font-semibold text-[#1a2e35]">{faq.question}</span>
-                    <span
-                      className={clsx(
-                        'flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200 text-[#5a6c72] transition-transform',
-                        openFaq === i && 'rotate-180 text-[#007a7f]'
-                      )}
-                    >
+                    <span className={clsx('flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200 text-[#5a6c72] transition-transform', openFaq === i && 'rotate-90 text-[#007a7f]')}>
                       <ArrowRight className="w-4 h-4" />
                     </span>
                   </button>
-                  {openFaq === i && (
-                    <div className="px-6 pb-6 text-[#5a6c72] leading-relaxed text-sm">
-                      {faq.answer}
-                    </div>
-                  )}
+                  {openFaq === i && <div className="px-6 pb-6 text-[#5a6c72] leading-relaxed text-sm">{faq.answer}</div>}
                 </div>
               ))}
             </div>
@@ -688,26 +541,14 @@ export default function WebDesignClient() {
       <section className="py-16 md:py-24">
         <div className="container-max">
           <div className="max-w-4xl mx-auto text-center rounded-3xl border border-slate-200 bg-gradient-to-br from-[#007a7f]/10 via-white to-[#f0efeb] p-10 sm:p-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1a2e35] mb-5">
-              Ready for a website that sells while you sleep?
-            </h2>
-            <p className="text-lg text-[#5a6c72] mb-8 max-w-2xl mx-auto">
-              Book a free 20-minute demo call. We&apos;ll show you real sites, real results, and exactly what your build would look like.
-            </p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1a2e35] mb-5">Ready for a website that sells while you sleep?</h2>
+            <p className="text-lg text-[#5a6c72] mb-8 max-w-2xl mx-auto">Book a free 20-minute demo call. We&apos;ll show you real sites, real results, and exactly what your build would look like.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a
-                href={BOOKING_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-accent px-8 py-4 text-base"
-              >
+              <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="btn-accent px-8 py-4 text-base">
                 <Calendar className="w-5 h-5" />
                 Book a free call
               </a>
-              <a
-                href={PHONE_HREF}
-                className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-200 text-[#1a2e35] font-semibold px-8 py-4 hover:border-[#007a7f] hover:text-[#007a7f] transition-colors"
-              >
+              <a href={PHONE_HREF} className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-200 text-[#1a2e35] font-semibold px-8 py-4 hover:border-[#007a7f] hover:text-[#007a7f] transition-colors">
                 <Phone className="w-5 h-5" />
                 {PHONE_NUMBER}
               </a>
