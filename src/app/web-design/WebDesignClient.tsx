@@ -386,9 +386,10 @@ function BeforeAfterBrowser() {
         <SplitReveal before={before} after={after} className="rounded-2xl" initialSplit={35} />
       </FloatingCard>
 
-      {/* Floating metrics */}
+      {/* Floating metrics — stack vertically below the browser on small viewports so
+          they don't overlap each other in the gap below the card. */}
       <motion.div
-        className="absolute -bottom-6 left-4 sm:left-8 z-20"
+        className="relative mt-4 mx-auto w-fit z-20 sm:absolute sm:mt-0 sm:w-auto sm:-bottom-6 sm:left-4 sm:right-auto"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, ...springTransition }}
@@ -422,7 +423,7 @@ function BeforeAfterBrowser() {
       </motion.div>
 
       <motion.div
-        className="absolute -bottom-14 right-4 sm:right-8 z-20"
+        className="relative mt-3 mx-auto w-fit z-20 sm:absolute sm:mt-0 sm:w-auto sm:-bottom-14 sm:right-4 sm:left-auto"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1, ...springTransition }}
