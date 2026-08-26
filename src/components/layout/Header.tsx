@@ -10,6 +10,7 @@ import {
   Compass,
   DollarSign,
   FileText,
+  Globe,
   Home as HomeIcon,
   Info,
   Menu,
@@ -58,6 +59,13 @@ const navGroups = [
       { label: 'About MoVal', href: '/about-moreno-valley', icon: Info },
       { label: 'Expert Partners', href: '/partners', icon: Sparkles },
       { label: 'Pricing', href: '/pricing', icon: DollarSign },
+    ],
+  },
+  {
+    label: 'Services',
+    icon: Globe,
+    items: [
+      { label: 'Web Design for Businesses', href: '/web-design', icon: Globe },
     ],
   },
 ]

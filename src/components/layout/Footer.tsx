@@ -23,6 +23,7 @@ const footerLinks = {
     { label: 'List Your Business', href: '/submit' },
     { label: 'Claim Your Listing', href: '/claim' },
     { label: 'Pricing', href: '/pricing' },
+    { label: 'Web Design', href: '/web-design' },
     { label: 'Owner Login', href: '/login' },
   ],
   city: [
