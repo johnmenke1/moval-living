@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import Link from 'next/link'
 import {
   Check,
   ArrowRight,
@@ -17,6 +16,24 @@ import {
   Pause,
 } from 'lucide-react'
 import { clsx } from 'clsx'
+import { Reveal, AnimatedNumber, MagneticButton, Marquee, AmbientOrbs, ShimmerText } from './Motion'
+
+/* Categories ticker — drives the Marquee strip between hero and trust bar.
+   Reads as "we build for these verticals" without screenshotting 18 sites. */
+const CATEGORY_TICKER = [
+  'Restaurants',
+  'Contractors',
+  'Healthcare',
+  'Auto Repair',
+  'Real Estate',
+  'Retail',
+  'Salons & Spas',
+  'Home Services',
+  'Legal',
+  'Fitness',
+  'Pet Services',
+  'Professional Services',
+]
 
 const BOOKING_URL = 'https://api.headsuphq.com/widget/booking/muZA0UoHRwtxiYTTlKHv'
 const PHONE_NUMBER = '+1 888-887-5950'
@@ -352,58 +369,81 @@ export default function WebDesignClient() {
   return (
     <div className="bg-[#f0efeb] min-h-screen">
       {/* Hero */}
-      <div className="bg-gradient-to-br from-[#007a7f] to-[#00405c] text-white py-20 md:py-28">
-        <div className="container-max text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-semibold px-4 py-1.5 rounded-full mb-6">
-            <Sparkles className="w-4 h-4" />
-            Setup & onboarding (a $497 value) is on us — limited time
-          </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-5">A website that works as hard as your business does</h1>
-          <p className="text-white/85 text-lg max-w-2xl mx-auto mb-10">Custom websites for local businesses, built and maintained by the team behind moval.living. No contracts. Cancel anytime.</p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-24">
-            <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="btn-accent px-8 py-4 text-base">
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#007a7f] to-[#00405c] text-white py-20 md:py-28">
+        <AmbientOrbs />
+        <div className="container-max text-center relative">
+          <Reveal delay={0}>
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-semibold px-4 py-1.5 rounded-full mb-6">
+              <Sparkles className="w-4 h-4" />
+              Setup & onboarding (a $497 value) is on us — limited time
+            </div>
+          </Reveal>
+          <Reveal delay={120} className="text-4xl md:text-5xl lg:text-6xl font-bold mb-5">
+            <h1><ShimmerText>A website that works as hard as your business does</ShimmerText></h1>
+          </Reveal>
+          <Reveal delay={240} className="text-white/85 text-lg max-w-2xl mx-auto mb-10">
+            Custom websites for local businesses, built and maintained by the team behind moval.living. No contracts. Cancel anytime.
+          </Reveal>
+          <Reveal delay={360} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-24">
+            <MagneticButton
+              href={BOOKING_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-accent px-8 py-4 text-base"
+            >
               <Calendar className="w-5 h-5" />
               Book a free call
-            </a>
-            <Link href="#pricing" className="inline-flex items-center gap-2 rounded-lg border-2 border-white/30 bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-4 transition-colors">
+            </MagneticButton>
+            <MagneticButton
+              href="#pricing"
+              className="inline-flex items-center gap-2 rounded-lg border-2 border-white/30 bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-4 transition-colors"
+            >
               See pricing <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
+            </MagneticButton>
+          </Reveal>
 
-          <DemoBrowser />
+          <Reveal delay={480}>
+            <DemoBrowser />
+          </Reveal>
         </div>
       </div>
+
+      {/* Marquee ticker — shows the verticals we build for */}
+      <Marquee items={CATEGORY_TICKER} speed={40} />
 
       {/* Trust bar */}
       <div className="bg-white border-b border-slate-200">
         <div className="container-max py-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { value: '$497', label: 'setup fee waived' },
-              { value: '7–10', label: 'days to launch' },
-              { value: '0', label: 'long-term contracts' },
-              { value: '∞', label: 'support included' },
-            ].map(stat => (
-              <div key={stat.label}>
-                <div className="text-3xl sm:text-4xl font-bold text-[#1a2e35]">{stat.value}</div>
+              { value: 497, prefix: '$', label: 'setup fee waived' },
+              { value: 10, suffix: '–7', label: 'days to launch' },
+              { value: 0, label: 'long-term contracts' },
+              { value: 24, suffix: '/7', label: 'support included' },
+            ].map((stat, i) => (
+              <Reveal key={stat.label} delay={i * 100}>
+                <div className="text-3xl sm:text-4xl font-bold text-[#1a2e35]">
+                  <AnimatedNumber value={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
+                </div>
                 <div className="text-sm text-[#5a6c72] uppercase tracking-wider">{stat.label}</div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
       </div>
 
       {/* What you get */}
-      <section className="py-16 md:py-24">
-        <div className="container-max">
-          <div className="max-w-3xl mx-auto text-center mb-14">
+      <section className="relative py-16 md:py-24 overflow-hidden">
+        <AmbientOrbs />
+        <div className="container-max relative">
+          <Reveal className="max-w-3xl mx-auto text-center mb-14">
             <span className="inline-flex items-center gap-2 text-[#007a7f] text-sm font-semibold uppercase tracking-wider mb-3">
               <Sparkles className="w-4 h-4" />
               What you get
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1a2e35] mb-5">Not just a website. A lead machine.</h2>
             <p className="text-lg text-[#5a6c72]">Every site is designed around the things that actually drive revenue for local businesses.</p>
-          </div>
+          </Reveal>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {[
@@ -413,93 +453,115 @@ export default function WebDesignClient() {
               { icon: ArrowRight, title: 'One-click campaigns', body: 'Send emails, texts, and promotions to your leads and customers without writing copy from scratch.' },
               { icon: Globe, title: 'Local SEO', body: 'Technical SEO, fast load times, and schema markup so your business shows up when locals search.' },
               { icon: Check, title: 'Hosting & maintenance', body: 'Security updates, backups, uptime monitoring, and edits handled by us — not another todo on your list.' },
-            ].map(card => (
-              <div key={card.title} className="group bg-white rounded-2xl border border-slate-200 p-7 hover:border-[#007a7f]/30 hover:shadow-md transition-all">
-                <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#007a7f]/10 text-[#007a7f] group-hover:scale-110 transition-transform">
-                  <card.icon className="w-6 h-6" />
+            ].map((card, i) => (
+              <Reveal key={card.title} delay={i * 80}>
+                <div className="group bg-white rounded-2xl border border-slate-200 p-7 hover:border-[#007a7f]/30 hover:shadow-md hover:-translate-y-1 transition-all h-full">
+                  <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#007a7f]/10 text-[#007a7f] group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                    <card.icon className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold text-[#1a2e35] mb-2">{card.title}</h3>
+                  <p className="text-[#5a6c72] leading-relaxed text-sm">{card.body}</p>
                 </div>
-                <h3 className="text-xl font-bold text-[#1a2e35] mb-2">{card.title}</h3>
-                <p className="text-[#5a6c72] leading-relaxed text-sm">{card.body}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="scroll-mt-24 py-16 md:py-24 bg-white border-y border-slate-200">
-        <div className="container-max">
-          <div className="max-w-3xl mx-auto text-center mb-14">
+      <section id="pricing" className="scroll-mt-24 py-16 md:py-24 bg-white border-y border-slate-200 relative overflow-hidden">
+        <AmbientOrbs />
+        <div className="container-max relative">
+          <Reveal className="max-w-3xl mx-auto text-center mb-14">
             <span className="inline-flex items-center gap-2 text-[#c9786d] text-sm font-semibold uppercase tracking-wider mb-3">
               <Sparkles className="w-4 h-4" />
               Simple pricing
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1a2e35] mb-5">One monthly fee. Everything included.</h2>
             <p className="text-lg text-[#5a6c72]">No setup fee right now. No contracts. Just a website and marketing system that runs itself.</p>
-          </div>
+          </Reveal>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {tiers.map((tier, i) => (
-              <div key={tier.id} className={clsx('relative rounded-3xl border p-8 sm:p-10 overflow-hidden', i === 1 ? 'border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-yellow-50 shadow-lg' : 'border-2 border-[#007a7f] bg-white')}>
-                {tier.badge && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span className="bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 text-sm font-bold px-4 py-1 rounded-full flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      {tier.badge}
-                    </span>
+              <Reveal key={tier.id} delay={i * 150}>
+                <div className={clsx('relative rounded-3xl border p-8 sm:p-10 overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl', i === 1 ? 'border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-yellow-50 shadow-lg' : 'border-2 border-[#007a7f] bg-white')}>
+                  {tier.badge && (
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                      <span
+                        className="bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 text-sm font-bold px-4 py-1 rounded-full flex items-center gap-1"
+                        style={{ animation: 'pulse-glow 2.4s ease-in-out infinite' }}
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {tier.badge}
+                      </span>
+                    </div>
+                  )}
+                  <h3 className={clsx('text-2xl font-bold mb-2 flex items-center gap-2', i === 1 ? 'text-[#1a2e35]' : 'text-[#1a2e35]')}>
+                    {i === 1 ? <Sparkles className="w-6 h-6 text-amber-500" /> : <Globe className="w-6 h-6 text-[#007a7f]" />}
+                    {tier.name}
+                  </h3>
+                  <p className="text-[#5a6c72] mb-6 min-h-[3rem]">{tier.description}</p>
+                  <div className="flex items-baseline gap-1 mb-8">
+                    <span className="text-5xl sm:text-6xl font-bold text-[#1a2e35]">{tier.price}</span>
+                    <span className="text-[#5a6c72] font-medium">{tier.period}</span>
                   </div>
-                )}
-                <h3 className={clsx('text-2xl font-bold mb-2 flex items-center gap-2', i === 1 ? 'text-[#1a2e35]' : 'text-[#1a2e35]')}>
-                  {i === 1 ? <Sparkles className="w-6 h-6 text-amber-500" /> : <Globe className="w-6 h-6 text-[#007a7f]" />}
-                  {tier.name}
-                </h3>
-                <p className="text-[#5a6c72] mb-6 min-h-[3rem]">{tier.description}</p>
-                <div className="flex items-baseline gap-1 mb-8">
-                  <span className="text-5xl sm:text-6xl font-bold text-[#1a2e35]">{tier.price}</span>
-                  <span className="text-[#5a6c72] font-medium">{tier.period}</span>
+
+                  <ul className="space-y-2 mb-8">
+                    {tier.features.map(feature => (
+                      <li key={feature} className="flex items-start gap-3 text-sm text-[#1a2e35]">
+                        <Check className={clsx('w-5 h-5 flex-shrink-0 mt-0.5', i === 1 ? 'text-amber-500' : 'text-[#007a7f]')} />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <MagneticButton
+                    href={BOOKING_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={clsx('w-full inline-flex items-center justify-center gap-2 rounded-xl font-semibold px-6 py-4 transition-colors', i === 1 ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 hover:from-amber-600 hover:to-yellow-500' : 'bg-[#007a7f] text-white hover:bg-[#006a70]')}
+                  >
+                    Book a Free Call <ArrowRight className="w-4 h-4" />
+                  </MagneticButton>
                 </div>
-
-                <ul className="space-y-2 mb-8">
-                  {tier.features.map(feature => (
-                    <li key={feature} className="flex items-start gap-3 text-sm text-[#1a2e35]">
-                      <Check className={clsx('w-5 h-5 flex-shrink-0 mt-0.5', i === 1 ? 'text-amber-500' : 'text-[#007a7f]')} />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className={clsx('w-full inline-flex items-center justify-center gap-2 rounded-xl font-semibold px-6 py-4 transition-colors', i === 1 ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 hover:from-amber-600 hover:to-yellow-500' : 'bg-[#007a7f] text-white hover:bg-[#006a70]')}>
-                  Book a Free Call <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
+              </Reveal>
             ))}
           </div>
 
           <p className="text-center text-[#5a6c72] mt-10 text-sm">Setup & onboarding (a $497 value) is currently waived for new clients.</p>
         </div>
+        <style jsx>{`
+          @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
+            50% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+          }
+        `}</style>
       </section>
 
       {/* Process */}
-      <section className="py-16 md:py-24">
-        <div className="container-max">
-          <div className="max-w-3xl mx-auto text-center mb-14">
+      <section className="relative py-16 md:py-24 overflow-hidden">
+        <AmbientOrbs />
+        <div className="container-max relative">
+          <Reveal className="max-w-3xl mx-auto text-center mb-14">
             <span className="inline-flex items-center gap-2 text-[#007a7f] text-sm font-semibold uppercase tracking-wider mb-3">
               <Clock className="w-4 h-4" />
               How it works
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1a2e35] mb-5">From first call to live site in under two weeks</h2>
-          </div>
+          </Reveal>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {process.map(step => (
-              <div key={step.title} className="relative">
-                <div className="text-6xl font-bold text-[#007a7f]/10 mb-4">{step.step}</div>
-                <div className="mb-3 flex items-center gap-3">
-                  <h3 className="text-xl font-bold text-[#1a2e35]">{step.title}</h3>
-                  <span className="rounded-full bg-white border border-slate-200 px-2.5 py-0.5 text-xs text-[#5a6c72]">{step.time}</span>
+            {process.map((step, i) => (
+              <Reveal key={step.title} delay={i * 120}>
+                <div className="relative group">
+                  <div className="text-7xl font-bold text-[#007a7f]/10 mb-4 group-hover:text-[#c9786d]/20 transition-colors">{step.step}</div>
+                  <div className="mb-3 flex items-center gap-3">
+                    <h3 className="text-xl font-bold text-[#1a2e35]">{step.title}</h3>
+                    <span className="rounded-full bg-white border border-slate-200 px-2.5 py-0.5 text-xs text-[#5a6c72]">{step.time}</span>
+                  </div>
+                  <p className="text-[#5a6c72] leading-relaxed text-sm">{step.body}</p>
                 </div>
-                <p className="text-[#5a6c72] leading-relaxed text-sm">{step.body}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -509,25 +571,27 @@ export default function WebDesignClient() {
       <section className="py-16 md:py-24 bg-white border-t border-slate-200">
         <div className="container-max">
           <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-12">
+            <Reveal className="text-center mb-12">
               <span className="inline-flex items-center gap-2 text-[#007a7f] text-sm font-semibold uppercase tracking-wider mb-3">
                 <MessageSquare className="w-4 h-4" />
                 Common questions
               </span>
               <h2 className="text-3xl sm:text-4xl font-bold text-[#1a2e35]">Questions? Answers.</h2>
-            </div>
+            </Reveal>
 
             <div className="space-y-4">
               {faqs.map((faq, i) => (
-                <div key={i} className={clsx('rounded-2xl border border-slate-200 bg-[#f0efeb] overflow-hidden transition-colors', openFaq === i && 'border-[#007a7f]/30 bg-white')}>
-                  <button type="button" onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between gap-4 p-6 text-left">
-                    <span className="font-semibold text-[#1a2e35]">{faq.question}</span>
-                    <span className={clsx('flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200 text-[#5a6c72] transition-transform', openFaq === i && 'rotate-90 text-[#007a7f]')}>
-                      <ArrowRight className="w-4 h-4" />
-                    </span>
-                  </button>
-                  {openFaq === i && <div className="px-6 pb-6 text-[#5a6c72] leading-relaxed text-sm">{faq.answer}</div>}
-                </div>
+                <Reveal key={i} delay={i * 60}>
+                  <div className={clsx('rounded-2xl border border-slate-200 bg-[#f0efeb] overflow-hidden transition-colors', openFaq === i && 'border-[#007a7f]/30 bg-white')}>
+                    <button type="button" onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between gap-4 p-6 text-left">
+                      <span className="font-semibold text-[#1a2e35]">{faq.question}</span>
+                      <span className={clsx('flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200 text-[#5a6c72] transition-transform', openFaq === i && 'rotate-90 text-[#007a7f]')}>
+                        <ArrowRight className="w-4 h-4" />
+                      </span>
+                    </button>
+                    {openFaq === i && <div className="px-6 pb-6 text-[#5a6c72] leading-relaxed text-sm">{faq.answer}</div>}
+                  </div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -538,22 +602,31 @@ export default function WebDesignClient() {
       <ContactSection />
 
       {/* Final CTA */}
-      <section className="py-16 md:py-24">
-        <div className="container-max">
-          <div className="max-w-4xl mx-auto text-center rounded-3xl border border-slate-200 bg-gradient-to-br from-[#007a7f]/10 via-white to-[#f0efeb] p-10 sm:p-16">
+      <section className="relative py-16 md:py-24 overflow-hidden">
+        <AmbientOrbs />
+        <div className="container-max relative">
+          <Reveal className="max-w-4xl mx-auto text-center rounded-3xl border border-slate-200 bg-gradient-to-br from-[#007a7f]/10 via-white to-[#f0efeb] p-10 sm:p-16">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1a2e35] mb-5">Ready for a website that sells while you sleep?</h2>
             <p className="text-lg text-[#5a6c72] mb-8 max-w-2xl mx-auto">Book a free 20-minute demo call. We&apos;ll show you real sites, real results, and exactly what your build would look like.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="btn-accent px-8 py-4 text-base">
+              <MagneticButton
+                href={BOOKING_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-accent px-8 py-4 text-base"
+              >
                 <Calendar className="w-5 h-5" />
                 Book a free call
-              </a>
-              <a href={PHONE_HREF} className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-200 text-[#1a2e35] font-semibold px-8 py-4 hover:border-[#007a7f] hover:text-[#007a7f] transition-colors">
+              </MagneticButton>
+              <MagneticButton
+                href={PHONE_HREF}
+                className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-200 text-[#1a2e35] font-semibold px-8 py-4 hover:border-[#007a7f] hover:text-[#007a7f] transition-colors"
+              >
                 <Phone className="w-5 h-5" />
                 {PHONE_NUMBER}
-              </a>
+              </MagneticButton>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
     </div>
