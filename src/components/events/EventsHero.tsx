@@ -4,11 +4,11 @@ import {
   MapPin,
   ArrowRight,
   Clock,
-  ExternalLink,
 } from 'lucide-react'
 
 interface HeroEvent {
   id: string
+  slug: string
   title: string
   heroImageUrl: string | null
   startsAt: Date | null
@@ -37,6 +37,12 @@ interface EventsHeroProps {
 }
 
 function cardHref(event: HeroEvent): { href: string; external: boolean; label: string } {
+  // Internal /events/[slug] is now the primary click target so each event
+  // earns its own indexed URL. shareUrl/ticketUrl/sourceUrl still live on
+  // the detail page as CTAs (see /events/[slug]/page.tsx). External link
+  // target (ticket sites etc.) stays one click away but Google indexes
+  // the internal page first, capturing the long-tail traffic.
+  if (event.slug) return { href: `/events/${event.slug}`, external: false, label: event.isFree ? 'RSVP — Free' : 'View event details' }
   if (event.shareUrl) return { href: event.shareUrl, external: true, label: 'Event details' }
   if (event.ticketUrl) return { href: event.ticketUrl, external: true, label: 'Get tickets' }
   if (event.business?.slug) return { href: `/business/${event.business.slug}`, external: false, label: 'Visit host' }
@@ -170,15 +176,13 @@ export function EventsHero({ event, viewLabel, eventCount, nextEventTitle, nextE
                 {event.description}
               </p>
             )}
-            <a
+            <Link
               href={target.href}
-              target={target.external ? '_blank' : undefined}
-              rel={target.external ? 'noopener noreferrer' : undefined}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors shadow-lg"
             >
               <span>{event.isFree ? 'RSVP — Free' : target.label}</span>
-              {target.external ? <ExternalLink className="w-4 h-4" /> : <ArrowRight className="w-5 h-5" />}
-            </a>
+              <ArrowRight className="w-5 h-5" />
+            </Link>
           </div>
         </div>
       </div>
