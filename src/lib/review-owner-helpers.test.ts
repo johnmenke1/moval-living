@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildReviewPrefill,
   canBackfillReview,
+  matchOwnerByEmail,
   normalizeReviewEmail,
 } from './review-owner-helpers'
 
@@ -84,5 +85,54 @@ describe('normalizeReviewEmail', () => {
 
   it('returns empty string for whitespace-only', () => {
     expect(normalizeReviewEmail('   ')).toBe('')
+  })
+})
+
+describe('matchOwnerByEmail', () => {
+  type OwnerLookup = Parameters<typeof matchOwnerByEmail>[0]
+
+  function makeMockPrisma(owners: OwnerRow[]): OwnerLookup {
+    return {
+      owner: {
+        async findFirst(args: unknown) {
+          const a = args as { where: { email: { equals: string } } }
+          const target = a.where.email.equals.toLowerCase()
+          const matched = owners.find((o) => o.email.toLowerCase() === target)
+          if (!matched) return null
+          return { id: matched.id }
+        },
+      },
+    }
+  }
+
+  type OwnerRow = { id: string; email: string }
+
+  it('returns the owner id when an exact (case-insensitive) match exists', async () => {
+    const prisma = makeMockPrisma([
+      { id: 'owner_1', email: 'Sarah@Example.com' },
+    ])
+    expect(await matchOwnerByEmail(prisma, 'sarah@example.com')).toBe('owner_1')
+  })
+
+  it('returns null when no Owner exists for the email', async () => {
+    const prisma = makeMockPrisma([])
+    expect(await matchOwnerByEmail(prisma, 'ghost@example.com')).toBeNull()
+  })
+
+  it('returns null for empty / whitespace / null input without hitting the DB', async () => {
+    let called = false
+    const prisma = {
+      owner: {
+        async findFirst() {
+          called = true
+          return null
+        },
+      },
+    }
+    expect(await matchOwnerByEmail(prisma, '')).toBeNull()
+    expect(await matchOwnerByEmail(prisma, '   ')).toBeNull()
+    expect(await matchOwnerByEmail(prisma, null)).toBeNull()
+    expect(await matchOwnerByEmail(prisma, undefined)).toBeNull()
+    expect(called).toBe(false)
   })
 })

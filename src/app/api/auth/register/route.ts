@@ -26,17 +26,47 @@ export async function POST(req: NextRequest) {
     smsOptIn = false,
     claimToken,
     seHablaEspanol = false,
+    nominationId,
   } = await req.json()
 
   if (!email || !password || typeof password !== 'string' || password.length < 8) {
     return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
   }
 
+  // If a nominationId is supplied, the user is registering via the
+  // "Complete your registration" CTA on the nomination success page. We
+  // verify the email matches the nomination's recorded email before we
+  // create the Owner, so a third party can't claim someone else's
+  // nomination by guessing an id.
+  let linkedNominationId: string | null = null
+  if (nominationId) {
+    const nom = await prisma.bestOfNomination.findUnique({
+      where: { id: nominationId },
+      select: { id: true, nominatorEmail: true, ownerId: true },
+    })
+    if (!nom) {
+      return NextResponse.json({ error: 'Nomination not found' }, { status: 404 })
+    }
+    if (nom.ownerId) {
+      return NextResponse.json(
+        { error: 'This nomination is already linked to an account' },
+        { status: 410 },
+      )
+    }
+    if (nom.nominatorEmail.toLowerCase().trim() !== email.toLowerCase().trim()) {
+      return NextResponse.json(
+        { error: 'The email on this nomination does not match the one you are registering with' },
+        { status: 403 },
+      )
+    }
+    linkedNominationId = nom.id
+  }
+
   // Validate phone if SMS opt-in is requested
   if (smsOptIn && (!phone || !/^\+?[\d\s\-()]{10,}$/.test(phone))) {
     return NextResponse.json(
       { error: 'A valid phone number is required for SMS opt-in' },
-      { status: 400 }
+      { status: 400 },
     )
   }
 
@@ -96,6 +126,15 @@ export async function POST(req: NextRequest) {
     await prisma.business.update({
       where: { id: claimBusinessId },
       data: { seHablaEspanol: Boolean(seHablaEspanol) },
+    })
+  }
+
+  // Link the freshly-created Owner to the nomination they came in from.
+  // Guards with ownerId: null so concurrent registrations can't both win.
+  if (linkedNominationId) {
+    await prisma.bestOfNomination.updateMany({
+      where: { id: linkedNominationId, ownerId: null },
+      data: { ownerId: owner.id },
     })
   }
 

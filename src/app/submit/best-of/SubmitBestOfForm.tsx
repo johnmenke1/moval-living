@@ -136,10 +136,10 @@ export default function SubmitBestOfForm() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
-            href="/best-of"
+            href={`/register?nominationId=${encodeURIComponent(submitted.nominationId)}&name=${encodeURIComponent(form.nominatorName)}&email=${encodeURIComponent(form.nominatorEmail)}&returnTo=${encodeURIComponent('/best-of')}`}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
           >
-            <Trophy className="w-4 h-4" /> See Best Of
+            <CheckCircle className="w-4 h-4" /> Complete registration to vote
           </Link>
           <button
             type="button"
@@ -152,6 +152,10 @@ export default function SubmitBestOfForm() {
             <RefreshCw className="w-4 h-4" /> Nominate another
           </button>
         </div>
+        <p className="mt-5 text-xs text-text-secondary max-w-md mx-auto">
+          Create a free account to vote in Best Of MoVal, track your nominations, and write reviews.
+          We&apos;ll pre-fill your name and email — just pick a password.
+        </p>
       </div>
     )
   }

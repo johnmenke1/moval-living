@@ -107,7 +107,7 @@ const process = [
   {
     step: '02',
     title: 'We Build',
-    time: '7–10 days',
+    time: '24–48 hours',
     body: "Fill out a basic onboarding form with your business details. After we have the correct information, we'll get to work building your new system.",
   },
   {
@@ -224,7 +224,7 @@ function LeadForm() {
         {submitting ? 'Sending...' : 'Send Message'}
         <Send className="w-4 h-4" />
       </button>
-      <p className="text-xs text-[#5a6c72] text-center">We typically reply within one business day.</p>
+      <p className="text-xs text-[#5a6c72] text-center">We typically reply within 24 hours.</p>
     </form>
   )
 }
@@ -285,7 +285,7 @@ function ContactSection() {
 
                 <div className="mt-8 rounded-2xl bg-white/5 border border-white/10 p-5">
                   <p className="text-sm text-white/60">
-                    <span className="text-white font-medium">Typical response time:</span> under 2 hours during business hours. After hours? Leave a message — we check them first thing.
+                    <span className="text-white font-medium">Typical response time:</span> under 24 hours. For urgent issues, call or text and we usually respond within a few hours.
                   </p>
                 </div>
               </div>
@@ -591,7 +591,7 @@ function Hero() {
 
 function TrustBar() {
   return (
-    <div className="bg-[#f7f5f0] border-b border-slate-200">
+    <div className="bg-[#f8f9fb] border-b border-slate-200">
       <div className="container-max py-14">
         <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center" stagger={0.1}>
           {[
@@ -732,14 +732,14 @@ function PricingSection() {
 
 function ProcessSection() {
   return (
-    <section className="relative py-20 md:py-32 overflow-hidden bg-[#f7f5f0]">
+    <section className="relative py-20 md:py-32 overflow-hidden bg-[#f8f9fb]">
       <div className="container-max relative z-10">
         <Reveal className="max-w-3xl mx-auto text-center mb-16">
           <span className="inline-flex items-center gap-2 text-[#00a8a8] text-sm font-semibold uppercase tracking-wider mb-3">
             <Clock className="w-4 h-4" />
             How it works
           </span>
-          <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold text-[#081820] mb-5">From first call to live site in under two weeks</h2>
+          <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold text-[#081820] mb-5">From first call to live site in under 48 hours</h2>
         </Reveal>
 
         <div className="relative max-w-6xl mx-auto">
@@ -787,7 +787,7 @@ function FaqSection() {
           <div className="space-y-4">
             {faqs.map((faq, i) => (
               <Reveal key={i} delay={i * 0.05}>
-                <div className={clsx('rounded-2xl border border-slate-200 bg-[#f7f5f0] overflow-hidden transition-colors', openFaq === i && 'border-[#00a8a8]/30 bg-white shadow-lg')}>
+                <div className={clsx('rounded-2xl border border-slate-200 bg-[#f8f9fb] overflow-hidden transition-colors', openFaq === i && 'border-[#00a8a8]/30 bg-white shadow-lg')}>
                   <button type="button" onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between gap-4 p-6 text-left">
                     <span className="font-semibold text-[#081820]">{faq.question}</span>
                     <motion.span
@@ -850,7 +850,7 @@ function FinalCta() {
 
 export default function WebDesignClient() {
   return (
-    <div className="bg-[#f7f5f0] min-h-screen">
+    <div className="bg-[#f8f9fb] min-h-screen">
       <Hero />
       <Marquee items={CATEGORY_TICKER} speed={45} />
       <TrustBar />

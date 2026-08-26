@@ -253,6 +253,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
                 hero
                   ? {
                       id: hero.id,
+                      slug: hero.slug,
                       title: hero.title,
                       heroImageUrl: hero.heroImageUrl,
                       startsAt: hero.startsAt,

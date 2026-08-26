@@ -15,6 +15,9 @@ export default function RegisterForm() {
   // success page). Values are sanity-clamped before they're used.
   const nameFromQuery = (searchParams.get('name') ?? '').slice(0, 120)
   const emailFromQuery = (searchParams.get('email') ?? '').slice(0, 320)
+  // nominationId is opaque from the form's POV — we forward it as-is
+  // and the server validates the email matches before linking.
+  const nominationIdFromQuery = searchParams.get('nominationId') || null
 
   const [name, setName] = useState(nameFromQuery)
   const [email, setEmail] = useState(emailFromQuery)
@@ -40,7 +43,10 @@ export default function RegisterForm() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(parsed.data),
+        body: JSON.stringify({
+          ...parsed.data,
+          nominationId: nominationIdFromQuery,
+        }),
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
