@@ -424,8 +424,12 @@ function BeforeAfterBrowser() {
           </div>
         </motion.div>
 
+        {/* Right column — anchor to explicit top offset (not bottom) so the card sits
+            a fixed distance below the right-top card regardless of SplitReveal height.
+            sm:top-[110px] = 16px (top offset) + ~80px (card height) + 14px gap;
+            lg:top-[126px] mirrors the larger lg gutter. */}
         <motion.div
-          className="relative z-20 pointer-events-auto sm:absolute sm:bottom-4 sm:right-4 lg:bottom-6 lg:right-6"
+          className="relative z-20 pointer-events-auto sm:absolute sm:top-[110px] sm:right-4 lg:top-[126px] lg:right-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, ...springTransition }}
