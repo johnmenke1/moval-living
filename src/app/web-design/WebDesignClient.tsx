@@ -302,14 +302,16 @@ function ContactSection() {
 
 function BeforeAfterBrowser() {
   // Real Summit Air & Heat before/after screenshots served from /public.
-  // Source PNGs are 1088x608 (~16:9.5 aspect).
+  // Source PNGs are 1088x608. SplitReveal locks the container to that aspect
+  // ratio so the slider always fills the box; inner images use object-cover
+  // so they fill the absolute-positioned layer without breaking layout.
   const before = (
     <Image
       src="/web-design/summit-before.png"
       alt="Summit Air and Heat — original website before redesign (cluttered, dated, fire borders)"
       width={1088}
       height={608}
-      className="block w-full h-auto select-none pointer-events-none"
+      className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
       draggable={false}
       priority
     />
@@ -321,14 +323,14 @@ function BeforeAfterBrowser() {
       alt="Summit Air and Heat — redesigned website (modern, dark gradient, clean nav)"
       width={1088}
       height={608}
-      className="block w-full h-auto select-none pointer-events-none"
+      className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
       draggable={false}
       priority
     />
   )
 
   return (
-    <div className="relative mx-auto max-w-5xl">
+    <div className="relative mx-auto max-w-6xl px-2 sm:px-0">
       <FloatingCard intensity={4} className="rounded-2xl shadow-2xl ring-1 ring-white/10">
         <SplitReveal before={before} after={after} className="rounded-2xl" initialSplit={50} />
       </FloatingCard>
