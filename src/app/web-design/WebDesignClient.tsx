@@ -234,8 +234,8 @@ function ContactSection() {
     <section id="contact" className="scroll-mt-24">
       <div className="container-max">
         <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-0 rounded-3xl overflow-hidden border border-white/20 bg-gradient-to-br from-[#061f2e]/95 to-[#0b3a52]/95 backdrop-blur-xl shadow-2xl">
-            <div className="p-8 sm:p-10 lg:p-12 border-b lg:border-b-0 lg:border-r border-white/10">
+          <div className="grid lg:grid-cols-2 gap-0 rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-white/20 bg-gradient-to-br from-[#061f2e]/95 to-[#0b3a52]/95 backdrop-blur-xl sm:shadow-2xl">
+            <div className="p-5 sm:p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-white/10">
               <div className="mb-8">
                 <span className="inline-flex items-center gap-2 text-[#00a8a8] text-sm font-semibold uppercase tracking-wider mb-3">
                   <MessageSquare className="w-4 h-4" />
@@ -247,7 +247,7 @@ function ContactSection() {
               <LeadForm />
             </div>
 
-            <div className="relative p-8 sm:p-10 lg:p-12 bg-gradient-to-br from-[#00a8a8]/10 via-[#061f2e]/50 to-[#0b3a52]/50">
+            <div className="relative p-5 sm:p-8 lg:p-12 bg-gradient-to-br from-[#00a8a8]/10 via-[#061f2e]/50 to-[#0b3a52]/50">
               <div className="absolute top-0 right-0 p-8 opacity-10">
                 <Sparkles className="w-32 h-32 text-[#00a8a8]" />
               </div>
@@ -260,7 +260,7 @@ function ContactSection() {
                 <p className="text-white/70 mb-8">No pressure, no pitch deck. We&apos;ll answer your questions and show you what a real build looks like.</p>
 
                 <div className="space-y-4">
-                  <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 hover:border-[#00a8a8]/30 hover:shadow-lg transition-all">
+                  <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="group flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 hover:bg-white/10 hover:border-[#00a8a8]/30 hover:shadow-lg transition-all">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#00a8a8]/10 text-[#00a8a8] group-hover:scale-110 transition-transform">
                       <Calendar className="w-6 h-6" />
                     </div>
@@ -271,7 +271,7 @@ function ContactSection() {
                     <ArrowRight className="w-5 h-5 text-white/50 group-hover:text-[#00a8a8] transition-colors" />
                   </a>
 
-                  <a href={PHONE_HREF} className="group flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 hover:border-[#ff7a66]/30 hover:shadow-lg transition-all">
+                  <a href={PHONE_HREF} className="group flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 hover:bg-white/10 hover:border-[#ff7a66]/30 hover:shadow-lg transition-all">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#ff7a66]/10 text-[#ff7a66] group-hover:scale-110 transition-transform">
                       <Phone className="w-6 h-6" />
                     </div>
@@ -386,11 +386,12 @@ function BeforeAfterBrowser() {
         <SplitReveal before={before} after={after} className="rounded-2xl" initialSplit={35} />
       </FloatingCard>
 
-      {/* Floating metrics — on mobile they stack below the browser; on desktop they
-          sit at three distinct corners/sides so they never overlap. */}
-      <div className="mt-6 flex flex-col sm:mt-0 items-center gap-3 sm:block">
+      {/* Floating metric badges — desktop cards attach to the parent container at
+          three separated anchor points so they never overlap; mobile keeps a tidy
+          vertical stack below the browser. */}
+      <div className="mt-6 flex flex-col items-center gap-3 sm:mt-0 sm:block sm:absolute sm:inset-0 pointer-events-none">
         <motion.div
-          className="relative z-20 sm:absolute sm:-bottom-6 sm:left-4"
+          className="relative z-20 pointer-events-auto sm:absolute sm:-bottom-5 sm:-left-5"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6, ...springTransition }}
@@ -407,7 +408,7 @@ function BeforeAfterBrowser() {
         </motion.div>
 
         <motion.div
-          className="relative z-20 sm:absolute sm:-top-8 sm:-right-5"
+          className="relative z-20 pointer-events-auto sm:absolute sm:-top-5 sm:-right-5"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, ...springTransition }}
@@ -424,7 +425,7 @@ function BeforeAfterBrowser() {
         </motion.div>
 
         <motion.div
-          className="relative z-20 sm:absolute sm:top-1/2 sm:-right-5 sm:-translate-y-1/2"
+          className="relative z-20 pointer-events-auto sm:absolute sm:-bottom-12 sm:-right-5"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, ...springTransition }}
