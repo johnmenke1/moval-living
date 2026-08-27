@@ -486,14 +486,16 @@ export function SplitReveal({
   const [split, setSplit] = useState(initialSplit)
   const [dragging, setDragging] = useState(false)
   const [autoRunning, setAutoRunning] = useState(true)
-  const [reducedMotion, setReducedMotion] = useState(false)
   const rafRef = useRef<number | null>(null)
 
-  // Respect prefers-reduced-motion.
+  // Respect prefers-reduced-motion. Lazy init avoids the setState-in-effect lint.
+  const [reducedMotion, setReducedMotion] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  })
   useEffect(() => {
     if (typeof window === 'undefined') return
     const mql = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setReducedMotion(mql.matches)
     const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches)
     mql.addEventListener('change', onChange)
     return () => mql.removeEventListener('change', onChange)
@@ -537,13 +539,18 @@ export function SplitReveal({
     setSplit(pct)
     if (autoRunning) setAutoRunning(false) // user touched it — kill the auto sweep
   }
+  // Stable ref so the drag-listener effect doesn't churn.
+  const updateSplitRef = useRef(updateSplit)
+  useEffect(() => {
+    updateSplitRef.current = updateSplit
+  })
 
   // Window-level drag listeners (cleaner than re-attaching inside the effect).
   useEffect(() => {
     if (!dragging) return
     const onMove = (e: globalThis.MouseEvent) => {
       e.preventDefault()
-      updateSplit(e.clientX)
+      updateSplitRef.current(e.clientX)
     }
     const onUp = () => setDragging(false)
     window.addEventListener('mousemove', onMove)
