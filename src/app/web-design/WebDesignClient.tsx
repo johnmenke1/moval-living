@@ -16,7 +16,6 @@ import {
   Pause,
   Zap,
   TrendingUp,
-  MousePointer2,
   Star,
   Shield,
 } from 'lucide-react'
@@ -388,64 +387,6 @@ function BeforeAfterBrowser() {
       <FloatingCard intensity={4} className="rounded-2xl shadow-2xl ring-1 ring-white/10">
         <SplitReveal before={before} after={after} className="rounded-2xl" initialSplit={35} />
       </FloatingCard>
-
-      {/* Floating metric badges — desktop cards attach to the parent container at
-          three separated anchor points so they never overlap; mobile keeps a tidy
-          vertical stack below the browser. */}
-      <div className="mt-6 flex flex-col items-center gap-3 sm:mt-0 sm:block sm:absolute sm:inset-0 pointer-events-none">
-        <motion.div
-          className="relative z-20 pointer-events-auto sm:absolute sm:bottom-4 sm:left-4 lg:bottom-6 lg:left-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, ...springTransition }}
-        >
-          <div className="glass-light rounded-2xl p-3 sm:p-4 shadow-xl flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#00a8a8] to-[#007a7f] text-white">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-base sm:text-lg font-bold text-[#081820]">More leads</div>
-              <div className="text-[10px] uppercase tracking-wider text-[#5a6c72]">from traffic you already get</div>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          className="relative z-20 pointer-events-auto sm:absolute sm:top-4 sm:right-4 lg:top-6 lg:right-6"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, ...springTransition }}
-        >
-          <div className="glass-light rounded-2xl p-3 sm:p-4 shadow-xl flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#ff7a66] to-[#e85d4a] text-white">
-              <Zap className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-base sm:text-lg font-bold text-[#081820]">0.9s</div>
-              <div className="text-[10px] uppercase tracking-wider text-[#5a6c72]">load time</div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Right column — anchor to the bottom-right so the two right-side cards never
-            overlap, regardless of SplitReveal/browser mockup height. */}
-        <motion.div
-          className="relative z-20 pointer-events-auto sm:absolute sm:bottom-4 sm:right-4 lg:bottom-6 lg:right-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1, ...springTransition }}
-        >
-          <div className="glass-light rounded-2xl p-3 sm:p-4 shadow-xl flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#f3c46c] to-[#d4a84a] text-[#081820]">
-              <MousePointer2 className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-base sm:text-lg font-bold text-[#081820]">24/7</div>
-              <div className="text-[10px] uppercase tracking-wider text-[#5a6c72]">capturing leads</div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
     </div>
   )
 }
