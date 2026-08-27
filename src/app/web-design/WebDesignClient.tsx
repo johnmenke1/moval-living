@@ -209,16 +209,19 @@ function LeadForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 min-w-0">
         <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Your name *" required className="input" />
         <input type="text" name="business" value={form.business} onChange={handleChange} placeholder="Business name" className="input" />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 min-w-0">
         <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="Email address *" required className="input" />
         <input type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="Phone number" className="input" />
       </div>
-      <textarea name="message" value={form.message} onChange={handleChange} placeholder="Tell us about your business and what you need..." rows={4} required className="input resize-none" />
+      {/* rows={3} keeps the form within ~812px mobile viewports without scrolling the
+          submit button off-screen; resize-none prevents users from breaking the layout
+          by dragging the textarea handle on mobile. */}
+      <textarea name="message" value={form.message} onChange={handleChange} placeholder="Tell us about your business and what you need..." rows={3} className="input resize-none" required />
       {error && <p className="text-error text-sm">{error}</p>}
       <button type="submit" disabled={submitting} className="btn-primary w-full flex items-center justify-center gap-2">
         {submitting ? 'Sending...' : 'Send Message'}
