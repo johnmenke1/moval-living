@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import {
   Check,
   ArrowRight,
@@ -300,93 +301,38 @@ function ContactSection() {
 }
 
 function BeforeAfterBrowser() {
+  // Real Summit Air & Heat before/after screenshots served from /public.
+  // Source PNGs are 1088x608 (~16:9.5 aspect).
   const before = (
-    <div className="relative w-full h-full min-h-[420px] sm:min-h-[520px] bg-slate-100 flex flex-col">
-      {/* Browser chrome */}
-      <div className="flex items-center gap-2 border-b border-slate-300 bg-slate-200 px-4 py-3">
-        <div className="flex gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-slate-400" />
-          <span className="h-3 w-3 rounded-full bg-slate-400" />
-          <span className="h-3 w-3 rounded-full bg-slate-400" />
-        </div>
-        <div className="ml-4 flex-1 rounded-lg bg-white px-3 py-1.5 text-xs text-slate-400 truncate flex items-center gap-2">
-          <Globe className="w-3 h-3" /> acme-template-47.com
-        </div>
-      </div>
-      {/* Sad template content */}
-      <div className="flex-1 p-6 sm:p-10 flex flex-col items-center justify-center text-center">
-        <div className="w-16 h-16 rounded-full bg-slate-300 mb-6" />
-        <div className="h-8 w-48 bg-slate-300 rounded mb-4" />
-        <div className="h-4 w-64 bg-slate-200 rounded mb-8" />
-        <div className="h-10 w-40 bg-slate-300 rounded-lg mb-10" />
-        <div className="grid grid-cols-3 gap-4 w-full max-w-md">
-          <div className="h-24 bg-slate-200 rounded-lg" />
-          <div className="h-24 bg-slate-200 rounded-lg" />
-          <div className="h-24 bg-slate-200 rounded-lg" />
-        </div>
-        <div className="mt-8 flex items-center gap-2 text-slate-400 text-sm">
-          <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Loads in 4.2s</span>
-          <span>•</span>
-          <span>Mobile-broken</span>
-          <span>•</span>
-          <span>No leads</span>
-        </div>
-      </div>
-    </div>
+    <Image
+      src="/web-design/summit-before.png"
+      alt="Summit Air and Heat — original website before redesign (cluttered, dated, fire borders)"
+      width={1088}
+      height={608}
+      className="block w-full h-auto select-none pointer-events-none"
+      draggable={false}
+      priority
+    />
   )
 
   const after = (
-    <div className="relative w-full h-full min-h-[420px] sm:min-h-[520px] bg-[#061f2e] flex flex-col overflow-hidden">
-      {/* Browser chrome */}
-      <div className="flex items-center gap-2 border-b border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm z-10">
-        <div className="flex gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-rose-400" />
-          <span className="h-3 w-3 rounded-full bg-amber-400" />
-          <span className="h-3 w-3 rounded-full bg-emerald-400" />
-        </div>
-        <div className="ml-4 flex-1 rounded-lg bg-white/10 px-3 py-1.5 text-xs text-white/60 truncate flex items-center gap-2">
-          <Globe className="w-3 h-3" /> acme-moval.com
-        </div>
-      </div>
-      {/* Gorgeous site content */}
-      <div className="flex-1 relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#00a8a8]/20 via-transparent to-[#ff7a66]/10" />
-        <div className="relative z-10 flex flex-col justify-between h-full p-6 sm:p-10">
-          <div className="flex items-center justify-between">
-            <div className="text-white font-bold tracking-tight text-sm sm:text-base">ACME <span className="text-[#ff7a66]">.</span></div>
-            <div className="hidden sm:flex items-center gap-6 text-[10px] text-white/60 uppercase tracking-[0.15em]">
-              <span>Services</span><span>Work</span><span>About</span>
-              <span className="text-white border border-white/20 px-3 py-1 rounded">Contact</span>
-            </div>
-          </div>
-          <div>
-            <p className="text-[#ff7a66] text-xs uppercase tracking-[0.2em] font-semibold mb-4">Moreno Valley</p>
-            <h3 className="text-white text-4xl sm:text-5xl md:text-6xl font-serif font-extralight tracking-tight leading-[0.95] mb-6">Built for the <em className="not-italic text-[#00a8a8]">locals</em>.</h3>
-            <p className="text-white/80 text-sm sm:text-base max-w-md leading-relaxed mb-6">A website designed to turn every visitor into a lead — mobile-first, fast, and impossible to miss in local search.</p>
-            <div className="inline-flex items-center gap-2 text-[#061f2e] bg-white px-5 py-2.5 text-sm font-semibold rounded-lg shadow-lg">Get a Quote <ArrowRight className="w-4 h-4" /></div>
-          </div>
-          <div className="grid grid-cols-3 gap-px border-t border-white/10 bg-white/5 backdrop-blur-sm rounded-xl overflow-hidden">
-            {[
-              { label: 'Services', value: '12+' },
-              { label: '5-Star Reviews', value: '4.9' },
-              { label: 'Leads / Mo', value: '143' },
-            ].map(stat => (
-              <div key={stat.label} className="p-4 text-center border-r border-white/10 last:border-r-0">
-                <div className="text-white text-xl sm:text-2xl font-extralight tracking-tight">{stat.value}</div>
-                <div className="text-white/50 text-[10px] uppercase tracking-widest">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+    <Image
+      src="/web-design/summit-after.png"
+      alt="Summit Air and Heat — redesigned website (modern, dark gradient, clean nav)"
+      width={1088}
+      height={608}
+      className="block w-full h-auto select-none pointer-events-none"
+      draggable={false}
+      priority
+    />
   )
 
   return (
     <div className="relative mx-auto max-w-5xl">
       <FloatingCard intensity={4} className="rounded-2xl shadow-2xl ring-1 ring-white/10">
-        <SplitReveal before={before} after={after} className="rounded-2xl" initialSplit={35} />
+        <SplitReveal before={before} after={after} className="rounded-2xl" initialSplit={50} />
       </FloatingCard>
+      <p className="mt-4 text-center text-xs text-white/50">Drag the divider — same HVAC company, redesigned by us.</p>
     </div>
   )
 }
