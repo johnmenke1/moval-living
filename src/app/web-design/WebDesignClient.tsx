@@ -494,7 +494,7 @@ function TrustBar() {
         <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center" stagger={0.1}>
           {[
             { value: 497, prefix: '$', label: 'setup fee waived' },
-            { value: 10, suffix: '–7', label: 'days to launch' },
+            { value: 1, suffix: '–2', label: 'days to launch' },
             { value: 0, label: 'long-term contracts' },
             { value: 24, suffix: '/7', label: 'support included' },
           ].map((stat) => (
