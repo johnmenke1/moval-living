@@ -391,7 +391,7 @@ function BeforeAfterBrowser() {
           vertical stack below the browser. */}
       <div className="mt-6 flex flex-col items-center gap-3 sm:mt-0 sm:block sm:absolute sm:inset-0 pointer-events-none">
         <motion.div
-          className="relative z-20 pointer-events-auto sm:absolute sm:-bottom-5 sm:-left-5"
+          className="relative z-20 pointer-events-auto sm:absolute sm:bottom-4 sm:left-4 lg:bottom-6 lg:left-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6, ...springTransition }}
@@ -408,7 +408,7 @@ function BeforeAfterBrowser() {
         </motion.div>
 
         <motion.div
-          className="relative z-20 pointer-events-auto sm:absolute sm:-top-5 sm:-right-5"
+          className="relative z-20 pointer-events-auto sm:absolute sm:top-4 sm:right-4 lg:top-6 lg:right-6"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, ...springTransition }}
@@ -425,7 +425,7 @@ function BeforeAfterBrowser() {
         </motion.div>
 
         <motion.div
-          className="relative z-20 pointer-events-auto sm:absolute sm:-bottom-12 sm:-right-5"
+          className="relative z-20 pointer-events-auto sm:absolute sm:bottom-4 sm:right-4 lg:bottom-6 lg:right-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, ...springTransition }}
