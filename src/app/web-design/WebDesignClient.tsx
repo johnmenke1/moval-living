@@ -234,7 +234,7 @@ function ContactSection() {
     <section id="contact" className="scroll-mt-24">
       <div className="container-max">
         <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-0 rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-white/20 bg-gradient-to-br from-[#061f2e]/95 to-[#0b3a52]/95 backdrop-blur-xl sm:shadow-2xl">
+          <div className="block lg:grid lg:grid-cols-2 gap-0 rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-white/20 bg-gradient-to-br from-[#061f2e]/95 to-[#0b3a52]/95 backdrop-blur-xl sm:shadow-2xl">
             <div className="p-5 sm:p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-white/10">
               <div className="mb-8">
                 <span className="inline-flex items-center gap-2 text-[#00a8a8] text-sm font-semibold uppercase tracking-wider mb-3">
@@ -523,7 +523,7 @@ function Hero() {
   return (
     <section
       ref={ref}
-      className="relative overflow-hidden bg-midnight text-white pt-20 pb-32 md:pt-28 md:pb-40"
+      className="relative overflow-hidden bg-midnight text-white pt-20 pb-12 md:pt-24 md:pb-16"
     >
       <AmbientOrbs dark />
       <div className="container-max text-center relative z-10">

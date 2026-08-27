@@ -496,7 +496,7 @@ export function SplitReveal({
   return (
     <div
       ref={containerRef}
-      className={`relative select-none overflow-hidden ${className}`}
+      className={`relative select-none overflow-hidden min-h-[420px] sm:min-h-[520px] ${className}`}
       onMouseDown={(e) => {
         setDragging(true)
         updateSplit(e.clientX)
