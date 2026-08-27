@@ -567,7 +567,7 @@ export function SplitReveal({
   return (
     <div
       ref={containerRef}
-      className={`relative select-none overflow-hidden rounded-2xl ring-1 ring-white/15 ${className}`}
+      className={`relative select-none overflow-hidden rounded-2xl ring-1 ring-white/15 aspect-[1088/608] min-h-[260px] sm:min-h-[360px] ${className}`}
       onMouseDown={(e) => {
         setAutoRunning(false)
         setDragging(true)
