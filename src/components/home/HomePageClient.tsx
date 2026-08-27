@@ -36,6 +36,8 @@ import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
 import { EventsCallout, type UpcomingEvent } from '@/components/home/EventsCallout'
 import LiveActivityTicker from '@/components/home/LiveActivityTicker'
+import { ShimmerText } from '@/components/motion'
+import { motion } from 'framer-motion'
 
 // Constrained to four brand-adjacent hues (teal, navy, terracotta, warm
 // gold) instead of 22 arbitrary rainbow colors — the grid reads as one
@@ -241,27 +243,45 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
           decoding="async"
           fetchPriority="high"
         />
-        {/* Dark overlay for headline readability + brand teal tint */}
-        <div className="absolute inset-0 bg-gradient-to-br from-secondary/85 via-[#01566d]/80 to-primary/75" />
-        {/* Brand accent blobs (kept at lower opacity so the photo shows through) */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent/15 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
+        {/* Dark overlay for headline readability + brand teal tint.
+            Slightly lighter than the original /85-/80-/75 so the cityscape
+            photo reads through and the headline shimmer has air to breathe. */}
+        <div className="absolute inset-0 bg-gradient-to-br from-secondary/75 via-[#01566d]/70 to-primary/65" />
+        {/* Brand accent blobs (lifted opacity so they register against the
+            lighter overlay without overpowering the photo or headline). */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent/20 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
 
         <div className="container-max relative py-16 md:py-28">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white text-sm px-4 py-1.5 rounded-full mb-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white text-sm px-4 py-1.5 rounded-full mb-6"
+            >
               <MapPin className="w-4 h-4 text-[#8fd4d7]" />
               Moreno Valley, California
-            </div>
+            </motion.div>
 
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: 'easeOut', delay: 0.1 }}
+              className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight"
+            >
               Your neighbors&apos; guide to{' '}
-              <span className="text-[#8fd4d7]">Moreno Valley</span>
-            </h1>
+              <ShimmerText dark>Moreno Valley</ShimmerText>
+            </motion.h1>
 
-            <p className="text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto">
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
+              className="text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto"
+            >
               The restaurants, shops, events, and stories that make MoVal home — curated by locals, for locals.
-            </p>
+            </motion.p>
 
             {/* Filters inside the hero — desktop & tablet only. On mobile the
                 same chrome is rendered in the sticky dock below. */}

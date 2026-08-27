@@ -34,9 +34,9 @@ import {
   ParallaxSection,
   FloatingCard,
   PulseRing,
-  SplitReveal,
   springTransition,
-} from './Motion'
+} from '@/components/motion'
+import { SplitReveal } from './Motion'
 
 const CATEGORY_TICKER = [
   'Restaurants',
