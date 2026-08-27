@@ -238,7 +238,7 @@ export function Marquee({
 }) {
   return (
     <div
-      className={`overflow-hidden border-y ${dark ? 'border-white/10 bg-[#061f2e]' : 'border-slate-200 bg-white'} ${className}`}
+      className={`overflow-hidden max-w-[100vw] border-y ${dark ? 'border-white/10 bg-[#061f2e]' : 'border-slate-200 bg-white'} ${className}`}
     >
       <motion.div
         className="flex whitespace-nowrap py-5"
