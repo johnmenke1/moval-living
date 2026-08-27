@@ -386,58 +386,60 @@ function BeforeAfterBrowser() {
         <SplitReveal before={before} after={after} className="rounded-2xl" initialSplit={35} />
       </FloatingCard>
 
-      {/* Floating metrics — stack vertically below the browser on small viewports so
-          they don't overlap each other in the gap below the card. */}
-      <motion.div
-        className="relative mt-4 mx-auto w-fit z-20 sm:absolute sm:mt-0 sm:w-auto sm:-bottom-6 sm:left-4 sm:right-auto"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6, ...springTransition }}
-      >
-        <div className="glass-light rounded-2xl p-4 shadow-xl flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#00a8a8] to-[#007a7f] text-white">
-            <TrendingUp className="w-5 h-5" />
+      {/* Floating metrics — on mobile they stack below the browser; on desktop they
+          sit at three distinct corners/sides so they never overlap. */}
+      <div className="mt-6 flex flex-col sm:mt-0 items-center gap-3 sm:block">
+        <motion.div
+          className="relative z-20 sm:absolute sm:-bottom-6 sm:left-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, ...springTransition }}
+        >
+          <div className="glass-light rounded-2xl p-4 shadow-xl flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#00a8a8] to-[#007a7f] text-white">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-lg font-bold text-[#081820]">More leads</div>
+              <div className="text-[10px] uppercase tracking-wider text-[#5a6c72]">from traffic you already get</div>
+            </div>
           </div>
-          <div>
-            <div className="text-lg font-bold text-[#081820]">+312%</div>
-            <div className="text-[10px] uppercase tracking-wider text-[#5a6c72]">more leads</div>
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
 
-      <motion.div
-        className="absolute -top-6 -right-2 sm:-right-4 z-20"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8, ...springTransition }}
-      >
-        <div className="glass-light rounded-2xl p-4 shadow-xl flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#ff7a66] to-[#e85d4a] text-white">
-            <Zap className="w-5 h-5" />
+        <motion.div
+          className="relative z-20 sm:absolute sm:-top-8 sm:-right-5"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, ...springTransition }}
+        >
+          <div className="glass-light rounded-2xl p-4 shadow-xl flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#ff7a66] to-[#e85d4a] text-white">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-lg font-bold text-[#081820]">0.9s</div>
+              <div className="text-[10px] uppercase tracking-wider text-[#5a6c72]">load time</div>
+            </div>
           </div>
-          <div>
-            <div className="text-lg font-bold text-[#081820]">0.9s</div>
-            <div className="text-[10px] uppercase tracking-wider text-[#5a6c72]">load time</div>
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
 
-      <motion.div
-        className="relative mt-3 mx-auto w-fit z-20 sm:absolute sm:mt-0 sm:w-auto sm:-bottom-14 sm:right-4 sm:left-auto"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1, ...springTransition }}
-      >
-        <div className="glass-light rounded-2xl p-4 shadow-xl flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#f3c46c] to-[#d4a84a] text-[#081820]">
-            <MousePointer2 className="w-5 h-5" />
+        <motion.div
+          className="relative z-20 sm:absolute sm:top-1/2 sm:-right-5 sm:-translate-y-1/2"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1, ...springTransition }}
+        >
+          <div className="glass-light rounded-2xl p-4 shadow-xl flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#f3c46c] to-[#d4a84a] text-[#081820]">
+              <MousePointer2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-lg font-bold text-[#081820]">24/7</div>
+              <div className="text-[10px] uppercase tracking-wider text-[#5a6c72]">capturing leads</div>
+            </div>
           </div>
-          <div>
-            <div className="text-lg font-bold text-[#081820]">24/7</div>
-            <div className="text-[10px] uppercase tracking-wider text-[#5a6c72]">capturing leads</div>
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   )
 }
