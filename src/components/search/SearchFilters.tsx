@@ -20,11 +20,15 @@ interface SearchFiltersProps {
 }
 
 /**
- * Secondary filters that live in the scrolling header card. The
- * search input + language toggle + Clear-all button were split out into
- * the dedicated <CompactSearchBar /> so the sticky bar can be smaller and
- * the header card scrolls away naturally once the user is reading
- * listings.
+ * Secondary filters that live INSIDE the /search hero. Before Aug 27,
+ * the search input + language toggle + Clear-all button were split out
+ * into the dedicated <CompactSearchBar /> so the sticky bar could be
+ * smaller; the hero was a separate "header card" that scrolled away.
+ *
+ * As of the /search hero makeover (commit `feat(search): photo hero`),
+ * the page has a single photo hero that owns BOTH the search input
+ * (CompactSearchBar) and this filter component. The old sticky bar is
+ * gone — the hero is the single source of truth for filtering /search.
  *
  * What lives here: category dropdown filter and the category filter-pill
  * nav. Selecting a category in the dropdown OR clicking a pill narrows

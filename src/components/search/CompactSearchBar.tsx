@@ -6,14 +6,17 @@ import { Search, X, Languages } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * CompactSearchBar — sticky search input + language toggle + clear that
- * stays visible as you scroll through business listings. Lives in
- * /search's sticky bar (sibling to the non-sticky head card that holds
- * the title row, category dropdown, and jump-to pills).
+ * CompactSearchBar — search input + language toggle + clear-all.
+ *
+ * Used to live in a sticky bar BELOW the /search "header card" so it
+ * stayed reachable while users scrolled listings. As of the /search hero
+ * makeover (Aug 27), it's rendered INSIDE the photo hero instead, so the
+ * sticky bar is gone and the hero is the single source of truth for
+ * filtering /search.
  *
  * UX mirrors /events SearchBar: controlled input, Escape clears,
- * auto-submit on backspace-to-empty, custom clear-X. URL is the source
- * of truth (server-rendered page reads ?q=... and ?espanol=...).
+ * auto-submit on backspace-to-empty, custom clear-X. URL is the source of
+ * truth (server-rendered page reads ?q=... and ?espanol=...).
  */
 interface CompactSearchBarProps {
   currentParams: {

@@ -1,11 +1,12 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { Building2, Sparkles, Search, MapPin, ExternalLink } from 'lucide-react'
+import { Building2, MapPin, ExternalLink } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
 import { SearchFilters } from '@/components/search/SearchFilters'
 import { CompactSearchBar } from '@/components/search/CompactSearchBar'
+import { SearchHeroClient } from '@/components/search/SearchHeroClient'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SearchMapWrapper } from '@/components/map/SearchMapWrapper'
 import { compareBusinessesForSearch } from '@/lib/business-priority'
@@ -190,69 +191,57 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const { total, groups, categoryNav, mapItems } = await getBusinesses(params)
   const selectedCategory = categories.find(c => c.slug === params.category)
 
+  // Headline is split into three segments so SearchHeroClient can wrap the
+  // accent phrase in <ShimmerText> while the server stays the source of
+  // truth for the literal text (good for SEO + answer-capsule content).
+  // Each branch: (eyebrow, before, accent, after).
   const headline = params.q
-    ? { eyebrow: 'Search results', title: <>Results for &ldquo;{params.q}&rdquo;</> }
+    ? { eyebrow: 'Search results', before: 'Results for ', accent: `"${params.q}"`, after: '' }
     : selectedCategory
-      ? { eyebrow: 'Category', title: selectedCategory.name }
-      : { eyebrow: 'Local Business Directory', title: <>Discover <span className="text-primary">MoVal</span></> }
+      ? { eyebrow: 'Category', before: '', accent: selectedCategory.name, after: '' }
+      : { eyebrow: 'Local Business Directory', before: 'Discover ', accent: 'MoVal', after: '' }
 
   const hasActiveFilters = Boolean(params.q || params.category || params.espanol)
   const canonicalCategoryUrl = params.category ? `/category/${params.category}` : null
 
+  // Answer-capsule subtitle — server-rendered, lives in the first ~150 words
+  // of HTML so AI engines and Google can lift a complete factual answer.
+  // Mirrors the /events hero pattern: count + named scope.
+  const subtitle = (
+    <>
+      {total === 0
+        ? 'No businesses match these filters yet — try a different category or be the first to list one.'
+        : `${total.toLocaleString()} local business${total === 1 ? '' : 'es'} in Moreno Valley${params.q ? ` matching “${params.q}”` : ''}${params.espanol ? ', including Spanish-speaking providers' : ''}.`}
+    </>
+  )
+
   return (
     <div className="bg-slate-50 min-h-screen">
-      {/* Header — single cohesive card with brand wash + decorative watermark. */}
-      <div className="container-max pt-6 pb-3">
-        <div
-          className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm bg-gradient-to-br from-secondary/8 via-white to-primary/5"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='1' cy='1' r='1' fill='%23015a6b' fill-opacity='0.10'/></svg>\"), linear-gradient(to bottom right, rgba(1,90,107,0.06), white, rgba(0,122,127,0.04))",
-          }}
-        >
-          <Building2
-            aria-hidden
-            className="pointer-events-none absolute -right-8 -top-8 w-64 h-64 text-primary/[0.06] rotate-12"
-          />
-          <Building2
-            aria-hidden
-            className="pointer-events-none absolute -left-12 bottom-0 w-48 h-48 text-secondary/[0.05] -rotate-6"
-          />
-
-          <div className="relative px-5 sm:px-8 pt-6 pb-5">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary shrink-0">
-                <Search className="w-7 h-7" />
-              </div>
-              <div className="min-w-0">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider mb-1.5">
-                  <Sparkles className="w-3 h-3" />
-                  {headline.eyebrow}
-                </span>
-                <h1 className="text-3xl sm:text-4xl font-bold text-text leading-tight">
-                  {headline.title}
-                </h1>
-              </div>
-            </div>
-
-            <SearchFilters
-              categories={categories}
-              currentParams={params}
-              categoryNav={categoryNav}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Compact sticky search bar */}
-      <div className="sticky top-16 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/70">
-        <div className="container-max py-3">
+      {/* Hero — photo backdrop with ShimmerText on the headline's accent
+          phrase + staggered fade-up entry. Houses the consolidated search
+          input (was CompactSearchBar) and category filters (was SearchFilters).
+          Replaces the old header card + sticky bar; the hero is now the
+          single source of truth for filtering /search. */}
+      <SearchHeroClient
+        eyebrow={headline.eyebrow}
+        titleBefore={headline.before}
+        titleAccent={headline.accent}
+        titleAfter={headline.after}
+        subtitle={subtitle}
+        compactSearchBar={
           <CompactSearchBar
             currentParams={params}
             hasActiveFilters={hasActiveFilters}
           />
-        </div>
-      </div>
+        }
+        searchFilters={
+          <SearchFilters
+            categories={categories}
+            currentParams={params}
+            categoryNav={categoryNav}
+          />
+        }
+      />
 
       {/* Results body */}
       <div className="container-max py-8">
