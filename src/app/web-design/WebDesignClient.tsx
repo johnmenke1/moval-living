@@ -238,19 +238,19 @@ function ContactSection() {
       <div className="container-max">
         <div className="max-w-6xl mx-auto">
           <div className="block lg:grid lg:grid-cols-2 gap-0 rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-white/20 bg-gradient-to-br from-[#061f2e]/95 to-[#0b3a52]/95 backdrop-blur-xl sm:shadow-2xl">
-            <div className="p-5 sm:p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-white/10">
-              <div className="mb-8">
+            <div className="p-4 xs:p-5 sm:p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-white/10">
+              <div className="mb-6 sm:mb-8">
                 <span className="inline-flex items-center gap-2 text-[#00a8a8] text-sm font-semibold uppercase tracking-wider mb-3">
                   <MessageSquare className="w-4 h-4" />
                   Send a Message
                 </span>
-                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">Tell us what you&apos;re building</h2>
-                <p className="text-white/70">Fill this out and we&apos;ll get back to you with next steps — usually the same day.</p>
+                <h2 className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white mb-3">Tell us what you&apos;re building</h2>
+                <p className="text-white/70 text-sm sm:text-base">Fill this out and we&apos;ll get back to you with next steps — usually the same day.</p>
               </div>
               <LeadForm />
             </div>
 
-            <div className="relative p-5 sm:p-8 lg:p-12 bg-gradient-to-br from-[#00a8a8]/10 via-[#061f2e]/50 to-[#0b3a52]/50">
+            <div className="relative p-4 xs:p-5 sm:p-8 lg:p-12 bg-gradient-to-br from-[#00a8a8]/10 via-[#061f2e]/50 to-[#0b3a52]/50">
               <div className="absolute top-0 right-0 p-8 opacity-10">
                 <Sparkles className="w-32 h-32 text-[#00a8a8]" />
               </div>
@@ -399,12 +399,12 @@ function BeforeAfterBrowser() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6, ...springTransition }}
         >
-          <div className="glass-light rounded-2xl p-4 shadow-xl flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#00a8a8] to-[#007a7f] text-white">
+          <div className="glass-light rounded-2xl p-3 sm:p-4 shadow-xl flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#00a8a8] to-[#007a7f] text-white">
               <TrendingUp className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-lg font-bold text-[#081820]">More leads</div>
+              <div className="text-base sm:text-lg font-bold text-[#081820]">More leads</div>
               <div className="text-[10px] uppercase tracking-wider text-[#5a6c72]">from traffic you already get</div>
             </div>
           </div>
@@ -416,33 +416,31 @@ function BeforeAfterBrowser() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, ...springTransition }}
         >
-          <div className="glass-light rounded-2xl p-4 shadow-xl flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#ff7a66] to-[#e85d4a] text-white">
+          <div className="glass-light rounded-2xl p-3 sm:p-4 shadow-xl flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#ff7a66] to-[#e85d4a] text-white">
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-lg font-bold text-[#081820]">0.9s</div>
+              <div className="text-base sm:text-lg font-bold text-[#081820]">0.9s</div>
               <div className="text-[10px] uppercase tracking-wider text-[#5a6c72]">load time</div>
             </div>
           </div>
         </motion.div>
 
-        {/* Right column — anchor to explicit top offset (not bottom) so the card sits
-            a fixed distance below the right-top card regardless of SplitReveal height.
-            sm:top-[110px] = 16px (top offset) + ~80px (card height) + 14px gap;
-            lg:top-[126px] mirrors the larger lg gutter. */}
+        {/* Right column — anchor to the bottom-right so the two right-side cards never
+            overlap, regardless of SplitReveal/browser mockup height. */}
         <motion.div
-          className="relative z-20 pointer-events-auto sm:absolute sm:top-[110px] sm:right-4 lg:top-[126px] lg:right-6"
+          className="relative z-20 pointer-events-auto sm:absolute sm:bottom-4 sm:right-4 lg:bottom-6 lg:right-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, ...springTransition }}
         >
-          <div className="glass-light rounded-2xl p-4 shadow-xl flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#f3c46c] to-[#d4a84a] text-[#081820]">
+          <div className="glass-light rounded-2xl p-3 sm:p-4 shadow-xl flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#f3c46c] to-[#d4a84a] text-[#081820]">
               <MousePointer2 className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-lg font-bold text-[#081820]">24/7</div>
+              <div className="text-base sm:text-lg font-bold text-[#081820]">24/7</div>
               <div className="text-[10px] uppercase tracking-wider text-[#5a6c72]">capturing leads</div>
             </div>
           </div>
