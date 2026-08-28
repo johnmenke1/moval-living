@@ -3,9 +3,11 @@
 /**
  * HeroVideo — homepage hero background video with graceful degradation.
  *
- * Architecture (designed 2026-08-27 with the drone aerial hero video):
+ * Architecture (designed 2026-08-27 with the drone aerial hero video,
+ * z-index trap fixed 2026-08-27 after Johnny flagged the gradient + blob
+ * overlays disappeared once the video mounted):
  *
- *   ┌─ <picture> wraps the poster JPG ─┐
+ *   ┌─ <picture> wraps the poster JPG ─────┐
  *   │  • Always renders, never blocked │
  *   │  • This IS the LCP element       │
  *   │  • fetchPriority="high"          │
@@ -20,6 +22,11 @@
  *   │  • preload="metadata" so we know │
  *   │    width/duration without paying │
  *   │    the full payload             │
+ *   │  • NO z-index — DOM order keeps  │
+ *   │    it BELOW the gradient + blobs │
+ *   │    that HomePageClient renders   │
+ *   │    after <HeroVideo> in the     │
+ *   │    same <section>               │
  *   └─ Crossfade when video plays ────┘
  *
  * On the server side, <picture> + <video> render with the poster; on
@@ -104,7 +111,11 @@ export function HeroVideo({
       />
 
       {/* Video overlay — only mounted if JS decides it's safe.
-          Sits ABOVE the poster with opacity-0 until first canplay event. */}
+          Sits above the poster with opacity-0 until first canplay event,
+          then fades in. DOM order keeps it BELOW the gradient + blob
+          overlays that follow it in HomePageClient's <section> — no
+          z-index needed because every layer in the hero stack is
+          `position: absolute` without an explicit z-index. */}
       {videoOn && (
         <video
           ref={videoRef}
@@ -119,7 +130,6 @@ export function HeroVideo({
           className={`${className} transition-opacity duration-700 ${
             videoReady ? 'opacity-100' : 'opacity-0'
           }`}
-          style={{ zIndex: 1 }}
         >
           {/* WebM first — modern browsers prefer it. */}
           <source src={webmSrc} type="video/webm" />
