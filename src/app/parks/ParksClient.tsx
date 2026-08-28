@@ -223,80 +223,80 @@ export function ParksClient({ parks, topRated }: ParksClientProps) {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-      <ParksCompactBar
-        query={query}
-        onQueryChange={setQuery}
-        userLocation={userLocation}
-        onRequestLocation={requestLocation}
-        onClearLocation={clearLocation}
-        hasActiveFilters={hasActiveFilters}
-        onClearAll={clearAll}
-      />
-
-      {/* Non-sticky head card content (scrolls with listings): type tabs + amenity chips */}
-      <div ref={filtersRef} className="mt-6 mb-4 rounded-2xl bg-white border border-slate-200 shadow-sm p-5">
-        <ParkFiltersPanel
-          selectedAmenities={amenitiesFromUrl}
-          selectedType={typeFromUrl ?? undefined}
-          amenityCounts={amenityCounts}
-          onToggleAmenity={toggleAmenity}
-          onClearAmenities={clearAmenities}
-          onSetType={setType}
+        <ParksCompactBar
+          query={query}
+          onQueryChange={setQuery}
+          userLocation={userLocation}
+          onRequestLocation={requestLocation}
+          onClearLocation={clearLocation}
+          hasActiveFilters={hasActiveFilters}
+          onClearAll={clearAll}
         />
-      </div>
 
-      {/* Result count strip */}
-      <div className="flex items-center justify-between mb-4 text-sm text-text-secondary">
-        <span className="font-medium">
-          {visibleParks.length} {visibleParks.length === 1 ? 'facility' : 'facilities'}
-          {hasActiveFilters ? ' matching' : ''}
-        </span>
-        {userLocation && (
-          <span className="text-xs text-accent font-semibold">
-            Sorted by distance from your location
+        {/* Non-sticky head card content (scrolls with listings): type tabs + amenity chips */}
+        <div ref={filtersRef} className="mt-6 mb-4 rounded-2xl bg-white border border-slate-200 shadow-sm p-5">
+          <ParkFiltersPanel
+            selectedAmenities={amenitiesFromUrl}
+            selectedType={typeFromUrl ?? undefined}
+            amenityCounts={amenityCounts}
+            onToggleAmenity={toggleAmenity}
+            onClearAmenities={clearAmenities}
+            onSetType={setType}
+          />
+        </div>
+
+        {/* Result count strip */}
+        <div className="flex items-center justify-between mb-4 text-sm text-text-secondary">
+          <span className="font-medium">
+            {visibleParks.length} {visibleParks.length === 1 ? 'facility' : 'facilities'}
+            {hasActiveFilters ? ' matching' : ''}
           </span>
-        )}
-      </div>
-
-      {/* Two-pane body — sticky map on lg+, stacked on smaller */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
-        {/* Cards column */}
-        <div className="order-2 lg:order-1 flex flex-col gap-4">
-          {visibleParks.length === 0 ? (
-            <EmptyParksState onClearFilters={clearAll} />
-          ) : (
-            visibleParks.map((p) => (
-              <ParkCard
-                key={p.id}
-                park={p}
-                distanceLabel={distanceLabels[p.slug]}
-                highlighted={highlightedSlug === p.slug}
-                onClick={() => handleCardClick(p.slug)}
-              />
-            ))
+          {userLocation && (
+            <span className="text-xs text-accent font-semibold">
+              Sorted by distance from your location
+            </span>
           )}
         </div>
 
-        {/* Map column */}
-        <div className="order-1 lg:order-2 lg:sticky lg:top-[120px] lg:self-start">
-          <ParkMap
-            parks={visibleParks}
-            highlightedSlug={highlightedSlug}
-            userLocation={userLocation}
-            onMarkerClick={(slug) => {
-              setHighlightedSlug(slug)
-              if (typeof document !== 'undefined') {
-                const target = parks.find((p) => p.slug === slug)
-                if (target) {
-                  const el = document.getElementById(`park-header-${target.id}`)
-                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        {/* Two-pane body — sticky map on lg+, stacked on smaller */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
+          {/* Cards column */}
+          <div className="order-2 lg:order-1 flex flex-col gap-4">
+            {visibleParks.length === 0 ? (
+              <EmptyParksState onClearFilters={clearAll} />
+            ) : (
+              visibleParks.map((p) => (
+                <ParkCard
+                  key={p.id}
+                  park={p}
+                  distanceLabel={distanceLabels[p.slug]}
+                  highlighted={highlightedSlug === p.slug}
+                  onClick={() => handleCardClick(p.slug)}
+                />
+              ))
+            )}
+          </div>
+
+          {/* Map column */}
+          <div className="order-1 lg:order-2 lg:sticky lg:top-[120px] lg:self-start">
+            <ParkMap
+              parks={visibleParks}
+              highlightedSlug={highlightedSlug}
+              userLocation={userLocation}
+              onMarkerClick={(slug) => {
+                setHighlightedSlug(slug)
+                if (typeof document !== 'undefined') {
+                  const target = parks.find((p) => p.slug === slug)
+                  if (target) {
+                    const el = document.getElementById(`park-header-${target.id}`)
+                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }
                 }
-              }
-            }}
-          />
+              }}
+            />
+          </div>
         </div>
       </div>
-    </div>
     </>
   )
 }
