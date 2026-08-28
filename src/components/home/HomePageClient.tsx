@@ -245,14 +245,38 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
           webmSrc="https://zcbtyeiwows1rc8s.public.blob.vercel-storage.com/home/hero-video.webm"
           mp4Src="https://zcbtyeiwows1rc8s.public.blob.vercel-storage.com/home/hero-video.mp4"
         />
-        {/* Dark overlay for headline readability + brand teal tint.
-            Slightly lighter than the original /85-/80-/75 so the cityscape
-            photo reads through and the headline shimmer has air to breathe. */}
-        <div className="absolute inset-0 bg-gradient-to-br from-secondary/75 via-[#01566d]/70 to-primary/65" />
-        {/* Brand accent blobs (lifted opacity so they register against the
-            lighter overlay without overpowering the photo or headline). */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent/20 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
+        {/* Vertical vignette — dark navy at the top (behind the headline)
+            and the bottom (behind the search form), transparent through
+            the middle so the video's sunlit center stays unobstructed.
+
+            The previous diagonal `from-secondary/75 via-[#01566d]/70
+            to-primary/65` was stacking 65-75% navy over the entire video,
+            which read as muddy on the bright daytime aerial and washed out
+            the white headline. Vignette gives us headline contrast where
+            we need it (top + bottom) without sacrificing video clarity in
+            the middle.
+
+            Tailwind's 3-stop gradient (`from`/`via`/`to`) puts the
+            transparent middle at the exact 50% mark, which is wider than
+            the visible clear band in practice because Tailwind interpolates
+            linearly — the navy fades in slowly across the whole 0-50% range.
+            For a real vignette we want a 4-stop gradient: opaque navy at
+            0%, transparent held until ~40%, transparent held until ~60%,
+            opaque navy at 100%. Built inline via the `style` attribute
+            below; Tailwind classes handle the position (`bg-gradient-to-b`)
+            and color stops can't be expressed without this. */}
+        <div
+          className="absolute inset-0 bg-gradient-to-b"
+          style={{
+            backgroundImage:
+              'linear-gradient(to bottom, rgba(6,31,46,0.62) 0%, rgba(6,31,46,0.62) 30%, rgba(6,31,46,0) 45%, rgba(6,31,46,0) 55%, rgba(6,31,46,0.62) 70%, rgba(6,31,46,0.62) 100%)',
+          }}
+        />
+        {/* Brand accent blobs — kept for color life in the cleared middle
+            band. Lower opacities than before so they don't pile on top
+            of the now-translucent center. */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent/15 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
 
         <div className="container-max relative py-16 md:py-28">
           <div className="max-w-3xl mx-auto text-center">
