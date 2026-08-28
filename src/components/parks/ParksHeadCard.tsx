@@ -23,12 +23,18 @@ interface ParksHeadCardProps {
 }
 
 /**
- * ParksHeadCard — immersive photo hero for /parks.
+ * ParksHeadCard — immersive full-bleed photo hero for /parks.
  *
  * The new collage hero image is the focal point. A layered gradient keeps
  * the white headline readable while letting the warmth of the park photos
  * show through. The search input is embedded in the hero so the primary
  * action is immediately reachable, mirroring the homepage search pattern.
+ *
+ * Renders full-bleed (no max-width, no horizontal padding, no top-edge
+ * rounding) so it spans the entire viewport width. The rest of /parks
+ * lives in its own max-w-7xl wrapper below it — see ParksClient.tsx for
+ * the layout split. This mirrors the homepage's hero-then-section
+ * architecture exactly (HomePageClient line 237 onward).
  *
  * The hero subtitle doubles as the page's answer capsule for AI engines
  * (per Aug 27 update — the standalone banner that used to live ABOVE
@@ -65,7 +71,7 @@ export function ParksHeadCard({
     .join(', ')
 
   return (
-    <section className="relative overflow-hidden rounded-3xl">
+    <section className="relative overflow-hidden">
       {/* Hero collage image */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img

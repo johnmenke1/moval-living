@@ -207,7 +207,11 @@ export function ParksClient({ parks, topRated }: ParksClientProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+    <>
+      {/* Full-bleed hero — mirrors the homepage's photo-hero pattern
+          (no max-width, no horizontal padding, no rounded corners on the
+          top edge so it reads as a true viewport-width band). The rest of
+          the page lives in its own max-w-7xl wrapper below. */}
       <ParksHeadCard
         parkCount={counts.park}
         golfCount={counts.golf}
@@ -218,6 +222,7 @@ export function ParksClient({ parks, topRated }: ParksClientProps) {
         topRated={topRated}
       />
 
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
       <ParksCompactBar
         query={query}
         onQueryChange={setQuery}
@@ -292,6 +297,7 @@ export function ParksClient({ parks, topRated }: ParksClientProps) {
         </div>
       </div>
     </div>
+    </>
   )
 }
 
