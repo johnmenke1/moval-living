@@ -39,6 +39,20 @@ export default async function SpotlightsIndexPage() {
           <p className="text-base sm:text-lg text-text leading-relaxed">
             {spotlightCapsule}
           </p>
+          {posts.length > 0 && (
+            <p className="mt-4 text-sm text-text-secondary">
+              Featuring the City of Moreno Valley's{' '}
+              <a
+                href="https://www.youtube.com/playlist?list=PLmdmVBb42qYhA-xJugxmokFo-xZNVF_1Q"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Spotlight on Moreno Valley Business
+              </a>{' '}
+              program. Original moval.living video spotlights coming soon.
+            </p>
+          )}
         </header>
 
         {posts.length === 0 ? (
