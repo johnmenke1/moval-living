@@ -50,6 +50,42 @@ export const metadata: Metadata = {
   },
 }
 
+/**
+ * Top-rated parks for the hero subtitle / answer-capsule.
+ *
+ * Same selection rule the old banner used (rating desc, then review
+ * count desc, capped at 3) so the SEO signal carried over verbatim when
+ * the banner was removed. Returns [] when no parks have reviews yet —
+ * the hero falls back to plain copy in that branch.
+ */
+function topRatedParks(parks: ParkSummary[]) {
+  return [...parks]
+    .filter(
+      (p) =>
+        p.googleRating != null &&
+        p.googleReviewCount != null &&
+        p.googleReviewCount > 0,
+    )
+    .sort(
+      (a, b) =>
+        (b.googleRating ?? 0) - (a.googleRating ?? 0) ||
+        (b.googleReviewCount ?? 0) - (a.googleReviewCount ?? 0),
+    )
+    .slice(0, 3)
+    .map((p) => ({
+      name: p.name,
+      rating: p.googleRating as number,
+      reviewCount: p.googleReviewCount as number,
+    }))
+}
+
+/**
+ * Curated amenity slugs surfaced in the hero subtitle so AI engines
+ * and Google can lift a concrete list when answering 'what can I do
+ * at parks in Moreno Valley'. Kept short — long lists don't get cited.
+ */
+const HERO_AMENITIES = ['dog_park', 'splash_pad', 'pump_track', 'walking_trails']
+
 async function getParks(): Promise<ParkSummary[]> {
   // Pull only the columns the public surface needs. Admin-edited fields
   // (description, blurb, hoursJson, photoUrls) are intentionally read
@@ -144,35 +180,7 @@ export default async function ParksPage() {
   return (
       <>
         <JsonLd schema={parksSchema} />
-        {/* Answer capsule — server-rendered, above the interactive map.
-            AI engines (ChatGPT, Perplexity, Claude) lift the first ~150
-            words of HTML for queries like 'parks in Moreno Valley'. This
-            phrased-as-a-complete-answer paragraph is what gets cited;
-            the map + filters below are the supporting evidence.
-
-            Honest scope: the Park model has no acreage field (verified
-            prisma/schema.prisma 2026-08-22), so the capsule uses count
-            + top 3 by Google review count — both real, both live. The
-            'largest are X' shape that acreage would unlock is deferred
-            to a separate GIS data import. */}
-        <div className="bg-slate-50 border-b border-slate-200">
-          <div className="container-max py-6">
-            <p className="text-base sm:text-lg text-text leading-relaxed max-w-3xl">
-              Moreno Valley has {parks.length} public parks, trails, and recreation facilities maintained by the City of MoVal
-              {(() => {
-                const topRated = [...parks]
-                  .filter(p => p.googleRating != null && p.googleReviewCount != null && p.googleReviewCount > 0)
-                  .sort((a, b) => (b.googleRating ?? 0) - (a.googleRating ?? 0) || (b.googleReviewCount ?? 0) - (a.googleReviewCount ?? 0))
-                  .slice(0, 3)
-                if (topRated.length === 0) return '.'
-                const names = topRated.map(p => `${p.name} (${p.googleRating?.toFixed(1)}★ across ${p.googleReviewCount} Google reviews)`)
-                return ` — including ${names.join(', ')}.`
-              })()}
-              {' '}Filter by amenities (dog park, splash pad, pump track, walking trails, and more) below.
-            </p>
-          </div>
-        </div>
-        <ParksClient parks={parks} />
+        <ParksClient parks={parks} topRated={topRatedParks(parks)} />
       </>
     )
 }

@@ -54,3 +54,19 @@ export function isKnownAmenity(slug: string): slug is AmenitySlug {
 export function amenityLabel(slug: string): string {
   return AMENITY_BY_SLUG[slug]?.label ?? slug.replace(/_/g, " ");
 }
+
+/**
+ * Curated amenity slugs surfaced in the /parks hero subtitle. Kept as a
+ * hand-picked ordered subset (NOT derived from AMENITIES) so AI engines
+ * and Google lift a concrete list when answering 'what can I do at parks
+ * in Moreno Valley'. Order matters — the first ones in the list appear
+ * first in the generated phrase. Edit this list when the curation changes;
+ * do not add to AMENITIES without also considering whether the hero
+ * should mention it.
+ */
+export const HERO_AMENITY_SLUGS = [
+  "dog_park",
+  "splash_pad",
+  "pump_track",
+  "walking_trails",
+] as const satisfies readonly AmenitySlug[];

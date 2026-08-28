@@ -2,6 +2,7 @@
 
 import { Search, MapPin, Sparkles, TreePine } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { amenityLabel, HERO_AMENITY_SLUGS } from '@/lib/park-amenities'
 
 interface ParksHeadCardProps {
   parkCount: number
@@ -10,6 +11,15 @@ interface ParksHeadCardProps {
   query: string
   onQueryChange: (next: string) => void
   onSearchFocus?: () => void
+  /** Top 3 parks by Google rating (then review count). When present,
+   *  rendered as a sub-line under the hero subtitle so AI engines and
+   *  Google still see a complete factual answer in the first ~150
+   *  words of HTML. When empty, that sub-line is omitted. */
+  topRated?: Array<{
+    name: string
+    rating: number
+    reviewCount: number
+  }>
 }
 
 /**
@@ -19,6 +29,11 @@ interface ParksHeadCardProps {
  * the white headline readable while letting the warmth of the park photos
  * show through. The search input is embedded in the hero so the primary
  * action is immediately reachable, mirroring the homepage search pattern.
+ *
+ * The hero subtitle doubles as the page's answer capsule for AI engines
+ * (per Aug 27 update — the standalone banner that used to live ABOVE
+ * this hero was removed). Server-rendered, in the first ~150 words of
+ * HTML, phrased as a complete factual answer.
  */
 export function ParksHeadCard({
   parkCount,
@@ -27,6 +42,7 @@ export function ParksHeadCard({
   query,
   onQueryChange,
   onSearchFocus,
+  topRated,
 }: ParksHeadCardProps) {
   const total = parkCount + golfCount + recCount
 
@@ -40,6 +56,13 @@ export function ParksHeadCard({
       e.currentTarget.blur()
     }
   }
+
+  // Curated amenity slugs surfaced in the subtitle. Labels come from
+  // the shared lib so they stay in sync with the filter panel UI.
+  const amenityPhrase = HERO_AMENITY_SLUGS
+    .slice(0, 4)
+    .map((slug) => amenityLabel(slug).toLowerCase())
+    .join(', ')
 
   return (
     <section className="relative overflow-hidden rounded-3xl">
@@ -77,11 +100,27 @@ export function ParksHeadCard({
             <span className="italic font-semibold text-[#8fd4d7]">parks</span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-white/85 leading-relaxed mb-8 max-w-2xl mx-auto">
-            {total} City-maintained facilities on one map — with filters for
-            amenities, photos, and a &quot;near me&quot; distance so you can find the
-            closest spot to take the kids, walk the dog, or hit the links.
+          {/* Answer-capsule subtitle — server-rendered copy that AI
+              engines and Google lift for 'parks in Moreno Valley' queries.
+              Replaces the standalone banner that used to sit ABOVE this
+              hero (removed Aug 27 per Johnny's request). */}
+          <p className="text-lg sm:text-xl text-white/85 leading-relaxed mb-3 max-w-2xl mx-auto">
+            {total} City-maintained facilities on one map — parks, trails, and Cottonwood Golf Center, with filters for{' '}
+            {amenityPhrase}, and more.
           </p>
+          {topRated && topRated.length > 0 && (
+            <p className="text-base sm:text-lg text-white/75 leading-relaxed mb-6 max-w-2xl mx-auto">
+              Highly rated:{' '}
+              {topRated
+                .map(
+                  (p) =>
+                    `${p.name} (${p.rating.toFixed(1)}★ across ${p.reviewCount} Google reviews)`,
+                )
+                .join(', ')}
+              .
+            </p>
+          )}
+          {(!topRated || topRated.length === 0) && <div className="mb-6" />}
 
           {/* Stats chips */}
           <div className="flex flex-wrap justify-center gap-3 text-sm font-medium mb-8">

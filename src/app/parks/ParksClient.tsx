@@ -20,6 +20,14 @@ import type { AmenitySlug } from '@/lib/park-amenities'
 
 interface ParksClientProps {
   parks: ParkSummary[]
+  /** Top 3 parks by Google rating (then review count) — passed through
+   *  to the hero subtitle so the SEO answer-capsule signal stays in the
+   *  server-rendered HTML after the old banner was removed. */
+  topRated: Array<{
+    name: string
+    rating: number
+    reviewCount: number
+  }>
 }
 
 /**
@@ -34,7 +42,7 @@ interface ParksClientProps {
  * "near me" persists across navigations within the site but doesn't
  * get shared in URLs.
  */
-export function ParksClient({ parks }: ParksClientProps) {
+export function ParksClient({ parks, topRated }: ParksClientProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -207,6 +215,7 @@ export function ParksClient({ parks }: ParksClientProps) {
         query={query}
         onQueryChange={setQuery}
         onSearchFocus={scrollToFilters}
+        topRated={topRated}
       />
 
       <ParksCompactBar
