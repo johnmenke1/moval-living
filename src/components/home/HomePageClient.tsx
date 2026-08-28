@@ -36,6 +36,7 @@ import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
 import { EventsCallout, type UpcomingEvent } from '@/components/home/EventsCallout'
 import LiveActivityTicker from '@/components/home/LiveActivityTicker'
+import { HeroVideo } from '@/components/home/HeroVideo'
 import { ShimmerText } from '@/components/motion'
 import { motion } from 'framer-motion'
 
@@ -234,14 +235,15 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
           On mobile we drop the search form + pills out of the hero and into
           the sticky FilterDock below, so filters stay reachable while scrolling. */}
       <section className="relative overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="https://zcbtyeiwows1rc8s.public.blob.vercel-storage.com/home/home-hero-1786913867250.jpg"
-          alt="Aerial view of Moreno Valley with Box Springs Mountain in the distance"
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-          decoding="async"
-          fetchPriority="high"
+        {/* HeroVideo — static JPG poster stays the LCP element; the drone
+            aerial WebM/MP4 fades in over the poster on safe-to-autoplay
+            connections (no reduced-motion, no save-data, not 3g/slower).
+            See src/components/home/HeroVideo.tsx for the full architecture. */}
+        <HeroVideo
+          posterSrc="https://zcbtyeiwows1rc8s.public.blob.vercel-storage.com/home/hero-video-poster.jpg"
+          posterAlt="Aerial view of Moreno Valley with Box Springs Mountain in the distance"
+          webmSrc="https://zcbtyeiwows1rc8s.public.blob.vercel-storage.com/home/hero-video.webm"
+          mp4Src="https://zcbtyeiwows1rc8s.public.blob.vercel-storage.com/home/hero-video.mp4"
         />
         {/* Dark overlay for headline readability + brand teal tint.
             Slightly lighter than the original /85-/80-/75 so the cityscape
