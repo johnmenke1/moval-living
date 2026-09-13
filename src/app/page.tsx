@@ -130,9 +130,9 @@ async function getCategoryCounts() {
 }
 
 async function getHomepageBusinesses() {
-  // Homepage is curated, not algorithmic: only Best-Of winners and Featured/Expert
-  // Partner listings. Expert Partner is "Featured + more" — same elevated tier for
-  // homepage placement. Order: BestOf+Featured/EP → Featured/EP only → BestOf-only.
+  // Homepage is curated, not algorithmic: Best-Of winners, Featured/Expert Partner
+  // listings, AND nominated businesses (BestOfNominees who aren't winners yet).
+  // Order: BestOf+Featured/EP → Featured/EP only → BestOf-only → Nominated (non-winner).
   // No FREE listings.
   return prisma.business.findMany({
     where: {
@@ -141,6 +141,7 @@ async function getHomepageBusinesses() {
         { tier: 'FEATURED' },
         { tier: 'EXPERT_PARTNER' },
         { isBestOfWinner: true },
+        { bestOfNominees: { some: { winner: false } } },
       ],
     },
     select: {
@@ -166,6 +167,11 @@ async function getHomepageBusinesses() {
       category: { select: { name: true, slug: true } },
       reviews: { select: { rating: true } },
       _count: { select: { reviews: true } },
+      // Include nominee info so we can show "Nominated" badge
+      bestOfNominees: {
+        where: { winner: false },
+        select: { category: { select: { name: true, slug: true } } },
+      },
     },
   })
 }
@@ -237,18 +243,26 @@ export default async function HomePage() {
     getUpcomingEvents(),
   ])
 
+  // Add isNominated flag to candidates before sorting
+  const candidatesWithNominated = candidates.map(b => ({
+    ...b,
+    isNominated: Boolean(b.bestOfNominees && b.bestOfNominees.length > 0),
+  }))
+
   // Sort priority — shared with /search and category pages so listings
   // appear in a consistent, curated order everywhere:
   //   0 = Expert Partner (any combination — EP wins outright)
   //   1 = Best Of + (FEATURED or EXPERT_PARTNER tier)
   //   2 = (FEATURED or EXPERT_PARTNER tier) only
   //   3 = Best Of only
-  //   4 = FREE (filtered out below, never reaches the homepage grid)
-  const sorted = [...candidates].sort(compareBusinesses)
+  //   4 = Nominated (BestOfNominee, not winner)
+  //   5 = FREE (filtered out, never reaches the homepage grid)
+  const sorted = [...candidatesWithNominated].sort(compareBusinesses)
 
   const featuredBusinesses = sorted.map(b => ({
     ...b,
     isBestOf: b.isBestOfWinner,
+    isNominated: b.isNominated,
     seHablaEspanol: b.seHablaEspanol,
     chamberMember: b.chamberMember,
     hispanicChamberMember: b.hispanicChamberMember,

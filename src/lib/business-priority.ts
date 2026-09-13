@@ -18,6 +18,7 @@ export interface PriorityBusiness {
   tier: string
   isBestOfWinner: boolean
   isExpertPartner: boolean
+  isNominated?: boolean
   createdAt?: Date | string
 }
 
@@ -26,14 +27,17 @@ export interface PriorityBusiness {
  *   1 = Best Of + (FEATURED or EXPERT_PARTNER tier)
  *   2 = (FEATURED or EXPERT_PARTNER tier) only — no BestOf, no EP flag
  *   3 = Best Of only — no Featured/EP tier, no EP flag
- *   4 = everything else (regular FREE listings) */
+ *   4 = Nominated (BestOfNominee, not winner) — no Featured/EP tier
+ *   5 = everything else (regular FREE listings) */
 export function businessPriority(b: PriorityBusiness): number {
   if (b.isExpertPartner) return 0
   const elevated = b.tier === 'FEATURED' || b.tier === 'EXPERT_PARTNER'
+  const isNominated = b.isNominated === true
   if (b.isBestOfWinner && elevated) return 1
   if (elevated) return 2
   if (b.isBestOfWinner) return 3
-  return 4
+  if (isNominated) return 4
+  return 5
 }
 
 /**

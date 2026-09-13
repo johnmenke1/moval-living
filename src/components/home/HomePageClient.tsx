@@ -354,8 +354,8 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
         <div className="container-max">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-text mb-1">Featured &amp; Best Of Moreno Valley</h2>
-              <p className="text-text-secondary">Curated Featured businesses and Best-Of winners across the community</p>
+              <h2 className="text-3xl font-bold text-text mb-1">Featured & Best Of Moreno Valley</h2>
+              <p className="text-text-secondary">Curated Featured businesses, Best-Of winners, and community nominees</p>
             </div>
             <Link href="/best-of" className="hidden sm:flex items-center gap-1 text-primary font-medium hover:gap-2 transition-all">
               See Best Of <ChevronRight className="w-4 h-4" />

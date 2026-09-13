@@ -35,6 +35,7 @@ interface BusinessCardProps {
     seHablaEspanol?: boolean
     chamberMember?: boolean
     hispanicChamberMember?: boolean
+    isNominated?: boolean
   }
 }
 
@@ -105,12 +106,18 @@ export function BusinessCard({ business }: BusinessCardProps) {
             plus a quiet language chip. One shared visual system so the row
             reads as information, not decoration. Chamber membership lives on
             the affiliation line below; full details on the business page. */}
-        {(business.isBestOf || business.isExpertPartner || business.seHablaEspanol) && (
+        {(business.isBestOf || business.isExpertPartner || business.isNominated || business.seHablaEspanol) && (
           <div className="flex flex-wrap items-center gap-2 mb-3">
             {business.isBestOf && (
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50/80 text-amber-800 border border-amber-200">
                 <Trophy className="w-3 h-3" />
                 Best of MoVal
+              </span>
+            )}
+            {business.isNominated && !business.isBestOf && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-50/80 text-purple-800 border border-purple-200">
+                <Trophy className="w-3 h-3" />
+                Best Of Nominee
               </span>
             )}
             {business.isExpertPartner && (
