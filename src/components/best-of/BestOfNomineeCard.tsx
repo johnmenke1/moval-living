@@ -19,7 +19,10 @@ interface NomineeCardProps {
     category: { name: string; slug: string }
     reviews: Array<{ rating: number }>
     _count?: { reviews: number }
-    hasCoupon?: boolean
+    // Deal — first-class Deal row. Replaces the legacy Business.hasCoupon
+    // boolean (declared on the prop but never read in the JSX). Optional
+    // because some /best-of/[category] selects might not include deals.
+    deals?: Array<{ imageUrl: string | null; isActive?: boolean }>
     googleRating?: number | null
     googleReviewCount?: number | null
     isBestOfWinner?: boolean

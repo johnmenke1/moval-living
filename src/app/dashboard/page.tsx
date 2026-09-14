@@ -20,7 +20,7 @@ export default async function DashboardPage() {
       business: {
         select: {
           id: true, slug: true, name: true, tagline: true, address: true, city: true, state: true, zip: true,
-          phone: true, email: true, website: true, hasCoupon: true,
+          phone: true, email: true, website: true,
           logo: true, tier: true, status: true, coverImage: true, photos: true,
           isBestOfWinner: true,
           category: { select: { name: true, slug: true } },
@@ -64,9 +64,19 @@ export default async function DashboardPage() {
           category: { select: { name: true, slug: true } },
           owner: { select: { id: true, name: true, email: true } },
           _count: { select: { reviews: true } },
+          // First active deal — drives the "Add Deal on behalf" panel in
+          // BusinessesModeration. Pre-2026-09-15 this was read from the
+          // Business.coupon Json blob; the migration to the first-class Deal
+          // model means the panel now pulls from here. Same UX, same
+          // single-deal scope; richer multi-deal management lives on
+          // /dashboard/deals for owners and the Deals tab for admins.
+          deals: {
+            where: { isActive: true },
+            orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+            take: 1,
+            select: { id: true, headline: true, description: true, code: true, imageUrl: true, expiresAt: true },
+          },
         },
-        // hasCoupon + coupon are scalar fields, returned by default. They power
-        // the admin 'Add Deal on behalf' panel in BusinessesModeration.
         orderBy: { createdAt: 'desc' },
       }),
       // Slim list — just for the Guest Authors "Link Business" picker

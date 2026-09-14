@@ -35,15 +35,19 @@ interface Business {
   seHablaEspanol?: boolean
   chamberMember?: boolean
   hispanicChamberMember?: boolean
-  // Deal / promo (admin-editable from this panel; surfaced on /deals page)
-  hasCoupon?: boolean
-  coupon?: {
+  // Deal — first active deal (most recent). Replaces the legacy
+  // Business.coupon Json blob. Powers the admin "Add Deal on behalf"
+  // panel in this component. Multi-deal management lives at
+  // /dashboard/deals for owners and the Deals tab inside
+  // /dashboard/edit?id=... for admins.
+  deals?: Array<{
+    id: string
     headline: string
-    description?: string | null
-    code?: string | null
-    expiresAt?: string | null
-    imageUrl?: string | null
-  } | null
+    description: string | null
+    code: string | null
+    imageUrl: string | null
+    expiresAt: string | Date | null
+  }>
 }
 
 interface BusinessesModerationProps {
@@ -76,7 +80,7 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     if (!res.ok) throw new Error(data?.error || 'Upload failed')
     setEditGoogle(prev => ({
       ...prev,
-      [businessId]: { ...prev[businessId], couponImageUrl: data.url },
+      [businessId]: { ...prev[businessId], dealImageUrl: data.url },
     }))
   } catch (err) {
     setDealErrorById(prev => ({ ...prev, [businessId]: err instanceof Error ? err.message : 'Upload failed' }))
@@ -96,12 +100,15 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     chamberMember: boolean
     hispanicChamberMember: boolean
     // Admin 'Add Deal on behalf' fields. Empty headline = no deal on save.
-    hasCoupon: boolean
-    couponHeadline: string
-    couponDescription: string
-    couponCode: string
-    couponExpiresAt: string
-    couponImageUrl: string
+    // `dealId` tracks the existing Deal row so we know whether to POST (new)
+    // or PATCH (existing) when the admin clicks Save.
+    hasDeal: boolean
+    dealId: string | null
+    dealHeadline: string
+    dealDescription: string
+    dealCode: string
+    dealExpiresAt: string
+    dealImageUrl: string
   }>>({})
 
   const reportFailure = async (response: Response, fallback: string) => {
@@ -269,22 +276,82 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     if (edits.seHablaEspanol !== undefined) patch.seHablaEspanol = edits.seHablaEspanol
     if (edits.chamberMember !== undefined) patch.chamberMember = edits.chamberMember
     if (edits.hispanicChamberMember !== undefined) patch.hispanicChamberMember = edits.hispanicChamberMember
-    // Admin 'Add Deal on behalf' — coupon is only sent when the panel was
-    // opened (state exists). Empty headline clears the deal; otherwise the
-    // full payload (code, expiresAt, imageUrl) ships.
-    if (edits.hasCoupon !== undefined) {
-      patch.hasCoupon = edits.hasCoupon && !!edits.couponHeadline.trim()
-      patch.coupon = edits.hasCoupon && edits.couponHeadline.trim()
-        ? {
-            headline: edits.couponHeadline.trim(),
-            description: edits.couponDescription,
-            code: edits.couponCode.trim() || null,
-            expiresAt: edits.couponExpiresAt || null,
-            imageUrl: edits.couponImageUrl.trim() || null,
+    // Deal handling moved out of this PATCH call — the admin PATCH route
+    // no longer accepts hasCoupon/coupon (those fields were dropped with
+    // the Business.coupon column). The deal sync runs as a separate
+    // /api/deals request below, sequenced after the Business update.
+    setLoading(id)
+    setError('')
+    try {
+      if (Object.keys(patch).length > 0) {
+        await moderate(id, patch)
+      }
+
+      // Sync the deal to the new Deal table via /api/deals.
+      if (!edits.hasDeal) {
+        // Toggle off: delete the existing deal if there was one.
+        if (edits.dealId) {
+          const del = await fetch(`/api/deals/${edits.dealId}`, { method: 'DELETE' })
+          if (!del.ok) {
+            const data = await del.json().catch(() => ({}))
+            setError(data.error || 'Failed to remove deal')
+            return
           }
-        : null
+          // Update local state so the panel reflects the deletion
+          setBusinesses(prev => prev.map(b => b.id === id
+            ? { ...b, deals: [] }
+            : b))
+        }
+      } else if (edits.dealHeadline && edits.dealHeadline.trim()) {
+        const dealPayload = {
+          businessId: id,
+          headline: edits.dealHeadline.trim(),
+          description: edits.dealDescription,
+          code: edits.dealCode.trim() || null,
+          imageUrl: edits.dealImageUrl.trim() || null,
+          expiresAt: edits.dealExpiresAt
+            ? new Date(edits.dealExpiresAt).toISOString()
+            : null,
+          isActive: true,
+        }
+        const endpoint = edits.dealId
+          ? `/api/deals/${edits.dealId}`
+          : '/api/deals'
+        const method = edits.dealId ? 'PATCH' : 'POST'
+        const dealRes = await fetch(endpoint, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dealPayload),
+        })
+        if (!dealRes.ok) {
+          const data = await dealRes.json().catch(() => ({}))
+          setError(data.error || 'Failed to save deal')
+          return
+        }
+        const saved = await dealRes.json()
+        // Remember the id for subsequent saves; refresh local deals list
+        // so the panel UI matches the server.
+        setEditGoogle(prev => prev[id]
+          ? { ...prev, [id]: { ...prev[id], dealId: saved.id } }
+          : prev)
+        setBusinesses(prev => prev.map(b => b.id === id
+          ? { ...b, deals: [{
+              id: saved.id,
+              headline: saved.headline,
+              description: saved.description,
+              code: saved.code,
+              imageUrl: saved.imageUrl,
+              expiresAt: saved.expiresAt,
+            }] }
+          : b))
+      }
+      // Toggle on but no headline → treat as "no deal yet", nothing to do.
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save deal')
+      return
+    } finally {
+      setLoading(null)
     }
-    await moderate(id, patch)
     setEditGoogle(prev => { const n = { ...prev }; delete n[id]; return n })
   }
 
@@ -308,6 +375,7 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
   }
 
   const openEdit = (b: Business) => {
+    const firstDeal = b.deals?.[0]
     setEditGoogle(prev => ({
       ...prev,
       [b.id]: {
@@ -320,12 +388,18 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
         seHablaEspanol: !!b.seHablaEspanol,
         chamberMember: !!b.chamberMember,
         hispanicChamberMember: !!b.hispanicChamberMember,
-        hasCoupon: !!b.hasCoupon,
-        couponHeadline: b.coupon?.headline || '',
-        couponDescription: b.coupon?.description || '',
-        couponCode: b.coupon?.code || '',
-        couponExpiresAt: b.coupon?.expiresAt || '',
-        couponImageUrl: b.coupon?.imageUrl || '',
+        // Pre-populate from the first Deal row, not the legacy
+        // Business.coupon Json blob. Image URL is uploaded via the deal
+        // image upload widget and stored on the Deal row directly.
+        hasDeal: !!firstDeal,
+        dealId: firstDeal?.id ?? null,
+        dealHeadline: firstDeal?.headline || '',
+        dealDescription: firstDeal?.description || '',
+        dealCode: firstDeal?.code || '',
+        dealExpiresAt: firstDeal?.expiresAt
+          ? new Date(firstDeal.expiresAt).toISOString().slice(0, 10)
+          : '',
+        dealImageUrl: firstDeal?.imageUrl || '',
       },
     }))
     setExpandedId(expandedId === b.id ? null : b.id)
@@ -736,7 +810,11 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                         </label>
                       </div>
 
-                      {/* Admin: Add Deal on behalf */}
+                      {/* Admin: Add Deal on behalf — writes to the first-class
+                          Deal table via /api/deals (POST for new, PATCH for
+                          edit, DELETE for toggle-off). The toggle, fields,
+                          and image upload all target the Deal row, not the
+                          legacy Business.coupon Json blob. */}
                       <div className="sm:col-span-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3 space-y-3">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
@@ -745,25 +823,25 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                           <label className="flex items-center gap-2 text-xs font-medium text-text cursor-pointer">
                             <input
                               type="checkbox"
-                              checked={edits?.hasCoupon ?? false}
+                              checked={edits?.hasDeal ?? false}
                               onChange={e => setEditGoogle(prev => ({
                                 ...prev,
-                                [business.id]: { ...prev[business.id], hasCoupon: e.target.checked },
+                                [business.id]: { ...prev[business.id], hasDeal: e.target.checked },
                               }))}
                               className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
                             />
-                            <span>{edits?.hasCoupon ? 'Active' : 'Inactive'}</span>
+                            <span>{edits?.hasDeal ? 'Active' : 'Inactive'}</span>
                           </label>
                         </div>
-                        {edits?.hasCoupon && (
+                        {edits?.hasDeal && (
                           <div className="space-y-3">
                             <div>
                               <label className="label text-xs">Deal Headline</label>
                               <input
-                                value={edits?.couponHeadline ?? ''}
+                                value={edits?.dealHeadline ?? ''}
                                 onChange={e => setEditGoogle(prev => ({
                                   ...prev,
-                                  [business.id]: { ...prev[business.id], couponHeadline: e.target.value },
+                                  [business.id]: { ...prev[business.id], dealHeadline: e.target.value },
                                 }))}
                                 className="input text-sm py-1.5"
                                 placeholder="e.g. 20% off first service"
@@ -773,10 +851,10 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                             <div>
                               <label className="label text-xs">Details</label>
                               <textarea
-                                value={edits?.couponDescription ?? ''}
+                                value={edits?.dealDescription ?? ''}
                                 onChange={e => setEditGoogle(prev => ({
                                   ...prev,
-                                  [business.id]: { ...prev[business.id], couponDescription: e.target.value },
+                                  [business.id]: { ...prev[business.id], dealDescription: e.target.value },
                                 }))}
                                 className="input text-sm py-1.5 min-h-[60px] resize-none"
                                 placeholder="Terms and conditions..."
@@ -787,10 +865,10 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                               <div>
                                 <label className="label text-xs">Promo Code <span className="text-text-secondary font-normal">(optional)</span></label>
                                 <input
-                                  value={edits?.couponCode ?? ''}
+                                  value={edits?.dealCode ?? ''}
                                   onChange={e => setEditGoogle(prev => ({
                                     ...prev,
-                                    [business.id]: { ...prev[business.id], couponCode: e.target.value.toUpperCase() },
+                                    [business.id]: { ...prev[business.id], dealCode: e.target.value.toUpperCase() },
                                   }))}
                                   className="input text-sm py-1.5 font-mono"
                                   placeholder="SAVE20"
@@ -801,22 +879,24 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                                 <label className="label text-xs">Expires <span className="text-text-secondary font-normal">(optional)</span></label>
                                 <input
                                   type="date"
-                                  value={edits?.couponExpiresAt ?? ''}
+                                  value={edits?.dealExpiresAt ?? ''}
                                   onChange={e => setEditGoogle(prev => ({
                                     ...prev,
-                                    [business.id]: { ...prev[business.id], couponExpiresAt: e.target.value },
+                                    [business.id]: { ...prev[business.id], dealExpiresAt: e.target.value },
                                   }))}
                                   className="input text-sm py-1.5"
                                 />
                               </div>
                             </div>
-                            {/* Deal image upload widget — mirrors /dashboard/edit */}
+                            {/* Deal image upload widget — mirrors /dashboard/edit.
+                                Image goes to Vercel Blob via /api/businesses/upload-deal-image
+                                and the returned URL is stored on the Deal row. */}
                             <div>
                               <label className="label text-xs">Deal Image <span className="text-text-secondary font-normal">(optional)</span></label>
                               <div className="flex items-start gap-3">
                                 <div className="shrink-0">
-                                  {edits?.couponImageUrl ? (
-                                    <img src={edits.couponImageUrl} alt="Deal preview" className="w-20 h-20 rounded-lg object-cover bg-slate-100" />
+                                  {edits?.dealImageUrl ? (
+                                    <img src={edits.dealImageUrl} alt="Deal preview" className="w-20 h-20 rounded-lg object-cover bg-slate-100" />
                                   ) : (
                                     <div className="w-20 h-20 rounded-lg bg-slate-100 flex items-center justify-center text-text-secondary text-[10px]">No image</div>
                                   )}
@@ -830,7 +910,7 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                                   <div className="flex flex-wrap items-center gap-2">
                                     <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 cursor-pointer transition-colors">
                                       {dealUploadingId === business.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
-                                      {dealUploadingId === business.id ? 'Uploading…' : edits?.couponImageUrl ? 'Replace' : 'Upload'}
+                                      {dealUploadingId === business.id ? 'Uploading…' : edits?.dealImageUrl ? 'Replace' : 'Upload'}
                                       <input
                                         type="file"
                                         accept="image/jpeg,image/png,image/webp,image/gif"
@@ -842,12 +922,12 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                                         }}
                                       />
                                     </label>
-                                    {edits?.couponImageUrl && (
+                                    {edits?.dealImageUrl && (
                                       <button
                                         type="button"
                                         onClick={() => setEditGoogle(prev => ({
                                           ...prev,
-                                          [business.id]: { ...prev[business.id], couponImageUrl: '' },
+                                          [business.id]: { ...prev[business.id], dealImageUrl: '' },
                                         }))}
                                         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-text text-xs font-medium hover:bg-slate-50 transition-colors"
                                       >

@@ -56,8 +56,17 @@ type SearchBusiness = {
   googleReviewCount: number | null
   category: { name: string; slug: string }
   reviews: { rating: number }[]
-  _count: { reviews: number }
-  coupon?: unknown
+  _count: {
+    reviews: number
+    // Count of active deals. Replaces the legacy Business.hasCoupon
+    // bool for any reader that needs a deal-presence flag.
+    deals: number
+  }
+  // First active deal — the BusinessCard uses the first deal's imageUrl
+  // as the highest-priority fallback for the cover image, and renders a
+  // "Deal" pill when any row is present. Replaces the legacy
+  // Business.coupon Json blob.
+  deals?: Array<{ imageUrl: string | null; isActive?: boolean }>
   latitude?: number | null
   longitude?: number | null
 }
@@ -90,7 +99,9 @@ type SearchResults = {
     foundingPartnerSince: Date | string | null
     googleRating: number | null
     googleReviewCount: number | null
-    hasCoupon: boolean
+    // Active-deal count for the SearchMap info-window "Deal available"
+    // badge. Derived from the Deal table, not Business.hasCoupon.
+    activeDealCount: number
   }>
 }
 
@@ -129,7 +140,28 @@ async function getBusinesses(params: {
     include: {
       category: true,
       reviews: true,
-      _count: { select: { reviews: true } },
+      _count: {
+        select: {
+          reviews: true,
+          // Active-deal count — propagated into mapItems so SearchMap
+          // can show the "Deal available" info-window badge without
+          // reading the legacy Business.hasCoupon boolean (the column
+          // stays in the schema for the writer-side migration, but
+          // readers derive from the Deal table).
+          deals: { where: { isActive: true } },
+        },
+      },
+      // First active deal — the BusinessCard uses the deal's imageUrl
+      // as the highest-priority cover fallback, and renders a "Deal"
+      // pill when any row is present. Replaces the legacy
+      // Business.coupon Json blob (dropped in migration
+      // 20260915000000_drop_business_coupon).
+      deals: {
+        where: { isActive: true },
+        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+        take: 1,
+        select: { imageUrl: true, isActive: true },
+      },
     },
   })
 
@@ -152,7 +184,10 @@ async function getBusinesses(params: {
       foundingPartnerSince: b.foundingPartnerSince,
       googleRating: b.googleRating,
       googleReviewCount: b.googleReviewCount,
-      hasCoupon: b.hasCoupon,
+      // _count.deals is included in the search query above; > 0 means
+      // there's at least one active offer. SearchMap's info window
+      // uses this instead of the legacy Business.hasCoupon bool.
+      activeDealCount: b._count.deals,
     })) as SearchResults['mapItems']
 
   const byCategory = new Map<string, CategoryGroup>()

@@ -37,6 +37,16 @@ export async function ChamberDirectory({ variant }: { variant: keyof typeof VARI
       category: true,
       reviews: true,
       _count: { select: { reviews: true } },
+      // First active deal — the BusinessCard uses the deal's imageUrl as
+      // the highest-priority cover fallback and renders a "Deal" pill when
+      // any row is present. Replaces the legacy Business.coupon Json blob
+      // (dropped in migration 20260915000000_drop_business_coupon).
+      deals: {
+        where: { isActive: true },
+        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+        take: 1,
+        select: { imageUrl: true, isActive: true },
+      },
     },
     orderBy: { name: 'asc' },
   })
@@ -85,13 +95,6 @@ export async function ChamberDirectory({ variant }: { variant: keyof typeof VARI
                 business={{
                   ...b,
                   isBestOf: b.isBestOfWinner,
-                  coupon: b.coupon as {
-                    headline: string
-                    description?: string | null
-                    code?: string | null
-                    expiresAt?: string | null
-                    imageUrl?: string | null
-                  } | null,
                 }}
               />
             ))}

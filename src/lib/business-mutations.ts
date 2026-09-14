@@ -25,21 +25,6 @@ const hoursSchema = z.record(
   }),
 ).nullable().optional()
 
-const couponSchema = z.object({
-  headline: z.union([
-    z.string().trim().min(1).max(80),
-    z.literal(''),
-    z.null(),
-  ]).optional(),
-  description: z.string().trim().max(300).default(''),
-  code: z.union([z.string().trim().max(20).transform(value => value || null), z.null()]).optional(),
-  expiresAt: z.union([z.string().trim().max(40).transform(value => value || null), z.null()]).optional(),
-  // Optional promo image — uploaded via the admin/owner deal-image upload
-  // endpoint, stored on Vercel Blob, surfaced on /deals cards. Backwards-
-  // compatible: pre-existing rows without this key continue to work.
-  imageUrl: z.union([z.string().trim().max(500).url(), z.null()]).optional(),
-}).nullable().optional()
-
 const nullableDate = z.union([
   z.string().datetime(),
   z.literal('').transform(() => null),
@@ -70,8 +55,11 @@ const businessUpdateSchema = z.object({
   instagram: nullableText(500),
   yelp: nullableText(500),
   hours: hoursSchema,
-  hasCoupon: z.boolean().default(false),
-  coupon: couponSchema,
+  // Legacy deal fields (hasCoupon + coupon) were removed when the
+  // Business.coupon Json column was dropped in migration
+  // 20260915000000_drop_business_coupon. Deals now live on the first-class
+  // Deal model and are managed via /api/deals — /dashboard/edit handles the
+  // POST/PATCH/DELETE sequencing around the Business update.
   googleRating: z.union([
     z.number().min(0).max(5),
     z.string().transform(v => v === '' ? null : Number(v)).pipe(z.number().min(0).max(5).nullable()),
@@ -125,10 +113,9 @@ export function buildBusinessUpdateData(input: unknown): Prisma.BusinessUpdateIn
     hours: parsed.hours === null
       ? Prisma.JsonNull
       : parsed.hours as Prisma.InputJsonValue | undefined,
-    hasCoupon: parsed.hasCoupon,
-    coupon: !parsed.hasCoupon || parsed.coupon === null
-      ? Prisma.JsonNull
-      : parsed.coupon as Prisma.InputJsonValue | undefined,
+    // Deal fields removed — see migration 20260915000000_drop_business_coupon.
+    // The Deal row is managed via /api/deals from /dashboard/edit's submit
+    // handler, sequenced after this Business update completes.
     googleRating: parsed.googleRating ?? null,
     googleReviewCount: parsed.googleReviewCount ?? null,
     googleBusiness: parsed.googleBusiness ?? null,

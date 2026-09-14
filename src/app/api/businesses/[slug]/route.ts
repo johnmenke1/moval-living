@@ -67,8 +67,10 @@ export async function GET(
       hours: business.hours,
       metaTitle: business.metaTitle,
       metaDescription: business.metaDescription,
-      hasCoupon: business.hasCoupon,
-      coupon: business.coupon,
+      // Deal data moved to a dedicated /api/deals endpoint and the Deal
+      // table (see migration 20260915000000_drop_business_coupon).
+      // Clients that need the business's deals should query /api/deals
+      // with businessId, or include `deals` via Prisma directly.
       ownerId: business.ownerId,
       reviews: business.reviews,
       isExpertPartner: business.isExpertPartner,

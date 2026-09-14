@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client'
 import { describe, expect, it } from 'vitest'
 import {
   buildBusinessUpdateData,
@@ -38,8 +37,9 @@ describe('buildBusinessUpdateData', () => {
       instagram: null,
       yelp: undefined,
       hours: { mon: { open: '9:00 AM', close: '5:00 PM', closed: false } },
-      hasCoupon: false,
-      coupon: { headline: 'This must be cleared' },
+      // Deal fields were removed from the Business update payload. They
+      // now live on the first-class Deal model and are managed via
+      // /api/deals — see migration 20260915000000_drop_business_coupon.
     })).toEqual({
       name: 'Menke Real Estate',
       tagline: null,
@@ -56,9 +56,38 @@ describe('buildBusinessUpdateData', () => {
       instagram: null,
       yelp: null,
       hours: { mon: { open: '9:00 AM', close: '5:00 PM', closed: false } },
-      hasCoupon: false,
-      coupon: Prisma.JsonNull,
+      // Optional Business fields that pass through as undefined when not
+      // provided in the input — surfaced explicitly so the test shape
+      // matches the actual return value from buildBusinessUpdateData.
+      googleRating: null,
+      googleReviewCount: null,
+      googleBusiness: null,
+      isExpertPartner: undefined,
+      expertPartnerSlug: null,
+      foundingPartnerSince: undefined,
+      liveQaZoomUrl: null,
+      liveQaNextDate: undefined,
+      seHablaEspanol: undefined,
+      chamberMember: undefined,
+      hispanicChamberMember: undefined,
     })
+  })
+
+  it('rejects deal payload fields since deals now live on their own model', () => {
+    // Sending the old hasCoupon/coupon shape now throws because the
+    // Business update schema is strict and these keys are no longer
+    // accepted — deals are managed via /api/deals.
+    expect(() => buildBusinessUpdateData({
+      name: 'Safe Business',
+      description: 'A sufficiently detailed description for a real business listing.',
+      categoryId: 'category-1',
+      address: '123 Main St',
+      city: 'Moreno Valley',
+      state: 'CA',
+      zip: '92553',
+      hasCoupon: true,
+      coupon: { headline: 'Some deal' },
+    })).toThrow()
   })
 
   it('rejects protected or unknown fields instead of passing them to Prisma', () => {

@@ -46,7 +46,6 @@ async function getBusiness(slug: string) {
       facebook: true, instagram: true, yelp: true,
       googleBusiness: true, googleRating: true, googleReviewCount: true,
       hours: true, status: true, tier: true,
-      hasCoupon: true, coupon: true,
       isBestOfWinner: true,
       isExpertPartner: true,
       expertPartnerSlug: true,
@@ -463,18 +462,22 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
 
                     {/* Badge row — mirrors the home card layout you liked.
                         Featured pill stays overlaid on the cover image;
-                        Best Of, Expert Partner, and Deal live here. */}
+                        Best Of, Expert Partner, and Deal live here. The
+                        Deal pill renders whenever the business has any
+                        active offer in the Deal table (replaces the
+                        legacy `Business.hasCoupon` boolean). */}
                     {(business.tier === 'FEATURED' || business.tier === 'EXPERT_PARTNER' ||
                       business.isExpertPartner || business.isBestOfWinner ||
                       (business.bestOfNominees && business.bestOfNominees.length > 0) ||
-                      business.hasCoupon || business.seHablaEspanol) && (
+                      (business.deals && business.deals.length > 0) ||
+                      business.seHablaEspanol) && (
                       <BusinessBadgesRow
                         tier={business.tier}
                         isExpertPartner={business.isExpertPartner}
                         foundingPartnerSince={business.foundingPartnerSince}
                         bestOfWinner={business.isBestOfWinner}
                         bestOfNominationCount={business.bestOfNominees?.length ?? 0}
-                        hasCoupon={business.hasCoupon}
+                        hasDeal={business.deals && business.deals.length > 0}
                         seHablaEspanol={business.seHablaEspanol}
                       />
                     )}
@@ -739,7 +742,7 @@ function BusinessBadgesRow({
   foundingPartnerSince,
   bestOfWinner,
   bestOfNominationCount,
-  hasCoupon,
+  hasDeal,
   seHablaEspanol,
 }: {
   tier: string
@@ -747,7 +750,9 @@ function BusinessBadgesRow({
   foundingPartnerSince: string | Date | null
   bestOfWinner: boolean
   bestOfNominationCount: number
-  hasCoupon: boolean
+  // `hasDeal` replaced the legacy `hasCoupon` prop. Source of truth is
+  // the Deal table: the badge shows when there's any active offer.
+  hasDeal: boolean
   seHablaEspanol: boolean
 }) {
   return (
@@ -782,7 +787,7 @@ function BusinessBadgesRow({
           {foundingPartnerSince ? 'Founding Expert Partner' : 'Expert Partner'}
         </span>
       )}
-      {hasCoupon && (
+      {hasDeal && (
         <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-primary text-white">
           <Tag className="w-3 h-3" />
           Deal Available

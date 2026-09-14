@@ -20,7 +20,11 @@ export interface SearchBusinessMapItem {
   foundingPartnerSince: string | Date | null
   googleRating: number | null
   googleReviewCount: number | null
-  hasCoupon?: boolean
+  // Active-deal count, derived from Deal._count where { isActive: true }.
+  // Drives the "Deal available" info-window badge. Replaces the legacy
+  // Business.hasCoupon bool (the column stays in the schema for the
+  // writer-side migration only).
+  activeDealCount: number
 }
 
 interface SearchMapProps {
@@ -357,7 +361,7 @@ function infoHtml(b: SearchBusinessMapItem): string {
        </div>`
     : ''
 
-  const coupon = b.hasCoupon
+  const coupon = b.activeDealCount > 0
     ? `<div style="display:inline-flex;align-items:center;gap:4px;color:#007A7F;font-size:11px;font-weight:600;margin-top:6px;">
          <span>🏷️ Deal available</span>
        </div>`

@@ -167,6 +167,16 @@ async function getHomepageBusinesses() {
       category: { select: { name: true, slug: true } },
       reviews: { select: { rating: true } },
       _count: { select: { reviews: true } },
+      // Active deals for the homepage card grid. Source of truth for the
+      // "Deal" pill + deal-image fallback chain. Replaces the legacy
+      // Business.hasCoupon/coupon Json fields (dropped in migration
+      // 20260915000000_drop_business_coupon).
+      deals: {
+        where: { isActive: true },
+        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+        take: 1,
+        select: { imageUrl: true, isActive: true },
+      },
       // Include nominee info so we can show "Nominated" badge
       bestOfNominees: {
         where: { winner: false },

@@ -29,13 +29,18 @@ export async function POST(req: NextRequest) {
   const {
     name, tagline, categoryId, address, city, state, zip,
     phone, email, website, description, facebook, instagram, yelp,
-    hasCoupon, couponHeadline, couponDescription, couponCode, couponExpiresAt,
+    // Deal fields — written as a first-class Deal row alongside the
+    // Business in a single transaction. Replaces the legacy Business.coupon
+    // Json blob (dropped in migration 20260915000000_drop_business_coupon).
+    // The toggle + headline pattern is preserved so /submit's UX stays
+    // identical to what owners were used to.
+    deal: dealInput,
     hours, latitude, longitude,
     emailOptIn = false,
     smsOptIn = false,
   } = body
   const hasEmailConsent = Boolean(emailOptIn)
-  const hasSmsConsent = Boolean(smsOptIn) 
+  const hasSmsConsent = Boolean(smsOptIn)
 
   if (!name || !categoryId || !address || !zip || !description) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -76,38 +81,54 @@ export async function POST(req: NextRequest) {
 
   const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${nanoid(6)}`
 
-  const business = await prisma.business.create({
-    data: {
-      slug,
-      name,
-      tagline: tagline || null,
-      categoryId: category.id,
-      ownerId,
-      claimToken,
-      claimExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      address,
-      city: city || 'Moreno Valley',
-      state: state || 'CA',
-      zip,
-      phone: phone || null,
-      email: email || null,
-      website: website || null,
-      description,
-      facebook: facebook || null,
-      instagram: instagram || null,
-      yelp: yelp || null,
-      latitude: latitude || null,
-      longitude: longitude || null,
-      hours: hours || undefined,
-      hasCoupon: hasCoupon || false,
-      coupon: (hasCoupon && couponHeadline) ? {
-        headline: couponHeadline,
-        description: couponDescription || '',
-        code: couponCode || null,
-        expiresAt: couponExpiresAt || null,
-      } : undefined,
-      status: 'PENDING',
-    },
+  // Bundle Business + Deal creation in one transaction. Either both land
+  // or neither does — no half-submitted businesses floating without their
+  // deal payload (the bug the legacy coupon JSON had).
+  const deal = dealInput && dealInput.headline && dealInput.headline.trim()
+    ? {
+        headline: dealInput.headline.trim(),
+        description: dealInput.description ?? '',
+        code: dealInput.code || null,
+        imageUrl: dealInput.imageUrl || null,
+        startsAt: dealInput.startsAt ? new Date(dealInput.startsAt) : null,
+        expiresAt: dealInput.expiresAt ? new Date(dealInput.expiresAt) : null,
+        isActive: true,
+      }
+    : null
+
+  const business = await prisma.$transaction(async (tx) => {
+    const b = await tx.business.create({
+      data: {
+        slug,
+        name,
+        tagline: tagline || null,
+        categoryId: category.id,
+        ownerId,
+        claimToken,
+        claimExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        address,
+        city: city || 'Moreno Valley',
+        state: state || 'CA',
+        zip,
+        phone: phone || null,
+        email: email || null,
+        website: website || null,
+        description,
+        facebook: facebook || null,
+        instagram: instagram || null,
+        yelp: yelp || null,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        hours: hours || undefined,
+        status: 'PENDING',
+      },
+    })
+    if (deal) {
+      await tx.deal.create({
+        data: { ...deal, businessId: b.id },
+      })
+    }
+    return b
   })
 
   // Persist consent at submit-time (audit trail for 10DLC).

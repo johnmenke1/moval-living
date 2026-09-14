@@ -25,7 +25,7 @@ async function getCategory(slug: string) {
               id: true, name: true, slug: true, tagline: true, description: true,
               address: true, city: true, state: true, zip: true,
               logo: true, coverImage: true, photos: true,
-              tier: true, status: true, hasCoupon: true,
+              tier: true, status: true,
               isBestOfWinner: true, isExpertPartner: true, foundingPartnerSince: true,
               website: true, phone: true, email: true,
               googleRating: true, googleReviewCount: true,
@@ -33,6 +33,16 @@ async function getCategory(slug: string) {
               category: { select: { name: true, slug: true } },
               reviews: { select: { rating: true } },
               _count: { select: { reviews: true } },
+              // First active deal — replaces the legacy Business.hasCoupon/coupon
+              // Json fields (dropped in migration
+              // 20260915000000_drop_business_coupon). The BestOfNomineeCard may
+              // surface a "Deal" pill or use the deal's image as a cover fallback.
+              deals: {
+                where: { isActive: true },
+                orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+                take: 1,
+                select: { imageUrl: true, isActive: true },
+              },
             },
           },
         },
@@ -49,7 +59,7 @@ async function getCategory(slug: string) {
                   id: true, name: true, slug: true, tagline: true, description: true,
                   address: true, city: true, state: true, zip: true,
                   logo: true, coverImage: true, photos: true,
-                  tier: true, status: true, hasCoupon: true,
+                  tier: true, status: true,
                   isBestOfWinner: true, isExpertPartner: true, foundingPartnerSince: true,
                   website: true, phone: true, email: true,
                   googleRating: true, googleReviewCount: true,
@@ -57,6 +67,12 @@ async function getCategory(slug: string) {
                   category: { select: { name: true, slug: true } },
                   reviews: { select: { rating: true } },
                   _count: { select: { reviews: true } },
+                  deals: {
+                    where: { isActive: true },
+                    orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+                    take: 1,
+                    select: { imageUrl: true, isActive: true },
+                  },
                 },
               },
             },
@@ -576,7 +592,6 @@ type Nominee = {
     photos: string[]
     tier: string
     status: string
-    hasCoupon: boolean
     isBestOfWinner: boolean
     isExpertPartner: boolean
     foundingPartnerSince: string | Date | null
@@ -591,6 +606,9 @@ type Nominee = {
     category: { name: string; slug: string }
     reviews: Array<{ rating: number }>
     _count: { reviews: number }
+    // Active deals for the BestOfNomineeCard. Replaces the legacy
+    // Business.coupon Json blob and the dead `hasCoupon` boolean.
+    deals: Array<{ imageUrl: string | null; isActive: boolean }>
   }
 }
 

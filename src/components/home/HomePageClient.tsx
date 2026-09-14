@@ -108,6 +108,11 @@ interface Business {
   category: { name: string; slug: string }
   reviews: Array<{ rating: number }>
   _count?: { reviews: number }
+  // Deal — first-class Deal row. Replaces the legacy Business.coupon Json
+  // blob. Optional because the home page selects businesses with a slim
+  // projection that may not include deals; the BusinessCard handles
+  // `deals === undefined` by showing the cover/logo/photo fallback chain.
+  deals?: Array<{ imageUrl: string | null; isActive?: boolean }>
   isBestOf?: boolean
   isExpertPartner?: boolean
   foundingPartnerSince?: string | Date | null

@@ -70,6 +70,16 @@ async function getCategoryBusinesses(slug: string) {
       category: { select: { name: true, slug: true } },
       reviews: { select: { rating: true } },
       _count: { select: { reviews: true } },
+      // First active deal — the BusinessCard uses the deal's imageUrl as
+      // the highest-priority cover fallback and renders a "Deal" pill when
+      // any row is present. Replaces the legacy Business.coupon Json blob
+      // (dropped in migration 20260915000000_drop_business_coupon).
+      deals: {
+        where: { isActive: true },
+        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+        take: 1,
+        select: { imageUrl: true, isActive: true },
+      },
     },
     orderBy: { name: 'asc' },
   })

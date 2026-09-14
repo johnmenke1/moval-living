@@ -19,16 +19,17 @@ interface BusinessCardProps {
     category: { name: string; slug: string }
     reviews: Array<{ rating: number }>
     _count?: { reviews: number }
-    hasCoupon?: boolean
+    // Deal — replaces the legacy Business.coupon Json blob and the
+    // boolean hasCoupon flag. The image fallback chain now uses the first
+    // active deal's imageUrl (priority), falling back to the cover, the
+    // logo, and finally the first photo. When `deals` is undefined the
+    // card falls back to no-deal behavior.
+    deals?: Array<{
+      imageUrl: string | null
+      isActive?: boolean
+    }>
     googleRating?: number | null
     googleReviewCount?: number | null
-    coupon?: {
-      headline: string
-      description?: string | null
-      code?: string | null
-      expiresAt?: string | null
-      imageUrl?: string | null
-    } | null
     isBestOf?: boolean
     isExpertPartner?: boolean
     foundingPartnerSince?: string | Date | null
@@ -46,6 +47,15 @@ export function BusinessCard({ business }: BusinessCardProps) {
   // Expert Partner is "Featured + more" — a paid tier that includes the
   // Featured visual treatment. Treat both as the elevated card style.
   const isFeatured = business.tier === 'FEATURED' || business.tier === 'EXPERT_PARTNER'
+
+  // Active-deal derivation: any deal row that is active (or has no
+  // explicit inactive flag — pre-2026-09-15 deals may not carry the
+  // flag). The image used for the card is the first active deal's
+  // imageUrl — priority over cover/logo/photo so the deal art takes
+  // the visual lead.
+  const firstActiveDeal = business.deals?.find(d => d.isActive !== false)
+  const dealImageUrl = firstActiveDeal?.imageUrl ?? null
+  const hasDeal = business.deals !== undefined && business.deals.length > 0
 
   // Badge discipline: at most TWO award pills before the name (Best Of and
   // Expert Partner). Featured stays on the image; chamber membership moves to
@@ -66,15 +76,16 @@ export function BusinessCard({ business }: BusinessCardProps) {
       {/* Image — priority: deal promo image > business cover > logo > first photo.
           The promo image wins when set so /deals reads as a circular of deal art
           (and so search / best-of pages that include deal cards surface the
-          promo visual instead of the generic cover). */}
+          promo visual instead of the generic cover). The deal art sources from
+          the first-class Deal table, not the legacy Business.coupon JSON. */}
       <div className="relative w-full h-44 rounded-t-xl overflow-hidden bg-slate-100">
-        {business.coupon?.imageUrl || business.coverImage || business.logo || business.photos[0] ? (
+        {dealImageUrl || business.coverImage || business.logo || business.photos[0] ? (
           <img
-            src={business.coupon?.imageUrl || business.coverImage || business.logo || business.photos[0]}
+            src={dealImageUrl || business.coverImage || business.logo || business.photos[0]}
             alt={business.name}
             className={cn(
               'w-full h-full',
-              !business.coupon?.imageUrl && !business.coverImage && business.logo ? 'object-contain p-6' : 'object-cover'
+              !dealImageUrl && !business.coverImage && business.logo ? 'object-contain p-6' : 'object-cover'
             )}
           />
         ) : (
@@ -95,8 +106,9 @@ export function BusinessCard({ business }: BusinessCardProps) {
           Featured
         </div>
       )}
-      {/* Deal pill — stays overlaid on the image, top-right */}
-      {business.hasCoupon && (
+      {/* Deal pill — stays overlaid on the image, top-right. Source of truth
+          is the Deal table: shows whenever the business has any deal row. */}
+      {hasDeal && (
         <div className="absolute top-3 right-3 flex items-center gap-1 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-full">
           <Tag className="w-3 h-3" />
           Deal

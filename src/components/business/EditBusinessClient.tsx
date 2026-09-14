@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { CheckCircle, ChevronLeft, Loader2, AlertCircle, ImagePlus, X, Star, Link as LinkIcon } from 'lucide-react'
 
@@ -31,6 +31,13 @@ interface Business {
   googleRating: number | null
   googleReviewCount: number | null
   hours: Record<string, { open: string; close: string; closed: boolean }> | null
+  // Deal — legacy `hasCoupon` + `coupon` shape kept here only because the
+  // form fields below still bind to `coupon*` / `hasCoupon` keys for UX
+  // continuity. The actual persistence goes through /api/deals, NOT through
+  // these fields — see handleSubmit which reads form.couponHeadline etc.
+  // and POSTs/PATCHes /api/deals. The migration to a typed `deal` prop
+  // happens in a follow-up; renaming the keys now would touch every input
+  // for no functional gain.
   hasCoupon: boolean
   coupon: { headline: string; description: string; code: string | null; expiresAt: string | null; imageUrl?: string | null } | null
   tier: 'FREE' | 'FEATURED'
@@ -70,8 +77,10 @@ const FIELD_LABELS: Record<string, string> = {
   instagram: 'Instagram URL',
   yelp: 'Yelp URL',
   hours: 'hours',
-  hasCoupon: 'deal toggle',
-  coupon: 'deal',
+  // Deal fields were removed from the Business update schema in the
+  // migration to the first-class Deal model (see migration
+  // 20260915000000_drop_business_coupon). They're now managed via
+  // /api/deals with their own validation labels.
   googleRating: 'Google rating',
   googleReviewCount: 'Google review count',
   googleBusiness: 'Google Business ID',
@@ -122,6 +131,12 @@ export default function EditBusinessClient({ business, categories, isAdmin }: Pr
     googleRating: business.googleRating ?? '',
     googleReviewCount: business.googleReviewCount ?? '',
     googleBusiness: business.googleBusiness || '',
+    // Deal — `hasCoupon` survives as a UI-only toggle; the actual deal
+    // row lives in the Deal table and is referenced by `firstDealId`.
+    // The shape on `business.coupon` here is sourced from the Deal
+    // row by /dashboard/edit/page.tsx (see comment on the page-side
+    // `couponShape` mapping) so this form's existing inputs keep working
+    // without a refactor.
     hasCoupon: business.hasCoupon,
     couponHeadline: business.coupon?.headline || '',
     couponDescription: business.coupon?.description || '',
@@ -142,6 +157,17 @@ export default function EditBusinessClient({ business, categories, isAdmin }: Pr
   const [photos, setPhotos] = useState<string[]>(business.photos)
   const [uploading, setUploading] = useState<string | null>(null) // 'logo' | 'cover' | 'photo[N]'
   const [uploadError, setUploadError] = useState('')
+
+  // Deal sync state — refs because the deal id gets updated after the
+  // first POST and we don't want a stale re-render to clear it. The
+  // page-side `_firstDealId` prop seeds it from the Deal row that was
+  // mapped into `business.coupon` for the legacy form shape.
+  // (See EditBusinessClient Business.coupon comment — the form fields
+  // still bind to `coupon*` keys for backwards compat; only the
+  // persistence path is the new Deal model.)
+  const firstDealIdRef = useRef<string | null>(
+    (business as unknown as { _firstDealId?: string | null })._firstDealId ?? null
+  )
 
   const isFeatured = business.tier === 'FEATURED'
 
@@ -248,6 +274,11 @@ export default function EditBusinessClient({ business, categories, isAdmin }: Pr
     try {
       const hours = JSON.parse(hoursJson)
 
+      // Step 1 — Update the Business record (no deal fields anymore).
+      // The legacy `hasCoupon` + `coupon` JSON fields were dropped along
+      // with the Business.coupon column in migration
+      // 20260915000000_drop_business_coupon; the deal now lives on its
+      // own row in Deal and is managed via /api/deals below.
       const res = await fetch(`/api/businesses/${business.slug}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -270,7 +301,6 @@ export default function EditBusinessClient({ business, categories, isAdmin }: Pr
           googleRating: form.googleRating ? Number(form.googleRating) : null,
           googleReviewCount: form.googleReviewCount ? Number(form.googleReviewCount) : null,
           googleBusiness: form.googleBusiness || null,
-          hasCoupon: form.hasCoupon,
           seHablaEspanol: form.seHablaEspanol,
           // Chamber fields are admin-only — only include them in the payload
           // when the logged-in user is an admin so a non-admin owner can't
@@ -279,13 +309,6 @@ export default function EditBusinessClient({ business, categories, isAdmin }: Pr
             chamberMember: form.chamberMember,
             hispanicChamberMember: form.hispanicChamberMember,
           }),
-          coupon: form.hasCoupon && form.couponHeadline ? {
-            headline: form.couponHeadline,
-            description: form.couponDescription,
-            code: form.couponCode || null,
-            expiresAt: form.couponExpiresAt || null,
-            imageUrl: form.couponImageUrl || null,
-          } : null,
         }),
       })
 
@@ -309,6 +332,52 @@ export default function EditBusinessClient({ business, categories, isAdmin }: Pr
         }
         return
       }
+
+      // Step 2 — Sync the deal to the new Deal table via /api/deals.
+      // Three branches: toggle off (delete), new deal (POST), edit
+      // existing (PATCH). Each is independent so a deal-side failure
+      // doesn't roll back the listing update.
+      if (!form.hasCoupon) {
+        // Toggle off: delete the existing deal if there was one. No-op
+        // if there wasn't (no deal to remove).
+        if (firstDealIdRef.current) {
+          const del = await fetch(`/api/deals/${firstDealIdRef.current}`, { method: 'DELETE' })
+          if (!del.ok) {
+            const data = await del.json().catch(() => ({}))
+            throw new Error(data.error || 'Failed to remove deal')
+          }
+        }
+      } else if (form.couponHeadline && form.couponHeadline.trim()) {
+        const dealPayload = {
+          businessId: business.id,
+          headline: form.couponHeadline.trim(),
+          description: form.couponDescription,
+          code: form.couponCode || null,
+          imageUrl: form.couponImageUrl || null,
+          expiresAt: form.couponExpiresAt
+            ? new Date(form.couponExpiresAt).toISOString()
+            : null,
+          isActive: true,
+        }
+        const endpoint = firstDealIdRef.current
+          ? `/api/deals/${firstDealIdRef.current}`
+          : '/api/deals'
+        const method = firstDealIdRef.current ? 'PATCH' : 'POST'
+        const dealRes = await fetch(endpoint, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dealPayload),
+        })
+        if (!dealRes.ok) {
+          const data = await dealRes.json().catch(() => ({}))
+          throw new Error(data.error || 'Failed to save deal')
+        }
+        // Remember the id we just created/updated so subsequent saves
+        // know to PATCH instead of POST.
+        const saved = await dealRes.json()
+        firstDealIdRef.current = saved.id
+      }
+      // Toggle on but no headline → treat as "no deal yet", nothing to do.
 
       // Refresh Google reviews cache if this business has a Google Business ID
       if (business.googleBusiness) {

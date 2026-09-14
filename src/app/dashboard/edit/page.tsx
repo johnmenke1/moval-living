@@ -75,15 +75,35 @@ export default async function EditBusinessPage({
         <div className="container-max py-8">
           <div className="max-w-3xl mx-auto">
             {activeTab === 'details' ? (
-              <EditBusinessClient
-                business={{
-                  ...business,
-                  hours: (business.hours as Record<string, { open: string; close: string; closed: boolean }>) || null,
-                  coupon: business.coupon as { headline: string; description: string; code: string | null; expiresAt: string | null; imageUrl?: string | null } | null,
-                } as never}
-                categories={categories as never}
-                isAdmin
-              />
+              (() => {
+                // Admin ?id= path — map the first active Deal row to the
+                // legacy `coupon` shape that EditBusinessClient's existing
+                // form fields bind to. Mirrors the owner-path mapping
+                // further down in this file.
+                const firstDeal = business.deals[0]
+                const couponShape = firstDeal
+                  ? {
+                      headline: firstDeal.headline,
+                      description: firstDeal.description ?? '',
+                      code: firstDeal.code,
+                      expiresAt: firstDeal.expiresAt ? firstDeal.expiresAt.toISOString().slice(0, 10) : null,
+                      imageUrl: firstDeal.imageUrl,
+                    }
+                  : null
+                return (
+                  <EditBusinessClient
+                    business={{
+                      ...business,
+                      hours: (business.hours as Record<string, { open: string; close: string; closed: boolean }>) || null,
+                      hasCoupon: !!firstDeal,
+                      coupon: couponShape,
+                      _firstDealId: firstDeal?.id ?? null,
+                    } as never}
+                    categories={categories as never}
+                    isAdmin
+                  />
+                )
+              })()
             ) : (
               <DealsManager
                 businessId={business.id}
@@ -104,10 +124,25 @@ export default async function EditBusinessPage({
     )
   }
 
-  // Owner editing their own business (legacy single-tab path)
+  // Owner editing their own business (legacy single-tab path). We pull
+  // the first/only active deal so the inline deal-editor block in
+  // EditBusinessClient can pre-populate from the new Deal model instead
+  // of the (now-dropped) Business.coupon Json blob. Deeper deal
+  // management lives at /dashboard/deals for owners who want to manage
+  // more than one offer.
   const owner = await prisma.owner.findUnique({
     where: { id: session.user.id },
-    include: { business: true },
+    include: {
+      business: {
+        include: {
+          deals: {
+            where: { isActive: true },
+            orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+            take: 1,
+          },
+        },
+      },
+    },
   })
 
   if (!owner?.business) {
@@ -118,9 +153,31 @@ export default async function EditBusinessPage({
     orderBy: { name: 'asc' },
   })
 
+  // Map the first deal (if any) to the legacy `coupon` shape so the
+  // EditBusinessClient prop type stays stable for this commit. The next
+  // refactor can move EditBusinessClient to a typed `deal` prop.
+  const firstDeal = owner.business.deals[0]
+  const couponShape = firstDeal
+    ? {
+        headline: firstDeal.headline,
+        description: firstDeal.description ?? '',
+        code: firstDeal.code,
+        expiresAt: firstDeal.expiresAt ? firstDeal.expiresAt.toISOString().slice(0, 10) : null,
+        imageUrl: firstDeal.imageUrl,
+      }
+    : null
+
   return (
     <EditBusinessClient
-      business={owner.business as never}
+      business={{
+        ...owner.business,
+        hours: (owner.business.hours as Record<string, { open: string; close: string; closed: boolean }>) || null,
+        hasCoupon: !!firstDeal,
+        coupon: couponShape,
+        // Carry the Deal id so submit can PATCH instead of POST when
+        // updating an existing offer.
+        _firstDealId: firstDeal?.id ?? null,
+      } as never}
       categories={categories as never}
     />
   )

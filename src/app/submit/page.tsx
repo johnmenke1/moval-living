@@ -78,11 +78,16 @@ export default function SubmitPage() {
     hours: null as Record<string, { open: string; close: string; closed: boolean }> | null,
     latitude: null as number | null,
     longitude: null as number | null,
-    hasCoupon: false,
-    couponHeadline: '',
-    couponDescription: '',
-    couponCode: '',
-    couponExpiresAt: '',
+    // Deal — flat shape to mirror the legacy coupon fields we used to have
+    // here, but transformed into a first-class Deal row at submit time
+    // (instead of being stored on Business.coupon Json). The migration
+    // 20260915000000_drop_business_coupon drops the Json blob; /api/businesses
+    // POST now creates a Deal row in the same transaction as the Business.
+    hasDeal: false,
+    dealHeadline: '',
+    dealDescription: '',
+    dealCode: '',
+    dealExpiresAt: '',
     emailOptIn: false,
     smsOptIn: false,
   })
@@ -121,16 +126,36 @@ export default function SubmitPage() {
     setSubmitting(true)
     setError('')
     try {
+      // Build the deal payload in the API's expected nested shape from the
+      // flat form fields. Only sent when the toggle is on AND the headline
+      // has content — otherwise the API treats the request as no-deal and
+      // skips creating a Deal row.
+      const deal = form.hasDeal && form.dealHeadline.trim()
+        ? {
+            headline: form.dealHeadline.trim(),
+            description: form.dealDescription,
+            code: form.dealCode || undefined,
+            expiresAt: form.dealExpiresAt || undefined,
+          }
+        : null
+
+      // Strip the flat form-state keys from the payload so the API doesn't
+      // see both the flat shape and the nested `deal` shape (would confuse
+      // the transition during rollout and trigger Zod strict-mode failures
+      // if/when we tighten the API schema).
+      const { hasDeal: _hasDeal, dealHeadline: _a, dealDescription: _b, dealCode: _c, dealExpiresAt: _d, ...rest } = form
+
       const res = await fetch('/api/businesses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
+          ...rest,
           hours: form.hours || undefined,
           latitude: form.latitude,
           longitude: form.longitude,
           emailOptIn: form.emailOptIn,
           smsOptIn: form.smsOptIn,
+          deal,
         }),
       })
       if (!res.ok) {
@@ -317,21 +342,21 @@ export default function SubmitPage() {
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => update('hasCoupon', !form.hasCoupon)}
-                    className={`relative w-12 h-6 rounded-full transition-colors ${form.hasCoupon ? 'bg-primary' : 'bg-slate-200'}`}
+                    onClick={() => update('hasDeal', !form.hasDeal)}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${form.hasDeal ? 'bg-primary' : 'bg-slate-200'}`}
                   >
-                    <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${form.hasCoupon ? 'translate-x-7' : 'translate-x-1'}`} />
+                    <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${form.hasDeal ? 'translate-x-7' : 'translate-x-1'}`} />
                   </button>
-                  <span className="text-sm font-medium text-text">{form.hasCoupon ? 'Deal is active' : 'No deal currently'}</span>
+                  <span className="text-sm font-medium text-text">{form.hasDeal ? 'Deal is active' : 'No deal currently'}</span>
                 </div>
 
-                {form.hasCoupon && (
+                {form.hasDeal && (
                   <div className="space-y-4 bg-slate-50 rounded-xl p-5">
                     <div>
                       <label className="label">Deal Headline <span className="text-error">*</span></label>
                       <input
-                        value={form.couponHeadline}
-                        onChange={e => update('couponHeadline', e.target.value)}
+                        value={form.dealHeadline}
+                        onChange={e => update('dealHeadline', e.target.value)}
                         className="input"
                         placeholder="e.g. 20% off your first service"
                         maxLength={80}
@@ -340,8 +365,8 @@ export default function SubmitPage() {
                     <div>
                       <label className="label">Deal Details <span className="text-error">*</span></label>
                       <textarea
-                        value={form.couponDescription}
-                        onChange={e => update('couponDescription', e.target.value)}
+                        value={form.dealDescription}
+                        onChange={e => update('dealDescription', e.target.value)}
                         className="input min-h-[80px] resize-none"
                         placeholder="e.g. Must mention this listing. Cannot be combined with other offers. Valid for new customers only."
                         maxLength={300}
@@ -351,8 +376,8 @@ export default function SubmitPage() {
                       <div>
                         <label className="label">Promo Code <span className="text-text-secondary font-normal">(optional)</span></label>
                         <input
-                          value={form.couponCode}
-                          onChange={e => update('couponCode', e.target.value.toUpperCase())}
+                          value={form.dealCode}
+                          onChange={e => update('dealCode', e.target.value.toUpperCase())}
                           className="input font-mono"
                           placeholder="SAVE20"
                           maxLength={20}
@@ -362,8 +387,8 @@ export default function SubmitPage() {
                         <label className="label">Expires <span className="text-text-secondary font-normal">(optional)</span></label>
                         <input
                           type="date"
-                          value={form.couponExpiresAt}
-                          onChange={e => update('couponExpiresAt', e.target.value)}
+                          value={form.dealExpiresAt}
+                          onChange={e => update('dealExpiresAt', e.target.value)}
                           className="input"
                           min={new Date().toISOString().split('T')[0]}
                         />
