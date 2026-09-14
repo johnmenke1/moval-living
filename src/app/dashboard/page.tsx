@@ -219,9 +219,21 @@ export default async function DashboardPage() {
               >
                 <User className="w-4 h-4" /> Profile
               </Link>
-              <Link href="/dashboard/add" className="btn-primary inline-flex items-center justify-center gap-2">
-                <Plus className="w-4 h-4" /> Add Business
-              </Link>
+              {/* Two add paths — Google import + manual entry. Grouped
+                  under one heading so admins know there's a choice.
+                  Manual entry was added 2026-09-14 alongside the
+                  existing Google importer. */}
+              <div className="flex flex-col gap-2 w-full sm:w-auto">
+                <Link href="/dashboard/add" className="btn-primary inline-flex items-center justify-center gap-2">
+                  <Plus className="w-4 h-4" /> Add Business
+                </Link>
+                <Link
+                  href="/dashboard/add/manual"
+                  className="text-xs text-text-secondary hover:text-primary text-center transition-colors"
+                >
+                  or add manually →
+                </Link>
+              </div>
             </div>
           </div>
           <div className="container-max py-8">
