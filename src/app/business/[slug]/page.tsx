@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { averageRating, formatPhone } from '@/lib/utils'
-import { MapPin, Phone, Globe, Mail, Clock, Star, ChevronRight, Trophy, Tag, Award, Sparkles, Building2, Languages } from 'lucide-react'
+import { MapPin, Phone, Globe, Mail, Clock, Star, ChevronRight, Trophy, Tag, Award, Sparkles, Building2, Languages, Calendar } from 'lucide-react'
 import { BusinessMapWrapper } from '@/components/map/BusinessMapWrapper'
 import { BusinessSidebar } from '@/components/business/BusinessSidebar'
 import { JsonLd } from '@/components/seo/JsonLd'
@@ -208,6 +208,118 @@ function buildBusinessSchema(business: Awaited<ReturnType<typeof getBusiness>> &
   }
 
   return schema
+}
+
+// ── Deals section ────────────────────────────────────────────────────────
+//
+// Renders below the Photos gallery and above the Map. Hidden entirely when
+// the business has no active deals (caller filters at the `<DealsSection />`
+// gate). Each card uses `id="deal-${deal.id}"` as the anchor target — the
+// public /deals page links here from its DealCardPublic components, so
+// keeping the anchor pattern in sync is what makes those deep-links land
+// at the right card after a click-through.
+//
+// Image handling: a deal with `imageUrl` set renders the full uploaded
+// creative at native aspect (object-cover on a 16:9 frame) so the merchant's
+// promo artwork — which is the whole point — takes the visual lead. Without
+// an image, we still show a primary-tinted hero with the headline text so
+// the deal doesn't disappear into a bare list. Code pill + expiry follow
+// the same shapes used on /deals so users recognize the affordance across
+// pages.
+//
+// No expiry filtering here — that lives in Prisma's `where: { isActive: true }`
+// query and is filtered at the edge of the data. Soft-deleted / past-date
+// deals stay out of the page even if a future caller forgets the gate.
+
+type DealRow = NonNullable<Awaited<ReturnType<typeof getBusiness>>>['deals'][number]
+
+function formatDealDate(value: string | Date | null | undefined): string | null {
+  if (!value) return null
+  const date = typeof value === 'string' ? new Date(value) : value
+  if (isNaN(date.getTime())) return null
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function DealCard({ deal, businessName }: { deal: DealRow; businessName: string }) {
+  const expiresLabel = formatDealDate(deal.expiresAt)
+  const startsLabel = formatDealDate(deal.startsAt)
+  return (
+    <div
+      id={`deal-${deal.id}`}
+      className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden scroll-mt-32"
+    >
+      {deal.imageUrl ? (
+        <div className="relative w-full aspect-[16/9] bg-slate-100">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={deal.imageUrl}
+            alt={`${deal.headline} — ${businessName}`}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute top-4 right-4 flex items-center gap-1 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">
+            <Tag className="w-3 h-3" />
+            Deal
+          </div>
+        </div>
+      ) : (
+        <div className="relative w-full h-32 bg-gradient-to-br from-primary/15 to-secondary/15 flex items-center px-6">
+          <div className="absolute top-3 right-3 flex items-center gap-1 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-full">
+            <Tag className="w-3 h-3" />
+            Deal
+          </div>
+          <h3 className="text-xl md:text-2xl font-bold text-text pr-24">{deal.headline}</h3>
+        </div>
+      )}
+
+      <div className="p-5 md:p-6">
+        {deal.imageUrl && (
+          <h3 className="text-xl md:text-2xl font-bold text-text mb-2">{deal.headline}</h3>
+        )}
+        {deal.description && (
+          <p className="text-text-secondary leading-relaxed mb-4 whitespace-pre-line">
+            {deal.description}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {deal.code && (
+            <span className="inline-flex items-center gap-2 bg-slate-100 text-text font-mono font-bold text-base px-4 py-2 rounded-lg border border-slate-200">
+              <Sparkles className="w-4 h-4 text-accent" />
+              {deal.code}
+            </span>
+          )}
+          {expiresLabel && (
+            <span className="inline-flex items-center gap-1.5 text-sm text-text-secondary bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+              <Calendar className="w-4 h-4" />
+              {startsLabel ? `${startsLabel} – ${expiresLabel}` : `Ends ${expiresLabel}`}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DealsSection({ deals, businessName }: { deals: DealRow[]; businessName: string }) {
+  if (!deals || deals.length === 0) return null
+  return (
+    <div data-testid="business-deals" className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
+      <div className="flex items-baseline justify-between mb-5">
+        <h2 className="text-xl md:text-2xl font-bold text-text flex items-center gap-2">
+          <Tag className="w-6 h-6 text-primary" />
+          Deals &amp; Specials
+        </h2>
+        <span className="text-sm text-text-secondary">
+          {deals.length} active offer{deals.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+      <div className="space-y-5">
+        {deals.map((deal) => (
+          <DealCard key={deal.id} deal={deal} businessName={businessName} />
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function buildBreadcrumbSchema(business: { name: string; slug: string; category: { name: string; slug: string } }) {
@@ -518,6 +630,15 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
                 )}
               </div>
             </div>
+
+            {/* Deals & Specials — only renders when the business has
+                active deals (DealsSection self-hides on empty). The
+                #deal-{id} anchors on each card are the targets that
+                /deals links to, so deep-links from the public deals
+                page land at the right card on this listing. */}
+            {business.deals && (
+              <DealsSection deals={business.deals} businessName={business.name} />
+            )}
 
             {/* Map */}
             {business.address && (
