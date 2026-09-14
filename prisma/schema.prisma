@@ -105,6 +105,13 @@ model Business {
   expertPartnerStats ExpertPartnerStat[]
   audits             BusinessAudit[]
   events             Event[]
+  // First-class Deals — supersedes the legacy Business.coupon Json blob and
+  // Business.hasCoupon bool. Multiple deals per business, each with its own
+  // image (stored on Deal.imageUrl as a Vercel Blob URL). The legacy columns
+  // stay in the schema for one migration cycle so any stale reads continue
+  // to work; PUT /api/businesses/[slug] mirrors legacy payloads into Deal
+  // rows. See migration 20260914000000_add_deal_model.
+  deals              Deal[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -983,4 +990,39 @@ enum ParkType {
   PARK
   GOLF
   REC_CENTER
+}
+
+// ── Deals (added 2026-09-14) ─────────────────────────────────────────────
+// First-class promotion of the legacy Business.coupon Json blob. Each
+// Business may have many deals; each deal carries its own image (Vercel
+// Blob URL on imageUrl), promo copy, optional code, optional date window,
+// and an isActive flag so admin can pull a deal off the index without
+// deleting the row.
+//
+// Sort order: displayOrder ASC (ties broken by createdAt DESC). The
+// (isActive, expiresAt) index supports the public /deals index, which
+// filters isActive=true and prefers rows where expiresAt IS NULL OR
+// expiresAt > NOW(). The (businessId, isActive, displayOrder) index
+// supports the dashboard listing inside /dashboard/deals and the admin
+// Deals tab in /dashboard/edit?id=...
+model Deal {
+  id           String   @id @default(cuid())
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId   String
+
+  headline     String
+  description  String?  @db.Text
+  code         String?
+  imageUrl     String?
+  startsAt     DateTime?
+  expiresAt    DateTime?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, isActive, displayOrder])
+  @@index([isActive, expiresAt])
+  @@index([createdAt])
 }

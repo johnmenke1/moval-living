@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     const formData = await request.formData()
     const file = formData.get('file') as File | null
     const businessId = formData.get('businessId') as string | null
-    const type = formData.get('type') as string | null // 'logo' | 'cover' | 'photo'
+    const type = formData.get('type') as string | null // 'logo' | 'cover' | 'photo' | 'deal'
 
     if (!file || !businessId || !type) {
       return NextResponse.json(
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!['logo', 'cover', 'photo'].includes(type)) {
+    if (!['logo', 'cover', 'photo', 'deal'].includes(type)) {
       return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
     }
 
@@ -59,6 +59,7 @@ export async function POST(request: Request) {
     const isLogo = type === 'logo'
     const isCover = type === 'cover'
     const isPhoto = type === 'photo'
+    const isDeal = type === 'deal'
 
     if (isPhoto && !isFeatured) {
       return NextResponse.json(
@@ -72,6 +73,29 @@ export async function POST(request: Request) {
         { error: 'Photo limit reached (10 photos for Featured listings)' },
         { status: 403 }
       )
+    }
+
+    // Deal images: no tier gate (every business can have a deal image)
+    // and no count gate (a business can have N deals, each with its
+    // own image). Path is businesses/{businessId}/deals/{filename} so
+    // deals imagery is partitioned and easy to audit / bulk-delete later.
+    if (isDeal) {
+      // Generate a stable blob filename: businesses/{businessId}/deals/{filename}
+      // Strip any path traversal attempts from the original filename
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const blobPath = `businesses/${businessId}/deals/${safeName}`
+
+      const blob = await put(blobPath, file.stream(), {
+        access: 'public',
+        contentType: file.type,
+      })
+
+      // No DB write here — caller wires the returned URL onto a Deal
+      // row via POST /api/deals or PATCH /api/deals/[id]. This keeps
+      // upload idempotent and lets the user cancel the form without
+      // leaving a dangling DB row (the blob stays in Vercel, which is
+      // cheap; documented in the plan).
+      return NextResponse.json({ url: blob.url, type })
     }
 
     // Generate a stable blob filename: businesses/{businessId}/{type}/{filename}

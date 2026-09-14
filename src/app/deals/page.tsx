@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
-import { BusinessCard } from '@/components/business/BusinessCard'
+import { DealCardPublic, DealPublicBusiness } from '@/components/business/DealCardPublic'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Tag } from 'lucide-react'
 import type { Metadata } from 'next'
@@ -15,43 +15,94 @@ interface DealsPageProps {
   searchParams: Promise<{ sort?: string; page?: string }>
 }
 
+// Refactored 2026-09-14 to render ONE card per Deal row. Previously
+// this page listed one card per business (using BusinessCard), which
+// made it impossible for a business to surface more than one active
+// offer. Now the page queries Deal directly; the migration
+// 20260914000000_add_deal_model backfilled one Deal row per legacy
+// Business.coupon Json so nothing was lost in the switch.
 async function getDeals(params: { sort?: string; page?: string }) {
-  const page = parseInt(params.page || '1')
+  const page = Math.max(1, parseInt(params.page || '1'))
   const skip = (page - 1) * 20
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const orderBy: any = params.sort === 'name'
-    ? { name: 'asc' }
-    : params.sort === 'rating'
-    ? { reviews: { _count: 'desc' } }
-    : { createdAt: 'desc' }
+  const now = new Date()
+  const where = {
+    isActive: true,
+    OR: [
+      { expiresAt: null },
+      { expiresAt: { gt: now } },
+    ],
+    AND: [
+      {
+        OR: [
+          { startsAt: null },
+          { startsAt: { lte: now } },
+        ],
+      },
+      { business: { status: 'APPROVED' as const } },
+    ],
+  }
 
-  const [businesses, total] = await Promise.all([
-    prisma.business.findMany({
-      where: { status: 'APPROVED', hasCoupon: true },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const orderBy: any = params.sort === 'expiring'
+    ? [{ isActive: 'desc' }, { expiresAt: 'asc' }]
+    : params.sort === 'business'
+      ? [{ business: { name: 'asc' as const } }, { createdAt: 'desc' as const }]
+      : [{ displayOrder: 'asc' as const }, { createdAt: 'desc' as const }]
+
+  const [deals, total] = await Promise.all([
+    prisma.deal.findMany({
+      where,
       include: {
-        category: true,
-        reviews: true,
-        _count: { select: { reviews: true } },
+        business: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            tagline: true,
+            logo: true,
+            coverImage: true,
+            category: { select: { name: true, slug: true } },
+            _count: { select: { reviews: true } },
+          },
+        },
       },
       orderBy,
       skip,
       take: 20,
     }),
-    prisma.business.count({ where: { status: 'APPROVED', hasCoupon: true } }),
+    prisma.deal.count({ where }),
   ])
 
   return {
-    businesses: businesses.map(b => ({
-      ...b,
-      coupon: b.coupon as {
+    deals: deals.map(d => {
+      // Cast through `unknown` so TypeScript keeps the `include`
+      // shape (notably `business`) while we re-shape the Date fields
+      // to ISO strings. The included relations survive the spread;
+      // only the top-level Date columns are coerced.
+      const r = d as unknown as {
+        id: string
+        businessId: string
         headline: string
-        description?: string | null
-        code?: string | null
-        expiresAt?: string | null
-        imageUrl?: string | null
-      } | null,
-    })),
+        description: string | null
+        code: string | null
+        imageUrl: string | null
+        startsAt: Date | null
+        expiresAt: Date | null
+        displayOrder: number
+        isActive: boolean
+        createdAt: Date
+        updatedAt: Date
+        business: DealPublicBusiness
+      }
+      return {
+        ...r,
+        startsAt: r.startsAt ? r.startsAt.toISOString() : null,
+        expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,
+        createdAt: r.createdAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
+      }
+    }),
     total,
     page,
     totalPages: Math.ceil(total / 20),
@@ -60,7 +111,12 @@ async function getDeals(params: { sort?: string; page?: string }) {
 
 export default async function DealsPage({ searchParams }: DealsPageProps) {
   const params = await searchParams
-  const { businesses, total, page, totalPages } = await getDeals(params)
+  const { deals, total, page, totalPages } = await getDeals(params)
+
+  // Pick a "featured right now" deal for the answer capsule — the most
+  // recently created deal on the first page. Used the same way the
+  // legacy page used businesses[0] (it picked the newest business).
+  const featured = deals[0]
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -76,18 +132,19 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
 
           {/* Answer capsule — server-rendered, first ~150 words of HTML.
               AI engines lift this when answering queries like "what deals
-              are available in Moreno Valley today?" The shape is a complete
-              factual answer: live count + top featured deal + categories. */}
+              are available in Moreno Valley today?" Updated 2026-09-14
+              to reference a specific deal (not a business) since one
+              business may now have multiple deals. */}
           <p className="text-text text-lg max-w-3xl leading-relaxed">
             There {total === 1 ? 'is 1 active deal' : `are ${total} active deals`}
             {' '}from Moreno Valley businesses — exclusive offers from local
             restaurants, salons, service providers, and retailers.
-            {businesses[0]?.coupon?.headline && (
-              <> Featured right now: <strong>{businesses[0].name}</strong>
-                {' — '}{businesses[0].coupon.headline}.</>
+            {featured && (
+              <> Featured right now: <strong>{featured.headline}</strong>
+                {' from '}<strong>{featured.business.name}</strong>.</>
             )}
             {total === 0 && (
-              <> No deals listed yet — local businesses can add theirs through the Submit page.</>
+              <> No deals listed yet — local businesses can add theirs through the dashboard.</>
             )}
           </p>
         </div>
@@ -103,8 +160,8 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
             <span className="text-sm text-text-secondary mr-1">Sort:</span>
             {[
               { value: 'newest', label: 'Newest' },
-              { value: 'rating', label: 'Top Rated' },
-              { value: 'name', label: 'A–Z' },
+              { value: 'expiring', label: 'Expiring Soon' },
+              { value: 'business', label: 'By Business' },
             ].map(option => {
               const isActive = (params.sort || 'newest') === option.value
               const href = `/deals?${buildQuery({ ...params, sort: option.value, page: undefined })}`
@@ -125,7 +182,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
           </div>
         </div>
 
-        {businesses.length === 0 ? (
+        {deals.length === 0 ? (
           <EmptyState
             title="No deals yet"
             description="Be the first business to add a deal! Listings with special offers get more clicks and inquiries."
@@ -135,8 +192,8 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-              {businesses.map(business => (
-                <BusinessCard key={business.id} business={business} />
+              {deals.map(deal => (
+                <DealCardPublic key={deal.id} deal={deal as never} />
               ))}
             </div>
 
