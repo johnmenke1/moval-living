@@ -51,6 +51,26 @@ async function getBusiness(slug: string) {
       expertPartnerSlug: true,
       foundingPartnerSince: true,
       foundingPartnerRate: true,
+      // Active deals — surfaced on the listing page below the Photos
+      // gallery. Ordered by displayOrder asc, newest expiring first as
+      // the secondary sort so seasonal promos win during tie-breaks.
+      deals: {
+        where: { isActive: true },
+        orderBy: [
+          { displayOrder: 'asc' },
+          { expiresAt: 'desc' },
+        ],
+        select: {
+          id: true,
+          headline: true,
+          description: true,
+          code: true,
+          imageUrl: true,
+          startsAt: true,
+          expiresAt: true,
+          displayOrder: true,
+        },
+      },
       // Languages & Chamber affiliation badges
       seHablaEspanol: true,
       chamberMember: true,
