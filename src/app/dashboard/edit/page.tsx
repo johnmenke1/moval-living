@@ -30,7 +30,7 @@ export default async function EditBusinessPage({
         business={{
           ...business,
           hours: (business.hours as Record<string, { open: string; close: string; closed: boolean }>) || null,
-          coupon: business.coupon as { headline: string; description: string; code: string | null; expiresAt: string | null } | null,
+          coupon: business.coupon as { headline: string; description: string; code: string | null; expiresAt: string | null; imageUrl?: string | null } | null,
         } as never}
         categories={categories as never}
         isAdmin

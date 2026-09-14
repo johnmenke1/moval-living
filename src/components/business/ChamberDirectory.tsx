@@ -90,6 +90,7 @@ export async function ChamberDirectory({ variant }: { variant: keyof typeof VARI
                     description?: string | null
                     code?: string | null
                     expiresAt?: string | null
+                    imageUrl?: string | null
                   } | null,
                 }}
               />

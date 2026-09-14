@@ -49,6 +49,7 @@ async function getDeals(params: { sort?: string; page?: string }) {
         description?: string | null
         code?: string | null
         expiresAt?: string | null
+        imageUrl?: string | null
       } | null,
     })),
     total,

@@ -27,6 +27,7 @@ interface BusinessCardProps {
       description?: string | null
       code?: string | null
       expiresAt?: string | null
+      imageUrl?: string | null
     } | null
     isBestOf?: boolean
     isExpertPartner?: boolean

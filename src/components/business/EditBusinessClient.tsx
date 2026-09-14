@@ -32,7 +32,7 @@ interface Business {
   googleReviewCount: number | null
   hours: Record<string, { open: string; close: string; closed: boolean }> | null
   hasCoupon: boolean
-  coupon: { headline: string; description: string; code: string | null; expiresAt: string | null } | null
+  coupon: { headline: string; description: string; code: string | null; expiresAt: string | null; imageUrl?: string | null } | null
   tier: 'FREE' | 'FEATURED'
   logo: string | null
   coverImage: string | null

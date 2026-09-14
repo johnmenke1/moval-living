@@ -34,6 +34,10 @@ const couponSchema = z.object({
   description: z.string().trim().max(300).default(''),
   code: z.union([z.string().trim().max(20).transform(value => value || null), z.null()]).optional(),
   expiresAt: z.union([z.string().trim().max(40).transform(value => value || null), z.null()]).optional(),
+  // Optional promo image — uploaded via the admin/owner deal-image upload
+  // endpoint, stored on Vercel Blob, surfaced on /deals cards. Backwards-
+  // compatible: pre-existing rows without this key continue to work.
+  imageUrl: z.union([z.string().trim().max(500).url(), z.null()]).optional(),
 }).nullable().optional()
 
 const nullableDate = z.union([
