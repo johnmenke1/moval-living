@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { CheckCircle, ChevronLeft, Loader2, AlertCircle, ImagePlus, X, Star } from 'lucide-react'
+import { CheckCircle, ChevronLeft, Loader2, AlertCircle, ImagePlus, X, Star, Link as LinkIcon } from 'lucide-react'
 
 interface Category {
   id: string
@@ -81,6 +81,28 @@ export default function EditBusinessClient({ business, categories, isAdmin }: Pr
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  // Deal-image upload widget state (mirrors the admin upload pattern).
+  const [dealImageUploading, setDealImageUploading] = useState(false)
+  const [dealImageError, setDealImageError] = useState('')
+  const [dealImageUrlMode, setDealImageUrlMode] = useState(false)
+
+  const handleDealImageUpload = async (file: File) => {
+    setDealImageError('')
+    setDealImageUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('businessId', business.id)
+      const res = await fetch('/api/businesses/upload-deal-image', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Upload failed')
+      setForm(prev => ({ ...prev, couponImageUrl: data.url }))
+    } catch (err) {
+      setDealImageError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setDealImageUploading(false)
+    }
+  }
 
   const [form, setForm] = useState({
     name: business.name,
@@ -105,6 +127,7 @@ export default function EditBusinessClient({ business, categories, isAdmin }: Pr
     couponDescription: business.coupon?.description || '',
     couponCode: business.coupon?.code || '',
     couponExpiresAt: business.coupon?.expiresAt || '',
+    couponImageUrl: business.coupon?.imageUrl || '',
     seHablaEspanol: business.seHablaEspanol || false,
     chamberMember: business.chamberMember || false,
     hispanicChamberMember: business.hispanicChamberMember || false,
@@ -261,6 +284,7 @@ export default function EditBusinessClient({ business, categories, isAdmin }: Pr
             description: form.couponDescription,
             code: form.couponCode || null,
             expiresAt: form.couponExpiresAt || null,
+            imageUrl: form.couponImageUrl || null,
           } : null,
         }),
       })
@@ -767,6 +791,66 @@ export default function EditBusinessClient({ business, categories, isAdmin }: Pr
                   <div>
                     <label className="label">Details</label>
                     <textarea value={form.couponDescription} onChange={e => update('couponDescription', e.target.value)} className="input min-h-[80px] resize-none" placeholder="Terms and conditions..." maxLength={300} />
+                  </div>
+                  {/* Deal image — uploaded to Vercel Blob, URL stored on coupon JSON */}
+                  <div>
+                    <label className="label">Deal Image <span className="text-text-secondary font-normal">(optional)</span></label>
+                    {dealImageUrlMode ? (
+                      <div className="space-y-2">
+                        <input
+                          value={form.couponImageUrl}
+                          onChange={e => update('couponImageUrl', e.target.value)}
+                          className="input"
+                          placeholder="https://..."
+                        />
+                        <button type="button" onClick={() => setDealImageUrlMode(false)} className="inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary hover:text-primary">
+                          <ImagePlus className="w-3.5 h-3.5" /> Upload an image instead
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-3">
+                        <div className="shrink-0">
+                          {form.couponImageUrl ? (
+                            <img src={form.couponImageUrl} alt="Deal preview" className="w-24 h-24 rounded-lg object-cover bg-slate-100" />
+                          ) : (
+                            <div className="w-24 h-24 rounded-lg bg-slate-100 flex items-center justify-center text-text-secondary text-xs">No image</div>
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          {dealImageError && (
+                            <div className="flex items-start gap-2 p-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
+                              <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                              <span>{dealImageError}</span>
+                            </div>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 cursor-pointer transition-colors">
+                              {dealImageUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+                              {dealImageUploading ? 'Uploading…' : form.couponImageUrl ? 'Replace image' : 'Upload image'}
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) handleDealImageUpload(file)
+                                  e.target.value = ''
+                                }}
+                              />
+                            </label>
+                            {form.couponImageUrl && (
+                              <button type="button" onClick={() => update('couponImageUrl', '')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-text text-xs font-medium hover:bg-slate-50 transition-colors">
+                                <X className="w-3.5 h-3.5" /> Remove
+                              </button>
+                            )}
+                          </div>
+                          <button type="button" onClick={() => setDealImageUrlMode(true)} className="inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary hover:text-primary">
+                            <LinkIcon className="w-3.5 h-3.5" /> Or paste a URL
+                          </button>
+                          <p className="text-xs text-text-secondary">JPEG / PNG / WEBP / GIF. Max 10MB. Stored on Vercel Blob.</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
