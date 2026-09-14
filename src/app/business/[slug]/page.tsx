@@ -207,6 +207,29 @@ function buildBusinessSchema(business: Awaited<ReturnType<typeof getBusiness>> &
       }))
   }
 
+  // Active offers — promoted as hasOfferCatalog so Google can pick up
+  // each deal as a structured promotion (price-drop-style rich results
+  // and Merchant API surfaces). Each offer carries description, image,
+  // and validThrough where set; price is omitted because deals are
+  // typically percentage/coupon-shaped rather than a stamped price.
+  if (business.deals && business.deals.length > 0) {
+    schema.hasOfferCatalog = {
+      '@type': 'OfferCatalog',
+      name: `${business.name} — Active Deals`,
+      itemListElement: business.deals.map((deal) => ({
+        '@type': 'Offer',
+        name: deal.headline,
+        ...(deal.description && { description: deal.description }),
+        ...(deal.imageUrl && { image: deal.imageUrl }),
+        ...(deal.code && { sku: deal.code }),
+        ...(deal.startsAt && { validFrom: new Date(deal.startsAt).toISOString() }),
+        ...(deal.expiresAt && { validThrough: new Date(deal.expiresAt).toISOString() }),
+        url: `https://www.moval.living/business/${business.slug}#deal-${deal.id}`,
+        availability: 'https://schema.org/InStock',
+      })),
+    }
+  }
+
   return schema
 }
 
