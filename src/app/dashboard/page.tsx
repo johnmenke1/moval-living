@@ -29,7 +29,7 @@ export default async function DashboardPage() {
             take: 5,
             select: { id: true, rating: true, content: true, authorName: true, createdAt: true },
           },
-          _count: { select: { reviews: true } },
+          _count: { select: { reviews: true, deals: true } },
         },
       },
     },
@@ -367,6 +367,12 @@ export default async function DashboardPage() {
                   <Settings className="w-4 h-4" /> Edit Listing
                 </Link>
                 <Link
+                  href="/dashboard/deals"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  <Tag className="w-4 h-4" /> Manage Deals
+                </Link>
+                <Link
                   href="/dashboard/profile"
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
                 >
@@ -394,7 +400,7 @@ export default async function DashboardPage() {
                 { label: 'Status', value: statusConfig.label, icon: statusConfig.icon, color: statusConfig.color },
                 { label: 'Rating', value: avgRating ? `${avgRating} ★` : 'No ratings', icon: Star, color: 'text-amber-600 bg-amber-50' },
                 { label: 'Reviews', value: business._count.reviews, icon: MessageSquare, color: 'text-blue-600 bg-blue-50' },
-                { label: 'Tier', value: business.tier === 'FEATURED' ? 'Featured' : 'Free', icon: Tag, color: 'text-purple-600 bg-purple-50' },
+                { label: 'Deals', value: business._count.deals, icon: Tag, color: 'text-accent bg-accent/10' },
               ].map(stat => (
                 <div key={stat.label} className="bg-white rounded-xl border border-slate-100 p-4">
                   <div className={`w-8 h-8 rounded-lg ${stat.color} flex items-center justify-center mb-3`}>
@@ -426,9 +432,9 @@ export default async function DashboardPage() {
                   </div>
                   <p className="text-text-secondary text-sm">{business.category.name}</p>
                 </div>
-                {business.hasCoupon && (
+                {business._count.deals > 0 && (
                   <span className="inline-flex items-center gap-1 text-xs font-bold bg-accent/10 text-accent px-3 py-1 rounded-full">
-                    <Tag className="w-3 h-3" /> Active Deal
+                    <Tag className="w-3 h-3" /> {business._count.deals} Active Deal{business._count.deals !== 1 ? 's' : ''}
                   </span>
                 )}
               </div>
