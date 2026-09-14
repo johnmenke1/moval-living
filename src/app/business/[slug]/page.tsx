@@ -28,6 +28,7 @@ function InstagramIcon({ className }: { className?: string }) {
 }
 import { ReviewList } from '@/components/reviews/ReviewList'
 import { ContactBusinessForm } from '@/components/forms/ContactBusinessForm'
+import { DealImageLightbox } from '@/components/business/DealImageLightbox'
 import type { Metadata } from 'next'
 
 interface BusinessPageProps {
@@ -272,15 +273,17 @@ function DealCard({ deal, businessName }: { deal: DealRow; businessName: string 
       className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden scroll-mt-32"
     >
       {deal.imageUrl ? (
-        <div className="relative w-full aspect-[16/9] bg-slate-100">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={deal.imageUrl}
-            alt={`${deal.headline} — ${businessName}`}
-            className="w-full h-full object-cover"
-            loading="lazy"
+        <div className="relative">
+          <DealImageLightbox
+            imageUrl={deal.imageUrl}
+            headline={deal.headline}
+            businessName={businessName}
           />
-          <div className="absolute top-4 right-4 flex items-center gap-1 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">
+          {/* Deal pill — sits ABOVE the lightbox button so it stays
+              visible. The button is full-width so we layer the pill
+              on top with pointer-events-none so the click target
+              remains the image, not the pill. */}
+          <div className="absolute top-4 right-4 flex items-center gap-1 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md pointer-events-none">
             <Tag className="w-3 h-3" />
             Deal
           </div>
