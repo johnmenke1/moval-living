@@ -65,6 +65,8 @@ export default async function DashboardPage() {
           owner: { select: { id: true, name: true, email: true } },
           _count: { select: { reviews: true } },
         },
+        // hasCoupon + coupon are scalar fields, returned by default. They power
+        // the admin 'Add Deal on behalf' panel in BusinessesModeration.
         orderBy: { createdAt: 'desc' },
       }),
       // Slim list — just for the Guest Authors "Link Business" picker

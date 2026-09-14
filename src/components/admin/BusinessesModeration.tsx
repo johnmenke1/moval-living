@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { CheckCircle, XCircle, Clock, Trash2, ExternalLink, Building2, Star, Pencil, ChevronDown, ChevronUp, RefreshCw, Loader2, Search, X, Zap } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Trash2, ExternalLink, Building2, Star, Pencil, ChevronDown, ChevronUp, RefreshCw, Loader2, Search, X, Zap, ImagePlus, Link as LinkIcon } from 'lucide-react'
 
 type BusinessStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -35,6 +35,15 @@ interface Business {
   seHablaEspanol?: boolean
   chamberMember?: boolean
   hispanicChamberMember?: boolean
+  // Deal / promo (admin-editable from this panel; surfaced on /deals page)
+  hasCoupon?: boolean
+  coupon?: {
+    headline: string
+    description?: string | null
+    code?: string | null
+    expiresAt?: string | null
+    imageUrl?: string | null
+  } | null
 }
 
 interface BusinessesModerationProps {
@@ -51,6 +60,30 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
   const [refreshingId, setRefreshingId] = useState<string | null>(null)
   const [testingGhlId, setTestingGhlId] = useState<string | null>(null)
   const [ghlTestResult, setGhlTestResult] = useState<Record<string, { ok: boolean; summary: string; nextSteps: string[] }>>({})
+  // Admin deal-image upload widget state (per business).
+  const [dealUploadingId, setDealUploadingId] = useState<string | null>(null)
+  const [dealErrorById, setDealErrorById] = useState<Record<string, string>>({})
+
+  const handleAdminDealImageUpload = async (businessId: string, file: File) => {
+  setDealErrorById(prev => { const n = { ...prev }; delete n[businessId]; return n })
+  setDealUploadingId(businessId)
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('businessId', businessId)
+    const res = await fetch('/api/businesses/upload-deal-image', { method: 'POST', body: fd })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data?.error || 'Upload failed')
+    setEditGoogle(prev => ({
+      ...prev,
+      [businessId]: { ...prev[businessId], couponImageUrl: data.url },
+    }))
+  } catch (err) {
+    setDealErrorById(prev => ({ ...prev, [businessId]: err instanceof Error ? err.message : 'Upload failed' }))
+  } finally {
+    setDealUploadingId(null)
+  }
+}
   // Inline edit state per business
   const [editGoogle, setEditGoogle] = useState<Record<string, {
     googleBusiness: string
@@ -62,6 +95,13 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     seHablaEspanol: boolean
     chamberMember: boolean
     hispanicChamberMember: boolean
+    // Admin 'Add Deal on behalf' fields. Empty headline = no deal on save.
+    hasCoupon: boolean
+    couponHeadline: string
+    couponDescription: string
+    couponCode: string
+    couponExpiresAt: string
+    couponImageUrl: string
   }>>({})
 
   const reportFailure = async (response: Response, fallback: string) => {
@@ -229,6 +269,21 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     if (edits.seHablaEspanol !== undefined) patch.seHablaEspanol = edits.seHablaEspanol
     if (edits.chamberMember !== undefined) patch.chamberMember = edits.chamberMember
     if (edits.hispanicChamberMember !== undefined) patch.hispanicChamberMember = edits.hispanicChamberMember
+    // Admin 'Add Deal on behalf' — coupon is only sent when the panel was
+    // opened (state exists). Empty headline clears the deal; otherwise the
+    // full payload (code, expiresAt, imageUrl) ships.
+    if (edits.hasCoupon !== undefined) {
+      patch.hasCoupon = edits.hasCoupon && !!edits.couponHeadline.trim()
+      patch.coupon = edits.hasCoupon && edits.couponHeadline.trim()
+        ? {
+            headline: edits.couponHeadline.trim(),
+            description: edits.couponDescription,
+            code: edits.couponCode.trim() || null,
+            expiresAt: edits.couponExpiresAt || null,
+            imageUrl: edits.couponImageUrl.trim() || null,
+          }
+        : null
+    }
     await moderate(id, patch)
     setEditGoogle(prev => { const n = { ...prev }; delete n[id]; return n })
   }
@@ -265,6 +320,12 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
         seHablaEspanol: !!b.seHablaEspanol,
         chamberMember: !!b.chamberMember,
         hispanicChamberMember: !!b.hispanicChamberMember,
+        hasCoupon: !!b.hasCoupon,
+        couponHeadline: b.coupon?.headline || '',
+        couponDescription: b.coupon?.description || '',
+        couponCode: b.coupon?.code || '',
+        couponExpiresAt: b.coupon?.expiresAt || '',
+        couponImageUrl: b.coupon?.imageUrl || '',
       },
     }))
     setExpandedId(expandedId === b.id ? null : b.id)
@@ -673,6 +734,133 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                             <span className="font-medium">Moreno Valley Hispanic Chamber of Commerce member</span>
                           </span>
                         </label>
+                      </div>
+
+                      {/* Admin: Add Deal on behalf */}
+                      <div className="sm:col-span-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3 space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                            Deal / Special Offer
+                          </p>
+                          <label className="flex items-center gap-2 text-xs font-medium text-text cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={edits?.hasCoupon ?? false}
+                              onChange={e => setEditGoogle(prev => ({
+                                ...prev,
+                                [business.id]: { ...prev[business.id], hasCoupon: e.target.checked },
+                              }))}
+                              className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                            />
+                            <span>{edits?.hasCoupon ? 'Active' : 'Inactive'}</span>
+                          </label>
+                        </div>
+                        {edits?.hasCoupon && (
+                          <div className="space-y-3">
+                            <div>
+                              <label className="label text-xs">Deal Headline</label>
+                              <input
+                                value={edits?.couponHeadline ?? ''}
+                                onChange={e => setEditGoogle(prev => ({
+                                  ...prev,
+                                  [business.id]: { ...prev[business.id], couponHeadline: e.target.value },
+                                }))}
+                                className="input text-sm py-1.5"
+                                placeholder="e.g. 20% off first service"
+                                maxLength={80}
+                              />
+                            </div>
+                            <div>
+                              <label className="label text-xs">Details</label>
+                              <textarea
+                                value={edits?.couponDescription ?? ''}
+                                onChange={e => setEditGoogle(prev => ({
+                                  ...prev,
+                                  [business.id]: { ...prev[business.id], couponDescription: e.target.value },
+                                }))}
+                                className="input text-sm py-1.5 min-h-[60px] resize-none"
+                                placeholder="Terms and conditions..."
+                                maxLength={300}
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="label text-xs">Promo Code <span className="text-text-secondary font-normal">(optional)</span></label>
+                                <input
+                                  value={edits?.couponCode ?? ''}
+                                  onChange={e => setEditGoogle(prev => ({
+                                    ...prev,
+                                    [business.id]: { ...prev[business.id], couponCode: e.target.value.toUpperCase() },
+                                  }))}
+                                  className="input text-sm py-1.5 font-mono"
+                                  placeholder="SAVE20"
+                                  maxLength={20}
+                                />
+                              </div>
+                              <div>
+                                <label className="label text-xs">Expires <span className="text-text-secondary font-normal">(optional)</span></label>
+                                <input
+                                  type="date"
+                                  value={edits?.couponExpiresAt ?? ''}
+                                  onChange={e => setEditGoogle(prev => ({
+                                    ...prev,
+                                    [business.id]: { ...prev[business.id], couponExpiresAt: e.target.value },
+                                  }))}
+                                  className="input text-sm py-1.5"
+                                />
+                              </div>
+                            </div>
+                            {/* Deal image upload widget — mirrors /dashboard/edit */}
+                            <div>
+                              <label className="label text-xs">Deal Image <span className="text-text-secondary font-normal">(optional)</span></label>
+                              <div className="flex items-start gap-3">
+                                <div className="shrink-0">
+                                  {edits?.couponImageUrl ? (
+                                    <img src={edits.couponImageUrl} alt="Deal preview" className="w-20 h-20 rounded-lg object-cover bg-slate-100" />
+                                  ) : (
+                                    <div className="w-20 h-20 rounded-lg bg-slate-100 flex items-center justify-center text-text-secondary text-[10px]">No image</div>
+                                  )}
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                  {dealErrorById[business.id] && (
+                                    <div className="flex items-start gap-2 p-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
+                                      <span>{dealErrorById[business.id]}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 cursor-pointer transition-colors">
+                                      {dealUploadingId === business.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+                                      {dealUploadingId === business.id ? 'Uploading…' : edits?.couponImageUrl ? 'Replace' : 'Upload'}
+                                      <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,image/gif"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0]
+                                          if (file) handleAdminDealImageUpload(business.id, file)
+                                          e.target.value = ''
+                                        }}
+                                      />
+                                    </label>
+                                    {edits?.couponImageUrl && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditGoogle(prev => ({
+                                          ...prev,
+                                          [business.id]: { ...prev[business.id], couponImageUrl: '' },
+                                        }))}
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-text text-xs font-medium hover:bg-slate-50 transition-colors"
+                                      >
+                                        <X className="w-3.5 h-3.5" /> Remove
+                                      </button>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-text-secondary">JPEG / PNG / WEBP / GIF. Max 10MB. Vercel Blob.</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
