@@ -1,0 +1,31 @@
+-- Drop the legacy Business.coupon Json blob and Business.hasCoupon bool.
+--
+-- These columns were the original "single coupon per business" shape. The
+-- 2026-09-14 migration (20260914000000_add_deal_model) introduced the
+-- first-class Deal model with a businessId FK from Deal → Business, and a
+-- one-shot backfill seeded one Deal row per legacy coupon so no deal data
+-- was lost. Code changes in this commit routed every deal write through
+-- /api/deals (POST/PATCH/DELETE) and removed every read of hasCoupon/coupon
+-- from the application layer (verified via `grep -rn` across src/).
+--
+-- Pre-flight safety: this commit also patched SECDU Innovation's Deal row
+-- to backfill its missing imageUrl from the legacy coupon.imageUrl blob
+-- (the prior one-shot migration only seeded text fields, not images). All
+-- 3 legacy coupon rows now have complete Deal rows with image, headline,
+-- and (where set) code/expiresAt.
+--
+-- The drop is safe because:
+--   1. All writes (/api/businesses POST, /api/businesses/[slug] PUT,
+--      /dashboard/edit, /submit, /api/admin/businesses/[id] PATCH) no
+--      longer accept or persist hasCoupon/coupon.
+--   2. All reads (business page, /search, /best-of/[category],
+--      /dashboard, BusinessCard, BestOfNomineeCard, ChamberDirectory,
+--      SearchMap, /api/businesses/[slug] GET) now derive deal state from
+--      the Deal table.
+--   3. The Deal table is now the single source of truth for deals, with
+--      `deals` queryable as a relation from Business.
+--   4. Verified via direct DB inspection: 3/3 businesses that had legacy
+--      coupon JSON have matching Deal rows with all fields populated.
+
+ALTER TABLE "Business" DROP COLUMN IF EXISTS "hasCoupon";
+ALTER TABLE "Business" DROP COLUMN IF EXISTS "coupon";

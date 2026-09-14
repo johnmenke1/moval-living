@@ -73,9 +73,11 @@ model Business {
   chamberMember         Boolean @default(false) // Moreno Valley Chamber of Commerce — admin-only
   hispanicChamberMember Boolean @default(false) // MV Hispanic Chamber of Commerce — admin-only
 
-  // Coupon/Deal
-  hasCoupon Boolean @default(false)
-  coupon    Json?
+  // Coupon/Deal — REMOVED in migration 20260915000000_drop_business_coupon.
+  // Replaced by the first-class Deal model with a `businessId` FK from
+  // Deal → Business. All writers (/api/businesses POST, /api/businesses/[slug]
+  // PUT, /dashboard/edit, /submit) now route deal payloads through
+  // /api/deals which creates/updates rows in the Deal table.
 
   // Stripe
   stripeCustomerId             String?   @unique
@@ -105,12 +107,11 @@ model Business {
   expertPartnerStats ExpertPartnerStat[]
   audits             BusinessAudit[]
   events             Event[]
-  // First-class Deals — supersedes the legacy Business.coupon Json blob and
-  // Business.hasCoupon bool. Multiple deals per business, each with its own
-  // image (stored on Deal.imageUrl as a Vercel Blob URL). The legacy columns
-  // stay in the schema for one migration cycle so any stale reads continue
-  // to work; PUT /api/businesses/[slug] mirrors legacy payloads into Deal
-  // rows. See migration 20260914000000_add_deal_model.
+  // First-class Deals — multiple deals per business, each with its own image
+  // (Deal.imageUrl as a Vercel Blob URL), promo copy, optional code, optional
+  // date window, and an isActive flag. Superseded the legacy Business.coupon
+  // Json blob and Business.hasCoupon bool in migration
+  // 20260915000000_drop_business_coupon.
   deals              Deal[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
