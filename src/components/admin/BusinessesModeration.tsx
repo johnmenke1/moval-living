@@ -22,11 +22,14 @@ interface Business {
   createdAt: string | Date
   category: { name: string; slug: string }
   owner: { id: string; name: string | null; email: string } | null
-  _count: { reviews: number }
-  googleBusiness: string | null
-  googleRating: number | null
-  googleReviewCount: number | null
-  isExpertPartner?: boolean
+    _count: { reviews: number }
+    googleBusiness: string | null
+    googleRating: number | null
+    googleReviewCount: number | null
+    // set the first time ownerId is populated. null until then. Drives the
+    // CLAIMED filter chip + quick visual signal of which listings are owned.
+    claimedAt: string | Date | null
+    isExpertPartner?: boolean
   expertPartnerSlug?: string | null
   foundingPartnerSince?: string | Date | null
   liveQaZoomUrl?: string | null
@@ -56,7 +59,7 @@ interface BusinessesModerationProps {
 
 export default function BusinessesModeration({ initialBusinesses }: BusinessesModerationProps) {
   const [businesses, setBusinesses] = useState<Business[]>(initialBusinesses)
-  const [filter, setFilter] = useState<'ALL' | BusinessStatus | 'CHAMBER'>('ALL')
+  const [filter, setFilter] = useState<'ALL' | BusinessStatus | 'CHAMBER' | 'CLAIMED' | 'UNCLAIMED'>('ALL')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -117,11 +120,15 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
   }
 
   const filtered =
-    filter === 'ALL'
-      ? businesses
-      : filter === 'CHAMBER'
-      ? businesses.filter(b => b.chamberMember || b.hispanicChamberMember)
-      : businesses.filter(b => b.status === filter)
+      filter === 'ALL'
+        ? businesses
+        : filter === 'CHAMBER'
+        ? businesses.filter(b => b.chamberMember || b.hispanicChamberMember)
+        : filter === 'CLAIMED'
+        ? businesses.filter(b => b.claimedAt != null || b.owner != null)
+        : filter === 'UNCLAIMED'
+        ? businesses.filter(b => b.claimedAt == null && b.owner == null)
+        : businesses.filter(b => b.status === filter)
   const searchLower = search.toLowerCase().trim()
   const displayed = searchLower
     ? filtered.filter(b =>
@@ -135,12 +142,14 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     : filtered
 
   const counts: Record<string, number> = {
-    ALL: businesses.length,
-    PENDING: businesses.filter(b => b.status === 'PENDING').length,
-    APPROVED: businesses.filter(b => b.status === 'APPROVED').length,
-    REJECTED: businesses.filter(b => b.status === 'REJECTED').length,
-    CHAMBER: businesses.filter(b => b.chamberMember || b.hispanicChamberMember).length,
-  }
+      ALL: businesses.length,
+      PENDING: businesses.filter(b => b.status === 'PENDING').length,
+      APPROVED: businesses.filter(b => b.status === 'APPROVED').length,
+      REJECTED: businesses.filter(b => b.status === 'REJECTED').length,
+      CHAMBER: businesses.filter(b => b.chamberMember || b.hispanicChamberMember).length,
+      CLAIMED: businesses.filter(b => b.claimedAt != null || b.owner != null).length,
+      UNCLAIMED: businesses.filter(b => b.claimedAt == null && b.owner == null).length,
+    }
 
   const moderate = async (id: string, patch: Record<string, unknown>) => {
     setLoading(id)
@@ -459,28 +468,36 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
         </div>
       )}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-        {(['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CHAMBER'] as const).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            style={{
-              background: filter === f ? 'var(--primary, #007a7f)' : '#f1f5f9',
-              color: filter === f ? '#fff' : 'var(--text-secondary, #5a6c72)',
-            }}
-          >
-            {f === 'ALL' ? 'All' : f === 'CHAMBER' ? 'Chamber Imports' : f.charAt(0) + f.slice(1).toLowerCase()}
-            <span
-              className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
-              style={{
-                background: filter === f ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
-              }}
-            >
-              {counts[f]}
-            </span>
-          </button>
-        ))}
-      </div>
+              {(['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CHAMBER', 'CLAIMED', 'UNCLAIMED'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                  style={{
+                    background: filter === f ? 'var(--primary, #007a7f)' : '#f1f5f9',
+                    color: filter === f ? '#fff' : 'var(--text-secondary, #5a6c72)',
+                  }}
+                >
+                  {f === 'ALL'
+                    ? 'All'
+                    : f === 'CHAMBER'
+                    ? 'Chamber Imports'
+                    : f === 'CLAIMED'
+                    ? 'Claimed'
+                    : f === 'UNCLAIMED'
+                    ? 'Unclaimed'
+                    : f.charAt(0) + f.slice(1).toLowerCase()}
+                  <span
+                    className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
+                    style={{
+                      background: filter === f ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+                    }}
+                  >
+                    {counts[f]}
+                  </span>
+                </button>
+              ))}
+            </div>
 
       {/* Businesses list */}
       {displayed.length === 0 ? (

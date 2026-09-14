@@ -59,8 +59,40 @@ export default async function DashboardPage() {
         include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
         orderBy: { createdAt: 'desc' },
       }),
-      prisma.business.findMany({
-        include: {
+prisma.business.findMany({
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          tagline: true,
+          address: true,
+          city: true,
+          state: true,
+          zip: true,
+          phone: true,
+          email: true,
+          website: true,
+          logo: true,
+          tier: true,
+          status: true,
+          coverImage: true,
+          photos: true,
+          isBestOfWinner: true,
+          isExpertPartner: true,
+          expertPartnerSlug: true,
+          foundingPartnerSince: true,
+          liveQaZoomUrl: true,
+          liveQaNextDate: true,
+          seHablaEspanol: true,
+          chamberMember: true,
+          hispanicChamberMember: true,
+          googleBusiness: true,
+          googleRating: true,
+          googleReviewCount: true,
+          // claimedAt is the canonical "this business is owned" flag — surfaced
+          // by the new Claimed/Unclaimed filter chips on the BusinessesModeration
+          // tab. Selecting it here keeps the chips honest without a follow-up fetch.
+          claimedAt: true,
           category: { select: { name: true, slug: true } },
           owner: { select: { id: true, name: true, email: true } },
           _count: { select: { reviews: true } },
@@ -78,7 +110,7 @@ export default async function DashboardPage() {
           },
         },
         orderBy: { createdAt: 'desc' },
-      }),
+            }),
       // Slim list — just for the Guest Authors "Link Business" picker
       prisma.business.findMany({
         where: { status: 'APPROVED' },
