@@ -63,15 +63,18 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
   return (
     <Link href={`/business/${business.slug}`} className={cn('block', isFeatured ? 'card-featured' : 'card')}>
-      {/* Image */}
+      {/* Image — priority: deal promo image > business cover > logo > first photo.
+          The promo image wins when set so /deals reads as a circular of deal art
+          (and so search / best-of pages that include deal cards surface the
+          promo visual instead of the generic cover). */}
       <div className="relative w-full h-44 rounded-t-xl overflow-hidden bg-slate-100">
-        {business.coverImage || business.logo || business.photos[0] ? (
+        {business.coupon?.imageUrl || business.coverImage || business.logo || business.photos[0] ? (
           <img
-            src={business.coverImage || business.logo || business.photos[0]}
+            src={business.coupon?.imageUrl || business.coverImage || business.logo || business.photos[0]}
             alt={business.name}
             className={cn(
               'w-full h-full',
-              !business.coverImage && business.logo ? 'object-contain p-6' : 'object-cover'
+              !business.coupon?.imageUrl && !business.coverImage && business.logo ? 'object-contain p-6' : 'object-cover'
             )}
           />
         ) : (
@@ -79,134 +82,134 @@ export function BusinessCard({ business }: BusinessCardProps) {
             <span className="text-4xl font-bold text-primary/30">{business.name[0]}</span>
           </div>
         )}
-        {/* Logo badge — shows on top of cover image */}
-        {business.logo && business.coverImage && (
-          <div className="absolute bottom-3 left-3 w-12 h-12 rounded-xl border-2 border-white shadow-md overflow-hidden bg-white">
-            <img src={business.logo} alt={`${business.name} logo`} className="w-full h-full object-contain" />
-          </div>
-        )}
-        {/* Featured pill — stays overlaid on the image, top-left */}
-        {isFeatured && (
-          <div className="absolute top-3 left-3 flex items-center gap-1 bg-accent text-white text-xs font-bold px-2.5 py-1 rounded-full">
-            <Award className="w-3 h-3" />
-            Featured
-          </div>
-        )}
-        {/* Deal pill — stays overlaid on the image, top-right */}
-        {business.hasCoupon && (
-          <div className="absolute top-3 right-3 flex items-center gap-1 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-full">
-            <Tag className="w-3 h-3" />
-            Deal
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="p-5">
-        {/* Badge row — capped at the two signals that matter for choosing,
-            plus a quiet language chip. One shared visual system so the row
-            reads as information, not decoration. Chamber membership lives on
-            the affiliation line below; full details on the business page. */}
-        {(business.isBestOf || business.isExpertPartner || business.isNominated || business.seHablaEspanol) && (
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            {business.isBestOf && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50/80 text-amber-800 border border-amber-200">
-                <Trophy className="w-3 h-3" />
-                Best of MoVal
-              </span>
-            )}
-            {business.isNominated && !business.isBestOf && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-50/80 text-purple-800 border border-purple-200">
-                <Trophy className="w-3 h-3" />
-                Best Of Nominee
-              </span>
-            )}
-            {business.isExpertPartner && (
-              <span
-                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-accent/10 text-accent border border-accent/25"
-                title={business.foundingPartnerSince ? 'Founding Expert Partner' : 'Expert Partner'}
-              >
-                {business.foundingPartnerSince ? (
-                  <Sparkles className="w-3 h-3" />
-                ) : (
-                  <Award className="w-3 h-3" />
-                )}
-                Expert Partner
-              </span>
-            )}
-            {business.seHablaEspanol && (
-              <span
-                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/25"
-                title="Atención en español — staff speaks Spanish"
-              >
-                <Languages className="w-3 h-3" />
-                Español
-              </span>
-            )}
-          </div>
-        )}
-
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-bold text-text text-lg leading-tight">{business.name}</h3>
+      {/* Logo badge — shows on top of cover image */}
+      {business.logo && business.coverImage && (
+        <div className="absolute bottom-3 left-3 w-12 h-12 rounded-xl border-2 border-white shadow-md overflow-hidden bg-white">
+          <img src={business.logo} alt={`${business.name} logo`} className="w-full h-full object-contain" />
         </div>
+      )}
+      {/* Featured pill — stays overlaid on the image, top-left */}
+      {isFeatured && (
+        <div className="absolute top-3 left-3 flex items-center gap-1 bg-accent text-white text-xs font-bold px-2.5 py-1 rounded-full">
+          <Award className="w-3 h-3" />
+          Featured
+        </div>
+      )}
+      {/* Deal pill — stays overlaid on the image, top-right */}
+      {business.hasCoupon && (
+        <div className="absolute top-3 right-3 flex items-center gap-1 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-full">
+          <Tag className="w-3 h-3" />
+          Deal
+        </div>
+      )}
+    </div>
 
-        {business.tagline && (
-          <p className="text-sm text-accent font-medium mb-2">{business.tagline}</p>
-        )}
-
-        <p className="text-xs text-primary font-medium mb-2">
-          {business.category.name}
-          {chamberAffiliation && (
-            <span className="text-text-secondary font-normal"> · {chamberAffiliation}</span>
+    {/* Content */}
+    <div className="p-5">
+      {/* Badge row — capped at the two signals that matter for choosing,
+          plus a quiet language chip. One shared visual system so the row
+          reads as information, not decoration. Chamber membership lives on
+          the affiliation line below; full details on the business page. */}
+      {(business.isBestOf || business.isExpertPartner || business.isNominated || business.seHablaEspanol) && (
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {business.isBestOf && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50/80 text-amber-800 border border-amber-200">
+              <Trophy className="w-3 h-3" />
+              Best of MoVal
+            </span>
           )}
-        </p>
-
-        {/* Ratings — only rendered when there is something positive to say.
-            A card with no reviews simply stays quiet instead of announcing
-            "No site reviews" hundreds of times across the site. */}
-        {hasRatings && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3">
-            {rating > 0 && (
-              <div className="flex items-center gap-1">
-                <div className="flex items-center gap-0.5">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <Star
-                      key={star}
-                      className={cn(
-                        'w-4 h-4',
-                        star <= Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'
-                      )}
-                    />
-                  ))}
-                </div>
-                <span className="text-sm text-text-secondary">
-                  {rating.toFixed(1)} ({reviewCount})
-                </span>
-              </div>
-            )}
-            {business.googleRating != null && (
-              <div className="flex items-center gap-1">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <path d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 1 1 0-12.064c1.498 0 2.866.549 3.921 1.453l2.814-2.814A9.969 9.969 0 0 0 12.545 2C7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z" fill="#4285F4"/>
-                </svg>
-                <span className="text-sm font-medium text-text">{business.googleRating.toFixed(1)}</span>
-                {business.googleReviewCount != null && (
-                  <span className="text-xs text-text-secondary">({business.googleReviewCount.toLocaleString()})</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        <p className="text-sm text-text-secondary line-clamp-2 mb-3">
-          {publicDescription(business)}
-        </p>
-
-        <div className="flex items-center gap-1.5 text-sm text-text-secondary">
-          <MapPin className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">{publicAddress(business.address)}, Moreno Valley</span>
+          {business.isNominated && !business.isBestOf && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-50/80 text-purple-800 border border-purple-200">
+              <Trophy className="w-3 h-3" />
+              Best Of Nominee
+            </span>
+          )}
+          {business.isExpertPartner && (
+            <span
+              className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-accent/10 text-accent border border-accent/25"
+              title={business.foundingPartnerSince ? 'Founding Expert Partner' : 'Expert Partner'}
+            >
+              {business.foundingPartnerSince ? (
+                <Sparkles className="w-3 h-3" />
+              ) : (
+                <Award className="w-3 h-3" />
+              )}
+              Expert Partner
+            </span>
+          )}
+          {business.seHablaEspanol && (
+            <span
+              className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/25"
+              title="Atención en español — staff speaks Spanish"
+            >
+              <Languages className="w-3 h-3" />
+              Español
+            </span>
+          )}
         </div>
+      )}
+
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <h3 className="font-bold text-text text-lg leading-tight">{business.name}</h3>
       </div>
-    </Link>
+
+      {business.tagline && (
+        <p className="text-sm text-accent font-medium mb-2">{business.tagline}</p>
+      )}
+
+      <p className="text-xs text-primary font-medium mb-2">
+        {business.category.name}
+        {chamberAffiliation && (
+          <span className="text-text-secondary font-normal"> · {chamberAffiliation}</span>
+        )}
+      </p>
+
+      {/* Ratings — only rendered when there is something positive to say.
+          A card with no reviews simply stays quiet instead of announcing
+          "No site reviews" hundreds of times across the site. */}
+      {hasRatings && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3">
+          {rating > 0 && (
+            <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map(star => (
+                  <Star
+                    key={star}
+                    className={cn(
+                      'w-4 h-4',
+                      star <= Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'
+                    )}
+                  />
+                ))}
+              </div>
+              <span className="text-sm text-text-secondary">
+                {rating.toFixed(1)} ({reviewCount})
+              </span>
+            </div>
+          )}
+          {business.googleRating != null && (
+            <div className="flex items-center gap-1">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 1 1 0-12.064c1.498 0 2.866.549 3.921 1.453l2.814-2.814A9.969 9.969 0 0 0 12.545 2C7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z" fill="#4285F4"/>
+              </svg>
+              <span className="text-sm font-medium text-text">{business.googleRating.toFixed(1)}</span>
+              {business.googleReviewCount != null && (
+                <span className="text-xs text-text-secondary">({business.googleReviewCount.toLocaleString()})</span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <p className="text-sm text-text-secondary line-clamp-2 mb-3">
+        {publicDescription(business)}
+      </p>
+
+      <div className="flex items-center gap-1.5 text-sm text-text-secondary">
+        <MapPin className="w-4 h-4 flex-shrink-0" />
+        <span className="truncate">{publicAddress(business.address)}, Moreno Valley</span>
+      </div>
+    </div>
+  </Link>
   )
 }
