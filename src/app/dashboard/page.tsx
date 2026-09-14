@@ -45,6 +45,7 @@ export default async function DashboardPage() {
       approvedBusinesses,
       pendingPostCount,
       pendingBusinessCount,
+      claimedCount,
       bestOfCategories,
       bestOfNominations,
       bestOfNominationCategories,
@@ -126,6 +127,7 @@ prisma.business.findMany({
       }),
       prisma.socialPost.count({ where: { status: 'PENDING' } }),
       prisma.business.count({ where: { status: 'PENDING' } }),
+      prisma.business.count({ where: { ownerId: { not: null } } }),
       prisma.bestOfCategory.findMany({
         include: {
           nominees: {
@@ -253,6 +255,14 @@ prisma.business.findMany({
               {owner?.business && (
                 <Link href="/dashboard/edit" className="btn-outline inline-flex items-center justify-center gap-2">
                   <Settings className="w-4 h-4" /> Edit My Listing
+                </Link>
+              )}
+              {claimedCount > 0 && (
+                <Link
+                  href="/dashboard/businesses/claimed"
+                  className="btn-outline inline-flex items-center justify-center gap-2"
+                >
+                  <Users className="w-4 h-4" /> Claimed ({claimedCount})
                 </Link>
               )}
               <Link
