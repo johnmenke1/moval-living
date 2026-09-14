@@ -1,5 +1,10 @@
 
-// Direct PG + Prisma (matches src/lib/prisma.ts adapter setup)
+// Post-migration audit script for the Deal table. The pre-migration
+// version (which read Business.hasCoupon/coupon) is preserved in git
+// history if needed — this version only queries the new model so it
+// can run against a database that no longer has the legacy columns
+// (dropped in migration 20260915000000_drop_business_coupon).
+
 process.env.DATABASE_URL = process.env.DATABASE_URL;
 const { PrismaClient } = require('@prisma/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
@@ -9,31 +14,33 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 (async () => {
-  const legacyHasCoupon = await prisma.business.count({ where: { hasCoupon: true } });
-  const legacyCouponSet = await prisma.business.count({ where: { coupon: { not: null } } });
-  const dealRows = await prisma.deal.count();
-  const activeDeals = await prisma.deal.count({ where: { isActive: true } });
-  const legacyOrphans = await prisma.business.findMany({
-    where: { OR: [{ hasCoupon: true }, { coupon: { not: null } }] },
-    include: { deals: { select: { id: true, headline: true, isActive: true, imageUrl: true } } },
-    take: 50
+  const [dealRows, activeDeals, businessesWithDeals] = await Promise.all([
+    prisma.deal.count(),
+    prisma.deal.count({ where: { isActive: true } }),
+    prisma.business.count({ where: { deals: { some: {} } } }),
+  ]);
+
+  const deals = await prisma.deal.findMany({
+    include: {
+      business: { select: { slug: true, name: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
   });
+
   console.log(JSON.stringify({
-    legacyHasCoupon,
-    legacyCouponSet,
     dealRows,
     activeDeals,
-    legacyOrphans: legacyOrphans.map(b => ({
-      slug: b.slug,
-      name: b.name,
-      hasCoupon: b.hasCoupon,
-      couponHeadline: b.coupon?.headline || null,
-      couponImageUrl: b.coupon?.imageUrl || null,
-      dealCount: b.deals.length,
-      activeDealCount: b.deals.filter(d => d.isActive).length,
-      dealHeadlines: b.deals.map(d => d.headline),
-      dealImages: b.deals.map(d => !!d.imageUrl)
-    }))
+    businessesWithDeals,
+    deals: deals.map(d => ({
+      slug: d.business.slug,
+      name: d.business.name,
+      headline: d.headline,
+      isActive: d.isActive,
+      hasImage: !!d.imageUrl,
+      hasCode: !!d.code,
+      expiresAt: d.expiresAt,
+    })),
   }, null, 2));
   await prisma.$disconnect();
 })();
