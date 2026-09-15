@@ -6,6 +6,7 @@ import { auth } from '@/auth'
 export const dynamic = 'force-dynamic'
 import { prisma } from '@/lib/prisma'
 import { getAutoApprovedClaimData, isClaimValid } from '@/lib/claim-policy'
+import { notifyCrmOfClaimChange } from '@/lib/moval-claim/notify-crm'
 
 async function syncGhlClaimTags(email: string, opts: { emailOptIn: boolean }) {
   const token = process.env.GHL_API_TOKEN
@@ -113,10 +114,29 @@ export default async function ClaimCompletePage({
   // Sync GHL tags (best-effort, fire and forget)
   const owner = await prisma.owner.findUnique({
     where: { id: ownerId },
-    select: { emailOptIn: true },
+    select: { emailOptIn: true, name: true },
   })
   await syncGhlClaimTags(business.email || ownerEmail, {
     emailOptIn: owner?.emailOptIn ?? false,
+  })
+
+  // Notify HeadsUpCRM of the new claim state so its moval-businesses
+  // mirror row reflects 'verified'. Best-effort: the page must not block
+  // on this, and the CRM has a daily catch-up cron that will sync any
+  // claim event this call missed (network blip, CRM deploy, secret
+  // rotation, etc).
+  //   - event='claimed' (not 'verified') because the website's claim
+  //     flow auto-confirms via email link - we don't have a separate
+  //     manual-review step; the CRM maps both 'claimed' and 'verified'
+  //     inbound events to its 'verified' enum value.
+  //   - claimedAt is the row's updatedAt timestamp (which we just set),
+  //     since the website schema has no separate claim-completion timestamp.
+  await notifyCrmOfClaimChange({
+    websiteBusinessId: business.id,
+    event: 'claimed',
+    claimedAt: new Date().toISOString(),
+    ownerEmail,
+    ownerName: owner?.name ?? undefined,
   })
 
   redirect('/dashboard')
