@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { CheckCircle, XCircle, Clock, Trash2, ExternalLink, Building2, Star, Pencil, ChevronDown, ChevronUp, RefreshCw, Loader2, Search, X, Zap, ImagePlus, Link as LinkIcon } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Trash2, ExternalLink, Building2, Star, Pencil, ChevronDown, ChevronUp, RefreshCw, Loader2, Search, X, Zap, ImagePlus, Link as LinkIcon, ArrowUpDown } from 'lucide-react'
 
 type BusinessStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+type SortKey = 'NEWEST' | 'OLDEST' | 'AZ' | 'ZA'
 
 interface Business {
   id: string
@@ -60,6 +61,7 @@ interface BusinessesModerationProps {
 export default function BusinessesModeration({ initialBusinesses }: BusinessesModerationProps) {
   const [businesses, setBusinesses] = useState<Business[]>(initialBusinesses)
   const [filter, setFilter] = useState<'ALL' | BusinessStatus | 'CHAMBER' | 'CLAIMED' | 'UNCLAIMED'>('ALL')
+  const [sortBy, setSortBy] = useState<SortKey>('NEWEST')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -119,27 +121,46 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     setError(data.error || fallback)
   }
 
-  const filtered =
-      filter === 'ALL'
-        ? businesses
-        : filter === 'CHAMBER'
-        ? businesses.filter(b => b.chamberMember || b.hispanicChamberMember)
-        : filter === 'CLAIMED'
-        ? businesses.filter(b => b.claimedAt != null || b.owner != null)
-        : filter === 'UNCLAIMED'
-        ? businesses.filter(b => b.claimedAt == null && b.owner == null)
-        : businesses.filter(b => b.status === filter)
   const searchLower = search.toLowerCase().trim()
-  const displayed = searchLower
-    ? filtered.filter(b =>
-        b.name.toLowerCase().includes(searchLower) ||
-        b.address.toLowerCase().includes(searchLower) ||
-        b.city.toLowerCase().includes(searchLower) ||
-        b.email?.toLowerCase().includes(searchLower) ||
-        b.owner?.email?.toLowerCase().includes(searchLower) ||
-        b.category.name.toLowerCase().includes(searchLower)
-      )
-    : filtered
+  const filtered = useMemo(() => {
+    if (filter === 'ALL') return businesses
+    if (filter === 'CHAMBER') return businesses.filter(b => b.chamberMember || b.hispanicChamberMember)
+    if (filter === 'CLAIMED') return businesses.filter(b => b.claimedAt != null || b.owner != null)
+    if (filter === 'UNCLAIMED') return businesses.filter(b => b.claimedAt == null && b.owner == null)
+    return businesses.filter(b => b.status === filter)
+  }, [businesses, filter])
+  const displayed = useMemo(() => {
+    const matched = searchLower
+      ? filtered.filter(b =>
+          b.name.toLowerCase().includes(searchLower) ||
+          b.address.toLowerCase().includes(searchLower) ||
+          b.city.toLowerCase().includes(searchLower) ||
+          b.email?.toLowerCase().includes(searchLower) ||
+          b.owner?.email?.toLowerCase().includes(searchLower) ||
+          b.category.name.toLowerCase().includes(searchLower)
+        )
+      : filtered
+    // Sort runs on the already-filtered/searched set so the user's
+    // sort choice applies WITHIN the active filter chip (e.g. "A → Z
+    // pending only"). Server already returns newest-first; resort
+    // when sortBy != NEWEST.
+    if (sortBy === 'NEWEST') return matched
+    const sorted = [...matched]
+    if (sortBy === 'OLDEST') {
+      sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    } else {
+      // A → Z / Z → A — case-insensitive locale compare on business
+      // name, ties broken by createdAt desc so duplicate names still
+      // have a stable, intuitive order.
+      const dir = sortBy === 'AZ' ? 1 : -1
+      sorted.sort((a, b) => {
+        const cmp = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+        if (cmp !== 0) return cmp * dir
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      })
+    }
+    return sorted
+  }, [filtered, searchLower, sortBy])
 
   const counts: Record<string, number> = {
       ALL: businesses.length,
@@ -467,7 +488,8 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
           {error}
         </div>
       )}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+              <div className="flex gap-2 overflow-x-auto pb-1">
               {(['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CHAMBER', 'CLAIMED', 'UNCLAIMED'] as const).map(f => (
                 <button
                   key={f}
@@ -497,6 +519,28 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                   </span>
                 </button>
               ))}
+              </div>
+              {/* Sort dropdown — client-side sort over the already-filtered
+                  list. Default is "Newest first" to match the server's
+                  pre-sorted fetch; "A → Z" is the alphabetical option
+                  Johnny asked for (plus Z → A / Oldest as the natural
+                  siblings). Lives on the right of the filter row at sm+,
+                  wraps below the chips on narrow viewports. */}
+              <label className="inline-flex items-center gap-2 shrink-0 text-xs font-medium text-text-secondary">
+                <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+                <span className="sr-only sm:not-sr-only">Sort</span>
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as SortKey)}
+                  className="px-3 py-2 rounded-lg text-sm font-medium bg-white border border-slate-200 text-text focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-shadow cursor-pointer"
+                  aria-label="Sort businesses"
+                >
+                  <option value="NEWEST">Newest first</option>
+                  <option value="OLDEST">Oldest first</option>
+                  <option value="AZ">A → Z</option>
+                  <option value="ZA">Z → A</option>
+                </select>
+              </label>
             </div>
 
       {/* Businesses list */}
