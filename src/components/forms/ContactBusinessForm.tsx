@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Send, CheckCircle } from 'lucide-react'
+import { TurnstileWidget } from '@/components/turnstile/TurnstileWidget'
 
 interface ContactBusinessFormProps {
   businessName: string
@@ -13,6 +14,7 @@ export function ContactBusinessForm({ businessName, businessSlug }: ContactBusin
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -31,7 +33,14 @@ export function ContactBusinessForm({ businessName, businessSlug }: ContactBusin
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessSlug, name: name.trim(), email: email.trim(), phone: phone.trim(), message: message.trim() }),
+        body: JSON.stringify({
+          businessSlug,
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          message: message.trim(),
+          turnstileToken: turnstileToken ?? '',
+        }),
       })
 
       if (!res.ok) throw new Error('Failed to send message')
@@ -98,6 +107,11 @@ export function ContactBusinessForm({ businessName, businessSlug }: ContactBusin
         />
       </div>
       {error && <p className="text-error text-xs">{error}</p>}
+      <TurnstileWidget
+        onVerify={setTurnstileToken}
+        onError={(err) => setError(`Bot check failed: ${err}`)}
+        onExpire={() => setTurnstileToken(null)}
+      />
       <button
         type="submit"
         disabled={submitting}

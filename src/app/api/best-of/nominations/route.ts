@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
+import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 import {
   syncNominatorToGHL,
   attachGhlContactId,
@@ -26,6 +27,9 @@ const nominationSchema = z.object({
   // Honeypot — must be empty. Bots fill every field they see; real users
   // can't see this one (it's hidden in the form with CSS).
   website: z.string().max(0).optional().or(z.literal('')),
+  // Turnstile CAPTCHA token — fails closed unless TURNSTILE_SECRET_KEY
+  // unset (dev safety). Optional in schema; server enforces presence.
+  turnstileToken: z.string().optional(),
 })
 
 // In-memory rate limiter — 5 nominations per IP per hour.
@@ -84,6 +88,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: 'Too many submissions — please try again later.' },
       { status: 429 }
+    )
+  }
+
+  // Turnstile verification — fails closed (no DB write, no emails) if invalid.
+  // Skipped gracefully only when TURNSTILE_SECRET_KEY is unset (dev safety).
+  const turnstile = await verifyTurnstileOrSkip(parsed.data.turnstileToken ?? '', ip === 'unknown' ? null : ip)
+  if (!turnstile.ok) {
+    return NextResponse.json(
+      { error: 'Bot protection check failed — please try again.' },
+      { status: 403 },
     )
   }
 

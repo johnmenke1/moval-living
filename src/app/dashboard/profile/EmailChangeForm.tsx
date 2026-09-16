@@ -19,9 +19,11 @@
  */
 
 import { useState } from 'react'
+import { TurnstileWidget } from '@/components/turnstile/TurnstileWidget'
 
 export function EmailChangeForm({ currentEmail }: { currentEmail: string }) {
   const [newEmail, setNewEmail] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +38,7 @@ export function EmailChangeForm({ currentEmail }: { currentEmail: string }) {
       const res = await fetch('/api/profile/email-change/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newEmail }),
+        body: JSON.stringify({ newEmail, turnstileToken: turnstileToken ?? '' }),
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -71,6 +73,11 @@ export function EmailChangeForm({ currentEmail }: { currentEmail: string }) {
           aria-label="New email address"
           disabled={sending}
           className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:bg-slate-50 disabled:opacity-70"
+        />
+        <TurnstileWidget
+          onVerify={setTurnstileToken}
+          onError={(err) => setError(`Bot check failed: ${err}`)}
+          onExpire={() => setTurnstileToken(null)}
         />
         <button
           type="submit"

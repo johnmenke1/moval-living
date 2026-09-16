@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { sendForgotPasswordEmail } from '@/lib/email'
+import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 
 export async function POST(req: NextRequest) {
   let body: unknown
@@ -13,8 +14,23 @@ export async function POST(req: NextRequest) {
   const email = typeof (body as { email?: unknown }).email === 'string'
     ? (body as { email: string }).email.toLowerCase().trim()
     : ''
+  const turnstileToken = typeof (body as { turnstileToken?: unknown }).turnstileToken === 'string'
+    ? (body as { turnstileToken: string }).turnstileToken
+    : ''
 
   if (!email) {
+    return NextResponse.json({ ok: true })
+  }
+
+  // Turnstile verification — fails closed (no DB write, no email) if invalid.
+  // Skipped gracefully only when TURNSTILE_SECRET_KEY is unset (dev safety).
+  const remoteIp =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    null
+  const turnstile = await verifyTurnstileOrSkip(turnstileToken, remoteIp)
+  if (!turnstile.ok) {
+    // Same opaque response shape as success — don't leak that bot-check failed.
     return NextResponse.json({ ok: true })
   }
 

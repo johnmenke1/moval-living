@@ -10,6 +10,7 @@ import {
   isDifferentFromCurrent,
 } from '@/app/api/profile/email-change-helpers'
 import { sendEmailChangeConfirmationEmail } from '@/lib/email-change'
+import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 
 /**
  * POST /api/profile/email-change/request
@@ -64,7 +65,27 @@ export async function POST(req: NextRequest) {
       {
         error: parsed.error.issues[0]?.message ?? 'Invalid email',
       },
-      { status: 400 },
+      { status: 400 }
+    )
+  }
+
+  // Turnstile verification — fails closed (no DB write, no email) if invalid.
+  // This route is authed (session required) so the threat model is an attacker
+  // who has the owner's password and is trying to silently redirect email to
+  // an attacker-controlled address. Skipped gracefully only when
+  // TURNSTILE_SECRET_KEY is unset (dev safety).
+  const turnstileToken = typeof (body as { turnstileToken?: unknown }).turnstileToken === 'string'
+    ? (body as { turnstileToken: string }).turnstileToken
+    : ''
+  const remoteIp =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    null
+  const turnstile = await verifyTurnstileOrSkip(turnstileToken, remoteIp)
+  if (!turnstile.ok) {
+    return NextResponse.json(
+      { error: 'Bot protection check failed — please try again.' },
+      { status: 403 },
     )
   }
 

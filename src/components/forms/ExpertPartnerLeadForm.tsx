@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Send, CheckCircle2 } from 'lucide-react'
+import { TurnstileWidget } from '@/components/turnstile/TurnstileWidget'
 
 interface ExpertPartnerLeadFormProps {
   businessId: string
@@ -18,6 +19,8 @@ export function ExpertPartnerLeadForm({
   const [message, setMessage] = useState('')
   // Honeypot — bots fill this; humans never see it
   const [website, setWebsite] = useState('')
+  // Turnstile token — set by the widget on successful render/solve
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
 
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -31,7 +34,14 @@ export function ExpertPartnerLeadForm({
       const res = await fetch(`/api/partners/${businessId}/leads`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone, message, website }),
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          message,
+          website,
+          turnstileToken: turnstileToken ?? '',
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -151,6 +161,12 @@ export function ExpertPartnerLeadForm({
           {error}
         </div>
       )}
+
+      <TurnstileWidget
+        onVerify={setTurnstileToken}
+        onError={(err) => setError(`Bot check failed: ${err}`)}
+        onExpire={() => setTurnstileToken(null)}
+      />
 
       <button
         type="submit"

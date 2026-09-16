@@ -1,12 +1,28 @@
 import { NextResponse } from 'next/server'
+import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 
 // GoHighLevel integration for contact form submissions
 export async function POST(request: Request) {
   try {
-    const { businessSlug, name, email, phone, message } = await request.json()
+    const body = await request.json()
+    const { businessSlug, name, email, phone, message, turnstileToken } = body
 
     if (!name?.trim() || !email?.trim() || !message?.trim()) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    // Turnstile verification — fails closed (no outbound webhook call) if invalid.
+    // Skipped gracefully only when TURNSTILE_SECRET_KEY is unset (dev safety).
+    const remoteIp =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      null
+    const turnstile = await verifyTurnstileOrSkip(turnstileToken ?? '', remoteIp)
+    if (!turnstile.ok) {
+      return NextResponse.json(
+        { error: 'Bot protection check failed — please try again.' },
+        { status: 403 },
+      )
     }
 
     const ghlWebhookUrl = process.env.GHL_WEBHOOK_URL

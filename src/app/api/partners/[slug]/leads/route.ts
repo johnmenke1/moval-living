@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { forwardToGHL } from '@/lib/expert-partner'
+import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 
 const leadSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -10,6 +11,8 @@ const leadSchema = z.object({
   message: z.string().trim().min(5).max(2000),
   // Honeypot — must be empty
   website: z.string().max(0).optional().or(z.literal('')),
+  // Turnstile token — optional in schema (server enforces presence + validity).
+  turnstileToken: z.string().optional(),
 })
 
 // In-memory rate limiter (per-process). For multi-instance production
@@ -94,6 +97,16 @@ export async function POST(
     return NextResponse.json(
       { error: 'Too many submissions — please try again later.' },
       { status: 429 }
+    )
+  }
+
+  // Turnstile verification — fails closed (no DB write, no SES email) if invalid.
+  // Skipped gracefully only when TURNSTILE_SECRET_KEY is unset (dev safety).
+  const turnstile = await verifyTurnstileOrSkip(parsed.data.turnstileToken ?? '', ip === 'unknown' ? null : ip)
+  if (!turnstile.ok) {
+    return NextResponse.json(
+      { error: 'Bot protection check failed — please try again.' },
+      { status: 403 },
     )
   }
 

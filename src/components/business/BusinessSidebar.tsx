@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useSession, signIn } from 'next-auth/react'
 import { Building2, UserPlus, Loader2, CheckCircle, AlertCircle, Globe } from 'lucide-react'
+import { TurnstileWidget } from '@/components/turnstile/TurnstileWidget'
 
 interface BusinessSidebarProps {
   business: {
@@ -20,6 +21,7 @@ export function BusinessSidebar({ business }: BusinessSidebarProps) {
   const [claimed, setClaimed] = useState(false)
   const [claimError, setClaimError] = useState('')
   const [email, setEmail] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
 
   const isLoggedIn = !!session?.user
   const isOwner = isLoggedIn && session?.user?.id === business.ownerId
@@ -35,7 +37,11 @@ export function BusinessSidebar({ business }: BusinessSidebarProps) {
       const res = await fetch('/api/claim/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug: business.slug, email: email.trim().toLowerCase() }),
+        body: JSON.stringify({
+          slug: business.slug,
+          email: email.trim().toLowerCase(),
+          turnstileToken: turnstileToken ?? '',
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to request claim')
@@ -118,6 +124,11 @@ export function BusinessSidebar({ business }: BusinessSidebarProps) {
               className="w-full px-3 py-2 rounded-lg text-text text-sm bg-white"
               required
             />
+            <TurnstileWidget
+              onVerify={setTurnstileToken}
+              onError={(err) => setClaimError(`Bot check failed: ${err}`)}
+              onExpire={() => setTurnstileToken(null)}
+            />
             {claimError && (
               <p className="text-red-200 text-xs flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" /> {claimError}
@@ -169,6 +180,11 @@ export function BusinessSidebar({ business }: BusinessSidebarProps) {
             placeholder="Your business email"
             className="w-full px-3 py-2 rounded-lg text-text text-sm bg-white"
             required
+          />
+          <TurnstileWidget
+            onVerify={setTurnstileToken}
+            onError={(err) => setClaimError(`Bot check failed: ${err}`)}
+            onExpire={() => setTurnstileToken(null)}
           />
           {claimError && (
             <p className="text-red-200 text-xs flex items-center gap-1">

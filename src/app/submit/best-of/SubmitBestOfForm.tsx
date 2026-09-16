@@ -11,6 +11,7 @@ import {
   Send,
   UserPlus,
 } from 'lucide-react'
+import { TurnstileWidget } from '@/components/turnstile/TurnstileWidget'
 
 const REASON_MIN = 80
 const REASON_MAX = 600
@@ -24,6 +25,8 @@ type FormState = {
   emailOptIn: boolean
   // Honeypot — must remain empty.
   website: string
+  // Turnstile token — set by the widget on successful render/solve.
+  turnstileToken: string
 }
 
 const INITIAL: FormState = {
@@ -34,6 +37,7 @@ const INITIAL: FormState = {
   reason: '',
   emailOptIn: false,
   website: '',
+  turnstileToken: '',
 }
 
 export default function SubmitBestOfForm() {
@@ -292,10 +296,15 @@ export default function SubmitBestOfForm() {
           By submitting, you agree we may contact you about this nomination. We don&apos;t share your
           email with anyone.
         </p>
+        <TurnstileWidget
+          onVerify={(token) => update('turnstileToken', token)}
+          onError={(err) => setError(`Bot check failed: ${err}`)}
+          onExpire={() => update('turnstileToken', '')}
+        />
         <button
           type="submit"
           disabled={!canSubmit() || submitting}
-          className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+          className="mt-4 w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
         >
           {submitting ? (
             <>

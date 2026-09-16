@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import { TurnstileWidget } from '@/components/turnstile/TurnstileWidget'
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -19,7 +21,7 @@ export default function ForgotPasswordForm() {
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, turnstileToken: turnstileToken ?? '' }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to process request')
@@ -67,6 +69,11 @@ export default function ForgotPasswordForm() {
                     required
                   />
                 </div>
+                <TurnstileWidget
+                  onVerify={setTurnstileToken}
+                  onError={(err) => setError(`Bot check failed: ${err}`)}
+                  onExpire={() => setTurnstileToken(null)}
+                />
                 <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
                   {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending...</> : 'Send Reset Link'}
                 </button>

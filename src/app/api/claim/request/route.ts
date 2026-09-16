@@ -2,13 +2,52 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { nanoid } from 'nanoid'
 import { sendEmail } from '@/lib/email'
+import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 
 // POST /api/claim/request
 // Public — anyone can request to claim a business they own.
 // Creates a claimToken and sends a magic link via SES to verify ownership.
+//
+// Security layers (in order, all must pass before SES sends):
+//   1. Per-IP rate limit (10/hr)  — stops spray-and-pray
+//   2. Turnstile CAPTCHA         — stops bots (fails closed unless secret unset)
+//   3. Slug-must-be-unclaimed    — stops re-claim of owned listings
+//   4. Email-existence check     — only sends if the email looks like a real one
+//   5. Audit log                 — every attempt logged with IP/UA/slug/domain
+//
+// Without (1) and (2) this route was being abused as an open relay:
+// attackers iterated over public business slugs and POSTed
+// `{slug, email: <victim>}` to fire "Claim your X listing" emails at
+// arbitrary recipients. Amazon SES abuse reports started 2026-09-15.
+
+const recentClaimRequests = new Map<string, number[]>()
+const CLAIM_RATE_WINDOW_MS = 60 * 60 * 1000 // 1 hour
+const CLAIM_RATE_MAX = 10
+
+function claimRateLimited(key: string): boolean {
+  const now = Date.now()
+  const recent = recentClaimRequests.get(key) ?? []
+  const cutoff = now - CLAIM_RATE_WINDOW_MS
+  const filtered = recent.filter((t) => t > cutoff)
+  if (filtered.length >= CLAIM_RATE_MAX) {
+    recentClaimRequests.set(key, filtered)
+    return true
+  }
+  filtered.push(now)
+  recentClaimRequests.set(key, filtered)
+  return false
+}
+
 export async function POST(request: NextRequest) {
+  const remoteIp =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
+  const userAgent = request.headers.get('user-agent') || 'unknown'
+
   try {
-    const { slug, email } = await request.json()
+    const body = await request.json()
+    const { slug, email, turnstileToken } = body
 
     if (!slug || !email) {
       return NextResponse.json({ error: 'Missing business slug or email' }, { status: 400 })
@@ -17,6 +56,31 @@ export async function POST(request: NextRequest) {
     // Basic email format check (don't be a hero — just catch obvious typos)
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Please enter a valid email address' }, { status: 400 })
+    }
+
+    // Rate limit by IP (per-process — fine for single Vercel deployment).
+    if (claimRateLimited(remoteIp)) {
+      console.warn('[Claim] rate-limited', { ip: remoteIp, slug, emailDomain: email.split('@')[1] })
+      return NextResponse.json(
+        { error: 'Too many claim requests — please try again later.' },
+        { status: 429 },
+      )
+    }
+
+    // Turnstile verification — fails closed (no email sent) if invalid.
+    // Skipped gracefully only when TURNSTILE_SECRET_KEY is unset (dev safety).
+    const turnstile = await verifyTurnstileOrSkip(turnstileToken, remoteIp)
+    if (!turnstile.ok) {
+      console.warn('[Claim] turnstile-failed', {
+        ip: remoteIp,
+        slug,
+        emailDomain: email.split('@')[1],
+        reason: turnstile.reason,
+      })
+      return NextResponse.json(
+        { error: 'Bot protection check failed — please try again.' },
+        { status: 403 },
+      )
     }
 
     const business = await prisma.business.findUnique({
@@ -122,6 +186,18 @@ If you didn't request this, you can safely ignore this email.
         subject: `Claim your ${business.name} listing on moval.living`,
         html,
         text,
+      })
+      // Audit log — every successful SES send. Grep Vercel logs for
+      // '[Claim] sent' to see who's getting claim emails. (Useful for
+      // tracking the SES abuse pattern until rate limit + Turnstile
+      // kick in fully.)
+      console.log('[Claim] sent', {
+        ip: remoteIp,
+        ua: userAgent,
+        slug,
+        businessId: business.id,
+        emailDomain: email.split('@')[1],
+        ts: new Date().toISOString(),
       })
     } catch (emailErr) {
       // Don't 500 — the link was generated. Log the email error but still
