@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { forwardToGHL } from '@/lib/expert-partner'
 import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 
 const leadSchema = z.object({
@@ -80,7 +79,6 @@ export async function POST(
       website: true,
       slug: true,
       expertPartnerSlug: true,
-      ghlCompanyId: true,
     },
   })
 
@@ -96,7 +94,7 @@ export async function POST(
   if (!checkRateLimit(`${ip}:${business.id}`)) {
     return NextResponse.json(
       { error: 'Too many submissions — please try again later.' },
-      { status: 429 }
+      { status: 429 },
     )
   }
 
@@ -122,41 +120,6 @@ export async function POST(
       userAgent: req.headers.get('user-agent') || null,
     },
   })
-
-  // Forward to GHL (stubbed until env vars are set — lead still saved)
-  const ghlResult = await forwardToGHL(lead, {
-    businessId: business.id,
-    businessName: business.name,
-    expertPartnerSlug: business.expertPartnerSlug,
-    businessEmail: business.email,
-    businessPhone: business.phone,
-    businessWebsite: business.website,
-    cachedGhlCompanyId: business.ghlCompanyId,
-  })
-  if (ghlResult.ok && ghlResult.contactId) {
-    await prisma.expertPartnerLead.update({
-      where: { id: lead.id },
-      data: {
-        ghlContactId: ghlResult.contactId,
-        ghlSyncedAt: new Date(),
-      },
-    })
-    // Cache the companyId on the Business row so future leads skip the
-    // upsert. forwardToGHL already returns it; we just persist it.
-    if (ghlResult.companyId && !business.ghlCompanyId) {
-      await prisma.business.update({
-        where: { id: business.id },
-        data: { ghlCompanyId: ghlResult.companyId },
-      })
-      console.log(
-        `[Partner Lead] Cached ghlCompanyId ${ghlResult.companyId} for ${business.name}`
-      )
-    }
-  } else if (ghlResult.skipped) {
-    console.log(`[Partner Lead] ${business.name}: GHL skipped — ${ghlResult.reason}`)
-  } else if (ghlResult.error) {
-    console.error(`[Partner Lead] ${business.name}: GHL error — ${ghlResult.error}`)
-  }
 
   // Notify the partner via SES (fire-and-forget — don't fail the response)
   const businessEmail = business.email

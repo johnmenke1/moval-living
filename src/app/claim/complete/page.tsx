@@ -8,52 +8,6 @@ import { prisma } from '@/lib/prisma'
 import { getAutoApprovedClaimData, isClaimValid } from '@/lib/claim-policy'
 import { notifyCrmOfClaimChange } from '@/lib/moval-claim/notify-crm'
 
-async function syncGhlClaimTags(email: string, opts: { emailOptIn: boolean }) {
-  const token = process.env.GHL_API_TOKEN
-  const loc = process.env.GHL_LOCATION_ID
-  if (!token || !loc) return
-
-  try {
-    const lookup = await fetch(
-      `https://services.leadconnectorhq.com/contacts/?locationId=${loc}&email=${encodeURIComponent(email)}&limit=1`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Version: '2021-07-28',
-        },
-      }
-    )
-    if (!lookup.ok) return
-    const data = await lookup.json()
-    if (!data.contacts || data.contacts.length === 0) return
-
-    const contact = data.contacts[0]
-    const existingTags: string[] = contact.tags || []
-    const addTags = ['moval-living-listing-claimed']
-    if (opts.emailOptIn) addTags.push('moval-living-opt-in')
-    const removeTags = ['moval-living-cold-outreach']
-    const newTags = Array.from(
-      new Set([...existingTags.filter((t) => !removeTags.includes(t)), ...addTags])
-    )
-    if (newTags.length === existingTags.length && newTags.every((t, i) => t === existingTags[i])) {
-      return // no change
-    }
-
-    await fetch(`https://services.leadconnectorhq.com/contacts/${contact.id}`, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Version: '2021-07-28',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ tags: newTags }),
-    })
-  } catch (e) {
-    // GHL sync is best-effort — never block the claim on it
-    console.error('[claim-complete] GHL sync failed:', e)
-  }
-}
-
 export default async function ClaimCompletePage({
   searchParams,
 }: {
@@ -111,26 +65,15 @@ export default async function ClaimCompletePage({
     redirect('/claim?error=already-claimed')
   }
 
-  // Sync GHL tags (best-effort, fire and forget)
-  const owner = await prisma.owner.findUnique({
-    where: { id: ownerId },
-    select: { emailOptIn: true, name: true },
-  })
-  await syncGhlClaimTags(business.email || ownerEmail, {
-    emailOptIn: owner?.emailOptIn ?? false,
-  })
-
   // Notify HeadsUpCRM of the new claim state so its moval-businesses
   // mirror row reflects 'verified'. Best-effort: the page must not block
   // on this, and the CRM has a daily catch-up cron that will sync any
   // claim event this call missed (network blip, CRM deploy, secret
   // rotation, etc).
-  //   - event='claimed' (not 'verified') because the website's claim
-  //     flow auto-confirms via email link - we don't have a separate
-  //     manual-review step; the CRM maps both 'claimed' and 'verified'
-  //     inbound events to its 'verified' enum value.
-  //   - claimedAt is the row's updatedAt timestamp (which we just set),
-  //     since the website schema has no separate claim-completion timestamp.
+  const owner = await prisma.owner.findUnique({
+    where: { id: ownerId },
+    select: { name: true },
+  })
   await notifyCrmOfClaimChange({
     websiteBusinessId: business.id,
     event: 'claimed',

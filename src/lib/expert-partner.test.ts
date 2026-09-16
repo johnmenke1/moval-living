@@ -22,10 +22,6 @@ import {
  * Pure-function tests for expert-partner.ts. We test the deterministic
  * helpers (slug generation, partner display) and the slug-uniqueness
  * loop (which only depends on Prisma's findUnique).
- *
- * The HTTP-based forwardToGHL() is exercised by live smoke tests in
- * docs/ghl-verification-checklist.md because it requires a real PIT
- * token — mocking fetch would be misleading.
  */
 
 describe('slugifyExpertPartner', () => {

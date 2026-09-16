@@ -27,7 +27,6 @@ function InstagramIcon({ className }: { className?: string }) {
   )
 }
 import { ReviewList } from '@/components/reviews/ReviewList'
-import { ContactBusinessForm } from '@/components/forms/ContactBusinessForm'
 import { DealImageLightbox } from '@/components/business/DealImageLightbox'
 import type { Metadata } from 'next'
 
@@ -715,12 +714,6 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
 
           {/* ─── SIDEBAR ─── */}
           <div className="space-y-6">
-            {/* Contact Form */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-              <h3 className="text-lg font-bold text-text mb-4">Contact {business.name}</h3>
-              <ContactBusinessForm businessName={business.name} businessSlug={business.slug} />
-            </div>
-
             <BusinessSidebar business={business} />
           </div>
         </div>

@@ -10,7 +10,6 @@ import {
   Activity,
   Mail,
   CreditCard,
-  Zap,
   Database,
 } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -30,17 +29,18 @@ interface Result {
  *   - Database connectivity (counts + recent record timestamp)
  *   - SES Mail Manager SMTP auth
  *   - Stripe price IDs (all 4 valid?)
- *   - GHL API connectivity
  *
  * Calls /api/admin/diagnostics/* endpoints (each is admin-gated server-side).
  * Saves the last 5 results so you can spot flapping after a deploy.
+ *
+ * The GoHighLevel connectivity check was removed in 2026-09 when the GHL
+ * account was cancelled.
  */
 
 export default function DiagnosticsPanel() {
   const [db, setDb] = useState<Result>({ ok: false, status: 'idle', message: '' })
   const [ses, setSes] = useState<Result>({ ok: false, status: 'idle', message: '' })
   const [stripe, setStripe] = useState<Result>({ ok: false, status: 'idle', message: '' })
-  const [ghl, setGhl] = useState<Result>({ ok: false, status: 'idle', message: '' })
 
   async function runCheck(
     setter: (r: Result) => void,
@@ -73,7 +73,6 @@ export default function DiagnosticsPanel() {
     runCheck(setDb, '/api/admin/diagnostics/db', 'database')
     runCheck(setSes, '/api/admin/diagnostics/ses', 'SES SMTP')
     runCheck(setStripe, '/api/admin/diagnostics/stripe-prices', 'Stripe prices')
-    runCheck(setGhl, '/api/admin/diagnostics/ghl', 'GHL')
   }
 
   return (
@@ -116,13 +115,6 @@ export default function DiagnosticsPanel() {
           result={stripe}
           onRun={() => runCheck(setStripe, '/api/admin/diagnostics/stripe-prices', 'Stripe prices')}
         />
-        <CheckCard
-          icon={Zap}
-          title="GoHighLevel"
-          description="API token + location/pipeline/stage resolution"
-          result={ghl}
-          onRun={() => runCheck(setGhl, '/api/admin/diagnostics/ghl', 'GHL')}
-        />
       </div>
 
       <div className="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
@@ -135,7 +127,6 @@ export default function DiagnosticsPanel() {
               <li>For missing env vars: check Vercel → Settings → Environment Variables</li>
               <li>For SES 535 errors: rotate SMTP password on the AWS Mail Manager ingress endpoint</li>
               <li>For &ldquo;No such price&rdquo;: re-create the product in the current Stripe account and paste the new price ID into Vercel</li>
-              <li>For GHL: verify Private Integration token still has Companies + Contacts scopes</li>
             </ul>
           </div>
         </div>
