@@ -165,35 +165,35 @@ function LeadForm() {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
       setError('Please fill in your name, email, and message.')
       return
     }
-    setSubmitting(true)
     setError('')
-    try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          source: 'moval.living-web-design',
-          name: form.name.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim(),
-          message: form.message.trim(),
-          business: form.business.trim() || undefined,
-        }),
-      })
-      if (!res.ok) throw new Error('Submission failed')
-      setSuccess(true)
-      setForm({ name: '', email: '', phone: '', message: '', business: '' })
-    } catch {
-      setError('Something went wrong. Please try calling or booking a call instead.')
-    } finally {
-      setSubmitting(false)
-    }
+
+    // Build a mailto: with the user's inputs prefilled. Opens the user's
+    // default mail client. (Was previously posted to /api/contact which
+    // forwarded to GHL — that pipeline was sunset when the GHL account
+    // was cancelled in 2026-09. See PR: chore/cleanup-ghl-inline.)
+    const subject = `Web design inquiry — ${form.business.trim() || form.name.trim()}`
+    const body = [
+      `Name: ${form.name.trim()}`,
+      `Email: ${form.email.trim()}`,
+      form.phone.trim() ? `Phone: ${form.phone.trim()}` : null,
+      form.business.trim() ? `Business: ${form.business.trim()}` : null,
+      '',
+      form.message.trim(),
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    const href = `mailto:hello@moval.living?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    window.location.href = href
+
+    setSuccess(true)
+    setForm({ name: '', email: '', phone: '', message: '', business: '' })
   }
 
   if (success) {

@@ -4,8 +4,6 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 import {
-  syncNominatorToGHL,
-  attachGhlContactId,
   sendThankYouEmail,
   notifyAdminOfNomination,
 } from '@/lib/best-of-nominations'
@@ -122,7 +120,7 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   const ownerId = session?.user?.id ?? null
 
-  // Save the nomination locally first — GHL/SES failures must not block
+  // Save the nomination locally first — SES failures must not block
   // the form. Everything downstream is fire-and-forget.
   const nomination = await prisma.bestOfNomination.create({
     data: {
@@ -134,8 +132,7 @@ export async function POST(req: NextRequest) {
       reason: parsed.data.reason,
       ownerId,
       // Mirror of ownerId-set-at-submit-time. Used by the success
-      // page to decide whether to show the registration-nudge CTA
-      // and by GHL tagging to fire the no-account follow-up workflow.
+      // page to decide whether to show the registration-nudge CTA.
       accountCreated: ownerId !== null,
       emailOptIn: parsed.data.emailOptIn ?? false,
       smsOptIn: false, // never collected by this form
@@ -148,26 +145,7 @@ export async function POST(req: NextRequest) {
 
   // ── Side effects (all fire-and-forget) ──────────────────────────────────
 
-  // 1) GHL mirror
-  void syncNominatorToGHL({
-    name: parsed.data.nominatorName,
-    email: parsed.data.nominatorEmail,
-    emailOptIn: parsed.data.emailOptIn ?? false,
-    submittedAt: nomination.createdAt,
-    accountCreated: nomination.accountCreated,
-  })
-    .then(async (res) => {
-      if (res.ok && res.contactId) {
-        await attachGhlContactId(nomination.id, res.contactId)
-      } else if (res.skipped) {
-        console.log(`[BestOfNomination] GHL skipped — ${res.reason}`)
-      } else if (res.error) {
-        console.error(`[BestOfNomination] GHL error — ${res.error}`)
-      }
-    })
-    .catch((e) => console.error('[BestOfNomination] GHL sync threw:', e))
-
-  // 2) Thank-you email to nominator
+  // 1) Thank-you email to nominator
   void sendThankYouEmail({
     toName: parsed.data.nominatorName,
     toEmail: parsed.data.nominatorEmail,
@@ -176,7 +154,7 @@ export async function POST(req: NextRequest) {
     reason: parsed.data.reason,
   })
 
-  // 3) Admin notification (with deep link to moderation panel)
+  // 2) Admin notification (with deep link to moderation panel)
   const proto = req.headers.get('x-forwarded-proto') || 'https'
   const host = req.headers.get('host') || 'www.moval.living'
   const adminLink = `${proto}://${host}/dashboard?tab=bestofnominations&nomination=${nomination.id}`
