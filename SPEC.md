@@ -2,7 +2,7 @@
 
 ## 1. Concept & Vision
 
-**moval.living** is a bright, modern local business directory for Moreno Valley, California — designed to be the go-to resource for residents and visitors finding trusted local businesses. The site feels energetic and trustworthy: a community hub that elevates local entrepreneurs. The long-term business model is two-fold: (1) directory revenue via paid listing tiers, and (2) a sales funnel where unlisted businesses become web design clients via GoHighLevel.
+**moval.living** is a bright, modern local business directory for Moreno Valley, California — designed to be the go-to resource for residents and visitors finding trusted local businesses. The site feels energetic and trustworthy: a community hub that elevates local entrepreneurs. The long-term business model is two-fold: (1) directory revenue via paid listing tiers, and (2) a sales funnel where unlisted businesses become web design clients via the moval.living web-design service.
 
 **Tagline:** *Moreno Valley's Local Business Hub*
 
@@ -111,8 +111,8 @@ Each business profile includes:
 - Business description (SEO-rich, 300+ words encouraged)
 - Photo gallery (up to 8 photos)
 - Reviews section with star rating breakdown
-- "Contact Business" form (routes through GHL)
-- CTA: "Want a website like this?" → GoHighLevel funnel
+- "Contact Business" form (removed 2026-09 — most businesses lack valid emails)
+- CTA: "Want a website like this?" → moval.living web-design service
 - Claim badge if owner-verified
 
 #### 4.3 Self-Service Business Submission
@@ -173,10 +173,9 @@ Each business profile includes:
 - Platforms validated at submission time (Instagram URL → Instagram, Facebook URL → Facebook)
 - Future: automated Instagram Graph API fetch to pull posts directly
 
-#### 4.9 GoHighLevel Integration
-- Contact form submissions routed to GHL via webhook/API
-- "Get a Website" CTA routes to GHL funnel
-- GHL handles email nurturing sequences
+#### 4.9 External Integrations
+- "Get a Website" CTA routes to the moval.living web-design landing page (mailto: hello@moval.living)
+- Email notifications via AWS SES (claim magic links, password resets, partner lead notifications, best-of thank-yous, weekly recap)
 
 #### 4.8 Email (AWS SES)
 - Review notification to business owner
@@ -247,7 +246,7 @@ Each business profile includes:
 - **Auth:** NextAuth.js v5 (credentials + email magic link)
 - **Maps:** Google Maps JavaScript API (Johnny's key)
 - **Email:** AWS SES via nodemailer
-- **Marketing:** GoHighLevel (webhooks for form submissions)
+- **Marketing:** Direct email via AWS SES (claim, password reset, partner lead, best-of thank-you, weekly recap). No marketing automation platform — consider adding one when volume justifies it.
 - **Hosting:** Vercel (frontend) + Neon DB (database)
 
 ### Database Schema (Prisma)
@@ -418,7 +417,7 @@ GET    /api/social-posts         List social posts (public = approved only; auth
 PATCH  /api/social-posts/[id]    Approve/reject a post (admin only)
 DELETE /api/social-posts/[id]    Delete a post (admin only)
 
-POST   /api/contact             Route contact form to GHL
+POST   /api/contact             (REMOVED 2026-09 — contact form gone)
 POST   /api/claim               Initiate business claim flow
 ```
 
@@ -433,8 +432,8 @@ EMAIL_SERVER_PORT=          # 587 (TLS)
 EMAIL_SERVER_USER=          # AWS SES SMTP username
 EMAIL_SERVER_PASSWORD=      # AWS SES SMTP password
 GOOGLE_MAPS_API_KEY=        # Johnny's existing key (also used for Places search — no separate key needed)
-GHL_API_KEY=                # GoHighLevel API key
-GHL_WEBHOOK_URL=           # GHL webhook for contact form
+GHL_API_KEY=                (REMOVED — GoHighLevel account cancelled 2026-09)
+GHL_WEBHOOK_URL=           (REMOVED — GoHighLevel account cancelled 2026-09)
 
 # Meta App (Instagram/Facebook social posts)
 META_APP_ID=               # Meta App ID from developers.facebook.com
@@ -444,7 +443,7 @@ META_ACCESS_TOKEN=         # Long-lived Page Access Token for Instagram Graph AP
 
 ### Third-Party Integrations
 - **Google Maps:** Maps JavaScript API for embed + Places API for address autocomplete
-- **GoHighLevel:** Contact form submissions sent to GHL via REST API
+- **GoHighLevel:** Account cancelled 2026-09.
 - **AWS SES:** Transactional emails via nodemailer
 - **NextAuth:** Auth for business owners (email + Google OAuth option)
 - **Trestle (CoreLogic/CRMLS):** RESO WebAPI OData endpoint for live MLS listing data — powers `/homes` and `/about-moreno-valley` market stats. Requires `TRESTLE_API_KEY` set in Vercel env vars. All Trestle calls are server-side (API routes); the key is never exposed to the client. Photos proxied through `/api/trestle/photos` to protect CDN URLs.

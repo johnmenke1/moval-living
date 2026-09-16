@@ -27,11 +27,8 @@ model Business {
   expertPartnerSlug    String?   @unique
   foundingPartnerSince DateTime?
   foundingPartnerRate  Boolean   @default(false) // locks legacy $997/yr price; live DB has 506 rows
-  ghlLocationId        String? // live DB has 0 rows; declared to prevent silent drop
   liveQaZoomUrl        String?
   liveQaNextDate       DateTime?
-  ghlCompanyId         String?   @unique // GHL Companies endpoint mapping (private integration token)
-  ghlContactId         String?   @unique // GHL Contacts endpoint mapping (private integration token)
 
   // Contact
   email     String?
@@ -638,10 +635,6 @@ model BestOfNomination {
   emailConsentAt DateTime?
   consentSource  String? // e.g. 'best-of-nomination-form'
 
-  // GHL mirror
-  ghlContactId String?   @unique
-  ghlSyncedAt  DateTime?
-
   // Source capture for spam/abuse review
   sourceIp  String?
   userAgent String? @db.Text
@@ -791,9 +784,6 @@ model ExpertPartnerLead {
   contacted   Boolean   @default(false)
   contactedAt DateTime?
   notes       String?   @db.Text
-
-  ghlContactId String?
-  ghlSyncedAt  DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
