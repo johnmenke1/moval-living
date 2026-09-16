@@ -2,8 +2,6 @@ node_modules/
 .next/
 .env.local
 *.env
-.env.ghl-temp
-.env.ghl-temp.txt
 .env.test
 .env.stripe-prices
 .env.prod   # vercel env pull output
