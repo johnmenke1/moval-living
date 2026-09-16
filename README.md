@@ -11,7 +11,7 @@ Live at **[www.moval.living](https://www.moval.living)**.
 **Core site**
 - Free business listings (anyone can submit, admin approves)
 - Featured tier: $29/mo or $199/yr — homepage placement + coupons
-- Expert Partner tier: $197/mo or $997/yr — landing page, lead capture, badge, GHL pipeline
+- Expert Partner tier: $197/mo or $997/yr — landing page, lead capture, badge, SES notification to partner
 - Best Of voting — annual community awards
 - Claim flow + email verification
 
@@ -21,7 +21,6 @@ Live at **[www.moval.living](https://www.moval.living)**.
 - NextAuth v5 (credentials provider)
 - Tailwind CSS 4
 - Stripe (subscription billing)
-- GoHighLevel (lead nurturing via Companies + Contacts)
 - AWS SES Mail Manager (transactional email)
 - Vercel (hosting + cron)
 
@@ -46,7 +45,7 @@ src/
 │   └── forms/                 # Lead capture, signup, etc.
 └── lib/
     ├── prisma.ts              # Prisma client singleton
-    ├── expert-partner.ts      # GHL integration + slug helpers + display
+    ├── expert-partner.ts      # Slug helpers + display + category-exclusivity (GHL integration removed 2026-09)
     ├── business-mutations.ts  # Zod schemas for business updates
     ├── lead-recap.ts          # Weekly recap email generator
     └── email.ts               # SES Mail Manager SMTP helper
@@ -133,9 +132,7 @@ Highlights:
 | `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY` | Featured $29/mo + $199/yr |
 | `STRIPE_PRICE_EXPERT_MONTHLY`, `STRIPE_PRICE_EXPERT_YEARLY` | Expert Partner $197/mo + $997/yr |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signature |
-| `GHL_API_KEY` | GoHighLevel Private Integration token (`pit-...`) |
-| `GHL_LOCATION_ID` | GHL sub-account |
-| `GHL_PIPELINE_ID`, `GHL_PIPELINE_STAGE_ID`, `GHL_WORKFLOW_ID` | Expert Partner pipeline + workflow |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile (bot protection on all public email-sending forms) |
 | `AWS_SES_SMTP_HOST`, `AWS_SES_SMTP_USERNAME`, `AWS_SES_SMTP_PASSWORD` | SES Mail Manager SMTP |
 | `AUTH_EMAIL_FROM` | From address for transactional email |
 | `CRON_SECRET` | Bearer token for `/api/cron/*` endpoints |

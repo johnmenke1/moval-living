@@ -126,7 +126,6 @@ export default async function PartnerDashboardPage({ searchParams }: PartnerDash
         contactedAt: true,
         notes: true,
         createdAt: true,
-        ghlSyncedAt: true,
       },
     }),
     prisma.expertPartnerLead.count({ where: { businessId: business.id } }),

@@ -13,7 +13,6 @@ interface Lead {
   contactedAt: Date | null
   notes: string | null
   createdAt: Date
-  ghlSyncedAt: Date | null
 }
 
 /**
@@ -78,13 +77,8 @@ export function PartnerLeadRow({ lead }: { lead: Lead }) {
                 <Circle className="w-3 h-3" /> New
               </span>
             )}
-            {lead.ghlSyncedAt && (
-              <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                GHL synced
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-500">
+            </div>
+            <p className="text-xs text-slate-500">
             {new Date(lead.createdAt).toLocaleString('en-US', {
               month: 'short',
               day: 'numeric',
