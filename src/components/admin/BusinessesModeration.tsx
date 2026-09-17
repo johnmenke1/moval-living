@@ -20,6 +20,12 @@ interface Business {
   website: string | null
   phone: string | null
   email: string | null
+  // Cover image — used by the 'No Cover' filter (added 2026-09-17)
+  // and reflected in the business public page hero. Server selects it
+  // in /dashboard/page.tsx (the `businesses` prop). Null means the
+  // business has no cover set yet — that's the filter target.
+  coverImage: string | null
+  logo: string | null
   createdAt: string | Date
   category: { name: string; slug: string }
   owner: { id: string; name: string | null; email: string } | null
@@ -56,11 +62,16 @@ interface Business {
 
 interface BusinessesModerationProps {
   initialBusinesses: Business[]
+  // Optional initial filter — AdminTabs passes 'NO_COVER' when this
+  // panel is mounted via the top-level "No Cover" tab so the user lands
+  // on the right view without an extra click. Component-local chip
+  // clicks then take over from there.
+  initialFilter?: 'ALL' | BusinessStatus | 'CHAMBER' | 'CLAIMED' | 'UNCLAIMED' | 'NO_COVER'
 }
 
-export default function BusinessesModeration({ initialBusinesses }: BusinessesModerationProps) {
+export default function BusinessesModeration({ initialBusinesses, initialFilter }: BusinessesModerationProps) {
   const [businesses, setBusinesses] = useState<Business[]>(initialBusinesses)
-  const [filter, setFilter] = useState<'ALL' | BusinessStatus | 'CHAMBER' | 'CLAIMED' | 'UNCLAIMED'>('ALL')
+  const [filter, setFilter] = useState<'ALL' | BusinessStatus | 'CHAMBER' | 'CLAIMED' | 'UNCLAIMED' | 'NO_COVER'>(initialFilter ?? 'ALL')
   const [sortBy, setSortBy] = useState<SortKey>('NEWEST')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
@@ -125,6 +136,12 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
     if (filter === 'CHAMBER') return businesses.filter(b => b.chamberMember || b.hispanicChamberMember)
     if (filter === 'CLAIMED') return businesses.filter(b => b.claimedAt != null || b.owner != null)
     if (filter === 'UNCLAIMED') return businesses.filter(b => b.claimedAt == null && b.owner == null)
+    // NO_COVER — listings without a coverImage. Use this when you're
+    // doing image backfill work (post-2026-09-15 purge left 400+
+    // businesses cover-less). The chip + tab auto-update as covers
+    // are added, because the local `businesses` state is mutated on
+    // every PATCH and the filter recomputes via useMemo.
+    if (filter === 'NO_COVER') return businesses.filter(b => !b.coverImage)
     return businesses.filter(b => b.status === filter)
   }, [businesses, filter])
   const displayed = useMemo(() => {
@@ -168,6 +185,7 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
       CHAMBER: businesses.filter(b => b.chamberMember || b.hispanicChamberMember).length,
       CLAIMED: businesses.filter(b => b.claimedAt != null || b.owner != null).length,
       UNCLAIMED: businesses.filter(b => b.claimedAt == null && b.owner == null).length,
+      NO_COVER: businesses.filter(b => !b.coverImage).length,
     }
 
   const moderate = async (id: string, patch: Record<string, unknown>) => {
@@ -453,7 +471,7 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
       )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
               <div className="flex gap-2 overflow-x-auto pb-1">
-              {(['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CHAMBER', 'CLAIMED', 'UNCLAIMED'] as const).map(f => (
+              {(['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CHAMBER', 'CLAIMED', 'UNCLAIMED', 'NO_COVER'] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -471,6 +489,8 @@ export default function BusinessesModeration({ initialBusinesses }: BusinessesMo
                     ? 'Claimed'
                     : f === 'UNCLAIMED'
                     ? 'Unclaimed'
+                    : f === 'NO_COVER'
+                    ? 'No Cover'
                     : f.charAt(0) + f.slice(1).toLowerCase()}
                   <span
                     className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"

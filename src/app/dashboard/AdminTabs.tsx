@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Building2, MessageSquare, Trophy, Inbox, Users, FileText, Activity, Shield, Calendar, Layers } from 'lucide-react'
+import { Building2, MessageSquare, Trophy, Inbox, Users, FileText, Activity, Shield, Calendar, Layers, ImageIcon } from 'lucide-react'
 import BusinessesModeration from '@/components/admin/BusinessesModeration'
 import SocialPostsModeration from '@/components/admin/SocialPostsModeration'
 import BestOfAdmin from '@/components/admin/BestOfAdmin'
@@ -36,11 +36,21 @@ interface AdminTabsProps {
   archivedEvents: any[]
 }
 
-type TabKey = 'businesses' | 'social' | 'events' | 'events-admin' | 'bestof' | 'bestofnominations' | 'guestauthors' | 'guestposts' | 'audits' | 'diagnostics'
+type TabKey = 'businesses' | 'social' | 'events' | 'events-admin' | 'bestof' | 'bestofnominations' | 'guestauthors' | 'guestposts' | 'audits' | 'diagnostics' | 'no-cover'
 
 const TABS: { key: TabKey; label: string; icon: typeof Building2; count?: (p: AdminTabsProps) => number }[] = [
   { key: 'businesses', label: 'Businesses', icon: Building2,
     count: (p) => p.businesses.filter((b: any) => b.status === 'PENDING').length },
+  // "No Cover" — count and label updated by Johnny on 2026-09-17
+  // for the image-backfill pass after the dead Google photo purge.
+  // The count is the number of APPROVED businesses whose coverImage is
+  // null/empty. The tab auto-updates as covers are added: the chip +
+  // list reactively re-derive from the local `businesses` state on
+  // every successful PATCH, and the tab count reads from the same
+  // prop on the next render. Includes ALL statuses (PENDING + APPROVED
+  // + REJECTED) so Johnny can spot-check stale listings during cleanup.
+  { key: 'no-cover', label: 'No Cover', icon: ImageIcon,
+    count: (p) => p.businesses.filter((b: any) => !b.coverImage).length },
   { key: 'social', label: 'Social Posts', icon: MessageSquare,
     count: (p) => p.posts.filter((x: any) => x.status === 'PENDING').length },
   { key: 'events', label: 'Event Submissions', icon: Calendar,
@@ -118,6 +128,10 @@ export default function AdminTabs({ businesses, posts, bestOfCategories, bestOfN
       {/* Active panel */}
       <div role="tabpanel">
         {active === 'businesses' && <BusinessesModeration initialBusinesses={businesses} />}
+        {/* 'no-cover' is the same BusinessesModeration panel pre-filtered
+            to listings without a coverImage. Same edit/save/deal flows —
+            just opens on the slice Johnny is actively filling. */}
+        {active === 'no-cover' && <BusinessesModeration initialBusinesses={businesses} initialFilter="NO_COVER" />}
         {active === 'social' && <SocialPostsModeration initialPosts={posts} />}
         {active === 'bestof' && <BestOfAdmin initialCategories={bestOfCategories} />}
         {active === 'bestofnominations' && (
