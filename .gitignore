@@ -14,6 +14,11 @@ node_modules/
 /page.html
 /page5.html
 /verify-rls.js
+# One-shot migration manifest for the dead Google photo purge. Re-running
+# the purge will overwrite it; once we re-enrich the affected 400 businesses
+# the manifest is no longer useful. Kept out of the repo so it doesn't go
+# stale in version control.
+/scripts/_dead-photos-manifest.json
 .vercel
 .env*.local
 .env*.bak*
