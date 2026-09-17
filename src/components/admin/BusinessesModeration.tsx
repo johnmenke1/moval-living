@@ -71,7 +71,7 @@ interface BusinessesModerationProps {
 
 export default function BusinessesModeration({ initialBusinesses, initialFilter }: BusinessesModerationProps) {
   const [businesses, setBusinesses] = useState<Business[]>(initialBusinesses)
-  const [filter, setFilter] = useState<'ALL' | BusinessStatus | 'CHAMBER' | 'CLAIMED' | 'UNCLAIMED' | 'NO_COVER'>(initialFilter ?? 'ALL')
+  const [filter, setFilter] = useState<'ALL' | BusinessStatus | 'CHAMBER' | 'CLAIMED' | 'UNCLAIMED' | 'NO_COVER'>(initialFilter ?? 'APPROVED')
   const [sortBy, setSortBy] = useState<SortKey>('NEWEST')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
@@ -132,15 +132,19 @@ export default function BusinessesModeration({ initialBusinesses, initialFilter 
 
   const searchLower = search.toLowerCase().trim()
   const filtered = useMemo(() => {
+    // 'ALL' is no longer selectable (removed 2026-09-17 alongside the
+    // REJECTED chip — Johnny asked to never accidentally work on
+    // rejected or non-approved businesses). The branch is kept for
+    // type-safety completeness but is unreachable from the UI.
     if (filter === 'ALL') return businesses
     if (filter === 'CHAMBER') return businesses.filter(b => b.chamberMember || b.hispanicChamberMember)
     if (filter === 'CLAIMED') return businesses.filter(b => b.claimedAt != null || b.owner != null)
     if (filter === 'UNCLAIMED') return businesses.filter(b => b.claimedAt == null && b.owner == null)
-    // NO_COVER — listings without a coverImage. Use this when you're
-    // doing image backfill work (post-2026-09-15 purge left 400+
-    // businesses cover-less). The chip + tab auto-update as covers
-    // are added, because the local `businesses` state is mutated on
-    // every PATCH and the filter recomputes via useMemo.
+    // NO_COVER — listings without a coverImage. The server query in
+    // /dashboard/page.tsx already restricts to APPROVED + PENDING, so
+    // no extra status filter is needed here. The chip + tab auto-
+    // update as covers are added because the local `businesses` state
+    // is mutated on every PATCH and the filter recomputes via useMemo.
     if (filter === 'NO_COVER') return businesses.filter(b => !b.coverImage)
     return businesses.filter(b => b.status === filter)
   }, [businesses, filter])
@@ -471,7 +475,7 @@ export default function BusinessesModeration({ initialBusinesses, initialFilter 
       )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
               <div className="flex gap-2 overflow-x-auto pb-1">
-              {(['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CHAMBER', 'CLAIMED', 'UNCLAIMED', 'NO_COVER'] as const).map(f => (
+              {(['APPROVED', 'PENDING', 'CHAMBER', 'CLAIMED', 'UNCLAIMED', 'NO_COVER'] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -481,17 +485,19 @@ export default function BusinessesModeration({ initialBusinesses, initialFilter 
                     color: filter === f ? '#fff' : 'var(--text-secondary, #5a6c72)',
                   }}
                 >
-                  {f === 'ALL'
-                    ? 'All'
+                  {f === 'APPROVED'
+                    ? 'Approved'
+                    : f === 'PENDING'
+                    ? 'Pending'
                     : f === 'CHAMBER'
                     ? 'Chamber Imports'
                     : f === 'CLAIMED'
                     ? 'Claimed'
                     : f === 'UNCLAIMED'
                     ? 'Unclaimed'
-                    : f === 'NO_COVER'
+                    : (f as string) === 'NO_COVER'
                     ? 'No Cover'
-                    : f.charAt(0) + f.slice(1).toLowerCase()}
+                    : (f as string).charAt(0) + (f as string).slice(1).toLowerCase()}
                   <span
                     className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
                     style={{
@@ -503,6 +509,14 @@ export default function BusinessesModeration({ initialBusinesses, initialFilter 
                 </button>
               ))}
               </div>
+              {/* Note: REJECTED businesses are intentionally not shown
+                  here. The server query in /dashboard/page.tsx filters
+                  to APPROVED + PENDING so you never accidentally spend
+                  time on them. The data is still in the DB if you ever
+                  need to recover a row — ask Emma to flip it back. */}
+              <p className="text-xs text-slate-400 mt-2 italic">
+                Showing APPROVED + PENDING only. Rejected businesses are hidden.
+              </p>
               {/* Sort dropdown — client-side sort over the already-filtered
                   list. Default is "Newest first" to match the server's
                   pre-sorted fetch; "A → Z" is the alphabetical option
@@ -531,7 +545,7 @@ export default function BusinessesModeration({ initialBusinesses, initialFilter 
         <div className="text-center py-16 bg-white rounded-xl border border-slate-100">
           <Clock className="w-10 h-10 mx-auto mb-3 text-slate-300" />
           <p className="font-medium text-slate-500">
-            {search ? `No businesses matching "${search}"` : filter === 'ALL' ? 'No businesses yet' : `No ${filter.toLowerCase()} businesses`}
+            {search ? `No businesses matching "${search}"` : `No ${(filter as string).charAt(0) + (filter as string).slice(1).toLowerCase().replace('_', ' ')} businesses`}
           </p>
         </div>
       ) : (

@@ -60,7 +60,13 @@ export default async function DashboardPage() {
         include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
         orderBy: { createdAt: 'desc' },
       }),
-prisma.business.findMany({
+      // Filter to APPROVED + PENDING only. REJECTED businesses are
+      // intentionally kept out of the admin views (Johnny asked 2026-09-17)
+      // so the moderation + image-backfill workflows never accidentally
+      // surface rejected ones. The data is still in the DB if it's ever
+      // needed — this is a UI filter, not a delete.
+      prisma.business.findMany({
+        where: { status: { in: ['APPROVED', 'PENDING'] } },
         select: {
           id: true,
           slug: true,
