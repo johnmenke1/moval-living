@@ -19,6 +19,10 @@ node_modules/
 # the manifest is no longer useful. Kept out of the repo so it doesn't go
 # stale in version control.
 /scripts/_dead-photos-manifest.json
+# Session scratch — CSVs exported for AI lookups, raw input files, etc.
+# Each file is one-shot (a workflow input or output) so they don't belong
+# in version control.
+/scratch/
 .vercel
 .env*.local
 .env*.bak*

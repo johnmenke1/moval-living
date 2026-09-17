@@ -1,0 +1,531 @@
+# Website backfill — review list
+
+Generated 2026-09-17 by `scripts/import-website-backfill.mjs`.
+
+## Medium-confidence writes (already applied — flag for your review)
+
+These were written to the DB because Claude marked them as `medium` confidence. None are wrong per se, but please spot-check the ones you care about.
+
+- **ADECCO STAFFING & RECRUITMENT, USA** (`cmsll7ouf0003dou9r182wbz0`) → `https://www.adecco.com/en-us/locations/california/moreno-valley/adecco-staffing-moreno-valley-ca-adus_025157`
+  - _notes:_ This is a franchise/branch of national staffing company Adecco -- linking to their branch locator page on the parent site
+- **American Legion Post 574** (`cmsll7p17000bdou9b5rj33zt`) → `https://www.alpost574moval.org/`
+  - _notes:_ Two candidate sites appeared: alpost574moval.org and americanlegionpost574.org (a newsletter page) -- worth confirming which is the current official one
+- **Berkshire Hathaway Home Services California Realty** (`cmsll7pa1000kdou96a97iros`) → `https://www.bhhs.com/california-realty-ca332/moreno-valley/oid-ca332-002`
+  - _notes:_ Branch/office locator page on the parent BHHS franchise site (bhhs.com), matches Frederick St. address.
+- **Big Lots** (`cmspx29traueatmzm3k7gl1`) → `http://local.biglots.com/ca/moreno-valley/4169`
+  - _notes:_ Chain store-locator page. Note: Yelp marks this Moreno Valley location as "CLOSED" -- store may no longer be operating given Big Lots' 2024-2025 store closures/bankruptcy; verify before listing.
+- **Bonnie Rodriguez Real Estate With Alta Realty Group** (`cmsll7peb000pdou9opjyg6a0`) → `https://www.argca.co/agents/bonnie-rodriguez/`
+  - _notes:_ Agent profile page on Alta Realty Group's brokerage site.
+- **Bridges to Adulthood Program** (`cmspx290ttvyjkzrvd1q7kt`) → `https://academy.valverde.edu/en-US/bridges-to-adulthood-dc3b8ba1`
+  - _notes:_ Program page hosted under Val Verde Unified School District's Val Verde Academy site.
+- **Brooke Blake Mobile Notary** (`cmsll7pgu000sdou93hpk49ht`) → `https://brookeblakemobilenotary.com/`
+  - _notes:_ Name-matching site found, though some directory listings show a Redlands service area rather than confirmed Moreno Valley address; related domains (brookeblakenotary.com, brookethenotary.com) also exist for what may be the same notary.
+- **Costco Wholesale** (`cmspx25x6kf0hlfdl2la80b`) → `https://www.costco.com/warehouse-locations/moreno-valley-ca.html`
+  - _notes:_ Well-known national chain; general costco.com warehouse-locator URL given from background knowledge, but this specific location page was not verified via search this session (budget exhausted) -- please confirm before publishing.
+- **Diversified Realty** (`cmsll7pxp001cdou9ys56gcfw`) → `https://www.div-re.com/`
+  - _notes:_ Real estate firm site found matching the name and area; exact suite/address not fully confirmed on the site. Facebook page: https://www.facebook.com/p/Diversified-Realty-Inc-100075604760863/
+- **Equus Workforce Solutions / Moreno Valley Youth Opportunity Center** (`cmsll7q54001kdou94yd0r435`) → `https://equusworks.com/locations/`
+  - _notes:_ Parent company's locations page (not a dedicated Moreno Valley page). Also active Instagram: https://www.instagram.com/morenovalleyyoc/
+- **Excellence Empire Real Estate - Rodriguez Team** (`cms0s6p0nxofiviw0a0`) → `https://www.excellenceempirere.com/`
+  - _notes:_ Brokerage's official site found, but branded for a different agent (Amado Hernandez) rather than the Rodriguez Team specifically. Facebook page: https://www.facebook.com/p/Excellence-Empire-Real-Estate-Rodriguez-Team-100063633460851/
+- **Forever 21** (`cmspx26xhwro90m1n5afpez`) → `https://locations.forever21.com/us/stores/ca/morenovalley/22500-town-circle`
+  - _notes:_ Official chain store-locator page for the Moreno Valley Mall location; a Yelp listing suggests this store location may have closed
+- **Freeway Insurance-The Machado Agency** (`cmsll7qa5001qdou9uaanph3y`) → `https://locations.freeway.com/moreno-valley-insurance-ca-92553/`
+  - _notes:_ Official chain location page matches address/zip, though not specific to the "Machado Agency" branding
+- **Frontline Nutrition** (`cmsll7qbu001sdou9h6rbjtlv`) → `https://frontline-nutrition.square.site/`
+  - _notes:_ Own Square-hosted site; Yelp lists as CLOSED (updated Feb 2026) - may be defunct, verify before use
+- **Goodwill** (`cmspx29up9uvgblvt8aqid0`) → `https://www.goodwillsocal.org/shop/store/`
+  - _notes:_ Goodwill Southern California official site store locator (regional chain, no single-store page)
+- **LightHouse Social Service Center** (`cmsll7r23002ndou9ey5d9svx`) → `https://lighthouse-ssc.org/`
+  - _notes:_ Official nonprofit site (headquartered in Colton) lists a Moreno Valley service location; also has a Facebook page.
+- **Lighthouse Immersive Studios California, Inc** (`cmsll7r19002mdou9z4h1a354`) → `https://lighthouseimmersive.com/`
+  - _notes:_ Parent company's official site; covers the Lighthouse Immersive museum/experience project at Moreno Valley Mall.
+- **Loma Linda University Health Care** (`cms0s66gad6v1qa4k2w`) → `https://lluh.org/locations`
+  - _notes:_ Official health system site; note Yelp lists this specific Heacock St location as 'CLOSED', so the location may have relocated or closed.
+- **MAMA WOODS KITCHEN** (`cms0s5z1wk0a31xvb1`) → `https://mamawoodskitchen.com/`
+  - _notes:_ Official site found for this soul-food restaurant; matches business name and Moreno Valley location (address details vary slightly across sources).
+- **March Air Force Base Chapel** (`cmspx24usf0f2iyqof6h86s`) → `https://www.march.afrc.af.mil/`
+  - _notes:_ Official March Air Reserve Base site; no standalone chapel page found, base chaplain info listed via Military.com aggregator
+- **Moreno Valley Flower Box** (`cmsll7riy0037dou9obc4ylwq`) → `https://www.morenovalleyflowerboxca.com/`
+  - _notes:_ Multiple similarly-named domains exist (morenovalleyflowerbox.com, .net, and morenovalleyflowerboxca.com) - could not fully confirm which is the current official site for this exact address.
+- **Morning Optimist of MV** (`cmsll7rn7003cdou9suqcyvbf`) → `https://www.facebook.com/MVOptimists/`
+  - _notes:_ No independent website found; nonprofit foundation has GuideStar/Charity Navigator filings but active Facebook page is the best current presence
+- **NID HCA Riverside/San Bernardino Counties** (`cmsll7rpq003fdou9dxpmucwq`) → `https://www.nidhousing.com/`
+  - _notes:_ Local branch (AGTF Institute dba NID HCA) of the national NID Housing Counseling Agency; official parent org site, no dedicated Riverside/San Bernardino branch page found
+- **OfficeMax** (`cmspx2a2snkki0eik30wow2`) → `https://www.officedepot.com/storelocator/ca/moreno-valley/office-depot-627/`
+  - _notes:_ OfficeMax brand has merged into Office Depot; this is the combined Office Depot/OfficeMax store at the same address
+- **Our Place Restaurant** (`cms6q3ry0wnsimqgv2i`) → `https://our-place-moreno-valley.edan.io/`
+  - _notes:_ Appears to be the restaurant's own online ordering/menu site; no separate marketing website found
+- **Paradise Construction Service Moreno Valley** (`cms0s6d984l6cpjmy59`) → `https://www.facebook.com/paradiseconstructions/`
+  - _notes:_ No official standalone website confirmed (a similarly named Bay Area company's site is unrelated); active Facebook page found
+- **Quiksilver** (`cmspx2afsoe7lbsm57ecfv0`) → `https://www.quiksilver.com/`
+  - _notes:_ National chain site. The Riverside store at this address appears to be a closed outlet per Yelp; this is the parent brand's official site, not a store-specific page.
+- **ROSS Distribution Center** (`cmsll7sfe0049dou9ukktvfbu`) → `https://corp.rossstores.com/`
+  - _notes:_ This is a Ross Stores Inc. distribution facility (Ross Dress for Less / dd's Discounts DC), not a public retail storefront. Linked site is the parent corporation's official page; no site specific to this distribution center.
+- **Rancho Medical Clinic** (`cms0s66m1526pf1pm32`) → `https://www.optum.com/en/care/facilities/ca/sobero-pablo-md-42587842.html`
+  - _notes:_ No dedicated clinic website found; this Optum facility page for Dr. Pablo Sobero shares the same address and appears to be the clinic's current operating/affiliated listing. Only Yelp/YellowPages directories otherwise.
+- **Rancho Medical Clinic Dr. Pablo Sobero, MD** (`cms0s66k55fokr36m30`) → `https://www.optum.com/en/care/facilities/ca/sobero-pablo-md-42587842.html`
+  - _notes:_ Same clinic/address as 'Rancho Medical Clinic' above; official Optum provider page for Dr. Sobero at this location. Also profiled on Doximity, Healthgrades, US News but those are directories.
+- **Rotary Club of Moreno Valley** (`cmsll7sg9004adou9apa984ig`) → `https://rotaryclubofmorenovalley.org/`
+  - _notes:_ Likely official site for the (noon) Rotary Club of Moreno Valley, distinct from the separate 'Moreno Valley Morning Rotary Club' (morenovalleymorningrotary.org). Also has a Facebook page (facebook.com/mvnoonrotary); exact match to this club name not 100% certain.
+- **Sam's Club** (`cmspx25w89wlthvgp4uy6j2`) → `https://www.samsclub.com/`
+  - _notes:_ Well-known national chain's official site (not independently re-verified this session due to search budget limits); specific Riverside club page not confirmed.
+- **Sky Zone** (`cmsll7snt004jdou95uqatth7`) → `https://www.skyzone.com/`
+  - _notes:_ Well-known national trampoline-park chain's official site (not independently re-verified this session due to search budget limits); specific Moreno Valley location page not confirmed.
+- **Smart & Final** (`cmspx28nwidw28qhje8xt94`) → `https://www.smartandfinal.com/`
+  - _notes:_ Well-known regional grocery chain's official site (not independently re-verified this session due to search budget limits).
+- **SuperStorage** (`cmsll7sxw004vdou9dysqrlcp`) → `https://www.ineedsuperstorage.com/storage-units/california/moreno-valley/superstorage-strip-drive-3502199/`
+  - _notes:_ Chain's own domain (ineedsuperstorage.com) with a location page for this exact address.
+- **Synergy Real Estate Group** (`cmsll7syq004wdou9cdple17e`) → `https://synergyregsocal.com/`
+  - _notes:_ Plausible match (SoCal real estate brokerage of same name); exact Moreno Valley address not confirmed on site.
+- **The 2 brothers electric welding & plumbing** (`cms0s6c3s71cotxaf4v`) → `https://2brotherselectric.com/`
+  - _notes:_ Likely match by name; exact Moreno Valley address not independently confirmed on the site.
+- **The Salvation Army** (`cmsll7t3w0052dou9lrlzerk6`) → `https://www.salvationarmyusa.org/ca/moreno-valley/`
+  - _notes:_ Official Salvation Army Moreno Valley page; Yelp lists the Graham St location as closed, so also see active Facebook page: https://www.facebook.com/tsa.moval/
+- **Toolots Foreign Trade Zone** (`cmsll7t4r0053dou9bdkxt92u`) → `https://www.toolots.com/`
+  - _notes:_ Toolots Inc. is a known e-commerce/industrial equipment company with a Moreno Valley distribution facility; exact FTZ branch page not confirmed.
+- **TrueCare** (`cmsll7t6g0055dou97hsqhjlz`) → `https://truecare.org/`
+  - _notes:_ TrueCare is a known Southern California FQHC network; specific Cottonwood Ave clinic page not confirmed (search budget exhausted).
+- **U-Haul** (`cmspx26s0bussx5hy3bh4ea`) → `https://www.uhaul.com/`
+  - _notes:_ Official corporate site with store locator; specific Moreno Valley location page not confirmed (search budget exhausted).
+- **U.S. Bank** (`cmspx25b6uht8kskt9z0f62`) → `https://www.usbank.com/`
+  - _notes:_ Official corporate site with branch locator; specific Moreno Beach Drive branch page not confirmed (search budget exhausted).
+- **VIP Healthcare Services LLC dba Verity Healthcare Services LLC** (`cmsll7tcc005cdou9gjgkxnci`) → `https://verityhealthcareservices.com/contact-us/`
+  - _notes:_ Likely official site for Verity Healthcare Services (the dba name); a separate older site (viphealthcareservices.com) also exists, creating some ambiguity
+- **Val Verde Adult School** (`cmspx2993hh3ns2r7exqlam`) → `https://www.valverde.edu/`
+  - _notes:_ Val Verde Unified School District official site; specific Adult School subpage not confirmed (search budget exhausted).
+- **Valvoline Instant Oil Change** (`cmsll7t9t0059dou9devu37lu`) → `https://www.vioc.com/`
+  - _notes:_ Official corporate site with store locator; specific Hemlock location page not confirmed (search budget exhausted).
+- **Veterans of Foreign Wars Alessandro Post 8547** (`cmsll7tan005adou9c0jhiaf4`) → `https://www.facebook.com/MoValVets8547/`
+  - _notes:_ No independent website found; active Facebook page for VFW Post 8547
+- **Walmart Supercenter** (`cmspx2aa04pardkuje9m5a9`) → `https://www.walmart.com/store/`
+  - _notes:_ Official corporate site with store locator; specific store page URL not confirmed (search budget exhausted).
+- **Waste Management** (`cmsll7te0005edou974egogzj`) → `https://www.wm.com/`
+  - _notes:_ Official corporate site; specific Moreno Valley/Indian Ave facility page not confirmed (search budget exhausted).
+- **William J Saylor Photography** (`cmsll7tew005fdou9wr0zx0pk`) → `https://wjsphotography.business.site/`
+  - _notes:_ Google Business Site for the photographer; also active Facebook page at https://www.facebook.com/williamjsaylorphotography/
+- **WoodSpring Suites** (`cmsll7tgm005hdou93mg7hlfg`) → `https://www.woodspring.com/`
+  - _notes:_ Official corporate site with store locator; specific Hemlock Ave property page not confirmed (search budget exhausted).
+- **YBE Landry Limousine Service** (`cmspx28fpzcrfxotcczcg8a`) → `https://www.landryslimoservice.com/`
+  - _notes:_ Likely the same business under a related name (Landry's Limo Service); address/name correspondence not fully confirmed
+- **rue21** (`cmspx27p3wug1vted3usea3`) → `https://www.rue21.com/`
+  - _notes:_ Official national chain site with store locator; specific Moreno Valley store page not confirmed (search budget exhausted).
+
+## Skipped (need your call)
+
+- **#1 Express Income Tax** (`cms0s6gz8yl289qih6n`) — `no-url`
+  - _detail:_ Only directory/review listings found (Birdeye
+- **24/7 DISCOUNT AUTO SALEs** (`cms0s658u8nxtu7m62e`) — `no-url`
+  - _detail:_ No matching official site found; likely a small used-car lot with no web presence
+- **99 Cents Only Stores** (`cmspx2am2qxs2llam2lugl9`) — `low-confidence-skipped` — suggested URL: `https://99centsonly.com`
+  - _detail:_ Chain filed bankruptcy and closed ALL US locations in 2024 -- this listing may need to be removed/marked closed rather than given a website
+- **AAA Medical Consultation** (`cmspx276rtcxola6bfhicaj`) — `no-url`
+  - _detail:_ No official site found; search mostly returned unrelated "AAA Medical Consulting" in Redlands
+- **Agape Christian Center** (`cmspx24e5qrymbkhy38iz5f`) — `no-url`
+  - _detail:_ Several similarly-named churches exist (Agape Christian Worship Center, Agape Christian Church, Agape Fellowship Ministries) but none confidently matched to this specific listing
+- **Airwave Communication Enterprise** (`cmsll7ow40005dou9cdzwg3ea`) — `no-url`
+  - _detail:_ Only Chamber of Commerce directory listing found; no independent website
+- **Airy Massage Spa** (`cms0s6a20qn6u8uea47`) — `no-url`
+  - _detail:_ Facebook page and directory listings only; no independent website found
+- **Albertaco's Mexican Food** (`cms6q3fvy8h1yrulgf`) — `no-url`
+  - _detail:_ Only delivery platform pages (DoorDash/Uber Eats/Grubhub); no independent restaurant website
+- **All Construction Solutions** (`cms0s6e9t1geymkqh5l`) — `no-url`
+  - _detail:_ No confident match found; generic contractor directory results only
+- **All Magic Paint and Body** (`cmsll7oxr0007dou9ejtg01ye`) — `no-url`
+  - _detail:_ Facebook/LinkedIn/Chamber listings only; no independent website found
+- **Alticore Realty, Daisy Benito - Realtor** (`cms0s6pc3ee7a71seac`) — `no-url`
+  - _detail:_ No website found for this agent/brokerage combination
+- **Alvarez Construction Services** (`cms0s6efl1qfn5q2l5r`) — `no-url`
+  - _detail:_ Several same-named companies exist elsewhere (Louisiana, other CA cities) but none confidently matched to this Moreno Valley address
+- **Alvarez Quality Construction** (`cms0s6dd11xe60z7a5d`) — `no-url`
+  - _detail:_ No independent website found; directory listings only
+- **American Automotive** (`cms0s6424eclmjfa61y`) — `no-url`
+  - _detail:_ Facebook page and directory listings only; no independent website found
+- **Angie's Mexican Food** (`cms6q3fqyg8qclq8wa`) — `no-url`
+  - _detail:_ Facebook/Instagram and delivery platforms only; no independent website found
+- **Angie’s Gorgeous Hair Creations** (`cmsll7p36000cdou93cdtyu1j`) — `no-url`
+  - _detail:_ Groupon/directory listings only; no independent website found
+- **Apex Precision Barbershop** (`cms0s68ffxdno4rra3e`) — `no-url`
+  - _detail:_ Instagram/Facebook and booking-platform listing only; no independent website found
+- **Armando's Mexican Food** (`cms6q3va4ic2ent4g2w`) — `no-url`
+  - _detail:_ Facebook page and delivery platforms only; no independent website found
+- **Baez Boardgames LLC** (`cmsll7p5u000fdou9i5bvb37e`) — `no-url`
+  - _detail:_ No independent website found under this LLC name. This Canyon Springs Plaza address now appears associated with a game store called "Flat Earth Games" (possible rebrand/DBA) with an active Facebook page: https://www.facebook.com/p/Flat-Earth-Games-61572984658568/ and Instagram: https://www.instagram.com/flat_earth_games/ -- not confirmed to be the same legal entity.
+- **Baja Pescador Inc.** (`cmsll7p6p000gdou9emiavgs7`) — `no-url`
+  - _detail:_ Yelp lists this location as "TEMP. CLOSED." No independent website found. Active Facebook page: https://www.facebook.com/p/Baja-Pescador-Inc-61559705494249/
+- **Balance Barbershop** (`cmsll7p8d000idou9rq16yqfw`) — `no-url`
+  - _detail:_ No independent shop website found; only individual barber booking pages (Squire, Setmore) and directory/Yelp listings turned up.
+- **Barbara's Beauty Salon** (`cms0s688i7lbc4oi737`) — `no-url`
+  - _detail:_ No independent website found. Active Facebook page: https://www.facebook.com/barbdoeshair/
+- **Beautiful Nails** (`cmspx27z8zrkekalqeamj99`) — `no-url`
+  - _detail:_ Only a Yelp listing ("Beautiful Nail") found at this address; no independent website or social media page identified.
+- **Best Valley Smog & Auto repair llc** (`cms0s63xcuw0ondfc1t`) — `no-url`
+  - _detail:_ No independent website found; only BBB, Yelp, and smog-booking directory listings. Active Facebook page: https://www.facebook.com/p/Best-Valley-Smog-and-Auto-Repair-100060822287311/
+- **Better Be Donuts** (`cmspx261pan8pdkbn9pf38m`) — `no-url`
+  - _detail:_ No independent website found; only delivery aggregators (Uber Eats, DoorDash) and directories. Active Facebook page: https://www.facebook.com/198284673372932/ and an Instagram post found.
+- **Black Pearl Seafood and Grill** (`cmsll7pcn000ndou95waye06p`) — `no-url`
+  - _detail:_ Yelp lists this location as "CLOSED" -- appears to be defunct. No independent website found. Facebook page: https://www.facebook.com/p/Black-pearl-seafood-and-grill-100087135257631/
+- **Breakout Escape Rooms** (`cmsll7pf6000qdou9nwqv5fqi`) — `no-url`
+  - _detail:_ Yelp lists this location as "CLOSED." Only third-party aggregator listings (escaperoom.com) found, no independent official site. Active Facebook page: https://www.facebook.com/BreakOutEscapeRoomsMorenoValleyMall/ -- business appears closed/defunct.
+- **C & R Income Tax** (`cms0s6h9uqpf82wn76y`) — `no-url`
+  - _detail:_ No independent website found; only tax-preparer directory listings (TaxBuzz, PTIN Directory, DoTax). A Facebook page for a similarly named but distinct business ("Latin USA Income Tax") at a different Perris Blvd address does not clearly match.
+- **Cafe Gossip** (`cms6q3km1w0g7ucdc1j`) — `no-url`
+  - _detail:_ No independent official website found (some third-party template "directory" sites exist under domains like local-cafes.com but are not confirmed to be business-owned). Active Instagram: https://www.instagram.com/cafegossip_iris/
+- **Cafe Gossip** (`cms6q3llauwtwkypm1m`) — `no-url`
+  - _detail:_ No independent official website found (some third-party template "directory" sites exist under domains like local-cafes.com but are not confirmed to be business-owned). Active Instagram: https://www.instagram.com/cafegossip_iris/
+- **California Wide Electric Services Inc.** (`cms0s6c8pnn1umj8s50`) — `no-url`
+  - _detail:_ No independent website found; only BBB, D&B, Birdeye, and other directory/review listings.
+- **Canyon Springs Shopping Center** (`cmsll7pl1000xdou995ijjwd7`) — `no-url`
+  - _detail:_ No dedicated website found; only commercial real estate listing pages (LoopNet, PropertyShark, CommercialCafe) for the "Canyon Springs Plaza" property.
+- **Carly Donuts** (`cms6q3kmzui9styzd1k`) — `no-url`
+  - _detail:_ No confirmed independent website (a "carly-donuts.wsite.top" domain found appears to be a low-quality third-party template site, not verified as business-owned). Active Facebook page: https://www.facebook.com/61566760649448
+- **Casa de Empeño** (`cmspx288d3e1mcdt29gnl0`) — `no-url`
+  - _detail:_ "Casa de Empeño" is a generic Spanish term for pawn shop; found a general pawn shop listing at this address (via pawnbat.com) but no confirmed independently-branded website.
+- **Cash Advance** (`cmspx25skyn0v0hb3djmads`) — `no-url`
+  - _detail:_ Business name too generic to research reliably; not searched (web search budget exhausted before reaching this row).
+- **Catholic Charites** (`cmspx25m3197gq9ouaf9nfa`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row); note likely refers to Catholic Charities, a large multi-location nonprofit -- would need the specific Moreno Valley branch confirmed in a follow-up search.
+- **Celaya Tax Service** (`cms0s6gvdeuqj6t596j`) — `no-url`
+  - _detail:_ No independent website found. A Facebook page titled "Celaya Tax Services" was found at URL https://www.facebook.com/GabbysTaxReturnServices/ (note: URL slug doesn't match the name, use with caution).
+- **Cellinies Nail & SPA** (`cmspx269whgvp31yv503vix`) — `no-url`
+  - _detail:_ No independent website found; only Yelp, Groupon, and BBB directory listings for "Cellinie Nails & Spa."
+- **Chito's Mexican Food** (`cms6q3v352ea05jqc2r`) — `no-url`
+  - _detail:_ No verified independent website; several "chitos-mexican-food.website" and similar domains found appear to be third-party generated directory/template sites rather than business-owned, so not included. Otherwise only delivery aggregator listings (Grubhub, Seamless) found.
+- **Construction Company** (`cms0s6e7wev16o4ci5j`) — `no-url`
+  - _detail:_ Business name is generic ("Construction Company"); not searched (web search budget exhausted before reaching this row).
+- **Consulto Strategies LLC** (`cmsll7pq20013dou9pw8yn4xc`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row).
+- **Cornerstone Fellowship Academy** (`cmspx24yhdhty7r7pf32xja`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row).
+- **Creative Solutions for Kids & Families** (`cmspx27xdfzshj0sl6dccgg`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row).
+- **Cristina's Salon** (`cmspx26bzv26tvsm48r2bey`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row); also no street address on file, which would make disambiguation difficult.
+- **Cross Word Christian Church** (`cmsll7pqy0014dou9jqaxcdza`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row).
+- **Cuccio Nail Spa** (`cmspx2aw1k3gmvy9ja2d26g`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row).
+- **D & C Auto Tech** (`cms0s63z76k5nt0761v`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row).
+- **D&C Automotive** (`cms0s63ufimkges8b1q`) — `no-url`
+  - _detail:_ Not searched directly (web search budget exhausted); a Yelp listing for "D & C Automotive" at this address was seen incidentally, but no website confirmed.
+- **D.M. Shoe Repair** (`cmspx25l6nzxjdwv0bwusl8`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row).
+- **DCH Roasters - Moreno Valley** (`cms6q3kd211peexf71a`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row).
+- **Dancing Images** (`cmsll7pso0016dou90y6zpgof`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row).
+- **Dawn Busters Toastmasters Club 2169** (`cmsll7pti0017dou97r7mfob7`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row); Toastmasters clubs typically have a page on toastmasters.org that could be found in a follow-up search.
+- **Denises Loving Hands Family Childcare, LLC** (`cmsll7pud0018dou9g4jhmfen`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row).
+- **Dental Associates of Moreno Valley** (`cmsll7pv70019dou9lqk0p7g1`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row).
+- **Diaz auto Mechanic** (`cms0s63nrqqv4dzmp1j`) — `no-url`
+  - _detail:_ Not searched (web search budget exhausted before reaching this row).
+- **Discount Mini Mall** (`cms0s62n5kirzv5qs19`) — `no-url`
+  - _detail:_ Address appears to actually be in Perris, CA, not Moreno Valley; only directory listings (Yelp, LoopNet, Chamber of Commerce) found. Facebook page (as "Perris Mini Mall"): https://www.facebook.com/p/Perris-Mini-Mall-100057498907913/
+- **Dr. Deza's Dental Office** (`cmsll7pzm001edou92jz838xo`) — `no-url`
+  - _detail:_ No independent website found; only directory/aggregator listings (Yelp, BBB, Healthgrades). Active Facebook page: https://www.facebook.com/drdezadds/
+- **Duncan’s Treasures** (`cmspx28ucmp8g2r3t11xviv`) — `no-url`
+  - _detail:_ No official website found. Active Facebook page: https://www.facebook.com/duncanstreasures/
+- **Dynamite Dishes** (`cms6q3jepuen8cqjf13`) — `no-url`
+  - _detail:_ Appears to be a food truck/caterer; no official website found. Active Facebook page: https://www.facebook.com/Dynamite.Dishes/ (also listed on StreetFoodFinder)
+- **E 320 AIR** (`cmsll7q1a001gdou9pauv5uhi`) — `no-url`
+  - _detail:_ HVAC contractor; only directory/Yelp/Chamber of Commerce listings found, no independent website could be confidently identified among similarly-named unrelated HVAC companies
+- **EL DFectuoso** (`cms6q3fi0bx0sdc4y1`) — `no-url`
+  - _detail:_ No independent official website found, only menu-aggregator/directory sites (DoorDash, Grubhub, res-menu.com). Active Facebook page: https://www.facebook.com/p/El-DFectuoso-100071981320167/
+- **Easter Market** (`cmspx25dvdt7ywcfsg6457i`) — `no-url`
+  - _detail:_ Convenience store/gas station; no website or social media page found, only directory and gas-price listings
+- **El Chivito Birrieria** (`cms6q3ifl3nc2s0y1v`) — `no-url`
+  - _detail:_ No independent website found. Active Instagram page: https://www.instagram.com/elchivitomv/
+- **El Fuereño Feed-n-Supply** (`cms0s6o31mhi29vd49r`) — `no-url`
+  - _detail:_ No matching listings found for this specific business; only unrelated feed/pet stores in the area (Tractor Supply, Moreno's Feed & Pet Store, etc.) turned up â€” may be small/unlisted or closed
+- **El Ojo De Agua Taqueria** (`cms6q3gtq9v0wiz5sk`) — `no-url`
+  - _detail:_ No independent website found. Active Facebook page: https://www.facebook.com/p/El-ojo-de-agua-taqueria-100063796350287/
+- **Elite Heavy Equipment Services Corp.** (`cms0s6eemg16rtt3a5q`) — `no-url`
+  - _detail:_ Grading/heavy-equipment contractor; only directory listings (BuildZoom, Nextdoor, ServiceAgent) found, no independent website
+- **Fallas Discount Store** (`cmspx2awykssscikh7jyo5b`) — `no-url`
+  - _detail:_ National discount chain (Fallas/National Stores); Yelp listing indicates this location may be CLOSED. No independent local site found. Corporate Facebook: https://www.facebook.com/FallasStores/
+- **Familia Latina Income Tax** (`cms0s6jp9voz8fehz7s`) — `no-url`
+  - _detail:_ No official website found. Active Facebook page: https://www.facebook.com/familia.latina.tax/
+- **Family Care Clinic** (`cms0s668mglod3tfv2o`) — `no-url`
+  - _detail:_ Ambiguous match; possibly related to Riverside University Health System clinics in Moreno Valley, but the specific 26520 Cactus Ave address could not be confirmed to any website
+- **Fashion Avenue** (`cmspx2a7cqqswifgd6fsu6z`) — `no-url`
+  - _detail:_ No website or social media found, only directory listings (Yelp, Yellow Pages)
+- **FatBurger-Buffalo Express** (`cmspx28yz30hnvebpe8hd75`) — `no-url`
+  - _detail:_ No independent official website found, only menu-aggregator/directory listings (Yelp, Zmenu, Sirved)
+- **First Baptist Church** (`cmspx24knwssmz247cipjmv`) — `no-url`
+  - _detail:_ No official website found. Active Facebook page: https://www.facebook.com/firstbaptistmorenovalley/
+- **Friends of Moreno Valley Senior Center, Inc.** (`cmsll7qb0001rdou9s9j561wr`) — `no-url`
+  - _detail:_ Nonprofit; no dedicated official website found (only GuideStar/Cause IQ/city listings). Active Facebook page: https://www.facebook.com/FMVSCInc/
+- **GEMSI Enterprises LLC** (`cmsll7qed001vdou9g0d1lclu`) — `no-url`
+  - _detail:_ No official website found; only LinkedIn profile for CEO and staffing job postings (Gusto); address now appears occupied by Mistik Banquets on Yelp
+- **Gina's Auto Service Inc.** (`cms0s63vfkixfevg61r`) — `no-url`
+  - _detail:_ No official website found; active Facebook page at https://www.facebook.com/ginasautoservice/
+- **Go Gos Closet** (`cmspx279hjr005t1mfmki0q`) — `no-url`
+  - _detail:_ Yelp lists as CLOSED (updated March 2026); Facebook pages exist but unclear which is current/active
+- **H&P Nails** (`cmspx29ybkaqe5ku58i720o`) — `no-url`
+  - _detail:_ No official website found; only booking/directory aggregator listings (Fresha, Groupon, Yelp)
+- **Hair Creations** (`cmspx25k9fkjm4zu44qcm0r`) — `no-url`
+  - _detail:_ No official website found; only booking/directory aggregator listings (Fresha, Groupon, Yelp)
+- **Hair Shack** (`cmspx274zrdgahpmt98jkf`) — `no-url`
+  - _detail:_ No official website found; only directory listings (Yelp, Birdeye, Chamber)
+- **Happy Feet Ultrasound Inc** (`cmsll7qjj0021dou97r6s3vqw`) — `no-url`
+  - _detail:_ Yelp lists as CLOSED (updated May 2026); active Facebook (https://www.facebook.com/happyfeetultrasound/) and Instagram (https://www.instagram.com/happyfeetultrasound/) pages found
+- **Heacock Medical Clinic** (`cms0s66l3jlok2m4r31`) — `no-url`
+  - _detail:_ No official website found; only directory/aggregator listings (Yelp, Yellow Pages, Chamber, WebMD)
+- **Healthy Heffa, LLC** (`cmsll7ql70023dou9xq1he6zu`) — `no-url`
+  - _detail:_ No official website found; only Chamber of Commerce directory listing
+- **Heavenly Helping Hands Daycare** (`cmsll7qmx0025dou9lsbh21xd`) — `no-url`
+  - _detail:_ Yelp lists as CLOSED (updated June 2026); active Facebook page at https://www.facebook.com/p/heavenly-helping-hands-daycare-100069265063456/
+- **Highland Baptist Church** (`cmspx24f2qbteb4az6yc7yc`) — `no-url`
+  - _detail:_ Could not confirm a specific matching website; multiple like-named Baptist churches found elsewhere (address not on file to disambiguate)
+- **Hoffman Roy A** (`cms0s6fovqribznet6a`) — `no-url`
+  - _detail:_ Yelp lists as CLOSED (updated August 2026); only attorney directory listings found (Martindale, FindLaw), no independent site
+- **Hong Kong Express & Hawaiian BBQ** (`cms6q3o592h10zy7824`) — `no-url`
+  - _detail:_ No official independent website found; only delivery-app listings (DoorDash, Uber Eats, Grubhub, Postmates)
+- **Imperial Realty** (`cmsll7qph0028dou9trw08ja2`) — `no-url`
+  - _detail:_ Only directory/aggregator listings found (Yelp, Chamber of Commerce, ZoomInfo); no independent website or social page located.
+- **In The Stitch** (`cmsll7qqc0029dou96kgews9f`) — `no-url`
+  - _detail:_ No matching business found under this name in Moreno Valley; search surfaced only an unrelated embroidery shop (Fancy Stitchin').
+- **J&D Income Tax Services** (`cms0s6h7uwefmgifh6w`) — `no-url`
+  - _detail:_ No independent website found; active Facebook page: https://www.facebook.com/Jlopeztxs/ (also listed as J & D Income Tax / Notary Public on Facebook).
+- **JJR Construction 25177 gentian ave moreno valley** (`cms0s6dfypcn4oczc5g`) — `no-url`
+  - _detail:_ Only directory/review listings found (BBB, BuildZoom, HomeAdvisor); no independent website located.
+- **JK Jalisco's Kitchen** (`cms0s5z08k2iwxqbn0`) — `no-url`
+  - _detail:_ No independent website found; active Instagram page: https://www.instagram.com/jkjaliscos/
+- **JR Smoke & Gifts** (`cmspx268zpx7a7os97uf3vg`) — `no-url`
+  - _detail:_ No independent website found; business appears to now go by 'HR Smoke & Gift' at the same address. Facebook page: https://www.facebook.com/profile.php?id=100068120786306
+- **JS Carpet** (`cmspx289a7sjuiw5h7e00nd`) — `no-url`
+  - _detail:_ No independent website found; active Facebook page: https://www.facebook.com/p/Carpet-Js-en-Moreno-valley-22586-Alessandro-VB-100064707494558/
+- **Jacobs Cafe** (`cms6q3lmakjxtkota1n`) — `no-url`
+  - _detail:_ No Moreno Valley match found; search returned only unrelated 'Jacob's Cafe' businesses in Orlando, FL and Washington, DC. Business may be small/unlisted online or closed.
+- **Kim’s donuts & Café** (`cms6q3ml78djlpait1x`) — `no-url`
+  - _detail:_ No independent website found; active Facebook page: https://www.facebook.com/p/Kims-Donuts-cafe-100057282685421/
+- **King City Auto Traders** (`cms0s65crxt7533pk2i`) — `no-url`
+  - _detail:_ Only a Yellow Pages directory listing found ('King City Auto Trader'); a similarly-located 'King Automotive Services Inc.' has a Facebook page but appears to be a different business, so not linked with confidence.
+- **Kleitz's Tax Service** (`cms0s6gudkf3cmk496i`) — `no-url`
+  - _detail:_ Only directory listings found (Yelp, BBB, YellowPages, Birdeye); no independent website or social page located.
+- **Kml Motors Inc.** (`cms0s654zyh7qk6ws2a`) — `no-url`
+  - _detail:_ No independent website found; possible Facebook page: https://www.facebook.com/pages/KML-Motors-Group/346880825436741 (KML Motors Group) â€” not fully confirmed as the same entity.
+- **Krustee's funnel cakes** (`cms6q3jdp4p0nbjpa12`) — `no-url`
+  - _detail:_ No independent website found; active Instagram page: https://www.instagram.com/krustees_funnelcakes/ (operates as 'Krustee's Carnival Funnel Cakes & LA Street Dogs').
+- **LL TAXES/LATHON AUTO REGISRATION** (`cms0s6gxbtcd5a3js6l`) — `no-url`
+  - _detail:_ Only directory listings found (Yelp, BBB, Chamber of Commerce, Tuugo); no independent website or social page located.
+- **La Michoacana Chapa's Family Ice Cream** (`cmspx27hreaq22wks9r85h7`) — `no-url`
+  - _detail:_ No independent website found; active Facebook page: https://www.facebook.com/lamichoacana.chapas/ (note: distinct from an unrelated 'La Michoacana Ice Cream' chain location at a different Moreno Valley address).
+- **Lakeside General Contractors** (`cms0s6d3dsm622o3h53`) — `no-url`
+  - _detail:_ Only directory listings found (BBB, BuildZoom, Dun & Bradstreet, Nextdoor); no independent website located.
+- **Lakeside Plaza** (`cms0s62q0mesbzy3q1c`) — `no-url`
+  - _detail:_ This is a shopping plaza/commercial property, not an individually branded business; only commercial real estate leasing listings found (LoopNet, CommercialSearch, Crexi).
+- **Lawrence Massage** (`cmspx25tgiab4vprjf03j2n`) — `no-url`
+  - _detail:_ Only directory listings found (Yelp, YellowPages, Birdeye); no independent website or social page located.
+- **Legend Massage** (`cms0s6a2z7s05h3xz48`) — `no-url`
+  - _detail:_ Only directory/aggregator listings found; no independent website or social page located.
+- **Light It Up MoVal** (`cmsll7r0e002ldou9u2ld04m1`) — `no-url`
+  - _detail:_ Appears to be closed â€” Yelp lists it as 'CLOSED'. Was a seasonal holiday light event/attraction; no independent website found.
+- **Lillies BBQ** (`cms6q3o69611hbddo25`) — `no-url`
+  - _detail:_ No independent website found; a business called 'Lillie B's Cafe' at the same address (24840 Sunnymead Blvd) has an active Instagram: https://www.instagram.com/lilliebs.cafe/ â€” name differs (BBQ vs Cafe) so treat with caution.
+- **Los Armando’s Mexican Food** (`cms6q3fpzwpbafry29`) — `no-url`
+  - _detail:_ No independent website found; a Facebook page for 'Armando's Mexican Food' exists (https://www.facebook.com/ArmandosMexican/) but name/address are a close, not exact, match.
+- **Los Reyes Mexican Food** (`cms6q3fkya1qjhlvh4`) — `no-url`
+  - _detail:_ No independent website found; active Facebook page: https://www.facebook.com/losreyesmex/
+- **Lunas Auto Repair** (`cms0s63wetmnbvn4c1s`) — `no-url`
+  - _detail:_ No independent website found; active Facebook page: https://www.facebook.com/LunasRepair/
+- **MGM Smog** (`cmspx27bax1h41tkaba7325`) — `no-url`
+  - _detail:_ Only directory listings found (Yelp, SmogCheck.com, Chamber of Commerce); no independent website located.
+- **MV SPA** (`cms0s69ogr0qyk56u3t`) — `no-url`
+  - _detail:_ Only directory/aggregator listings found; several similarly-named spas exist nearby at different addresses, so no confident independent website was found.
+- **Magnifique Salon** (`cms0s68pysfdq4sos3p`) — `no-url`
+  - _detail:_ No independent website found; active Facebook (https://www.facebook.com/p/Magnifique-hair-salon-100090822856348/) and Instagram (https://www.instagram.com/magnifiquehairsalon/) pages.
+- **Management & Leasing Office** (`cmspx25ny63am3f1eeh8lta`) — `no-url`
+  - _detail:_ Name too generic to identify a specific business (a leasing/management office name alone); no distinguishing details found
+- **Mariscos La Costeña** (`cmspx258jq1fcx00ec5pzfe`) — `no-url`
+  - _detail:_ No matching business found specifically in Moreno Valley; search returned only same-named restaurants in other cities/countries
+- **McKeehan Auto Care** (`cms0s63thl2sjkq1l1p`) — `no-url`
+  - _detail:_ No official website found; active Facebook page at https://www.facebook.com/p/McKeehan-Auto-Care-100092564594890/
+- **Mike's Automotive Services** (`cms0s63lrn9hbeq611h`) — `no-url`
+  - _detail:_ No official website found; active Facebook page at https://www.facebook.com/p/Mikes-Automotive-Service-100063669154421/
+- **Miriam's Beauty Salon** (`cms0s68iawfc0nt903h`) — `no-url`
+  - _detail:_ No official website found; Facebook pages exist but ambiguous which is current (https://www.facebook.com/p/Miriams-beauty-salon-100024731487029/)
+- **Mitchell Construction** (`cms0s6dgwai3hffvi5h`) — `no-url`
+  - _detail:_ Ambiguous - multiple unrelated companies share this name (Mitchell Construction Menifee, mymitchellco.com, Mike Mitchell Construction). BBB has a Moreno Valley listing but no matching independent website could be confirmed.
+- **Monarch-A Realty Affiliated with Keller Williams** (`cmsll7rd30030dou9p4k51dyf`) — `no-url`
+  - _detail:_ No independent website found; only a Moreno Valley Chamber of Commerce directory listing turned up (business.movalchamber.org).
+- **Moolah Tax Services** (`cmsll7rdw0031dou9lz5fjlnr`) — `no-url`
+  - _detail:_ No independent website found; active Facebook page: https://www.facebook.com/people/Moolah-Tax-Services/61584149665416/ (also listed on Yelp).
+- **Moreno Valley ADU Contractors** (`cms0s6da6luxwjy1a5a`) — `no-url`
+  - _detail:_ No independent website confirmed at this address; only directory/aggregator listings (ServiceAgent
+- **Moreno Valley Commerce Center** (`cms0s61oqt5t8dn2t11`) — `no-url`
+  - _detail:_ No official property website found; only commercial real estate listing/aggregator sites (LoopNet
+- **Moreno Valley Congregational Church** (`cmspx24obc4khk36lgj7xgm`) — `no-url`
+  - _detail:_ No matching website found under this exact church name; several other Moreno Valley churches appeared in search but not this one - may be small/defunct.
+- **Moreno Valley Educators Association** (`cmsll7rha0035dou9ru6mbeu7`) — `no-url`
+  - _detail:_ No independent website found; active Instagram page: https://www.instagram.com/wearemvea/
+- **Moreno Valley Home Renovation** (`cms0s6e8vfoi8q3xy5k`) — `no-url`
+  - _detail:_ No independent website found; only a directory listing (ServiceAgent) under this business name.
+- **Moreno Valley Japanese Free Methodist Church** (`cmspx24p80z6eb9oxbnzyqs`) — `no-url`
+  - _detail:_ No independent website found; Facebook page: https://www.facebook.com/pages/Moreno%20Valley%20Japanese%20Free%20Methodist%20Church/146960118656956/ (also a registered nonprofit per GuideStar/CauseIQ).
+- **Morning Dove Christian School** (`cmspx24wlzcqmrhgn57eln6`) — `no-url`
+  - _detail:_ No independent website found; only third-party school-rating aggregator listings (GreatSchools, Apartments.com), unclear if still operating
+- **NV Hair Studio** (`cms0s68o0gmmnztrz3n`) — `no-url`
+  - _detail:_ No independent website found; active Facebook page at https://www.facebook.com/nvhairstudiomoval/
+- **Nancy's Drinking Water** (`cmspx25rnycv9y2yndlndne`) — `no-url`
+  - _detail:_ No official website found; only directory/review listings (Yelp, Yahoo Local)
+- **Nip & Cut** (`cmspx25ptzh927hgmeqauxd`) — `no-url`
+  - _detail:_ No official website found; only directory/booking listings (Yelp, DevaCurl locator, Groupon)
+- **Nutrition Zone** (`cmspx2aqhhthjlsej6b83ss`) — `no-url`
+  - _detail:_ Yelp lists as CLOSED (updated Feb 2026); no current website found
+- **Oliver Elementary School** (`cmspx24gyj4g4bewp8ooymp`) — `no-url`
+  - _detail:_ Could not confirm a specific matching current school website; no distinct Oliver Elementary listed among current MVUSD elementary schools
+- **Optimum Cleaning Services** (`cmsll7rrf003hdou9yeduchrq`) — `no-url`
+  - _detail:_ No official website found; active Facebook page at https://www.facebook.com/OptimumCleaningService/
+- **Passion Lounge** (`cmspx2ac349stbkzq81o5nw`) — `no-url`
+  - _detail:_ Address (6211 Valley Springs Pkwy) appears to actually be in Riverside, not Moreno Valley; Yelp lists a Passion Lounge at that area as CLOSED (updated March 2026)
+- **Payless Auto Repair** (`cms0s63sj1x5l7dsm1o`) — `no-url`
+  - _detail:_ No official website found; active Facebook page at https://www.facebook.com/p/Payless-Auto-Repair-100089572786975/
+- **Penigar Tax & Other Business** (`cms0s6h4znol1vq546t`) — `no-url`
+  - _detail:_ No official website found; only directory/review listings (Yelp, BBB, TaxBuzz)
+- **Perris Flowers #3** (`cmsll7rwh003ndou9nybozkqt`) — `no-url`
+  - _detail:_ No independent website found; active Instagram page at https://www.instagram.com/perris_flowers_official/
+- **Premier Party Rental** (`cmsll7rzt003rdou9m6yei07o`) — `no-url`
+  - _detail:_ No confirmed current official website; listings suggest this location may now operate as Titan Tent & Event Rentals
+- **Qi Hair Salon** (`cms0s68dgti2qwd733c`) — `no-url`
+  - _detail:_ No independent website found; active Facebook page at https://www.facebook.com/QiHairSalon/
+- **Quinn African Methodist Episcopal Church** (`cmspx24tvv6cifh2kgy33u`) — `no-url`
+  - _detail:_ No independent website found. Active Facebook page: https://www.facebook.com/quinname/. Only directory listings (Yelp, ChurchFinder, FaithStreet) otherwise.
+- **RAW Construction & Design** (`cms0s6ebq71m37sg65n`) — `no-url`
+  - _detail:_ No independent website found. Active Facebook page: https://www.facebook.com/RAWDraftworks/. Only BBB, Yelp, BuildZoom directory listings otherwise.
+- **RJ Construction Home Improvements Specialists** (`cms0s6d5cqzxtiw0p55`) — `no-url`
+  - _detail:_ No website or social page found; only BBB, Birdeye, Yelp, DispatchCore and BuildZoom directory listings. May overlap with a similarly named 'RJP Home Improvement Services' at a different Moreno Valley address, but not confirmed as the same business.
+- **Radiant Life Church** (`cmsll7s5a003xdou9j29si90v`) — `no-url`
+  - _detail:_ Could not confirm which of several same-named 'Radiant Life Church' websites (radiant.family, theradiantlife.churchcenter.com, radiantlifechurchaz.snappages.site) corresponds to this Moreno Valley/Hemlock St location, so left blank rather than guess. moval.gov lists local churches but has no direct link.
+- **Rados Properties** (`cmsll7s64003ydou99olckzap`) — `no-url`
+  - _detail:_ No matching business website or social page found; searches returned only generic Moreno Valley real estate portals (Zillow, Redfin, Compass), not this specific company.
+- **Rancho Belago Developers, Inc.** (`cmsll7s6z003zdou9mvbo6ir8`) — `no-url`
+  - _detail:_ No independent website found. Listed on BBB, Moreno Valley Chamber of Commerce, and in local news coverage of an affordable housing project, but no company site located.
+- **Reach One Teach One Tutoring & Mentor Service** (`cms0s6knvq1ncp7s286`) — `no-url`
+  - _detail:_ No independent website confirmed for this specific Moreno Valley business; several same-named tutoring/mentoring organizations exist nationally. Possible match Facebook page: https://www.facebook.com/reachoneteachoneLLC/ (LLC name suggests a business entity), but not verified against the Moreno Valley address.
+- **Realtime Integrated Services Group** (`cmsll7s8o0041dou96t4534hx`) — `no-url`
+  - _detail:_ No matching website or social page found; searches surfaced unrelated IT-services companies with similar names (Real-Time Information Services, RealTime CA) based elsewhere, not this Moreno Valley business.
+- **Realty Masters & Associates** (`cmsll7s9j0042dou9lmen7wrt`) — `no-url`
+  - _detail:_ No dedicated company website found; only broker-profile/directory pages (realty.com, FastExpert, LandSearch, Manta). Not confident enough to link a directory page as the official site.
+- **Redz Auto House** (`cms0s63ks03cw4kib1g`) — `no-url`
+  - _detail:_ No independent website found. Active Facebook page: https://www.facebook.com/965827649946908 and Instagram: https://www.instagram.com/redz_autohouse/. Address also shows a different shop, Reyes Auto Tech, currently listed at the same street number on Yelp.
+- **Richland Builders Corporation** (`cms0s6earq8hicup55m`) — `no-url`
+  - _detail:_ No independent website found; only BBB and BuildZoom directory listings. Note: richlandcommunities.com is a different, unrelated 'Richland' company (a developer), not confirmed to be affiliated.
+- **Rio Rancho Super Mall** (`cms0s61b5jblpcb7zn`) — `no-url`
+  - _detail:_ Appears to be permanently closed (Yelp lists it as 'CLOSED'). No official website found; only directory/aggregator pages and low-quality scraper sites (e.g., wheree.com, .com-place.com).
+- **Roman Window Coverings** (`cmsll7sek0048dou9egk6zr1f`) — `no-url`
+  - _detail:_ No independent website found; only Yelp, Houzz, and Moreno Valley Chamber of Commerce directory listings.
+- **Ruby Hair Salon** (`cmspx2a6frniycdki6mar79`) — `no-url`
+  - _detail:_ No independent website confirmed. Possible Instagram page: https://www.instagram.com/ruby_hairsalon/, but booking-site listings found (Fresha) are for similarly named salons at different Moreno Valley addresses (23871 Sunnymead Blvd and 16110 Perris Blvd), not the 23897 address on file, so not linked with confidence.
+- **Ruby's Bangles** (`cmspx25vbrjy82ewc2fvv7s`) — `no-url`
+  - _detail:_ Appears to be closed (Yelp lists 'RUBY'S BANGLES - CLOSED' for the Moreno Valley/Town Circle location). No website found.
+- **Ruposhi Bangla Moreno Pizza** (`cms6q3wouhxktou0933`) — `no-url`
+  - _detail:_ No independent website found; only delivery-aggregator listings (DoorDash, Grubhub, UberEats, Seamless), which were excluded. Possible Facebook page under a slightly different name variant 'Ruposhi Bangla N Pizza': https://www.facebook.com/p/Ruposhi-Bangla-N-Pizza-61566338876153/
+- **S &K Pet Shop Reptiles and Birds and supplies** (`cms0s6o15av46u3ly9p`) — `no-url`
+  - _detail:_ No website found; only Yelp/Waze/directory listings, and those show the store located in Perris, CA rather than Moreno Valley.
+- **SHAMRELL LEGAL SERVICES** (`cms0s6frqmksadzal6d`) — `no-url`
+  - _detail:_ No website found. Business appears in directories as 'Shamrell Legal Document Preparation' (D&B, Yelp, attorney directories) at the same Tiverton Ct address, but no independent site located.
+- **STEAM Innovation and Research Center** (`cmspx27ez2bgm6x44ggtsb0`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Sabai Thai Spa** (`cms0s69sbhwm6vkc53x`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Saboreé Hidden Cafe** (`cms6q3kf2iey2j0t51c`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Safe Haus Craft Beer & Kitchen** (`cms6q3qgjkcfrjezw2e`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Sage College - Moreno Valley Campus** (`cmspx24vpgbmrxpe7b6cebo`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Sales 4 Days** (`cms0s61a6o08lm9zvm`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Salley's Alley** (`cmspx2681osua44lv93gq69`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched. Note: address on file (870 Adams Ave, CA 92518) appears to be in March Air Reserve Base area, not central Moreno Valley.
+- **Saver Cut** (`cms0s68m3j0mve11z3l`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Sears** (`cmspx25eqhlq2pgmdae2e0e`) — `no-url`
+  - _detail:_ Not searched this session. Sears has closed the large majority of its California stores in recent years; local store status at this listing is uncertain and no site was confirmed.
+- **Security Public Storage** (`cmsll7sjl004edou9j9sdtspu`) — `no-url`
+  - _detail:_ Likely corresponds to the Southern California self-storage chain 'Security Public Storage' (securitypublicstorage.com), but this was not verified via search this session due to budget limits, so left unconfirmed rather than stated as found.
+- **Shango Moreno Valley** (`cmsll7skg004fdou97p973fav`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Shannon's Health Foods** (`cmspx25ovy74r8xpkafgxh5`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Sheila's Mobile Notary and Loan Signing** (`cmsll7sla004gdou944u3a3n4`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Sigma Beta Xi, Inc** (`cmsll7sm5004hdou9c7l7rgas`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Skechers Cafe** (`cms6q3mj8u7jsrtz51v`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched. Note: this address is near the Skechers distribution center in Moreno Valley; this may be an internal employee cafeteria rather than a public-facing business.
+- **SmartFlow Strategies, LLC** (`cmsll7son004kdou9bwjxp5sd`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Soapbox Laundry Room LLC** (`cmsll7spi004ldou9gmbu6gqe`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Soroptimist International of MV** (`cmsll7sqc004mdou90v3sw0ps`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Southpointe Shopping Center** (`cmsll7sr6004ndou9cud6x74g`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Sprint** (`cmspx26at5q5sem4lg2fetv`) — `no-url`
+  - _detail:_ Not searched this session. Note: Sprint merged into T-Mobile in 2020 and no longer operates as an independent brand/site; any remaining local store would now operate as T-Mobile.
+- **State Farm Insurance, Jeremy Garzon Agent** (`cmsll7ssv004pdou9mfx14to4`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched. State Farm agents typically have official pages at agents.statefarm.com, but the exact page for this agent was not verified.
+- **Summer Spa** (`cms0s69x9jq70f4rb42`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Sundance Plaza LLC** (`cmsll7svd004sdou9a4y5pzkz`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Sunflower Massage & Spa** (`cms0s69peb28e1ut33u`) — `no-url`
+  - _detail:_ Not searched â€” web search budget for this session was exhausted before this row could be researched.
+- **Sunnymead Plaza Shopping Center** (`cms0s62m6mhmgqv9v18`) — `no-url`
+  - _detail:_ Only directory/listing sites found (Atly, Yahoo Local, Yelp); no official property management website located.
+- **Sunnymead Wesleyan Church** (`cmspx24sxpxz4edt5bh8inp`) — `no-url`
+  - _detail:_ Address (13300 Indian St) matches Yelp listing for 'Wesleyan Christian Fellowship,' but no official website found for either name.
+- **Tacos Bahia Fish** (`cms6q3gvpoqvogjxjm`) — `no-url`
+  - _detail:_ Only delivery-aggregator listings found (DoorDash, Uber Eats, Grubhub, Seamless); no independent website or social page located.
+- **Tacos La Bufadora** (`cms6q3fnzpzg62bn07`) — `no-url`
+  - _detail:_ Only an ordering platform page (NetWaiter) and directory/review listings found; no independent website.
+- **Tacos el Gilly** (`cms6q3fxze8i5ymflh`) — `no-url`
+  - _detail:_ Business not specifically found; only generic 'best tacos in Moreno Valley' listicle results turned up.
+- **Taqueria D'Los Fuentes** (`cms6q3foyxvngbacv8`) — `no-url`
+  - _detail:_ No independent website; active Instagram page: https://www.instagram.com/taqueriadlosfuentes/
+- **Taqueria Zacatecas** (`cms6q3guqrp6jh3z6l`) — `no-url`
+  - _detail:_ No independent website; active Facebook page: https://www.facebook.com/TheRealTaqueriaZacatecas/
+- **Tax 4 Less** (`cms0s6h41lov0nckf6s`) — `no-url`
+  - _detail:_ No independent website; active Facebook page: https://www.facebook.com/Tax4Less/
+- **Tea Real Estate** (`cmspx275ur0gitr19dbq6hj`) — `no-url`
+  - _detail:_ No independent website; active Facebook page: https://www.facebook.com/TEARealEstateCA
+- **The District At Moreno Valley** (`cms0s62k87obdy3zo16`) — `no-url`
+  - _detail:_ Only leasing flyer PDFs and a contractor portfolio page found; no dedicated property website.
+- **The Slawson Law Offices** (`cms0s6flzfx4gr21h67`) — `no-url`
+  - _detail:_ No independent website; only directory/review listings found (Birdeye, Avvo, Justia, ReachAttorneys).
+- **The Taco Machine Mobile Catering Co** (`cms6q3j8na7us13kkx`) — `no-url`
+  - _detail:_ No independent website; active Facebook page: https://www.facebook.com/thetacomachinemobilecateringco.info/
+- **Town Gate Center** (`cms0s61ppcy97rmfy12`) — `no-url`
+  - _detail:_ Town Gate/Towngate Center is a shopping plaza (not a single business); no independent property website found, active Facebook page at https://www.facebook.com/TowngateCenter/
+- **Tres Cafe** (`cms6q3k75v0g96f9t14`) — `no-url`
+  - _detail:_ No independent website found; active Instagram page at https://www.instagram.com/tres.cafe/
+- **Trinidad Safety Construction** (`cmsll7t5l0054dou9odf2y5ee`) — `no-url`
+  - _detail:_ No official website found; only Chamber of Commerce directory listing, unclear if a matching Facebook page is the same business
+- **USA Furniture** (`cmspx29vmho5h6ph2ezob76`) — `no-url`
+  - _detail:_ No official website found; only directory/lease-to-own listings (Yellow Pages, Acima)
+- **Ultimate Auto Sales LLC** (`cms0s65awrtapdi6p2g`) — `no-url`
+  - _detail:_ Could not confirm a matching website; the address is also associated with an unrelated trucking company (Ultimate Transport Solutions LLC), creating ambiguity
+- **Victory Home Health Agency** (`cms0s6b2t526blwj34i`) — `no-url`
+  - _detail:_ No official website found; only healthcare-directory listings (SeniorCare, A Place for Mom, Yelp)
+- **Viet Nam Resturant** (`cmspx25qqvrbt9yb11t0p4l`) — `no-url`
+  - _detail:_ Address (23715 Sunnymead Blvd) now appears to be occupied by Pho Shack Noodles & Grill (https://www.phoshackonline.com/); the older 'Viet Nam Restaurant'/Pho Vietnam Daily listing is marked CLOSED on Yelp
+- **Westgate Shopping Center** (`cms0s62qywstodams1d`) — `no-url`
+  - _detail:_ Shopping center property; no dedicated official website found (only a promotional flyer PDF and directory listings)
+- **Wet Pets** (`cms0s6nxasofakdlb9l`) — `no-url`
+  - _detail:_ No official website found; only directory/review listings (Apple Maps, Cylex, Yelp)
+- **Wilmot Elementary School** (`cmspx24jprh7gaj1c19q2yd`) — `no-url`
+  - _detail:_ No independent website found; only third-party school-directory listings (search did not surface a distinct current MVUSD page)
+- **Winchester Associates, Inc.** (`cmsll7tfr005gdou9knl8dihz`) — `no-url`
+  - _detail:_ No official website found; only directory/Chamber listings (surveying/engineering firm)
+- **Writers Lane Solutions** (`cmsll7thf005idou91yy3phuw`) — `no-url`
+  - _detail:_ No official website found; only a Chamber of Commerce directory listing
+- **Z&D Massage** (`cms0s6a4u1dxszo6t4a`) — `no-url`
+  - _detail:_ No official website found; only directory/review listings (Yelp, Birdeye, Chamber)
+- **Zedomily Legal Services** (`cms0s6fh4zbi7sve362`) — `no-url`
+  - _detail:_ No official website found; active Facebook page at https://www.facebook.com/p/Zedomily-Legal-Services-61558788011308/
