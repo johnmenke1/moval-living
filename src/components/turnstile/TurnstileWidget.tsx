@@ -16,9 +16,13 @@
  *
  * Env:
  *   NEXT_PUBLIC_TURNSTILE_SITE_KEY — public site key from Cloudflare dashboard.
- *                                    If unset, the widget renders a hidden
- *                                    input with an empty token (server falls
- *                                    back to "skip" so dev still works).
+ *                                    If unset OR malformed (length out of range,
+ *                                    contains whitespace/escape chars, etc.),
+ *                                    the widget renders a hidden input with an
+ *                                    empty token and logs a console warning. The
+ *                                    server's `verifyTurnstileOrSkip` skips
+ *                                    verification when the secret is also unset,
+ *                                    so the form still POSTs successfully.
  *
  * Cloudflare test keys for local dev:
  *   Site key:    1x00000000000000000000AA
@@ -47,10 +51,27 @@ export function TurnstileWidget({
 }: TurnstileWidgetProps) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
-  // Dev fallback: no key configured. Render an empty token so the form
-  // POSTs `turnstileToken: ''` and the server's `verifyTurnstileOrSkip`
-  // skips verification. (Logged loudly in server logs so it's noticed.)
-  if (!siteKey) {
+  // Dev fallback: no key configured (or the key is malformed — e.g. has
+  // a literal "\n" suffix from a bad paste). Render an empty token so
+  // the form POSTs `turnstileToken: ''` and the server's
+  // `verifyTurnstileOrSkip` skips verification. The length + charset
+  // heuristic catches the 0x-prefixed Cloudflare production sitekey
+  // shape (35 chars). If you ever need a different prefix, update both
+  // checks below.
+  const looksLikeValidKey =
+    typeof siteKey === 'string'
+    && siteKey.length >= 30
+    && siteKey.length <= 60
+    && !/[\s\\"]/.test(siteKey) // no whitespace, escaped chars, or stray quotes
+
+  if (!siteKey || !looksLikeValidKey) {
+    if (typeof window !== 'undefined' && siteKey) {
+      // Surface a console hint so dev sees the bad key without breaking prod
+      console.warn(
+        '[Turnstile] NEXT_PUBLIC_TURNSTILE_SITE_KEY looks malformed; rendering fallback. Got:',
+        JSON.stringify(siteKey),
+      )
+    }
     return (
       <div className={className} data-turnstile="missing-key">
         {/* Empty token — server side will skip verification when secret is also unset */}
