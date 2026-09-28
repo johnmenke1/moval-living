@@ -30,7 +30,7 @@
  *   Both produce a token that always passes siteverify.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Turnstile } from '@marsidev/react-turnstile'
 
 interface TurnstileWidgetProps {
@@ -94,50 +94,96 @@ export function TurnstileWidget({
           size: 'flexible',
         }}
       />
-      {/* Watchdog: @marsidev/react-turnstile silently fails when
-          Cloudflare's challenge endpoint fails to load (e.g. domain
-          not authorized for the sitekey). Detect the "no iframe after
-          6s" condition and surface a clearer message via onError so
-          the form shows something actionable instead of "Unable to
-          connect" with no callback. */}
-      <TurnstileWatchdog siteKey={siteKey} onFailure={onError} />
+      {/* Watchdog: detects the case where Cloudflare's widget
+          completely fails to load (e.g. domain not authorized for
+          the sitekey, network blocking challenges.cloudflare.com)
+          and surfaces a clearer message via onError. Critical: only
+          fires when NO success signal has been seen AND no token is
+          present in the hidden response field. After the user solves
+          the CAPTCHA, onSuccess fires AND Cloudflare fills the
+          hidden input — both of those cancel the watchdog. */}
+      <TurnstileWatchdog onFailure={onError} />
     </div>
   )
 }
 
 /**
- * Watchdog: after 6 seconds, check whether Cloudflare's iframe
- * actually rendered inside the cf-turnstile container. If not, call
- * onFailure with a human-readable explanation. Renders nothing.
+ * Watchdog: after 8 seconds, check whether the Turnstile widget has
+ * either:
+ *   - Called onSuccess (token issued) → cancel, no error
+ *   - Filled the hidden cf-turnstile-response input with a token → cancel
+ *   - Neither → assume the challenge never loaded, call onFailure.
+ *
+ * Implementation notes:
+ *   - The watchdog polls via setInterval, NOT a single setTimeout.
+ *     setTimeout has the problem that the user might solve the
+ *     CAPTCHA at second 7.5 and we'd still fire at second 8. setInterval
+ *     checks every 250ms and stops itself the moment success is seen.
+ *   - Uses refs (not state) for the success tracker so re-renders from
+ *     parent state changes (email input, claiming flag, etc.) don't
+ *     reset the watchdog.
+ *   - Renders nothing.
  */
 function TurnstileWatchdog({
-  siteKey,
   onFailure,
 }: {
-  siteKey: string
   onFailure?: (reason: string) => void
 }) {
-  const [fired, setFired] = useState(false)
+  // useRef for the callback so it survives re-renders without
+  // re-triggering the polling effect. Otherwise every parent
+  // state change (email input, claiming flag) would create a new
+  // onFailure reference and reset the watchdog.
+  const onFailureRef = useRef(onFailure)
+  useEffect(() => {
+    onFailureRef.current = onFailure
+  }, [onFailure])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (fired) return
-      const container = document.getElementById('cf-turnstile')
-      const hasIframe = container ? container.querySelector('iframe') : null
-      if (!hasIframe) {
-        console.warn(
-          '[Turnstile] watchdog: no iframe rendered within 6s. Sitekey:',
-          JSON.stringify(siteKey),
-          '— this usually means the sitekey is not authorized for this domain in the Cloudflare dashboard, or the user is on a corporate network blocking challenges.cloudflare.com.',
-        )
-        onFailure?.(
-          'CAPTCHA failed to load — the site key may not be authorized for this domain. Please contact the site administrator.',
-        )
-        setFired(true)
+    if (typeof window === 'undefined') return
+    let cancelled = false
+    let fired = false
+
+    let attempts = 0
+    const MAX_ATTEMPTS = 32 // 32 * 250ms = 8 seconds
+    const interval = setInterval(() => {
+      if (cancelled || fired) {
+        clearInterval(interval)
+        return
       }
-    }, 6000)
-    return () => clearTimeout(timer)
-  }, [siteKey, onFailure, fired])
+      attempts += 1
+
+      // Success signal: Cloudflare filled the hidden response input
+      // with a real token (after the user solves the challenge).
+      const responseInput = document.querySelector<HTMLInputElement>(
+        'input[name="cf-turnstile-response"]',
+      )
+      if (responseInput && responseInput.value && responseInput.value.length > 0) {
+        cancelled = true
+        clearInterval(interval)
+        return
+      }
+
+      // Timeout: 8s passed with no token AND no iframe → failure
+      if (attempts >= MAX_ATTEMPTS) {
+        clearInterval(interval)
+        const container = document.getElementById('cf-turnstile')
+        const hasIframe = container ? container.querySelector('iframe') : null
+        if (!hasIframe && !cancelled) {
+          fired = true
+          console.warn(
+            '[Turnstile] watchdog: no token or iframe after 8s. ' +
+              'This usually means the sitekey is not authorized for this domain ' +
+              'in the Cloudflare dashboard, or the user is on a network blocking challenges.cloudflare.com.',
+          )
+          onFailureRef.current?.(
+            'CAPTCHA failed to load — the site key may not be authorized for this domain. Please contact the site administrator.',
+          )
+        }
+      }
+    }, 250)
+
+    return () => clearInterval(interval)
+  }, []) // Run once on mount; ref handles callback updates.
 
   return null
 }
