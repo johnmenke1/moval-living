@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { nanoid } from 'nanoid'
-import { auth } from '@/auth'
 
 // GET /api/businesses — list approved businesses (for social post form's "link to business" dropdown)
 export async function GET(req: NextRequest) {
@@ -84,19 +83,23 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Auto-link to logged-in owner if authenticated. Wrap in its own try
-    // so an auth failure (e.g. a corrupt session cookie) can't tank the
-    // whole submission — we still accept anonymous submissions.
-    let ownerId: string | null = null
-    try {
-      const session = await auth()
-      ownerId = session?.user?.id || null
-    } catch {
-      ownerId = null
-    }
-
+    // We intentionally do NOT auto-attach the submitter as `ownerId` here.
+    //
+    //   - Business.ownerId is @unique (1:1 with Owner). The original schema
+    //     assumption was one-account-one-business, but real owners run
+    //     multiple businesses (Johnny owns Rate Trac Mortgage + Menke Real
+    //     Estate & Mortgage; restaurant groups run multiple locations). If
+    //     we attach on submit, anyone with one already-owned business
+    //     hits P2002 ("a business with that name already exists" — wrong,
+    //     it's an owner-uniqueness collision).
+    //   - /claim/<token> is the canonical ownership-transfer path: it
+    //     looks up the token, verifies email match or password, and
+    //     links the listing to the authenticated Owner (replacing any
+    //     prior owner with the new one — so claim is also the fix if a
+    //     business was accidentally auto-attached to the wrong person).
+    //
     // Generate a one-time claim token so the submitter can claim ownership
-    // without needing an account. Token expires in 7 days.
+    // through /claim. Token expires in 7 days.
     const claimToken = nanoid(32)
 
     const slug = `${(name as string).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${nanoid(6)}`
@@ -131,7 +134,8 @@ export async function POST(req: NextRequest) {
           name: name as string,
           tagline: (tagline as string) || null,
           categoryId: category!.id,
-          ownerId,
+          // ownerId intentionally omitted — see comment above. /claim
+          // is the only path that links a Business to an Owner.
           claimToken,
           claimExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           address: address as string,
@@ -139,7 +143,7 @@ export async function POST(req: NextRequest) {
           state: (state as string) || 'CA',
           zip: zip as string,
           phone: (phone as string) || null,
-                    email: (email as string) || null,
+          email: (email as string) || null,
           website: (website as string) || null,
           description: description as string,
           facebook: (facebook as string) || null,
@@ -176,11 +180,15 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     // Surface Prisma / transaction errors as JSON so the client can render
     // them instead of getting an empty body and a JSON-parse crash.
-    // P2002 = unique constraint (slug collision, email dup, etc).
+    // P2002 = unique constraint (now only slug collision can fire here,
+    // since we don't write ownerId anymore — see comment above).
     const message = err instanceof Error ? err.message : 'Unknown error'
     const code = (err as { code?: string }).code
     if (code === 'P2002') {
-      return NextResponse.json({ error: 'A business with that name already exists. Try a slightly different name.' }, { status: 409 })
+      return NextResponse.json(
+        { error: 'A business with that name (or URL slug) already exists. Try a slightly different name.' },
+        { status: 409 }
+      )
     }
     console.error('[/api/businesses POST]', code, message)
     return NextResponse.json({ error: 'Submission failed. Please try again.' }, { status: 500 })
