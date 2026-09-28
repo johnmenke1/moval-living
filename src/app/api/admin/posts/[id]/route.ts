@@ -34,6 +34,10 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
   try {
     const post = await updateGuestPost(id, parsed.data)
+    // Bust homepage + sitemap caches so any change to a published post
+    // shows up immediately. Detail pages are force-dynamic, so they
+    // re-render on the next request without explicit invalidation.
+    revalidatePostData()
     return NextResponse.json(post)
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error'

@@ -73,7 +73,7 @@ export default function PostEditor(props: Props) {
     excerpt: initial?.excerpt ?? '',
     body: initial?.body ?? '',
     heroImageUrl: initial?.heroImageUrl ?? '',
-    authorId: initial?.authorId ?? (props.authors[0]?.id ?? ''),
+    authorId: initial?.authorId ?? '',
     metaTitle: initial?.metaTitle ?? '',
     metaDescription: initial?.metaDescription ?? '',
     editorNotes: initial?.editorNotes ?? '',
@@ -238,29 +238,31 @@ export default function PostEditor(props: Props) {
               className="input font-mono text-sm"
             />
           </Field>
-          {form.postType === 'GUEST' && (
-            <Field label="Author" required>
-              <select
-                value={form.authorId}
-                onChange={(e) => setField('authorId', e.target.value)}
-                required
-                disabled={isEdit}
-                className="input"
-              >
-                <option value="">— select author —</option>
-                {props.authors.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.displayName}
-                  </option>
-                ))}
-              </select>
-              {isEdit && (
-                <span className="block text-xs text-text-secondary mt-1">
-                  Author can&apos;t be changed after creation.
-                </span>
-              )}
-            </Field>
-          )}
+          <Field
+            label="Author"
+            required={form.postType === 'GUEST'}
+            hint={
+              form.postType === 'GUEST'
+                ? 'Required for Guest Expert posts.'
+                : 'Optional. Pick a GuestAuthor record to attribute the byline to. Leave blank to use the default John Menke byline.'
+            }
+          >
+            <select
+              value={form.authorId}
+              onChange={(e) => setField('authorId', e.target.value)}
+              required={form.postType === 'GUEST'}
+              className="input"
+            >
+              <option value="">
+                {form.postType === 'GUEST' ? '— select author —' : '— none (use default byline) —'}
+              </option>
+              {props.authors.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.displayName}
+                </option>
+              ))}
+            </select>
+          </Field>
           <Field label="Excerpt" required hint="1-2 sentences. Used in cards and meta description fallback.">
             <textarea
               value={form.excerpt}

@@ -305,10 +305,11 @@ export default function PostsAdmin({ initialPosts, authors }: Props) {
                   )}
                   <Link
                     href={`/dashboard/posts-queue/${post.slug}`}
-                    className="p-2 text-text-secondary hover:text-primary"
-                    title="Edit"
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-md bg-primary text-white hover:bg-primary/90 transition-colors"
+                    title="Edit post"
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edit
                   </Link>
                   <button
                     onClick={() => handleDelete(post)}
