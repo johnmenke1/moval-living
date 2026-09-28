@@ -159,8 +159,17 @@ export default function SubmitPage() {
         }),
       })
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Submission failed')
+        // Defensive: a misbehaving server can return a non-JSON error
+        // body (e.g. an empty 500). Parse safely and fall back to a
+        // status-based message so the user always sees something.
+        let msg = `Submission failed (HTTP ${res.status})`
+        try {
+          const data = await res.json()
+          if (data?.error) msg = data.error
+        } catch {
+          // Body wasn't JSON — keep the status-based fallback.
+        }
+        throw new Error(msg)
       }
       const { slug, claimToken, name } = await res.json()
       router.push(`/submit/success?name=${encodeURIComponent(name)}&slug=${encodeURIComponent(slug)}&token=${encodeURIComponent(claimToken)}`)
