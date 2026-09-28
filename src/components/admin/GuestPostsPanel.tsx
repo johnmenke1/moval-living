@@ -4,8 +4,9 @@ import { useState } from 'react'
 import {
   FileText, Plus, Trash2, ChevronDown, ChevronUp,
   Loader2, Search, X, Eye, Clock, CheckCircle, XCircle, Calendar,
-  ImagePlus, AlertCircle
+  ImagePlus, AlertCircle, Pencil,
 } from 'lucide-react'
+import Link from 'next/link'
 import MarkdownEditor from '@/components/admin/MarkdownEditor'
 
 const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; color: string; bg: string }> = {
@@ -192,7 +193,7 @@ export default function GuestPostsPanel({
         scheduledFor: createForm.scheduledFor || null,
         metaTitle: createForm.metaTitle || null,
         metaDescription: createForm.metaDescription || null,
-        authorId: createForm.postType === 'GUEST' ? createForm.authorId || undefined : undefined,
+        authorId: createForm.authorId || undefined,
         // LIFE
         spotifyTrack1: createForm.postType === 'LIFE' ? (createForm.spotifyTrack1 || null) : undefined,
         spotifyTrack2: createForm.postType === 'LIFE' ? (createForm.spotifyTrack2 || null) : undefined,
@@ -358,23 +359,24 @@ export default function GuestPostsPanel({
                 placeholder="auto-generated-from-title"
               />
             </div>
-            {createForm.postType === 'GUEST' && (
-              <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1">Author *</label>
-                <select
-                  required
-                  value={createForm.authorId}
-                  onChange={e => setCreateForm(f => ({ ...f, authorId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
-                >
-                  <option value="">Select author...</option>
-                  {authors.map(a => (
-                    <option key={a.id} value={a.id}>{a.displayName}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            {createForm.postType !== 'GUEST' && <div />}
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-1">
+                Author {createForm.postType === 'GUEST' ? '*' : <span className="text-slate-400">(optional)</span>}
+              </label>
+              <select
+                required={createForm.postType === 'GUEST'}
+                value={createForm.authorId}
+                onChange={e => setCreateForm(f => ({ ...f, authorId: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+              >
+                <option value="">
+                  {createForm.postType === 'GUEST' ? 'Select author...' : '— none (use default byline) —'}
+                </option>
+                {authors.map(a => (
+                  <option key={a.id} value={a.id}>{a.displayName}</option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1">Status</label>
               <select
@@ -748,10 +750,18 @@ export default function GuestPostsPanel({
 
                   {/* Actions */}
                   <div className="flex items-center gap-1 flex-shrink-0">
+                    <Link
+                      href={`/dashboard/posts-queue/${post.slug}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-md bg-primary text-white hover:bg-primary/90 transition-colors"
+                      title="Edit post"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      Edit
+                    </Link>
                     <button
                       onClick={() => setExpandedId(expandedId === post.id ? null : post.id)}
                       className="p-2 text-slate-400 hover:text-text hover:bg-slate-100 rounded-lg transition-colors"
-                      title="Expand"
+                      title="Quick status change"
                     >
                       {expandedId === post.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
