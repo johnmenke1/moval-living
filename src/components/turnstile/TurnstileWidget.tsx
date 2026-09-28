@@ -16,7 +16,7 @@
  *
  * Env:
  *   NEXT_PUBLIC_TURNSTILE_SITE_KEY — public site key from Cloudflare dashboard.
- *                                    If unset OR malformed (length out of range,
+ *                                    If unset OR malformed (length outside 16-60,
  *                                    contains whitespace/escape chars, etc.),
  *                                    the widget renders a hidden input with an
  *                                    empty token and logs a console warning. The
@@ -55,12 +55,13 @@ export function TurnstileWidget({
   // a literal "\n" suffix from a bad paste). Render an empty token so
   // the form POSTs `turnstileToken: ''` and the server's
   // `verifyTurnstileOrSkip` skips verification. The length + charset
-  // heuristic catches the 0x-prefixed Cloudflare production sitekey
-  // shape (35 chars). If you ever need a different prefix, update both
-  // checks below.
+  // heuristic is loose on purpose: production Cloudflare Turnstile
+  // sitekeys are 24-40 chars (the format has shifted over time), so
+  // we accept anything 16-60 chars with no whitespace/escape/stray-
+  // quote characters.
   const looksLikeValidKey =
     typeof siteKey === 'string'
-    && siteKey.length >= 30
+    && siteKey.length >= 16
     && siteKey.length <= 60
     && !/[\s\\"]/.test(siteKey) // no whitespace, escaped chars, or stray quotes
 
