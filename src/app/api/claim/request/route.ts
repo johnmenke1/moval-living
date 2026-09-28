@@ -76,9 +76,19 @@ export async function POST(request: NextRequest) {
         slug,
         emailDomain: email.split('@')[1],
         reason: turnstile.reason,
+        hasToken: Boolean(turnstileToken),
+        tokenLength: typeof turnstileToken === 'string' ? turnstileToken.length : 0,
       })
+      // Include the failure reason in the response for debugging — the
+      // frontend surfaces this in the inline error so we can diagnose
+      // without digging through Vercel logs. Production users won't
+      // care about 'missing-token' vs 'token-rejected'; devs reading
+      // the network tab will.
       return NextResponse.json(
-        { error: 'Bot protection check failed — please try again.' },
+        {
+          error: 'Bot protection check failed — please try again.',
+          _turnstileReason: turnstile.reason,
+        },
         { status: 403 },
       )
     }
