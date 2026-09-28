@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     const business = await prisma.business.findUnique({
       where: { slug },
-      select: { id: true, name: true, status: true, ownerId: true },
+      select: { id: true, name: true, status: true, ownerId: true, claimToken: true, claimExpiresAt: true },
     })
 
     if (!business) {
@@ -110,13 +110,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This listing is not yet approved' }, { status: 403 })
     }
 
-    const claimToken = nanoid(32)
-    const claimExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    // Only mint a fresh token if the existing one is missing or
+    // expired. Otherwise re-using the same token keeps earlier
+    // emails working (so Johnny doesn't get confused if he clicked
+    // the button twice or has the email open in multiple devices).
+    // nanoid(32) is 192 bits of entropy; reusing it for 7 days is
+    // safe.
+    const now = new Date()
+    const existingExpiresAt = business.claimExpiresAt ? new Date(business.claimExpiresAt) : null
+    const existingTokenValid = business.claimToken && existingExpiresAt && existingExpiresAt > now
 
-    await prisma.business.update({
-      where: { id: business.id },
-      data: { claimToken, claimExpiresAt },
-    })
+    const claimToken = existingTokenValid ? business.claimToken! : nanoid(32)
+    const claimExpiresAt = existingTokenValid
+      ? existingExpiresAt!
+      : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days
+
+    if (!existingTokenValid) {
+      await prisma.business.update({
+        where: { id: business.id },
+        data: { claimToken, claimExpiresAt },
+      })
+    }
 
     // Build the claim URL
     const baseUrl = process.env.NEXTAUTH_URL || 'https://www.moval.living'

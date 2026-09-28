@@ -20,6 +20,8 @@ export default function ClaimPageClient() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const [expiredAt, setExpiredAt] = useState<string | null>(null)
+  const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [validating, setValidating] = useState(false)
   const [businessName, setBusinessName] = useState('')
   const [emailOptIn, setEmailOptIn] = useState(false)
@@ -37,8 +39,15 @@ export default function ClaimPageClient() {
         const res = await fetch(`/api/claim/verify?token=${encodeURIComponent(token)}`)
         const data = await res.json()
         if (cancelled) return
-        if (!res.ok) throw new Error(data.error || 'Invalid claim link')
+        if (!res.ok) {
+          // 410 from verify = expired OR already-claimed. Both are
+          // surfaced clearly so the user knows whether to retry.
+          setError(data.error || 'Invalid claim link')
+          if (data.expiredAt) setExpiredAt(data.expiredAt)
+          return
+        }
         setBusinessName(data.business.name)
+        if (data.expiresAt) setExpiresAt(data.expiresAt)
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Invalid or expired claim link')
@@ -61,8 +70,12 @@ export default function ClaimPageClient() {
       // Re-verify the claim token is still valid
       const verifyRes = await fetch(`/api/claim/verify?token=${encodeURIComponent(token)}`)
       const verifyData = await verifyRes.json()
-      if (!verifyRes.ok) throw new Error(verifyData.error || 'Invalid or expired claim link')
+      if (!verifyRes.ok) {
+        if (verifyData.expiredAt) setExpiredAt(verifyData.expiredAt)
+        throw new Error(verifyData.error || 'Invalid or expired claim link')
+      }
       setBusinessName(verifyData.business.name)
+      if (verifyData.expiresAt) setExpiresAt(verifyData.expiresAt)
 
       // Register + sign in
       const regRes = await fetch('/api/auth/register', {
@@ -316,9 +329,26 @@ export default function ClaimPageClient() {
               <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
                 <AlertCircle className="w-6 h-6 text-red-600" />
               </div>
-              <h2 className="text-lg font-bold text-text mb-2">Invalid or Expired Link</h2>
-              <p className="text-sm text-text-secondary mb-5">{error}</p>
-              <Link href="/my-submissions" className="text-primary text-sm hover:underline">Find my submission instead →</Link>
+              <h2 className="text-lg font-bold text-text mb-2">
+                {expiredAt ? 'Link Expired' : 'Invalid Claim Link'}
+              </h2>
+              <p className="text-sm text-text-secondary mb-2">{error}</p>
+              {expiredAt && (
+                <p className="text-xs text-text-secondary mb-5">
+                  This link expired on {new Date(expiredAt).toLocaleString('en-US', {
+                    dateStyle: 'long',
+                    timeStyle: 'short',
+                  })}.
+                </p>
+              )}
+              {!expiredAt && (
+                <p className="text-xs text-text-secondary mb-5">
+                  This can happen if the link was mistyped, never existed, or has already been used.
+                </p>
+              )}
+              <Link href="/my-submissions" className="text-primary text-sm hover:underline">
+                Find my submission instead →
+              </Link>
             </div>
           )}
         </div>

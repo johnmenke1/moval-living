@@ -88,10 +88,13 @@ export function BusinessSidebar({ business }: BusinessSidebarProps) {
     )
   }
 
-  // ── Not logged in ──
-  if (!isLoggedIn) {
-    if (claimed) {
-      return (
+  // ── Just submitted a claim request (any auth state) ──
+  // Show the success card instead of the form. We use the local
+  // `claimed` state, not `business.ownerId`, because the owner link
+  // isn't established until the user clicks the email link.
+  if (claimed) {
+    return (
+      <>
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 text-center">
           <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-6 h-6 text-green-600" />
@@ -100,10 +103,25 @@ export function BusinessSidebar({ business }: BusinessSidebarProps) {
           <p className="text-text-secondary text-sm">
             We sent a claim link to <strong>{email}</strong>. Click it to verify ownership and manage {business.name}.
           </p>
+          <p className="text-text-secondary text-xs mt-3">
+            Didn't get it? Check spam, then{' '}
+            <button
+              type="button"
+              onClick={() => setClaimed(false)}
+              className="text-primary hover:underline"
+            >
+              try a different email
+            </button>
+            .
+          </p>
         </div>
-      )
-    }
+        <WebsiteUpsell />
+      </>
+    )
+  }
 
+  // ── Not logged in ──
+  if (!isLoggedIn) {
     return (
       <>
         {/* Claim CTA */}
