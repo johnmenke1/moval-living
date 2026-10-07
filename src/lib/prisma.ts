@@ -4,6 +4,7 @@ import { Pool } from 'pg'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
+  pool: Pool | undefined
 }
 
 /**
@@ -16,13 +17,35 @@ const globalForPrisma = globalThis as unknown as {
  * actual query at runtime will fail with a real connection error, which
  * is what we want — the alternative is the build crashing on `next build`
  * for every page that imports this module.
+ *
+ * Pool sizing (changed 2026-10-07 to cut Neon compute bill):
+ *   - max: 2  — Vercel function instances are short-lived (~5s) and we
+ *     never need more than a couple of concurrent queries per request.
+ *     The previous default of 10 was leaving idle sockets open when
+ *     functions exited without calling pool.end(), which Neon counts
+ *     as "active compute" and bills against the Launch plan's 24/7
+ *     always-on minimum.
+ *   - idleTimeoutMillis: 1000 — close idle sockets fast (1s). Default
+ *     is 10s; 1s matches Vercel function lifetime.
+ *   - allowExitOnIdle: true — let the process exit cleanly even with
+ *     idle connections, so Vercel can recycle the function instance.
+ *   - connectionTimeoutMillis: 10000 — fail fast instead of hanging.
  */
 function buildPrismaClient(): PrismaClient {
   const connectionString =
     process.env.DATABASE_URL ||
     'postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder?sslmode=disable'
 
-  const pool = new Pool({ connectionString })
+  if (!globalForPrisma.pool) {
+    globalForPrisma.pool = new Pool({
+      connectionString,
+      max: 2,
+      idleTimeoutMillis: 1000,
+      allowExitOnIdle: true,
+      connectionTimeoutMillis: 10000,
+    })
+  }
+  const pool = globalForPrisma.pool
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
 }
@@ -49,4 +72,20 @@ export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = getPrisma()
+}
+
+// Best-effort cleanup when the Vercel function instance is recycled.
+// Without this, the pool's idle sockets stay open until Neon's
+// idle_timeout (which is on the order of minutes), and each one
+// counts against the always-on compute minimum.
+if (process.env.NODE_ENV === 'production') {
+  const cleanup = () => {
+    if (globalForPrisma.pool) {
+      globalForPrisma.pool.end().catch(() => {
+        // Swallow — we're shutting down anyway.
+      })
+    }
+  }
+  process.once('SIGTERM', cleanup)
+  process.once('SIGINT', cleanup)
 }
