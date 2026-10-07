@@ -6,12 +6,12 @@
  *
  * Use this when:
  *   - The submitter's image is missing or low quality
- *   - The FAL-generated cover doesn't match the curator's editorial vision
  *   - The admin has a better promo image to use
  *
  * Body: multipart/form-data with a single `file` field. Accepts image/*
  * up to 8MB. Uploads to events/{slug}/hero-{timestamp}.{ext} in Vercel
- * Blob (same bucket as the FAL pipeline in regenerate-hero).
+ * Blob (the same bucket formerly used by the now-removed fal.ai
+ * regenerate-hero pipeline).
  *
  * Response: { eventId, slug, heroImageUrl }
  */
