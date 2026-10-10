@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { desc, eq } from 'drizzle-orm'
+import { db, guestPost } from '@/db'
 
 // GET /api/guest-posts — public: list published posts
 export async function GET() {
-  const posts = await prisma.guestPost.findMany({
-    where: { status: 'published' },
-    include: {
+  const posts = await db.query.guestPost.findMany({
+    where: eq(guestPost.status, 'published'),
+    with: {
       author: {
-        select: {
+        columns: {
           id: true,
           displayName: true,
           slug: true,
@@ -17,7 +18,7 @@ export async function GET() {
         },
       },
     },
-    orderBy: { publishedAt: 'desc' },
+    orderBy: desc(guestPost.publishedAt),
   })
 
   return NextResponse.json(posts)

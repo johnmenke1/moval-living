@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm'
+import { db, business, review, deal } from '@/db'
+import { countGroupedBy } from '@/lib/counts'
 import { ChevronLeft, UserCheck } from 'lucide-react'
 import ClaimedBusinessesClient from '@/components/admin/ClaimedBusinessesClient'
 
@@ -29,44 +31,48 @@ export default async function ClaimedBusinessesPage() {
   // "this business has been claimed" predicate. We exclude soft-claimed
   // rows where the token exists but ownerId is still null (those are
   // pending invites, not claimed listings).
-  const claimedBusinesses = await prisma.business.findMany({
-    where: {
-      claimedAt: { not: null },
-      ownerId: { not: null },
-    },
-    orderBy: { claimedAt: 'desc' },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      tagline: true,
-      tier: true,
-      status: true,
-      city: true,
-      state: true,
-      address: true,
-      claimedAt: true,
-      featuredAt: true,
-      isExpertPartner: true,
-      category: { select: { name: true, slug: true } },
-      owner: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          emailOptIn: true,
+  const claimedBusinesses = await db.query.business
+    .findMany({
+      where: and(isNotNull(business.claimedAt), isNotNull(business.ownerId)),
+      orderBy: desc(business.claimedAt),
+      columns: {
+        id: true,
+        slug: true,
+        name: true,
+        tagline: true,
+        tier: true,
+        status: true,
+        city: true,
+        state: true,
+        address: true,
+        claimedAt: true,
+        featuredAt: true,
+        isExpertPartner: true,
+      },
+      with: {
+        category: { columns: { name: true, slug: true } },
+        owner: {
+          columns: { id: true, name: true, email: true, phone: true, emailOptIn: true },
         },
       },
-      _count: { select: { reviews: true, deals: true } },
-    },
-  })
+    })
+    .then(async (rows) => {
+      const ids = rows.map((r) => r.id)
+      const [reviews, deals] = await Promise.all([
+        countGroupedBy(review.businessId, ids),
+        countGroupedBy(deal.businessId, ids),
+      ])
+      return rows.map((r) => ({
+        ...r,
+        _count: { reviews: reviews.get(r.id) ?? 0, deals: deals.get(r.id) ?? 0 },
+      }))
+    })
 
   // Counts panel — claim activity is the headline number for this view.
   const [totalApproved, totalFeatured, totalEverClaimed] = await Promise.all([
-    prisma.business.count({ where: { claimedAt: { not: null }, status: 'APPROVED' } }),
-    prisma.business.count({ where: { claimedAt: { not: null }, tier: { in: ['FEATURED', 'EXPERT_PARTNER'] } } }),
-    prisma.business.count({ where: { claimedAt: { not: null } } }),
+    db.$count(business, and(isNotNull(business.claimedAt), eq(business.status, 'APPROVED'))),
+    db.$count(business, and(isNotNull(business.claimedAt), inArray(business.tier, ['FEATURED', 'EXPERT_PARTNER']))),
+    db.$count(business, isNotNull(business.claimedAt)),
   ])
 
   return (

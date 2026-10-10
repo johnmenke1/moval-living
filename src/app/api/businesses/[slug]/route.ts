@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { desc, eq } from 'drizzle-orm'
+import { db, business as businessTable, review } from '@/db'
 import { buildBusinessUpdateData, canManageBusiness } from '@/lib/business-mutations'
 
 export async function GET(
@@ -10,13 +11,13 @@ export async function GET(
   try {
     const { slug } = await params
     const session = await auth()
-    const business = await prisma.business.findUnique({
-      where: { slug },
-      include: {
+    const business = await db.query.business.findFirst({
+      where: eq(businessTable.slug, slug),
+      with: {
         category: true,
         reviews: {
-          where: { flagged: false },
-          orderBy: { createdAt: 'desc' },
+          where: eq(review.flagged, false),
+          orderBy: desc(review.createdAt),
         },
       },
     })
@@ -102,9 +103,9 @@ export async function PUT(
     }
 
     const { slug } = await params
-    const existing = await prisma.business.findUnique({
-      where: { slug },
-      select: { id: true, ownerId: true },
+    const existing = await db.query.business.findFirst({
+      where: eq(businessTable.slug, slug),
+      columns: { id: true, ownerId: true },
     })
 
     if (!existing) {
@@ -128,10 +129,11 @@ export async function PUT(
       delete (data as { hispanicChamberMember?: unknown }).hispanicChamberMember
     }
 
-    const business = await prisma.business.update({
-      where: { id: existing.id },
-      data,
-    })
+    const [business] = await db
+      .update(businessTable)
+      .set(data)
+      .where(eq(businessTable.id, existing.id))
+      .returning()
 
     return NextResponse.json(business)
   } catch (error: unknown) {

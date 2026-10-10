@@ -26,7 +26,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq, like } from 'drizzle-orm'
+import { db, event as eventTable, submission, escapeLike } from '@/db'
 import { put } from '@vercel/blob'
 import { revalidateEventData } from '@/lib/revalidate'
 
@@ -57,11 +58,9 @@ export async function POST(req: NextRequest) {
   // match by sourceUrl pattern — Ticketmaster URLs come from Live Nation
   // venues (Fox Riverside, Riverside Municipal Auditorium, and any other
   // Live Nation venue we add later).
-  const events = await prisma.event.findMany({
-    where: {
-      sourceUrl: { contains: 'ticketmaster.com' },
-    },
-    select: { id: true, slug: true, sourceUrl: true, originatingSubmissionId: true },
+  const events = await db.query.event.findMany({
+    where: like(eventTable.sourceUrl, `%${escapeLike('ticketmaster.com')}%`),
+    columns: { id: true, slug: true, sourceUrl: true, originatingSubmissionId: true },
   })
 
   // Build eventId map + filter
@@ -106,18 +105,15 @@ export async function POST(req: NextRequest) {
       const blob = await put(blobPath, buffer, { access: 'public', contentType })
 
       // Update event hero
-      await prisma.event.update({
-        where: { id: t.id },
-        data: { heroImageUrl: blob.url },
-      })
+      await db.update(eventTable).set({ heroImageUrl: blob.url }).where(eq(eventTable.id, t.id))
 
       // Also update originating Submission's thumbnail if it exists,
       // so future re-ingests / regenerates keep the right image.
       if (t.originatingSubmissionId) {
-        await prisma.submission.update({
-          where: { id: t.originatingSubmissionId },
-          data: { thumbnailUrl: blob.url },
-        })
+        await db
+          .update(submission)
+          .set({ thumbnailUrl: blob.url })
+          .where(eq(submission.id, t.originatingSubmissionId))
       }
 
       results.push({ slug: t.slug, eventId: t.eventId, status: 'success', thumbnailUrl: blob.url })

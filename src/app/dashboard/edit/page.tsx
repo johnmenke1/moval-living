@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { asc, desc, eq } from 'drizzle-orm'
+import { db, business as businessTable, category as categoryTable, owner as ownerTable, deal as dealTable } from '@/db'
 import EditBusinessClient from '@/components/business/EditBusinessClient'
 import { DealsManager } from '@/components/business/DealsManager'
 
@@ -32,18 +33,18 @@ export default async function EditBusinessPage({
 
   // Admin can pass ?id= to edit any business
   if (isAdmin && id) {
-    const business = await prisma.business.findUnique({
-      where: { id },
-      include: {
+    const business = await db.query.business.findFirst({
+      where: eq(businessTable.id, id),
+      with: {
         category: true,
         deals: {
-          orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+          orderBy: [asc(dealTable.displayOrder), desc(dealTable.createdAt)],
         },
       },
     })
     if (!business) redirect('/dashboard')
 
-    const categories = await prisma.category.findMany({ orderBy: { name: 'asc' } })
+    const categories = await db.query.category.findMany({ orderBy: asc(categoryTable.name) })
 
     // Default to Details tab; tab=deals switches to the DealsManager.
     const activeTab: 'details' | 'deals' = tab === 'deals' ? 'deals' : 'details'
@@ -130,15 +131,15 @@ export default async function EditBusinessPage({
   // of the (now-dropped) Business.coupon Json blob. Deeper deal
   // management lives at /dashboard/deals for owners who want to manage
   // more than one offer.
-  const owner = await prisma.owner.findUnique({
-    where: { id: session.user.id },
-    include: {
+  const owner = await db.query.owner.findFirst({
+    where: eq(ownerTable.id, session.user.id),
+    with: {
       business: {
-        include: {
+        with: {
           deals: {
-            where: { isActive: true },
-            orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-            take: 1,
+            where: eq(dealTable.isActive, true),
+            orderBy: [asc(dealTable.displayOrder), desc(dealTable.createdAt)],
+            limit: 1,
           },
         },
       },
@@ -149,8 +150,8 @@ export default async function EditBusinessPage({
     redirect('/dashboard')
   }
 
-  const categories = await prisma.category.findMany({
-    orderBy: { name: 'asc' },
+  const categories = await db.query.category.findMany({
+    orderBy: asc(categoryTable.name),
   })
 
   // Map the first deal (if any) to the legacy `coupon` shape so the

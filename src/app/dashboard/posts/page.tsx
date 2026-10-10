@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, MessageSquare } from 'lucide-react'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { desc } from 'drizzle-orm'
+import { db, socialPost } from '@/db'
 import SocialPostsModeration from '@/components/admin/SocialPostsModeration'
 
 export const dynamic = 'force-dynamic'
@@ -18,11 +19,11 @@ export default async function DashboardPostsPage() {
     redirect('/dashboard')
   }
 
-  const posts = await prisma.socialPost.findMany({
-    include: {
-      business: { select: { id: true, slug: true, name: true, logo: true } },
+  const posts = await db.query.socialPost.findMany({
+    with: {
+      business: { columns: { id: true, slug: true, name: true, logo: true } },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: desc(socialPost.createdAt),
   })
 
   const pendingCount = posts.filter(p => p.status === 'PENDING').length

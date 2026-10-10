@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { Prisma } from '@prisma/client'
-import { prisma } from '@/lib/prisma'
+import { asc, eq, ilike, and, or } from 'drizzle-orm'
+import {
+  db,
+  business as businessTable,
+  category as categoryTable,
+  deal as dealTable,
+  escapeLike,
+  isUniqueViolation,
+} from '@/db'
 import { nanoid } from 'nanoid'
 
 // GET /api/businesses — list approved businesses (for social post form's "link to business" dropdown)
@@ -8,14 +15,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const q = searchParams.get('q') || ''
 
-  const businesses = await prisma.business.findMany({
-    where: {
-      status: 'APPROVED',
-      ...(q ? { name: { contains: q, mode: 'insensitive' } } : {}),
-    },
-    select: { id: true, name: true, slug: true, logo: true },
-    take: 20,
-    orderBy: { name: 'asc' },
+  const businesses = await db.query.business.findMany({
+    where: and(
+      eq(businessTable.status, 'APPROVED'),
+      q ? ilike(businessTable.name, `%${escapeLike(q)}%`) : undefined
+    ),
+    columns: { id: true, name: true, slug: true, logo: true },
+    limit: 20,
+    orderBy: asc(businessTable.name),
   })
 
   return NextResponse.json(businesses)
@@ -66,9 +73,9 @@ export async function POST(req: NextRequest) {
     // If no match is found, auto-create the category from the slug (handles cases where
     // categories.ts has categories that don't exist in the DB yet — e.g. after a schema
     // change or new category added to the frontend before a seed was run).
-    let category = await prisma.category.findFirst({
-      where: { OR: [{ id: categoryId as string }, { slug: categoryId as string }] },
-      select: { id: true, slug: true },
+    let category: { id: string; slug: string } | undefined = await db.query.category.findFirst({
+      where: or(eq(categoryTable.id, categoryId as string), eq(categoryTable.slug, categoryId as string)),
+      columns: { id: true, slug: true },
     })
 
     if (!category) {
@@ -77,10 +84,10 @@ export async function POST(req: NextRequest) {
         .split('-')
         .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ')
-      category = await prisma.category.create({
-        data: { id: categoryId as string, name: autoName, slug: categoryId as string, icon: 'Star', description: '' },
-        select: { id: true, slug: true },
-      })
+      ;[category] = await db
+        .insert(categoryTable)
+        .values({ id: categoryId as string, name: autoName, slug: categoryId as string, icon: 'Star', description: '' })
+        .returning({ id: categoryTable.id, slug: categoryTable.slug })
     }
 
     // We intentionally do NOT auto-attach the submitter as `ownerId` here.
@@ -107,7 +114,7 @@ export async function POST(req: NextRequest) {
     // Bundle Business + Deal creation in one transaction. Either both land
     // or neither does — no half-submitted businesses floating without their
     // deal payload (the bug the legacy coupon JSON had). Typed as
-    // Prisma.DealUncheckedCreateInput so the optional code/imageUrl fields
+    // the Deal insert type so the optional code/imageUrl fields
     // stay narrowed to string|null instead of widening to unknown.
     const d = (dealInput && typeof dealInput === 'object'
       ? (dealInput as Record<string, unknown>)
@@ -115,7 +122,7 @@ export async function POST(req: NextRequest) {
         headline?: unknown; description?: unknown; code?: unknown
         imageUrl?: unknown; startsAt?: unknown; expiresAt?: unknown
       }
-    const deal: Omit<Prisma.DealUncheckedCreateInput, 'businessId'> | null = d && d.headline
+    const deal: Omit<typeof dealTable.$inferInsert, 'businessId'> | null = d && d.headline
       ? {
           headline: String(d.headline).trim(),
           description: String(d.description ?? ''),
@@ -127,9 +134,10 @@ export async function POST(req: NextRequest) {
         }
       : null
 
-    const business = await prisma.$transaction(async (tx) => {
-      const b = await tx.business.create({
-        data: {
+    const business = await db.transaction(async (tx) => {
+      const [b] = await tx
+        .insert(businessTable)
+        .values({
           slug,
           name: name as string,
           tagline: (tagline as string) || null,
@@ -151,14 +159,12 @@ export async function POST(req: NextRequest) {
           yelp: (yelp as string) || null,
           latitude: typeof latitude === 'number' ? latitude : null,
           longitude: typeof longitude === 'number' ? longitude : null,
-          hours: (hours as Prisma.InputJsonValue) || undefined,
+          hours: (hours as typeof businessTable.$inferInsert['hours']) || undefined,
           status: 'PENDING',
-        },
-      })
-      if (deal) {
-        await tx.deal.create({
-          data: { ...deal, businessId: b.id },
         })
+        .returning()
+      if (deal) {
+        await tx.insert(dealTable).values({ ...deal, businessId: b.id })
       }
       return b
     })
@@ -166,14 +172,14 @@ export async function POST(req: NextRequest) {
     // Persist consent at submit-time (audit trail for 10DLC).
     // Mirrored to the Owner when they claim the listing.
     if (hasEmailConsent || hasSmsConsent) {
-      await prisma.business.update({
-        where: { id: business.id },
-        data: {
+      await db
+        .update(businessTable)
+        .set({
           submitterEmailOptIn: hasEmailConsent,
           submitterSmsOptIn: hasSmsConsent,
           submitterConsentAt: new Date(),
-        },
-      })
+        })
+        .where(eq(businessTable.id, business.id))
     }
 
     return NextResponse.json({ slug: business.slug, claimToken, name: business.name }, { status: 201 })
@@ -183,8 +189,8 @@ export async function POST(req: NextRequest) {
     // P2002 = unique constraint (now only slug collision can fire here,
     // since we don't write ownerId anymore — see comment above).
     const message = err instanceof Error ? err.message : 'Unknown error'
-    const code = (err as { code?: string }).code
-    if (code === 'P2002') {
+    const code = (err as { code?: string }).code ?? (err as { cause?: { code?: string } }).cause?.code
+    if (isUniqueViolation(err)) {
       return NextResponse.json(
         { error: 'A business with that name (or URL slug) already exists. Try a slightly different name.' },
         { status: 409 }

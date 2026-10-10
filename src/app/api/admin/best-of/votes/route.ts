@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { count, desc, eq, inArray } from 'drizzle-orm'
+import { db, bestOfVote, bestOfNominee, owner as ownerTable } from '@/db'
 
 /**
  * GET /api/admin/best-of/votes
@@ -43,44 +44,43 @@ export async function GET(req: NextRequest) {
   //   2. Top voters — who is most engaged
   //   3. Per-nominee totals (if categoryId provided)
   const [recentVotes, topVoters, perNomineeCounts] = await Promise.all([
-    prisma.bestOfVote.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      select: {
+    db.query.bestOfVote.findMany({
+      orderBy: desc(bestOfVote.createdAt),
+      limit,
+      columns: {
         id: true,
         voterId: true,
         voterNameSnapshot: true,
         voterImageSnapshot: true,
         createdAt: true,
+      },
+      with: {
         nominee: {
-          select: {
-            id: true,
-            business: { select: { id: true, name: true, slug: true } },
-            category: { select: { id: true, name: true, slug: true } },
+          columns: { id: true },
+          with: {
+            business: { columns: { id: true, name: true, slug: true } },
+            category: { columns: { id: true, name: true, slug: true } },
           },
         },
-        voter: {
-          select: {
-            email: true,
-            lastBestOfVoteAt: true,
-          },
-        },
+        voter: { columns: { email: true, lastBestOfVoteAt: true } },
       },
     }),
-    // Group by voter to find most-active Owners.
-    prisma.bestOfVote.groupBy({
-      by: ['voterId'],
-      _count: { _all: true },
-      orderBy: { _count: { voterId: 'desc' } },
-      take: 20,
-    }),
+    db
+      .select({ voterId: bestOfVote.voterId, n: count() })
+      .from(bestOfVote)
+      .groupBy(bestOfVote.voterId)
+      .orderBy(desc(count()), bestOfVote.voterId)
+      .limit(20)
+      .then((rows) => rows.map((r) => ({ voterId: r.voterId, _count: { _all: r.n } }))),
     categoryId
-      ? prisma.bestOfVote.groupBy({
-          by: ['nomineeId'],
-          where: { nominee: { categoryId } },
-          _count: { _all: true },
-          orderBy: { _count: { nomineeId: 'desc' } },
-        })
+      ? db
+          .select({ nomineeId: bestOfVote.nomineeId, n: count() })
+          .from(bestOfVote)
+          .innerJoin(bestOfNominee, eq(bestOfNominee.id, bestOfVote.nomineeId))
+          .where(eq(bestOfNominee.categoryId, categoryId))
+          .groupBy(bestOfVote.nomineeId)
+          .orderBy(desc(count()), bestOfVote.nomineeId)
+          .then((rows) => rows.map((r) => ({ nomineeId: r.nomineeId, _count: { _all: r.n } })))
       : Promise.resolve([] as { nomineeId: string; _count: { _all: number } }[]),
   ])
 
@@ -91,9 +91,9 @@ export async function GET(req: NextRequest) {
   const voterIds = topVoters.map((v) => v.voterId)
   const owners =
     voterIds.length > 0
-      ? await prisma.owner.findMany({
-          where: { id: { in: voterIds } },
-          select: { id: true, name: true, email: true, image: true },
+      ? await db.query.owner.findMany({
+          where: inArray(ownerTable.id, voterIds),
+          columns: { id: true, name: true, email: true, image: true },
         })
       : []
   const ownerById = new Map(owners.map((o) => [o.id, o]))
@@ -113,12 +113,10 @@ export async function GET(req: NextRequest) {
   const nomineeIds = perNomineeCounts.map((p) => p.nomineeId)
   const nominees =
     nomineeIds.length > 0
-      ? await prisma.bestOfNominee.findMany({
-          where: { id: { in: nomineeIds } },
-          select: {
-            id: true,
-            business: { select: { name: true, slug: true } },
-          },
+      ? await db.query.bestOfNominee.findMany({
+          where: inArray(bestOfNominee.id, nomineeIds),
+          columns: { id: true },
+          with: { business: { columns: { name: true, slug: true } } },
         })
       : []
   const nomineeById = new Map(nominees.map((n) => [n.id, n]))

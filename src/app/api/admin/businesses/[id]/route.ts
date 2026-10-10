@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, business as businessTable, requireRow } from '@/db'
 import { auth } from '@/auth'
 import { z } from 'zod'
 import { revalidateBusinessData } from '@/lib/revalidate'
@@ -51,10 +52,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid fields', details: parsed.error.flatten() }, { status: 400 })
   }
 
-  const data: Record<string, unknown> = {}
+  const data: Partial<typeof businessTable.$inferInsert> = {}
   if (parsed.data.status) data.status = parsed.data.status
   if (parsed.data.tier) data.tier = parsed.data.tier
-  if (parsed.data.categoryId) data.category = { connect: { id: parsed.data.categoryId } }
+  if (parsed.data.categoryId) data.categoryId = parsed.data.categoryId
   if (parsed.data.googleBusiness !== undefined) data.googleBusiness = parsed.data.googleBusiness ?? null
   if (parsed.data.googleRating !== undefined) data.googleRating = parsed.data.googleRating ?? null
   if (parsed.data.googleReviewCount !== undefined) data.googleReviewCount = parsed.data.googleReviewCount ?? null
@@ -68,21 +69,24 @@ export async function PATCH(
   // first transition (idempotent — only set if currently null). This
   // mirrors the Stripe webhook logic so both paths produce the same UX.
   if (parsed.data.tier && (parsed.data.tier === 'FEATURED' || parsed.data.tier === 'EXPERT_PARTNER')) {
-    const existing = await prisma.business.findUnique({
-      where: { id },
-      select: { featuredAt: true },
+    const existing = await db.query.business.findFirst({
+      where: eq(businessTable.id, id),
+      columns: { featuredAt: true },
     })
     if (existing && !existing.featuredAt) {
       data.featuredAt = new Date()
     }
   }
 
-  const business = await prisma.business.update({
-    where: { id },
-    data,
-    include: {
-      category: { select: { name: true, slug: true } },
-      owner: { select: { id: true, name: true, email: true } },
+  requireRow(
+    await db.update(businessTable).set(data).where(eq(businessTable.id, id)).returning({ id: businessTable.id }),
+    'Business not found'
+  )
+  const business = await db.query.business.findFirst({
+    where: eq(businessTable.id, id),
+    with: {
+      category: { columns: { name: true, slug: true } },
+      owner: { columns: { id: true, name: true, email: true } },
     },
   })
 
@@ -106,7 +110,10 @@ export async function DELETE(
 
   const { id } = await params
 
-  await prisma.business.delete({ where: { id } })
+  requireRow(
+    await db.delete(businessTable).where(eq(businessTable.id, id)).returning({ id: businessTable.id }),
+    'Business not found'
+  )
 
   // Same ISR bust as PATCH (see src/lib/revalidate.ts).
   revalidateBusinessData()

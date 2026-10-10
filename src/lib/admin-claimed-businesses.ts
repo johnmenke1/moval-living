@@ -1,4 +1,5 @@
-import { prisma } from '@/lib/prisma'
+import { and, desc, gte, isNotNull } from 'drizzle-orm'
+import { db, business } from '@/db'
 
 /**
  * Server-side fetch for the admin "Claimed Businesses" page.
@@ -17,17 +18,14 @@ import { prisma } from '@/lib/prisma'
  * events, so the admin view stays consistent with public signals.
  */
 export async function getClaimedBusinesses() {
-  return prisma.business.findMany({
-    where: { ownerId: { not: null } },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      claimedAt: true,
-      category: { select: { name: true, slug: true } },
-      owner: { select: { id: true, name: true, email: true } },
+  return db.query.business.findMany({
+    where: isNotNull(business.ownerId),
+    columns: { id: true, name: true, slug: true, claimedAt: true },
+    with: {
+      category: { columns: { name: true, slug: true } },
+      owner: { columns: { id: true, name: true, email: true } },
     },
-    orderBy: { claimedAt: 'desc' },
+    orderBy: desc(business.claimedAt),
   })
 }
 
@@ -38,17 +36,13 @@ export async function getClaimedBusinesses() {
 export async function getClaimedBusinessStats() {
   const now = Date.now()
   const day = 86400000
+  const claimed = isNotNull(business.ownerId)
+  const since = (days: number) => and(claimed, gte(business.claimedAt, new Date(now - days * day)))
   const [total, last7d, last30d, last90d] = await Promise.all([
-    prisma.business.count({ where: { ownerId: { not: null } } }),
-    prisma.business.count({
-      where: { ownerId: { not: null }, claimedAt: { gte: new Date(now - 7 * day) } },
-    }),
-    prisma.business.count({
-      where: { ownerId: { not: null }, claimedAt: { gte: new Date(now - 30 * day) } },
-    }),
-    prisma.business.count({
-      where: { ownerId: { not: null }, claimedAt: { gte: new Date(now - 90 * day) } },
-    }),
+    db.$count(business, claimed),
+    db.$count(business, since(7)),
+    db.$count(business, since(30)),
+    db.$count(business, since(90)),
   ])
   return { total, last7d, last30d, last90d }
 }

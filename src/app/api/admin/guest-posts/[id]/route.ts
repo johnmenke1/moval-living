@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, guestPost, requireRow } from '@/db'
 import { auth } from '@/auth'
 import { z } from 'zod'
 import { revalidatePostData } from '@/lib/revalidate'
@@ -39,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: parsed.error.message }, { status: 400 })
   }
 
-  const existing = await prisma.guestPost.findUnique({ where: { id } })
+  const existing = await db.query.guestPost.findFirst({ where: eq(guestPost.id, id) })
   if (!existing) {
     return NextResponse.json({ error: 'Post not found' }, { status: 404 })
   }
@@ -64,14 +65,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     updateData.scheduledFor = new Date(parsed.data.scheduledFor as string)
   }
 
-  const post = await prisma.guestPost.update({
-    where: { id },
-    data: updateData as Parameters<typeof prisma.guestPost.update>[0]['data'],
-    include: {
-      author: {
-        select: { id: true, displayName: true, slug: true, photoUrl: true, title: true },
-      },
-    },
+  requireRow(
+    await db
+      .update(guestPost)
+      .set(updateData as Partial<typeof guestPost.$inferInsert>)
+      .where(eq(guestPost.id, id))
+      .returning({ id: guestPost.id }),
+    'Post not found'
+  )
+  const post = await db.query.guestPost.findFirst({
+    where: eq(guestPost.id, id),
+    with: { author: { columns: { id: true, displayName: true, slug: true, photoUrl: true, title: true } } },
   })
 
   return NextResponse.json(post)
@@ -86,12 +90,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const { id } = await params
 
-  const post = await prisma.guestPost.findUnique({ where: { id } })
+  const post = await db.query.guestPost.findFirst({ where: eq(guestPost.id, id) })
   if (!post) {
     return NextResponse.json({ error: 'Post not found' }, { status: 404 })
   }
 
-  await prisma.guestPost.delete({ where: { id } })
+  await db.delete(guestPost).where(eq(guestPost.id, id))
   // ISR cache bust — see src/lib/revalidate.ts for the path map.
 
   revalidatePostData()

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { and, asc, desc, eq } from 'drizzle-orm'
+import { db, bestOfCategory, bestOfNominee } from '@/db'
 
 // GET /api/best-of/[categorySlug] — get one published category with nominees
 export async function GET(
@@ -8,13 +9,14 @@ export async function GET(
 ) {
   const { categorySlug } = await params
 
-  const category = await prisma.bestOfCategory.findUnique({
-    where: { slug: categorySlug, published: true },
-    include: {
+  const category = await db.query.bestOfCategory.findFirst({
+    where: and(eq(bestOfCategory.slug, categorySlug), eq(bestOfCategory.published, true)),
+    with: {
       nominees: {
-        include: {
+        orderBy: [desc(bestOfNominee.winner), asc(bestOfNominee.displayOrder)],
+        with: {
           business: {
-            select: {
+            columns: {
               id: true,
               slug: true,
               name: true,
@@ -30,7 +32,6 @@ export async function GET(
             },
           },
         },
-        orderBy: [{ winner: 'desc' }, { displayOrder: 'asc' }],
       },
     },
   })

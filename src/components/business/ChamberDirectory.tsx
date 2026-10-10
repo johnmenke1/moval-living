@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Building2, Globe, ChevronRight } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
+import { and, asc, desc, eq } from 'drizzle-orm'
+import { db, business, deal as dealTable } from '@/db'
 import { BusinessCard } from '@/components/business/BusinessCard'
 
 // Shared server component behind /chamber and /hispanic-chamber — a live,
@@ -13,7 +14,7 @@ const VARIANTS = {
     name: 'Moreno Valley Chamber of Commerce',
     shortName: 'MV Chamber',
     icon: Building2,
-    where: { chamberMember: true },
+    flag: 'chamberMember',
     blurb:
       'moval.living proudly partners with the Moreno Valley Chamber of Commerce. Every chamber member below has a live listing on the directory — supporting them supports the whole community.',
   },
@@ -21,7 +22,7 @@ const VARIANTS = {
     name: 'Moreno Valley Hispanic Chamber of Commerce',
     shortName: 'MV Hispanic Chamber',
     icon: Globe,
-    where: { hispanicChamberMember: true },
+    flag: 'hispanicChamberMember',
     blurb:
       'moval.living proudly partners with the Moreno Valley Hispanic Chamber of Commerce. Every member below has a live listing on the directory — muchos atienden en español.',
   },
@@ -31,25 +32,26 @@ export async function ChamberDirectory({ variant }: { variant: keyof typeof VARI
   const config = VARIANTS[variant]
   const Icon = config.icon
 
-  const members = await prisma.business.findMany({
-    where: { status: 'APPROVED', ...config.where },
-    include: {
-      category: true,
-      reviews: true,
-      _count: { select: { reviews: true } },
-      // First active deal — the BusinessCard uses the deal's imageUrl as
-      // the highest-priority cover fallback and renders a "Deal" pill when
-      // any row is present. Replaces the legacy Business.coupon Json blob
-      // (dropped in migration 20260915000000_drop_business_coupon).
-      deals: {
-        where: { isActive: true },
-        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-        take: 1,
-        select: { imageUrl: true, isActive: true },
+  const members = await db.query.business
+    .findMany({
+      where: and(eq(business.status, 'APPROVED'), eq(business[config.flag], true)),
+      with: {
+        category: true,
+        reviews: true,
+        // First active deal — the BusinessCard uses the deal's imageUrl as
+        // the highest-priority cover fallback and renders a "Deal" pill when
+        // any row is present. Replaces the legacy Business.coupon Json blob
+        // (dropped in migration 20260915000000_drop_business_coupon).
+        deals: {
+          where: eq(dealTable.isActive, true),
+          orderBy: [asc(dealTable.displayOrder), desc(dealTable.createdAt)],
+          limit: 1,
+          columns: { imageUrl: true, isActive: true },
+        },
       },
-    },
-    orderBy: { name: 'asc' },
-  })
+      orderBy: asc(business.name),
+    })
+    .then((rows) => rows.map((b) => ({ ...b, _count: { reviews: b.reviews.length } })))
 
   return (
     <div className="bg-slate-50 min-h-screen">

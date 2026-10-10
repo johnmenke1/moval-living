@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, guestPost } from '@/db'
 
 // GET /api/guest-posts/[slug]
 export async function GET(
@@ -8,11 +9,11 @@ export async function GET(
 ) {
   const { slug } = await params
 
-  const post = await prisma.guestPost.findUnique({
-    where: { slug },
-    include: {
+  const post = await db.query.guestPost.findFirst({
+    where: eq(guestPost.slug, slug),
+    with: {
       author: {
-        select: {
+        columns: {
           id: true,
           displayName: true,
           slug: true,

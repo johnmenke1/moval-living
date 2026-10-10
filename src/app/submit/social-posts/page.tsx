@@ -1,4 +1,5 @@
-import { prisma } from '@/lib/prisma'
+import { asc, eq } from 'drizzle-orm'
+import { db, business } from '@/db'
 import { auth } from '@/auth'
 import SubmitPostForm from '@/components/social/SubmitPostForm'
 import type { Metadata } from 'next'
@@ -11,10 +12,10 @@ export const metadata: Metadata = {
 }
 
 export default async function SubmitSocialPostPage() {
-  const businesses = await prisma.business.findMany({
-    where: { status: 'APPROVED' },
-    select: { id: true, name: true, slug: true, logo: true },
-    orderBy: { name: 'asc' },
+  const businesses = await db.query.business.findMany({
+    where: eq(business.status, 'APPROVED'),
+    columns: { id: true, name: true, slug: true, logo: true },
+    orderBy: asc(business.name),
   })
 
   return (

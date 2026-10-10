@@ -17,7 +17,7 @@ Live at **[www.moval.living](https://www.moval.living)**.
 
 **Stack**
 - Next.js 16 (App Router) + React 19
-- Prisma 7 + Neon Postgres
+- Drizzle ORM (node-postgres) + Postgres
 - NextAuth v5 (credentials provider)
 - Tailwind CSS 4
 - Stripe (subscription billing)
@@ -44,7 +44,7 @@ src/
 │   ├── admin/                 # Admin moderation + diagnostics
 │   └── forms/                 # Lead capture, signup, etc.
 └── lib/
-    ├── prisma.ts              # Prisma client singleton
+    ├── (see src/db/)           # Drizzle client, schema, relations
     ├── expert-partner.ts      # Slug helpers + display + category-exclusivity (GHL integration removed 2026-09)
     ├── business-mutations.ts  # Zod schemas for business updates
     ├── lead-recap.ts          # Weekly recap email generator
@@ -60,7 +60,9 @@ src/
 npm install
 
 # Set up the DB
-DATABASE_URL="postgresql://..." npx prisma migrate deploy
+# (Drizzle introspects schema on the fly from src/db/schema.ts; no client
+# generation step required. Apply schema changes with `npx drizzle-kit push`.)
+echo "DATABASE_URL must be set"
 
 # Run the dev server
 npm run dev
@@ -99,21 +101,41 @@ has missed runs in the past.
 
 ### Database migrations
 
-The DB lives on Neon. **Never use `prisma migrate deploy`** against Neon — it
-deadlocks on the advisory lock. Instead, apply migrations manually via the
-`pg` driver:
+Schema lives in `src/db/schema.ts` (single source of truth) with relations in
+`src/db/relations.ts`. The active database drift is applied with:
 
 ```bash
-psql "$DATABASE_URL" -f prisma/migrations/<name>/migration.sql
+npx drizzle-kit push --verbose    # inspect the ALTERs, type 'y' to apply
 ```
 
-Or use the live unredacted `DATABASE_URL` stored in this machine's `.env`/`.env.live`.
+Tests that hit a database use `npm run test:db`, which boots a throwaway
+Postgres via `embedded-postgres` and applies the Drizzle schema from scratch.
+No mutation against the live Neon DB happens during tests.
 
-### Migrations that touch enum types
+### Schema-migration safety notes
 
-Prisma's generated SQL for `ALTER TYPE ... ADD VALUE` won't run in the same
-transaction as subsequent ALTER TABLE statements on Neon. **Apply enum changes
-in their own psql invocation**, then the rest of the migration in a second.
+- **Array columns `NOT NULL`.** Five `text[]` columns are declared `NOT NULL`
+  with a `DEFAULT ARRAY[]::text[]`: `Park.amenities`, `Park.photoUrls`,
+  `Business.bestOfTags`, `Business.photos`, `BestOfCategory.tagHints`. These
+  existed in production as nullable until Oct 2026. Before `drizzle-kit push`,
+  confirm `SELECT COUNT(*) FROM "Business" WHERE "photos" IS NULL` returns 0.
+
+- **`_prisma_migrations` table.** Drizzle's first `push` will offer to drop
+  the legacy Prisma journal. Accepting that is fine — Drizzle maintains its
+  own migration journal going forward.
+
+- **Three idempotent "default rewrite" statements.** Each subsequent
+  `drizzle-kit push` after the initial sync emits 3 no-op
+  `ALTER COLUMN … SET DEFAULT ARRAY[]::text[]` statements (for
+  `Park.amenities`, `Park.photoUrls`, `Business.bestOfTags`).
+  Drizzle's introspection represents empty `text[]` defaults internally as
+  `["RAY"]` (a quirk of the Postgres introspection library) and refuses to
+  round-trip them. The statements are safe to re-run; they don't lock the
+  table for more than a few ms. A future fix is to change those three
+  columns in `src/db/schema.ts` to `default([])` instead of
+  `default(sql\`ARRAY[]::text[]\`)`, but the fix itself requires a 4th
+  push and ~ms-level table locks — not worth doing until we have a real
+  reason to revisit these columns.
 
 ---
 

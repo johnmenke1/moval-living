@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, owner as ownerTable, requireRow } from '@/db'
 import { auth } from '@/auth'
 import { profileSchema } from '@/app/dashboard/profile/profile-helpers'
 
@@ -15,9 +16,9 @@ export async function GET() {
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Sign in to view your profile' }, { status: 401 })
   }
-  const owner = await prisma.owner.findUnique({
-    where: { id: session.user.id },
-    select: {
+  const owner = await db.query.owner.findFirst({
+    where: eq(ownerTable.id, session.user.id),
+    columns: {
       id: true,
       name: true,
       email: true,
@@ -83,9 +84,9 @@ export async function PATCH(req: NextRequest) {
   // CAN-SPAM / TCPA: capture the consent timestamp when the user
   // explicitly opts in. We do NOT clear the timestamp on opt-out (so
   // we have a record of when they last consented).
-  const owner = await prisma.owner.findUnique({
-    where: { id: session.user.id },
-    select: {
+  const owner = await db.query.owner.findFirst({
+    where: eq(ownerTable.id, session.user.id),
+    columns: {
       emailOptIn: true,
       smsOptIn: true,
       emailConsentAt: true,
@@ -117,18 +118,21 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  const updated = await prisma.owner.update({
-    where: { id: session.user.id },
-    data,
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      image: true,
-      emailOptIn: true,
-      smsOptIn: true,
-    },
-  })
+  const updated = requireRow(
+    await db
+      .update(ownerTable)
+      .set(data)
+      .where(eq(ownerTable.id, session.user.id))
+      .returning({
+        id: ownerTable.id,
+        name: ownerTable.name,
+        email: ownerTable.email,
+        image: ownerTable.image,
+        emailOptIn: ownerTable.emailOptIn,
+        smsOptIn: ownerTable.smsOptIn,
+      }),
+    'Account not found'
+  )
 
   return NextResponse.json(updated)
 }

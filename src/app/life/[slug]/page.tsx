@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, guestPost } from '@/db'
 import { renderMarkdown } from '@/lib/markdown'
 import { JsonLd } from '@/components/seo/JsonLd'
 import LifePostContent from './LifePostContent'
@@ -16,11 +17,11 @@ async function getPublishedLifePost(slug: string) {
   // social URL + bio + photo, not just the visible byline fields.
   // Mirrors the shape insights/[slug]/page.tsx queries for the same
   // schema. UI consumers (LifePostContent) ignore the extras.
-  const post = await prisma.guestPost.findUnique({
-    where: { slug },
-    include: {
+  const post = await db.query.guestPost.findFirst({
+    where: eq(guestPost.slug, slug),
+    with: {
       author: {
-        select: {
+        columns: {
           slug: true,
           displayName: true,
           title: true,

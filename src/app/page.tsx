@@ -1,4 +1,13 @@
-import { prisma } from '@/lib/prisma'
+import { and, asc, count, desc, eq, gte, inArray, isNull, lte, or } from 'drizzle-orm'
+import {
+  db,
+  business as businessTable,
+  category as categoryTable,
+  deal as dealTable,
+  guestPost,
+  event as eventTable,
+  bestOfNominee,
+} from '@/db'
 import { HomePageClient } from '@/components/home/HomePageClient'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { compareBusinesses } from '@/lib/business-priority'
@@ -109,15 +118,15 @@ async function getCategoryCounts() {
   // per categoryId in the DB instead of pulling every row and
   // reducing in JS. On a 500-business DB this is ~30x less data over
   // the wire and skips the JS-side Map build.
-  const groups = await prisma.business.groupBy({
-    by: ['categoryId'],
-    where: { status: 'APPROVED' },
-    _count: { _all: true },
-  })
+  const groups = await db
+    .select({ categoryId: businessTable.categoryId, _count: { _all: count() } })
+    .from(businessTable)
+    .where(eq(businessTable.status, 'APPROVED'))
+    .groupBy(businessTable.categoryId)
 
   // Map categoryId → slug with one small query, then join the counts.
-  const categories = await prisma.category.findMany({
-    select: { id: true, slug: true },
+  const categories = await db.query.category.findMany({
+    columns: { id: true, slug: true },
   })
   const idToSlug = new Map(categories.map((c) => [c.id, c.slug]))
 
@@ -134,17 +143,21 @@ async function getHomepageBusinesses() {
   // listings, AND nominated businesses (BestOfNominees who aren't winners yet).
   // Order: BestOf+Featured/EP → Featured/EP only → BestOf-only → Nominated (non-winner).
   // No FREE listings.
-  return prisma.business.findMany({
-    where: {
-      status: 'APPROVED',
-      OR: [
-        { tier: 'FEATURED' },
-        { tier: 'EXPERT_PARTNER' },
-        { isBestOfWinner: true },
-        { bestOfNominees: { some: { winner: false } } },
-      ],
-    },
-    select: {
+  const rows = await db.query.business.findMany({
+    where: and(
+      eq(businessTable.status, 'APPROVED'),
+      or(
+        eq(businessTable.tier, 'FEATURED'),
+        eq(businessTable.tier, 'EXPERT_PARTNER'),
+        eq(businessTable.isBestOfWinner, true),
+        // Nominated (non-winner) businesses
+        inArray(
+          businessTable.id,
+          db.select({ id: bestOfNominee.businessId }).from(bestOfNominee).where(eq(bestOfNominee.winner, false))
+        )
+      )
+    ),
+    columns: {
       id: true,
       slug: true,
       name: true,
@@ -164,26 +177,29 @@ async function getHomepageBusinesses() {
       seHablaEspanol: true,
       chamberMember: true,
       hispanicChamberMember: true,
-      category: { select: { name: true, slug: true } },
-      reviews: { select: { rating: true } },
-      _count: { select: { reviews: true } },
+    },
+    with: {
+      category: { columns: { name: true, slug: true } },
+      reviews: { columns: { rating: true } },
       // Active deals for the homepage card grid. Source of truth for the
       // "Deal" pill + deal-image fallback chain. Replaces the legacy
       // Business.hasCoupon/coupon Json fields (dropped in migration
       // 20260915000000_drop_business_coupon).
       deals: {
-        where: { isActive: true },
-        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-        take: 1,
-        select: { imageUrl: true, isActive: true },
+        where: eq(dealTable.isActive, true),
+        orderBy: [asc(dealTable.displayOrder), desc(dealTable.createdAt)],
+        limit: 1,
+        columns: { imageUrl: true, isActive: true },
       },
       // Include nominee info so we can show "Nominated" badge
       bestOfNominees: {
-        where: { winner: false },
-        select: { category: { select: { name: true, slug: true } } },
+        where: eq(bestOfNominee.winner, false),
+        with: { category: { columns: { name: true, slug: true } } },
+        columns: {},
       },
     },
   })
+  return rows.map((b) => ({ ...b, _count: { reviews: b.reviews.length } }))
 }
 
 // Recent "Life in MoVal" editorial posts for the homepage callout. We pull the
@@ -192,17 +208,17 @@ async function getHomepageBusinesses() {
 // If there are no published LIFE posts yet, the homepage falls back to hiding
 // the section entirely (handled in HomePageClient).
 async function getLatestLifePosts() {
-  return prisma.guestPost.findMany({
-    where: { status: 'published', postType: 'LIFE' },
-    select: {
+  return db.query.guestPost.findMany({
+    where: and(eq(guestPost.status, 'published'), eq(guestPost.postType, 'LIFE')),
+    columns: {
       slug: true,
       title: true,
       excerpt: true,
       heroImageUrl: true,
       publishedAt: true,
     },
-    orderBy: { publishedAt: 'desc' },
-    take: 3,
+    orderBy: desc(guestPost.publishedAt),
+    limit: 3,
   })
 }
 
@@ -219,13 +235,14 @@ async function getLatestLifePosts() {
 async function getUpcomingEvents() {
   const now = new Date()
   const horizon = new Date(now.getTime() + 30 * 86400000)
-  return prisma.event.findMany({
-    where: {
-      tier: { in: ['HERO', 'HONORABLE_MENTION'] },
-      archivedAt: null,
-      startsAt: { gte: now, lte: horizon },
-    },
-    select: {
+  return db.query.event.findMany({
+    where: and(
+      inArray(eventTable.tier, ['HERO', 'HONORABLE_MENTION']),
+      isNull(eventTable.archivedAt),
+      gte(eventTable.startsAt, now),
+      lte(eventTable.startsAt, horizon)
+    ),
+    columns: {
       id: true,
       slug: true,
       title: true,
@@ -238,10 +255,10 @@ async function getUpcomingEvents() {
       isFree: true,
       esEnEspanol: true,
       tier: true,
-      business: { select: { slug: true, name: true } },
     },
-    orderBy: [{ tier: 'asc' }, { startsAt: 'asc' }],
-    take: 4,
+    with: { business: { columns: { slug: true, name: true } } },
+    orderBy: [asc(eventTable.tier), asc(eventTable.startsAt)],
+    limit: 4,
   })
 }
 

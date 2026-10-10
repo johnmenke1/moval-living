@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, deal as dealTable, requireRow } from '@/db'
 import { canManageBusiness } from '@/lib/business-mutations'
 
 // PATCH + DELETE for a single Deal. Same auth model as POST
@@ -43,13 +44,10 @@ export async function PATCH(
     }
 
     const { id } = await params
-    const existing = await prisma.deal.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        businessId: true,
-        business: { select: { ownerId: true } },
-      },
+    const existing = await db.query.deal.findFirst({
+      where: eq(dealTable.id, id),
+      columns: { id: true, businessId: true },
+      with: { business: { columns: { ownerId: true } } },
     })
 
     if (!existing) {
@@ -63,7 +61,7 @@ export async function PATCH(
 
     const parsed = dealUpdateSchema.parse(await request.json())
 
-    const data: Record<string, unknown> = {}
+    const data: Partial<typeof dealTable.$inferInsert> = {}
     if (parsed.headline !== undefined) data.headline = parsed.headline
     if (parsed.description !== undefined) data.description = parsed.description
     if (parsed.code !== undefined) data.code = parsed.code
@@ -75,10 +73,10 @@ export async function PATCH(
     if (parsed.displayOrder !== undefined) data.displayOrder = parsed.displayOrder
     if (parsed.isActive !== undefined) data.isActive = parsed.isActive
 
-    const updated = await prisma.deal.update({
-      where: { id: existing.id },
-      data,
-    })
+    const updated = requireRow(
+      await db.update(dealTable).set(data).where(eq(dealTable.id, existing.id)).returning(),
+      'Deal not found'
+    )
 
     return NextResponse.json(updated)
   } catch (error: unknown) {
@@ -109,13 +107,10 @@ export async function DELETE(
     }
 
     const { id } = await params
-    const existing = await prisma.deal.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        businessId: true,
-        business: { select: { ownerId: true } },
-      },
+    const existing = await db.query.deal.findFirst({
+      where: eq(dealTable.id, id),
+      columns: { id: true, businessId: true },
+      with: { business: { columns: { ownerId: true } } },
     })
 
     if (!existing) {
@@ -127,7 +122,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    await prisma.deal.delete({ where: { id: existing.id } })
+    await db.delete(dealTable).where(eq(dealTable.id, existing.id))
 
     // Note: the associated Vercel Blob image is NOT deleted here. The
     // /api/upload route stores the URL on the Deal row but doesn't

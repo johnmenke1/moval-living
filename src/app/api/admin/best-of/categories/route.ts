@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { asc, count, eq } from 'drizzle-orm'
+import { db, bestOfCategory, bestOfNominee } from '@/db'
 import { z } from 'zod'
 
 const CreateCategorySchema = z.object({
@@ -27,23 +28,32 @@ const UpdateCategorySchema = z.object({
 
 // GET /api/admin/best-of/categories
 export async function GET() {
-  const categories = await prisma.bestOfCategory.findMany({
-    orderBy: { name: 'asc' },
-    include: {
-      _count: { select: { nominees: true, subCategories: true } },
-      subCategories: {
-        orderBy: { name: 'asc' },
-        include: { _count: { select: { nominees: true } } },
-      },
-    },
+  const categories = await db.query.bestOfCategory.findMany({
+    orderBy: asc(bestOfCategory.name),
+    with: { subCategories: { orderBy: asc(bestOfCategory.name) } },
   })
+  // Nominee counts per category in one grouped query (replaces Prisma's _count).
+  const nomineeCounts = new Map(
+    (
+      await db
+        .select({ categoryId: bestOfNominee.categoryId, n: count() })
+        .from(bestOfNominee)
+        .groupBy(bestOfNominee.categoryId)
+    ).map((r) => [r.categoryId, r.n])
+  )
+  const nominees = (id: string) => nomineeCounts.get(id) ?? 0
 
   return NextResponse.json(
     categories.map(c => ({
       ...c,
-      nomineeCount: c._count.nominees,
-      subCategoryCount: c._count.subCategories,
-      subCategories: c.subCategories.map(sc => ({ ...sc, nomineeCount: sc._count.nominees })),
+      _count: { nominees: nominees(c.id), subCategories: c.subCategories.length },
+      nomineeCount: nominees(c.id),
+      subCategoryCount: c.subCategories.length,
+      subCategories: c.subCategories.map(sc => ({
+        ...sc,
+        _count: { nominees: nominees(sc.id) },
+        nomineeCount: nominees(sc.id),
+      })),
     })),
   )
 }
@@ -66,18 +76,19 @@ export async function POST(req: NextRequest) {
 
   // Prevent circular parent
   if (parentCategoryId) {
-    const parent = await prisma.bestOfCategory.findUnique({ where: { id: parentCategoryId } })
+    const parent = await db.query.bestOfCategory.findFirst({ where: eq(bestOfCategory.id, parentCategoryId) })
     if (!parent) return NextResponse.json({ error: 'Parent category not found' }, { status: 400 })
     // Circular reference guard only — parent can be any category regardless of depth
   }
 
-  const existing = await prisma.bestOfCategory.findUnique({ where: { slug } })
+  const existing = await db.query.bestOfCategory.findFirst({ where: eq(bestOfCategory.slug, slug) })
   if (existing) {
     return NextResponse.json({ error: 'Slug already in use' }, { status: 409 })
   }
 
-  const category = await prisma.bestOfCategory.create({
-    data: {
+  const [category] = await db
+    .insert(bestOfCategory)
+    .values({
       name,
       slug,
       description,
@@ -87,14 +98,8 @@ export async function POST(req: NextRequest) {
       isSection: isSection ?? false,
       imageUrl: imageUrl ?? null,
       parentCategoryId: parentCategoryId ?? null,
-    },
-    include: {
-      subCategories: {
-        orderBy: { name: 'asc' },
-        include: { _count: { select: { nominees: true } } },
-      },
-    },
-  })
+    })
+    .returning()
 
   return NextResponse.json({
     ...category,

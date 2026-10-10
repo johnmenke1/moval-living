@@ -20,7 +20,8 @@ import {
   FacebookIcon,
   InstagramIcon,
 } from '@/components/social/SocialIcons'
-import { prisma } from '@/lib/prisma'
+import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm'
+import { db, guestAuthor, guestPost, business as businessTable } from '@/db'
 import { auth } from '@/auth'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { ExpertPartnerBadge } from '@/components/business/ExpertPartnerBadge'
@@ -34,18 +35,18 @@ export const dynamic = 'force-dynamic'
 type Ctx = { params: Promise<{ slug: string }> }
 
 async function getAuthor(slug: string) {
-  const author = await prisma.guestAuthor.findUnique({
-    where: { slug },
-    include: {
+  const author = await db.query.guestAuthor.findFirst({
+    where: eq(guestAuthor.slug, slug),
+    with: {
       // Show every published post byline-attributed to this author — both
       // /life editorial posts (postType: LIFE) AND /insights guest posts
       // (postType: GUEST). The previous filter of just GUEST was a bug:
       // /authors/[slug] is meant to be the canonical byline page for all
       // content the author wrote, regardless of lane.
       posts: {
-        where: { status: 'published', postType: { in: ['LIFE', 'GUEST'] } },
-        orderBy: { publishedAt: 'desc' },
-        select: {
+        where: and(eq(guestPost.status, 'published'), inArray(guestPost.postType, ['LIFE', 'GUEST'])),
+        orderBy: desc(guestPost.publishedAt),
+        columns: {
           id: true,
           slug: true,
           title: true,
@@ -56,9 +57,7 @@ async function getAuthor(slug: string) {
         },
       },
       business: {
-        include: {
-          category: { select: { name: true, slug: true } },
-        },
+        with: { category: { columns: { name: true, slug: true } } },
       },
     },
   })
@@ -79,21 +78,16 @@ async function getAuthor(slug: string) {
   }> = []
 
   if (author.business?.isExpertPartner) {
-    siblingPartners = await prisma.business.findMany({
-      where: {
-        isExpertPartner: true,
-        status: 'APPROVED',
-        id: { not: author.business.id },
-        ...(author.business.categoryId
-          ? { categoryId: { not: author.business.categoryId } }
-          : {}),
-      },
-      orderBy: [
-        { foundingPartnerSince: { sort: 'desc', nulls: 'last' } },
-        { name: 'asc' },
-      ],
-      take: 4,
-      select: {
+    siblingPartners = await db.query.business.findMany({
+      where: and(
+        eq(businessTable.isExpertPartner, true),
+        eq(businessTable.status, 'APPROVED'),
+        ne(businessTable.id, author.business.id),
+        author.business.categoryId ? ne(businessTable.categoryId, author.business.categoryId) : undefined
+      ),
+      orderBy: [sql`${businessTable.foundingPartnerSince} desc nulls last`, asc(businessTable.name)],
+      limit: 4,
+      columns: {
         id: true,
         name: true,
         slug: true,
@@ -102,8 +96,8 @@ async function getAuthor(slug: string) {
         logo: true,
         isExpertPartner: true,
         foundingPartnerSince: true,
-        category: { select: { name: true } },
       },
+      with: { category: { columns: { name: true } } },
     })
   }
 

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, event as eventTable } from '@/db'
 import EditEventClient from '@/components/admin/EditEventClient'
 
 export default async function EditEventPage({
@@ -23,9 +24,9 @@ export default async function EditEventPage({
     redirect('/dashboard?tab=events-admin')
   }
 
-  const event = await prisma.event.findUnique({
-    where: { id },
-    select: {
+  const event = await db.query.event.findFirst({
+    where: eq(eventTable.id, id),
+    columns: {
       id: true,
       slug: true,
       shareUrl: true,
@@ -36,11 +37,11 @@ export default async function EditEventPage({
       venueName: true,
       venueTag: true,
       category: true,
-            address: true,
-            city: true,
-            state: true,
-            zip: true,
-            venueId: true,
+      address: true,
+      city: true,
+      state: true,
+      zip: true,
+      venueId: true,
       heroImageUrl: true,
       ticketUrl: true,
       isFree: true,
@@ -51,8 +52,8 @@ export default async function EditEventPage({
       createdAt: true,
       updatedAt: true,
       businessId: true,
-      business: { select: { id: true, name: true, slug: true } },
     },
+    with: { business: { columns: { id: true, name: true, slug: true } } },
   })
 
   if (!event) {

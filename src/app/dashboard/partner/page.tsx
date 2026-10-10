@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { and, desc, eq, gte } from 'drizzle-orm'
+import { db, owner as ownerTable, expertPartnerLead } from '@/db'
 import {
   Inbox,
   Mail,
@@ -37,11 +38,11 @@ export default async function PartnerDashboardPage({ searchParams }: PartnerDash
   const session = await auth()
   if (!session?.user?.id) redirect('/login?callbackUrl=/dashboard/partner')
 
-  const owner = await prisma.owner.findUnique({
-    where: { id: session.user.id },
-    include: {
+  const owner = await db.query.owner.findFirst({
+    where: eq(ownerTable.id, session.user.id),
+    with: {
       business: {
-        select: {
+        columns: {
           id: true,
           name: true,
           slug: true,
@@ -52,8 +53,8 @@ export default async function PartnerDashboardPage({ searchParams }: PartnerDash
           liveQaZoomUrl: true,
           liveQaNextDate: true,
           tagline: true,
-          category: { select: { name: true, slug: true } },
         },
+        with: { category: { columns: { name: true, slug: true } } },
       },
     },
   })
@@ -108,15 +109,15 @@ export default async function PartnerDashboardPage({ searchParams }: PartnerDash
   monthStart.setHours(0, 0, 0, 0)
 
   const [leads, totalCount, monthCount, contactedCount] = await Promise.all([
-    prisma.expertPartnerLead.findMany({
-      where: {
-        businessId: business.id,
-        ...(showContactedOnly ? { contacted: true } : {}),
-        ...(showUncontactedOnly ? { contacted: false } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-      select: {
+    db.query.expertPartnerLead.findMany({
+      where: and(
+        eq(expertPartnerLead.businessId, business.id),
+        showContactedOnly ? eq(expertPartnerLead.contacted, true) : undefined,
+        showUncontactedOnly ? eq(expertPartnerLead.contacted, false) : undefined
+      ),
+      orderBy: desc(expertPartnerLead.createdAt),
+      limit: 50,
+      columns: {
         id: true,
         name: true,
         email: true,
@@ -128,13 +129,19 @@ export default async function PartnerDashboardPage({ searchParams }: PartnerDash
         createdAt: true,
       },
     }),
-    prisma.expertPartnerLead.count({ where: { businessId: business.id } }),
-    prisma.expertPartnerLead.count({
-      where: { businessId: business.id, createdAt: { gte: monthStart } },
-    }),
-    prisma.expertPartnerLead.count({
-      where: { businessId: business.id, contacted: true, createdAt: { gte: ninetyDaysAgo } },
-    }),
+    db.$count(expertPartnerLead, eq(expertPartnerLead.businessId, business.id)),
+    db.$count(
+      expertPartnerLead,
+      and(eq(expertPartnerLead.businessId, business.id), gte(expertPartnerLead.createdAt, monthStart))
+    ),
+    db.$count(
+      expertPartnerLead,
+      and(
+        eq(expertPartnerLead.businessId, business.id),
+        eq(expertPartnerLead.contacted, true),
+        gte(expertPartnerLead.createdAt, ninetyDaysAgo)
+      )
+    ),
   ])
 
   const newCount = totalCount - contactedCount

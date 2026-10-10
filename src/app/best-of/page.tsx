@@ -1,4 +1,6 @@
-import { prisma } from '@/lib/prisma'
+import { asc, eq, and } from 'drizzle-orm'
+import { db, bestOfCategory, bestOfNominee } from '@/db'
+import { countNomineesByCategory } from '@/lib/best-of-counts'
 import { Plus, Trophy } from 'lucide-react'
 import Link from 'next/link'
 import type { Metadata } from 'next'
@@ -30,38 +32,47 @@ export const metadata: Metadata = {
 type CategoryRow = Awaited<ReturnType<typeof getCategories>>[number]
 
 async function getCategories() {
-  return prisma.bestOfCategory.findMany({
-    where: { published: true },
-    orderBy: { name: 'asc' },
-    include: {
+  const categories = await db.query.bestOfCategory.findMany({
+    where: eq(bestOfCategory.published, true),
+    orderBy: asc(bestOfCategory.name),
+    with: {
       nominees: {
-        where: { winner: true },
-        include: {
-          business: { select: { id: true, slug: true, name: true, logo: true } },
+        where: eq(bestOfNominee.winner, true),
+        with: {
+          business: { columns: { id: true, slug: true, name: true, logo: true } },
         },
       },
       subCategories: {
-        where: { published: true },
-        orderBy: { name: 'asc' },
-        include: { _count: { select: { nominees: true } } },
+        where: eq(bestOfCategory.published, true),
+        orderBy: asc(bestOfCategory.name),
       },
     },
   })
+  const subCounts = await countNomineesByCategory(
+    categories.flatMap((cat) => cat.subCategories.map((sc) => sc.id))
+  )
+  return categories.map((cat) => ({
+    ...cat,
+    subCategories: cat.subCategories.map((sc) => ({
+      ...sc,
+      _count: { nominees: subCounts.get(sc.id) ?? 0 },
+    })),
+  }))
 }
 
 async function getOverallWinners() {
-  return prisma.bestOfNominee.findMany({
-    where: { winner: true },
-    include: {
+  return db.query.bestOfNominee.findMany({
+    where: eq(bestOfNominee.winner, true),
+    with: {
       business: {
-        select: {
+        columns: {
           id: true, slug: true, name: true, logo: true,
           googleRating: true, address: true,
         },
       },
-      category: { select: { name: true, slug: true, icon: true } },
+      category: { columns: { name: true, slug: true, icon: true } },
     },
-    take: 10,
+    limit: 10,
   })
 }
 

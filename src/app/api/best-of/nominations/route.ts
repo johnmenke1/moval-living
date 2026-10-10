@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { ilike } from 'drizzle-orm'
+import { db, business, bestOfNomination, escapeLike } from '@/db'
 import { auth } from '@/auth'
 import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 import {
@@ -104,11 +105,9 @@ export async function POST(req: NextRequest) {
   // businessId null and the admin can match or create during moderation.
   // Per Johnny's choice (Q4=B): match against all businesses regardless of
   // status, but only suggest matches for the admin — never auto-link.
-  const candidate = await prisma.business.findFirst({
-    where: {
-      name: { equals: parsed.data.businessName, mode: 'insensitive' },
-    },
-    select: { id: true, status: true, name: true },
+  const candidate = await db.query.business.findFirst({
+    where: ilike(business.name, escapeLike(parsed.data.businessName)),
+    columns: { id: true, status: true, name: true },
   })
   const businessId = candidate?.id ?? null
 
@@ -122,8 +121,9 @@ export async function POST(req: NextRequest) {
 
   // Save the nomination locally first — SES failures must not block
   // the form. Everything downstream is fire-and-forget.
-  const nomination = await prisma.bestOfNomination.create({
-    data: {
+  const [nomination] = await db
+    .insert(bestOfNomination)
+    .values({
       businessName: parsed.data.businessName,
       businessId,
       categoryName: parsed.data.categoryName,
@@ -140,8 +140,8 @@ export async function POST(req: NextRequest) {
       consentSource: 'best-of-nomination-form',
       sourceIp: ip,
       userAgent: req.headers.get('user-agent'),
-    },
-  })
+    })
+    .returning()
 
   // ── Side effects (all fire-and-forget) ──────────────────────────────────
 

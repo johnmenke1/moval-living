@@ -12,7 +12,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
+import { desc } from 'drizzle-orm';
+import { db, businessAudit } from '@/db';
 
 const TIER_BOUNDARIES = {
   critical: [0, 40],
@@ -33,19 +34,19 @@ export async function GET(req: NextRequest) {
   const search = params.get('search')?.toLowerCase() ?? '';
 
   // Fetch all audits ordered by most recent, then dedupe per businessId
-  const allAudits = await prisma.businessAudit.findMany({
-    orderBy: { auditedAt: 'desc' },
-    include: {
+  const allAudits = await db.query.businessAudit.findMany({
+    orderBy: desc(businessAudit.auditedAt),
+    with: {
       business: {
-        select: {
+        columns: {
           id: true,
           name: true,
           slug: true,
           website: true,
           email: true,
           phone: true,
-          category: { select: { name: true, slug: true } },
         },
+        with: { category: { columns: { name: true, slug: true } } },
       },
     },
   });

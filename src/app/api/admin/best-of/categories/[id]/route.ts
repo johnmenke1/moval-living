@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, bestOfCategory, requireRow } from '@/db'
 import { z } from 'zod'
 
 const UpdateCategorySchema = z.object({
@@ -40,15 +41,19 @@ export async function PATCH(
 
   // Prevent nesting more than one level deep
   if (parentCategoryId) {
-    const parent = await prisma.bestOfCategory.findUnique({ where: { id: parentCategoryId } })
+    const parent = await db.query.bestOfCategory.findFirst({ where: eq(bestOfCategory.id, parentCategoryId) })
     if (!parent) return NextResponse.json({ error: 'Parent category not found' }, { status: 400 })
     // Circular reference guard only — parent can be any category regardless of depth
   }
 
-  const category = await prisma.bestOfCategory.update({
-    where: { id },
-    data: { ...parsed.data, parentCategoryId: parentCategoryId ?? null },
-  })
+  const category = requireRow(
+    await db
+      .update(bestOfCategory)
+      .set({ ...parsed.data, parentCategoryId: parentCategoryId ?? null })
+      .where(eq(bestOfCategory.id, id))
+      .returning(),
+    'Category not found'
+  )
 
   return NextResponse.json(category)
 }
@@ -61,14 +66,14 @@ export async function DELETE(
   const { id } = await params
 
   // Check for sub-categories — reassign them to top level (set parentCategoryId = null)
-  const subCategories = await prisma.bestOfCategory.findMany({ where: { parentCategoryId: id } })
-  if (subCategories.length > 0) {
-    await prisma.bestOfCategory.updateMany({
-      where: { parentCategoryId: id },
-      data: { parentCategoryId: null },
-    })
-  }
+  await db
+    .update(bestOfCategory)
+    .set({ parentCategoryId: null })
+    .where(eq(bestOfCategory.parentCategoryId, id))
 
-  await prisma.bestOfCategory.delete({ where: { id } })
+  requireRow(
+    await db.delete(bestOfCategory).where(eq(bestOfCategory.id, id)).returning({ id: bestOfCategory.id }),
+    'Category not found'
+  )
   return NextResponse.json({ success: true })
 }

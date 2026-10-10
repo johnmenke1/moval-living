@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { prisma } from '@/lib/prisma'
+import { and, eq, gt, isNotNull } from 'drizzle-orm'
+import { db, owner } from '@/db'
 
 const RESET_TTL_MS = 60 * 60 * 1000 // 1 hour
 
@@ -24,9 +25,9 @@ export async function POST(req: NextRequest) {
   // bcrypt hash. We need to scan owners with a non-null resetToken, then
   // bcrypt.compare against each. The token space is large enough that this
   // O(n) scan is fine for an admin-scale user list.
-  const candidates = await prisma.owner.findMany({
-    where: { resetToken: { not: null }, resetExpires: { gt: new Date() } },
-    select: { id: true, resetToken: true, resetExpires: true },
+  const candidates = await db.query.owner.findMany({
+    where: and(isNotNull(owner.resetToken), gt(owner.resetExpires, new Date())),
+    columns: { id: true, resetToken: true, resetExpires: true },
   })
 
   let matchedId: string | null = null
@@ -52,10 +53,10 @@ export async function POST(req: NextRequest) {
 
   // One-shot: clear the reset fields and write the new hash atomically so a
   // second confirm attempt with the same token cannot succeed.
-  await prisma.owner.update({
-    where: { id: matchedId },
-    data: { passwordHash, resetToken: null, resetExpires: null },
-  })
+  await db
+    .update(owner)
+    .set({ passwordHash, resetToken: null, resetExpires: null })
+    .where(eq(owner.id, matchedId))
 
   return NextResponse.json({ ok: true })
 }

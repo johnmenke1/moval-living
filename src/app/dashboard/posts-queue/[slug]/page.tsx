@@ -2,7 +2,8 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { asc, eq } from 'drizzle-orm'
+import { db, guestPost, guestAuthor } from '@/db'
 import PostEditor from '@/components/admin/PostEditor'
 
 export const dynamic = 'force-dynamic'
@@ -16,16 +17,16 @@ export default async function EditPostPage({ params }: Ctx) {
   }
 
   const { slug } = await params
-  const post = await prisma.guestPost.findUnique({
-    where: { slug },
-    include: { author: true },
+  const post = await db.query.guestPost.findFirst({
+    where: eq(guestPost.slug, slug),
+    with: { author: true },
   })
   if (!post) notFound()
 
-  const authors = await prisma.guestAuthor.findMany({
-    where: { isActive: true },
-    orderBy: { displayName: 'asc' },
-    select: { id: true, slug: true, displayName: true, photoUrl: true },
+  const authors = await db.query.guestAuthor.findMany({
+    where: eq(guestAuthor.isActive, true),
+    orderBy: asc(guestAuthor.displayName),
+    columns: { id: true, slug: true, displayName: true, photoUrl: true },
   })
 
   return (

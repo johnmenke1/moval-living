@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, business as businessTable } from '@/db'
 import { auth } from '@/auth'
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
@@ -14,9 +15,9 @@ export async function GET(
   const { slug } = await params
   const refresh = req.nextUrl.searchParams.get('refresh') === 'true'
 
-  const business = await prisma.business.findUnique({
-    where: { slug },
-    select: { id: true, googleBusiness: true, googleRating: true, googleReviewCount: true },
+  const business = await db.query.business.findFirst({
+    where: eq(businessTable.slug, slug),
+    columns: { id: true, googleBusiness: true, googleRating: true, googleReviewCount: true },
   })
 
   if (!business) {
@@ -69,10 +70,10 @@ export async function GET(
     const reviewCount = data.userRatingCount ?? null
 
     // Update cache in DB
-    await prisma.business.update({
-      where: { id: business.id },
-      data: { googleRating: rating, googleReviewCount: reviewCount },
-    })
+    await db
+      .update(businessTable)
+      .set({ googleRating: rating, googleReviewCount: reviewCount })
+      .where(eq(businessTable.id, business.id))
 
     return NextResponse.json({ googleRating: rating, googleReviewCount: reviewCount, source: 'live' })
   } catch (err) {

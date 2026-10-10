@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Building2, Plus } from 'lucide-react'
 import type { Metadata } from 'next'
-import { prisma } from '@/lib/prisma'
+import { and, asc, desc, eq, inArray } from 'drizzle-orm'
+import { db, business as businessTable, category as categoryTable, deal as dealTable } from '@/db'
 import { getCategoryBySlug } from '@/data/categories'
 import { getCategoryContent } from '@/data/category-content'
 import { compareBusinessesForSearch } from '@/lib/business-priority'
@@ -61,28 +62,31 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 async function getCategoryBusinesses(slug: string) {
   // We do the category-row check at the page level via getCategoryBySlug
   // so unknown slugs 404 cleanly. Here we just query.
-  return prisma.business.findMany({
-    where: {
-      status: 'APPROVED',
-      category: { slug },
-    },
-    include: {
-      category: { select: { name: true, slug: true } },
-      reviews: { select: { rating: true } },
-      _count: { select: { reviews: true } },
+  const rows = await db.query.business.findMany({
+    where: and(
+      eq(businessTable.status, 'APPROVED'),
+      inArray(
+        businessTable.categoryId,
+        db.select({ id: categoryTable.id }).from(categoryTable).where(eq(categoryTable.slug, slug))
+      )
+    ),
+    with: {
+      category: { columns: { name: true, slug: true } },
+      reviews: { columns: { rating: true } },
       // First active deal — the BusinessCard uses the deal's imageUrl as
       // the highest-priority cover fallback and renders a "Deal" pill when
       // any row is present. Replaces the legacy Business.coupon Json blob
       // (dropped in migration 20260915000000_drop_business_coupon).
       deals: {
-        where: { isActive: true },
-        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-        take: 1,
-        select: { imageUrl: true, isActive: true },
+        where: eq(dealTable.isActive, true),
+        orderBy: [asc(dealTable.displayOrder), desc(dealTable.createdAt)],
+        limit: 1,
+        columns: { imageUrl: true, isActive: true },
       },
     },
-    orderBy: { name: 'asc' },
+    orderBy: asc(businessTable.name),
   })
+  return rows.map((b) => ({ ...b, _count: { reviews: b.reviews.length } }))
 }
 
 export default async function CategoryPage({ params }: PageProps) {

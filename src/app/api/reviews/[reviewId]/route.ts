@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, review as reviewTable, requireRow } from '@/db'
 import { ownerOwnsReview } from '@/app/dashboard/profile/review-delete-helpers'
 import {
   buildReviewEditPayload,
@@ -54,9 +55,9 @@ export async function DELETE(
 
   const { reviewId } = await params
 
-  const review = await prisma.review.findUnique({
-    where: { id: reviewId },
-    select: { id: true, ownerId: true, authorEmail: true },
+  const review = await db.query.review.findFirst({
+    where: eq(reviewTable.id, reviewId),
+    columns: { id: true, ownerId: true, authorEmail: true },
   })
 
   if (!review) {
@@ -72,7 +73,7 @@ export async function DELETE(
     )
   }
 
-  await prisma.review.delete({ where: { id: reviewId } })
+  await db.delete(reviewTable).where(eq(reviewTable.id, reviewId))
 
   return NextResponse.json({ ok: true })
 }
@@ -134,9 +135,9 @@ export async function PATCH(
     )
   }
 
-  const review = await prisma.review.findUnique({
-    where: { id: reviewId },
-    select: { id: true, ownerId: true, authorEmail: true },
+  const review = await db.query.review.findFirst({
+    where: eq(reviewTable.id, reviewId),
+    columns: { id: true, ownerId: true, authorEmail: true },
   })
 
   if (!review) {
@@ -153,16 +154,19 @@ export async function PATCH(
   }
 
   const data = buildReviewEditPayload(input)
-  const updated = await prisma.review.update({
-    where: { id: reviewId },
-    data,
-    select: {
-      id: true,
-      rating: true,
-      content: true,
-      updatedAt: true,
-    },
-  })
+  const updated = requireRow(
+    await db
+      .update(reviewTable)
+      .set(data)
+      .where(eq(reviewTable.id, reviewId))
+      .returning({
+        id: reviewTable.id,
+        rating: reviewTable.rating,
+        content: reviewTable.content,
+        updatedAt: reviewTable.updatedAt,
+      }),
+    'Review not found'
+  )
 
   return NextResponse.json({ ok: true, review: updated })
 }

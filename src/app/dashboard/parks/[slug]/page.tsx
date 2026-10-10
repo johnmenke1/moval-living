@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { redirect, notFound } from 'next/navigation'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, park as parkTable } from '@/db'
 import { ParkEditor } from '@/components/admin/ParkEditor'
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +22,7 @@ export default async function EditParkPage({
   if (session.user.role !== 'ADMIN') redirect('/dashboard')
 
   const { slug } = await params
-  const park = await prisma.park.findUnique({ where: { slug } })
+  const park = await db.query.park.findFirst({ where: eq(parkTable.slug, slug) })
   if (!park) notFound()
 
   // JSON-friendly shape (Date → ISO) for the client component.

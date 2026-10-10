@@ -5,7 +5,8 @@
 // already declares postType + Spotify + FAQ + photo + YouTube fields.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { desc, eq } from 'drizzle-orm'
+import { db, guestPost } from '@/db'
 import { auth } from '@/auth'
 import { revalidatePostData } from '@/lib/revalidate'
 import {
@@ -20,13 +21,9 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const posts = await prisma.guestPost.findMany({
-    include: {
-      author: {
-        select: { id: true, displayName: true, slug: true, photoUrl: true, title: true },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
+  const posts = await db.query.guestPost.findMany({
+    with: { author: { columns: { id: true, displayName: true, slug: true, photoUrl: true, title: true } } },
+    orderBy: desc(guestPost.createdAt),
   })
 
   return NextResponse.json(posts)
@@ -56,13 +53,9 @@ export async function POST(req: NextRequest) {
 
   const created = await createGuestPost(parsed.data)
 
-  const post = await prisma.guestPost.findUnique({
-    where: { id: created.id },
-    include: {
-      author: {
-        select: { id: true, displayName: true, slug: true, photoUrl: true, title: true },
-      },
-    },
+  const post = await db.query.guestPost.findFirst({
+    where: eq(guestPost.id, created.id),
+    with: { author: { columns: { id: true, displayName: true, slug: true, photoUrl: true, title: true } } },
   })
   // ISR cache bust — see src/lib/revalidate.ts for the path map.
 

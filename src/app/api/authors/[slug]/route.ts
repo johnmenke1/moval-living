@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { and, desc, eq } from 'drizzle-orm'
+import { db, guestAuthor, guestPost } from '@/db'
 
 // GET /api/authors/[slug]
 export async function GET(
@@ -8,12 +9,12 @@ export async function GET(
 ) {
   const { slug } = await params
 
-  const author = await prisma.guestAuthor.findUnique({
-    where: { slug, isActive: true },
-    include: {
+  const author = await db.query.guestAuthor.findFirst({
+    where: and(eq(guestAuthor.slug, slug), eq(guestAuthor.isActive, true)),
+    with: {
       posts: {
-        where: { status: 'published' },
-        select: {
+        where: eq(guestPost.status, 'published'),
+        columns: {
           id: true,
           slug: true,
           title: true,
@@ -21,7 +22,7 @@ export async function GET(
           heroImageUrl: true,
           publishedAt: true,
         },
-        orderBy: { publishedAt: 'desc' },
+        orderBy: desc(guestPost.publishedAt),
       },
     },
   })

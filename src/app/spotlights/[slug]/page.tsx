@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, Calendar } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, guestPost } from '@/db'
 import { renderMarkdown } from '@/lib/markdown'
 import { JsonLd } from '@/components/seo/JsonLd'
 
@@ -11,9 +12,9 @@ export const dynamic = 'force-dynamic'
 type Ctx = { params: Promise<{ slug: string }> }
 
 async function getPublishedSpotlight(slug: string) {
-  const post = await prisma.guestPost.findUnique({
-    where: { slug },
-    include: { author: true },
+  const post = await db.query.guestPost.findFirst({
+    where: eq(guestPost.slug, slug),
+    with: { author: true },
   })
   if (!post || post.status !== 'published' || post.postType !== 'SPOTLIGHT' || !post.publishedAt) return null
   return post

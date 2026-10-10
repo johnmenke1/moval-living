@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, bestOfVote } from '@/db'
 import { buildCanonicalShareUrl, buildShareMessage } from './voted-helpers'
 import { VoteShareCard } from '@/components/best-of/VoteShareCard'
 import { VoteShareActions } from '@/components/best-of/VoteShareActions'
@@ -22,26 +23,25 @@ const SITE_URL = 'https://www.moval.living'
  * /best-of/[category] page, not here.
  */
 async function getVote(voteId: string) {
-  return prisma.bestOfVote.findUnique({
-    where: { id: voteId },
-    select: {
+  const vote = await db.query.bestOfVote.findFirst({
+    where: eq(bestOfVote.id, voteId),
+    columns: {
       id: true,
       voterNameSnapshot: true,
       voterImageSnapshot: true,
       createdAt: true,
+    },
+    with: {
       nominee: {
-        select: {
-          id: true,
-          business: {
-            select: { id: true, name: true, slug: true, logo: true },
-          },
-          category: {
-            select: { id: true, name: true, slug: true },
-          },
+        columns: { id: true },
+        with: {
+          business: { columns: { id: true, name: true, slug: true, logo: true } },
+          category: { columns: { id: true, name: true, slug: true } },
         },
       },
     },
   })
+  return vote ?? null
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { desc, eq } from 'drizzle-orm'
+import { db, review } from '@/db'
 import {
   buildReviewsPageResponse,
   buildEmptyReviewsResponse,
@@ -34,11 +35,11 @@ export async function GET() {
     )
   }
 
-  const rows = await prisma.review.findMany({
-    where: { ownerId: session.user.id },
-    orderBy: { createdAt: 'desc' },
-    take: 50, // soft cap; v1.1 can add pagination if needed
-    select: {
+  const rows = await db.query.review.findMany({
+    where: eq(review.ownerId, session.user.id),
+    orderBy: desc(review.createdAt),
+    limit: 50, // soft cap; v1.1 can add pagination if needed
+    columns: {
       id: true,
       rating: true,
       content: true,
@@ -47,8 +48,8 @@ export async function GET() {
       response: true,
       flagged: true,
       createdAt: true,
-      business: { select: { id: true, name: true, slug: true } },
     },
+    with: { business: { columns: { id: true, name: true, slug: true } } },
   })
 
   if (rows.length === 0) {

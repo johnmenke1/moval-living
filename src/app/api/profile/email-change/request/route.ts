@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { and, eq, isNull, ne } from 'drizzle-orm'
+import { db, emailChangeRequest, owner } from '@/db'
 import {
   emailChangeRequestSchema,
   EMAIL_CHANGE_TOKEN_BYTES,
@@ -103,12 +104,9 @@ export async function POST(req: NextRequest) {
   // different Owner. We do this BEFORE generating the token so a
   // spammer can't probe for valid emails at the cost of sending
   // SES traffic.
-  const conflict = await prisma.owner.findFirst({
-    where: {
-      email: newEmail,
-      NOT: { id: session.user.id },
-    },
-    select: { id: true },
+  const conflict = await db.query.owner.findFirst({
+    where: and(eq(owner.email, newEmail), ne(owner.id, session.user.id)),
+    columns: { id: true },
   })
   if (conflict) {
     return NextResponse.json(
@@ -120,12 +118,9 @@ export async function POST(req: NextRequest) {
   // 5. Invalidate any prior pending requests for this Owner.
   // Deleting is cleaner than marking — these rows are short-lived
   // (1 hour TTL) and we never want a stale token to fire.
-  await prisma.emailChangeRequest.deleteMany({
-    where: {
-      ownerId: session.user.id,
-      usedAt: null,
-    },
-  })
+  await db
+    .delete(emailChangeRequest)
+    .where(and(eq(emailChangeRequest.ownerId, session.user.id), isNull(emailChangeRequest.usedAt)))
 
   // 6. Generate a cryptographically random token.
   const token = randomBytes(EMAIL_CHANGE_TOKEN_BYTES)
@@ -133,13 +128,11 @@ export async function POST(req: NextRequest) {
 
   // 7. Persist.
   const expiresAt = computeTokenExpiry()
-  await prisma.emailChangeRequest.create({
-    data: {
-      ownerId: session.user.id,
-      newEmail,
-      token,
-      expiresAt,
-    },
+  await db.insert(emailChangeRequest).values({
+    ownerId: session.user.id,
+    newEmail,
+    token,
+    expiresAt,
   })
 
   // 8. Build the URL + send the email.

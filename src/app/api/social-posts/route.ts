@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
-import { PostStatus } from '@prisma/client'
+import { and, desc, eq } from 'drizzle-orm'
+import { db, socialPost, business } from '@/db'
+
+type PostStatus = typeof socialPost.$inferSelect['status']
 
 // GET /api/social-posts — public (approved only) or admin (all statuses)
 export async function GET(req: NextRequest) {
@@ -12,40 +14,23 @@ export async function GET(req: NextRequest) {
   const session = await auth()
 
   // Public: only APPROVED posts
-  if (!session) {
-    const posts = await prisma.socialPost.findMany({
-      where: {
-        ...(status ? { status: status as PostStatus } : {}),
-        ...(businessId ? { businessId } : {}),
-      },
-      include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
-      orderBy: { createdAt: 'desc' },
-    })
-    return NextResponse.json(posts)
-  }
+  const listWith = { business: { columns: { id: true, slug: true, name: true, logo: true } } } as const
 
-  // Authed: show all if admin/owner, otherwise only their own
-  const isAdmin = session.user?.role === 'ADMIN'
-
-  if (isAdmin) {
-    const posts = await prisma.socialPost.findMany({
-      where: { ...(status ? { status: status as PostStatus } : {}), ...(businessId ? { businessId } : {}) },
-      include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
-      orderBy: { createdAt: 'desc' },
-    })
-    return NextResponse.json(posts)
-  }
-
-  // Logged-in owner: return all their posts
-  const posts = await prisma.socialPost.findMany({
-    where: { ...(status ? { status: status as PostStatus } : {}) },
-    include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
-    orderBy: { createdAt: 'desc' },
+  // Anonymous + admin callers may filter by businessId; signed-in non-admins
+  // only get the status filter (matches the previous behaviour).
+  const isAdmin = session?.user?.role === 'ADMIN'
+  const filterByBusiness = !session || isAdmin
+  const posts = await db.query.socialPost.findMany({
+    where: and(
+      status ? eq(socialPost.status, status as PostStatus) : undefined,
+      filterByBusiness && businessId ? eq(socialPost.businessId, businessId) : undefined
+    ),
+    with: listWith,
+    orderBy: desc(socialPost.createdAt),
   })
   return NextResponse.json(posts)
 }
 
-// POST /api/social-posts — submit a new post URL (public)
 export async function POST(req: NextRequest) {
   const body = await req.json()
   const { platform, postUrl, caption, eventDate, eventEndDate, businessId, submittedBy } = body
@@ -72,7 +57,7 @@ export async function POST(req: NextRequest) {
 
   // Verify businessId exists if provided
   if (businessId) {
-    const biz = await prisma.business.findUnique({ where: { id: businessId } })
+    const biz = await db.query.business.findFirst({ where: eq(business.id, businessId) })
     if (!biz) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
   }
 
@@ -80,8 +65,9 @@ export async function POST(req: NextRequest) {
   const parsedEventDate = eventDate ? new Date(eventDate) : null
   const parsedEventEndDate = eventEndDate ? new Date(eventEndDate) : null
 
-  const post = await prisma.socialPost.create({
-    data: {
+  const [inserted] = await db
+    .insert(socialPost)
+    .values({
       platform,
       postUrl,
       caption: caption || null,
@@ -90,9 +76,15 @@ export async function POST(req: NextRequest) {
       businessId: businessId || null,
       submittedBy: submittedBy || null,
       status: 'PENDING',
-    },
-    include: { business: { select: { id: true, slug: true, name: true } } },
-  })
+    })
+    .returning()
+  const linked = inserted.businessId
+    ? await db.query.business.findFirst({
+        where: eq(business.id, inserted.businessId),
+        columns: { id: true, slug: true, name: true },
+      })
+    : null
+  const post = { ...inserted, business: linked ?? null }
 
   return NextResponse.json(post, { status: 201 })
 }

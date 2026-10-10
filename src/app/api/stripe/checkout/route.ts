@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getStripe } from '@/lib/stripe'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, owner as ownerTable, business as businessTable } from '@/db'
 
 export type CheckoutTier = 'featured' | 'expert'
 
@@ -36,9 +37,9 @@ export async function POST(req: NextRequest) {
   const interval = searchParams.get('interval') === 'yearly' ? 'yearly' : 'monthly'
   const tier: CheckoutTier = searchParams.get('tier') === 'expert' ? 'expert' : 'featured'
 
-  const owner = await prisma.owner.findUnique({
-    where: { id: session.user.id },
-    include: { business: true },
+  const owner = await db.query.owner.findFirst({
+    where: eq(ownerTable.id, session.user.id),
+    with: { business: true },
   })
 
   if (!owner?.business) {
@@ -112,10 +113,10 @@ export async function POST(req: NextRequest) {
       metadata: { businessId: owner.business.id },
     })
     customerId = customer.id
-    await prisma.business.update({
-      where: { id: owner.business.id },
-      data: { stripeCustomerId: customerId },
-    })
+    await db
+      .update(businessTable)
+      .set({ stripeCustomerId: customerId })
+      .where(eq(businessTable.id, owner.business.id))
   }
 
   const checkoutSession = await getStripe().checkout.sessions.create({

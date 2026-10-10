@@ -1,17 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
 
-// Mock the prisma module before importing the functions that use it.
+// Mock the db module before importing the functions that use it.
 // `vi.mock` is hoisted by Vitest, so we declare the mock here and
 // each test configures its return value via mockReturnValueOnce.
-vi.mock('./prisma', () => ({
-  prisma: {
-    business: {
-      findUnique: vi.fn(),
-    },
+vi.mock('../db', () => ({
+  db: {
+    query: { business: { findFirst: vi.fn() } },
+    $count: vi.fn(),
   },
+  business: {},
 }))
 
-import { prisma } from './prisma'
+import { db } from '../db'
 import {
   slugifyExpertPartner,
   ensureUniqueExpertPartnerSlug,
@@ -21,7 +21,7 @@ import {
 /**
  * Pure-function tests for expert-partner.ts. We test the deterministic
  * helpers (slug generation, partner display) and the slug-uniqueness
- * loop (which only depends on Prisma's findUnique).
+ * loop (which only depends on db.query.business.findFirst).
  */
 
 describe('slugifyExpertPartner', () => {
@@ -54,13 +54,13 @@ describe('slugifyExpertPartner', () => {
 
 describe('ensureUniqueExpertPartnerSlug', () => {
   it('returns the base slug when nothing has it', async () => {
-    vi.mocked(prisma.business.findUnique).mockResolvedValueOnce(null)
+    vi.mocked(db.query.business.findFirst).mockResolvedValueOnce(undefined)
     const result = await ensureUniqueExpertPartnerSlug('menke-realty')
     expect(result).toBe('menke-realty')
   })
 
   it('skips a slug held by the excluded business (editing keeps slug)', async () => {
-    vi.mocked(prisma.business.findUnique).mockResolvedValueOnce({
+    vi.mocked(db.query.business.findFirst).mockResolvedValueOnce({
       id: 'self',
     } as never)
     const result = await ensureUniqueExpertPartnerSlug('menke-realty', 'self')
@@ -69,20 +69,20 @@ describe('ensureUniqueExpertPartnerSlug', () => {
 
   it('appends -2 on first conflict', async () => {
     // First call: base taken by someone else
-    vi.mocked(prisma.business.findUnique).mockResolvedValueOnce({ id: 'other' } as never)
+    vi.mocked(db.query.business.findFirst).mockResolvedValueOnce({ id: 'other' } as never)
     // Second call: menke-realty-2 is free
-    vi.mocked(prisma.business.findUnique).mockResolvedValueOnce(null)
+    vi.mocked(db.query.business.findFirst).mockResolvedValueOnce(undefined)
     const result = await ensureUniqueExpertPartnerSlug('menke-realty')
     expect(result).toBe('menke-realty-2')
   })
 
   it('walks through -2, -3 until finding a free one', async () => {
     // Base taken
-    vi.mocked(prisma.business.findUnique).mockResolvedValueOnce({ id: 'a' } as never)
+    vi.mocked(db.query.business.findFirst).mockResolvedValueOnce({ id: 'a' } as never)
     // -2 taken
-    vi.mocked(prisma.business.findUnique).mockResolvedValueOnce({ id: 'b' } as never)
+    vi.mocked(db.query.business.findFirst).mockResolvedValueOnce({ id: 'b' } as never)
     // -3 free
-    vi.mocked(prisma.business.findUnique).mockResolvedValueOnce(null)
+    vi.mocked(db.query.business.findFirst).mockResolvedValueOnce(undefined)
     const result = await ensureUniqueExpertPartnerSlug('menke-realty')
     expect(result).toBe('menke-realty-3')
   })

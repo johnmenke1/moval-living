@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, business, event as eventTable, venue, requireRow } from '@/db'
 import { revalidateEventData } from '@/lib/revalidate'
 
 // Event metadata that admins can edit. Slug, source fields, and id are immutable.
-// Keep enum values in sync with prisma/schema.prisma.
+// Keep enum values in sync with src/db/schema.ts.
 const eventCategoryEnum = z.enum([
   'HS_SPORTS',
   'COLLEGE_SPORTS',
@@ -125,9 +126,9 @@ export async function PATCH(
       )
     }
 
-    const existing = await prisma.event.findUnique({
-      where: { id },
-      select: { id: true },
+    const existing = await db.query.event.findFirst({
+      where: eq(eventTable.id, id),
+      columns: { id: true },
     })
     if (!existing) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
@@ -136,11 +137,11 @@ export async function PATCH(
     const data = parsed.data
 
     // Verify the linked business exists + is APPROVED. If invalid, we want
-    // a clean 400 (not a Prisma foreign-key 500).
+    // a clean 400 (not a foreign-key 500).
     if (data.businessId) {
-      const biz = await prisma.business.findUnique({
-        where: { id: data.businessId },
-        select: { id: true, status: true },
+      const biz = await db.query.business.findFirst({
+        where: eq(business.id, data.businessId),
+        columns: { id: true, status: true },
       })
       if (!biz) {
         return NextResponse.json(
@@ -161,9 +162,10 @@ export async function PATCH(
     // post). Normalize empty string → null before write.
     const normalizedShareUrl = data.shareUrl?.trim() ? data.shareUrl.trim() : null
 
-    const updated = await prisma.event.update({
-      where: { id },
-      data: {
+    const updated = requireRow(
+      await db
+        .update(eventTable)
+        .set({
         title: data.title,
         description: data.description,
         startsAt: new Date(data.startsAt),
@@ -180,7 +182,7 @@ export async function PATCH(
         ...(await (async () => {
           if (data.venueId === undefined) return {}
           if (data.venueId === null) return { venueId: null }
-          const v = await prisma.venue.findUnique({ where: { id: data.venueId } })
+          const v = await db.query.venue.findFirst({ where: eq(venue.id, data.venueId) })
           if (!v) return { venueId: null }
           return {
             venueId: v.id,
@@ -203,15 +205,17 @@ export async function PATCH(
         businessId: data.businessId || null,
         // If businessId is set, verify the business exists + is APPROVED.
         // If invalid, the FK constraint will reject — but we want a clean
-        // 400 instead of a Prisma foreign-key 500.
-      },
-      select: {
-        id: true,
-        slug: true,
-        title: true,
-        updatedAt: true,
-      },
-    })
+        // 400 instead of a foreign-key 500.
+        })
+        .where(eq(eventTable.id, id))
+        .returning({
+          id: eventTable.id,
+          slug: eventTable.slug,
+          title: eventTable.title,
+          updatedAt: eventTable.updatedAt,
+        }),
+      'Event not found'
+    )
 
     return NextResponse.json({ ok: true, event: updated })
   } catch (err) {

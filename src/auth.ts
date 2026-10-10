@@ -1,20 +1,10 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
-import { Pool } from 'pg'
-import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
-
-function createPrisma() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL })
-  const adapter = new PrismaPg(pool)
-  return new PrismaClient({ adapter })
-}
-
-const prisma = globalForPrisma.prisma || createPrisma()
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+import { eq } from 'drizzle-orm'
+// Share the one tuned pool (see src/db/index.ts). Do NOT build a second
+// client/Pool here: a default-sized pool defeated the Neon connection tuning.
+import { db, owner as ownerTable } from '@/db'
 
 type MovalRole = 'USER' | 'ADMIN'
 
@@ -35,7 +25,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const email = String(credentials.email).toLowerCase().trim()
         const password = String(credentials.password)
 
-        const owner = await prisma.owner.findUnique({ where: { email } })
+        const owner = await db.query.owner.findFirst({ where: eq(ownerTable.email, email) })
         if (!owner || !owner.passwordHash) return null
 
         const valid = await bcrypt.compare(password, owner.passwordHash)
@@ -58,9 +48,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Refresh role from DB on each token refresh
       const ownerId = typeof token.id === 'string' ? token.id : null
       if (ownerId) {
-        const owner = await prisma.owner.findUnique({
-          where: { id: ownerId },
-          select: { role: true },
+        const owner = await db.query.owner.findFirst({
+          where: eq(ownerTable.id, ownerId),
+          columns: { role: true },
         })
         token.role = (owner?.role || 'USER') as MovalRole
       }

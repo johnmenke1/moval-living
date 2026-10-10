@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { desc, eq } from 'drizzle-orm'
+import { db, owner as ownerTable, review, eventAttendee } from '@/db'
 import { ProfileForm } from './ProfileForm'
 import { YourReviews } from './YourReviews'
 import { EmailChangeForm } from './EmailChangeForm'
@@ -22,9 +23,9 @@ export default async function ProfilePage() {
     redirect('/login?returnTo=/dashboard/profile')
   }
 
-  const owner = await prisma.owner.findUnique({
-    where: { id: session.user.id },
-    select: {
+  const owner = await db.query.owner.findFirst({
+    where: eq(ownerTable.id, session.user.id),
+    columns: {
       id: true,
       name: true,
       email: true,
@@ -41,11 +42,11 @@ export default async function ProfilePage() {
   // Server-side fetch for the reviews list — hydrates the client
   // component with no flash of empty state. The client then polls
   // /api/profile/reviews every 30s for updates.
-  const reviewRows = await prisma.review.findMany({
-    where: { ownerId: owner.id },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-    select: {
+  const reviewRows = await db.query.review.findMany({
+    where: eq(review.ownerId, owner.id),
+    orderBy: desc(review.createdAt),
+    limit: 50,
+    columns: {
       id: true,
       rating: true,
       content: true,
@@ -54,8 +55,8 @@ export default async function ProfilePage() {
       response: true,
       flagged: true,
       createdAt: true,
-      business: { select: { id: true, name: true, slug: true } },
     },
+    with: { business: { columns: { id: true, name: true, slug: true } } },
   })
   const initialReviews = reviewRows.map((r) =>
     buildReviewsPageResponse({
@@ -65,14 +66,13 @@ export default async function ProfilePage() {
   )
 
   // Server-side fetch for the user's RSVPed events.
-  const attendeeRows = await prisma.eventAttendee.findMany({
-    where: { ownerId: owner.id },
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      status: true,
+  const attendeeRows = await db.query.eventAttendee.findMany({
+    where: eq(eventAttendee.ownerId, owner.id),
+    orderBy: desc(eventAttendee.createdAt),
+    columns: { id: true, status: true },
+    with: {
       event: {
-        select: {
+        columns: {
           id: true,
           slug: true,
           title: true,

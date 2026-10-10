@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { and, eq, or } from 'drizzle-orm'
+import { db, business as businessTable, expertPartnerLead } from '@/db'
 import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 
 const leadSchema = z.object({
@@ -62,16 +63,16 @@ export async function POST(
   }
 
   // Find the business — slug is the partner slug OR fallback to business slug
-  const business = await prisma.business.findFirst({
-    where: {
-      OR: [
-        { expertPartnerSlug: slug },
-        { slug, isExpertPartner: true },
-      ],
-      status: 'APPROVED',
-      isExpertPartner: true,
-    },
-    select: {
+  const business = await db.query.business.findFirst({
+    where: and(
+      or(
+        eq(businessTable.expertPartnerSlug, slug),
+        and(eq(businessTable.slug, slug), eq(businessTable.isExpertPartner, true))
+      ),
+      eq(businessTable.status, 'APPROVED'),
+      eq(businessTable.isExpertPartner, true)
+    ),
+    columns: {
       id: true,
       name: true,
       email: true,
@@ -109,8 +110,9 @@ export async function POST(
   }
 
   // Save the lead locally
-  const lead = await prisma.expertPartnerLead.create({
-    data: {
+  const [lead] = await db
+    .insert(expertPartnerLead)
+    .values({
       businessId: business.id,
       name: parsed.data.name,
       email: parsed.data.email,
@@ -118,8 +120,8 @@ export async function POST(
       message: parsed.data.message,
       sourceIp: ip,
       userAgent: req.headers.get('user-agent') || null,
-    },
-  })
+    })
+    .returning()
 
   // Notify the partner via SES (fire-and-forget — don't fail the response)
   const businessEmail = business.email

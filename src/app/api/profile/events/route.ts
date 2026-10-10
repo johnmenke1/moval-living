@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { desc, eq } from 'drizzle-orm'
+import { db, eventAttendee } from '@/db'
 
 /**
  * GET /api/profile/events
@@ -17,15 +18,17 @@ export async function GET() {
     )
   }
 
-  const rows = await prisma.eventAttendee.findMany({
-    where: { ownerId: session.user.id },
-    orderBy: { createdAt: 'desc' },
-    select: {
+  const rows = await db.query.eventAttendee.findMany({
+    where: eq(eventAttendee.ownerId, session.user.id),
+    orderBy: desc(eventAttendee.createdAt),
+    columns: {
       id: true,
       status: true,
       createdAt: true,
+    },
+    with: {
       event: {
-        select: {
+        columns: {
           id: true,
           slug: true,
           title: true,

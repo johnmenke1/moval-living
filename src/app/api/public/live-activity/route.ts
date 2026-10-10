@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { and, desc, eq, gte, inArray, isNotNull } from 'drizzle-orm'
+import { db, business, review, bestOfNomination } from '@/db'
 
 /**
  * GET /api/public/live-activity
@@ -57,75 +58,54 @@ export async function GET() {
   // Run the four queries in parallel — independent reads.
   const [claims, features, reviews, nominations] = await Promise.all([
     // 1. Claims — first time ownerId was set
-    prisma.business.findMany({
-      where: {
-        claimedAt: { not: null, gte: since },
-        status: 'APPROVED', // hide claims against un-published listings
-      },
-      orderBy: { claimedAt: 'desc' },
-      take: PER_STREAM_CAP,
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        claimedAt: true,
-        owner: { select: { name: true } },
-      },
+    db.query.business.findMany({
+      where: and(
+        isNotNull(business.claimedAt),
+        gte(business.claimedAt, since),
+        eq(business.status, 'APPROVED') // hide claims against un-published listings
+      ),
+      orderBy: desc(business.claimedAt),
+      limit: PER_STREAM_CAP,
+      columns: { id: true, slug: true, name: true, claimedAt: true },
+      with: { owner: { columns: { name: true } } },
     }),
-    // 2. Features — first time tier flipped to FEATURED/EXPERT_PARTNER
-    prisma.business.findMany({
-      where: {
-        featuredAt: { not: null, gte: since },
-        // Only surface businesses that are currently premium — keeps the
-        // ticker honest ("X is Featured" not "X was once Featured").
-        tier: { in: ['FEATURED', 'EXPERT_PARTNER'] },
-        status: 'APPROVED',
-      },
-      orderBy: { featuredAt: 'desc' },
-      take: PER_STREAM_CAP,
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        featuredAt: true,
-        tier: true,
-        owner: { select: { name: true } },
-      },
+    db.query.business.findMany({
+      where: and(
+        isNotNull(business.featuredAt),
+        gte(business.featuredAt, since),
+        inArray(business.tier, ['FEATURED', 'EXPERT_PARTNER']),
+        eq(business.status, 'APPROVED')
+      ),
+      orderBy: desc(business.featuredAt),
+      limit: PER_STREAM_CAP,
+      columns: { id: true, slug: true, name: true, featuredAt: true, tier: true },
+      with: { owner: { columns: { name: true } } },
     }),
-    // 3. Reviews — exclude flagged ones
-    prisma.review.findMany({
-      where: {
-        createdAt: { gte: since },
-        flagged: false,
-        business: { status: 'APPROVED' },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: PER_STREAM_CAP,
-      select: {
-        id: true,
-        createdAt: true,
-        rating: true,
-        authorName: true,
-        business: { select: { name: true, slug: true } },
-      },
-    }),
-    // 4. Nominations — only show APPROVED (per spec: invisible until
-    // admin approves). Pending nominations are private.
-    prisma.bestOfNomination.findMany({
-      where: {
-        status: 'APPROVED',
-        createdAt: { gte: since },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: PER_STREAM_CAP,
-      select: {
+    db
+      .select({
+        id: review.id,
+        createdAt: review.createdAt,
+        rating: review.rating,
+        authorName: review.authorName,
+        business: { name: business.name, slug: business.slug },
+      })
+      .from(review)
+      .innerJoin(business, eq(business.id, review.businessId))
+      .where(and(gte(review.createdAt, since), eq(review.flagged, false), eq(business.status, 'APPROVED')))
+      .orderBy(desc(review.createdAt))
+      .limit(PER_STREAM_CAP),
+    db.query.bestOfNomination.findMany({
+      where: and(eq(bestOfNomination.status, 'APPROVED'), gte(bestOfNomination.createdAt, since)),
+      orderBy: desc(bestOfNomination.createdAt),
+      limit: PER_STREAM_CAP,
+      columns: {
         id: true,
         createdAt: true,
         nominatorName: true,
         categoryName: true,
         businessName: true,
-        business: { select: { slug: true } },
       },
+      with: { business: { columns: { slug: true } } },
     }),
   ])
 

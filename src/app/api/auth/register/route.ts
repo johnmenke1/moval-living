@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { and, eq, isNull } from 'drizzle-orm'
+import { db, owner as ownerTable, business as businessTable, bestOfNomination } from '@/db'
 import bcrypt from 'bcryptjs'
 import { signIn } from '@/auth'
 
@@ -40,9 +41,9 @@ export async function POST(req: NextRequest) {
   // nomination by guessing an id.
   let linkedNominationId: string | null = null
   if (nominationId) {
-    const nom = await prisma.bestOfNomination.findUnique({
-      where: { id: nominationId },
-      select: { id: true, nominatorEmail: true, ownerId: true },
+    const nom = await db.query.bestOfNomination.findFirst({
+      where: eq(bestOfNomination.id, nominationId),
+      columns: { id: true, nominatorEmail: true, ownerId: true },
     })
     if (!nom) {
       return NextResponse.json({ error: 'Nomination not found' }, { status: 404 })
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
   const normalizedEmail = email.toLowerCase().trim()
 
   // Check if owner already exists
-  const existing = await prisma.owner.findUnique({ where: { email: normalizedEmail } })
+  const existing = await db.query.owner.findFirst({ where: eq(ownerTable.email, normalizedEmail) })
   if (existing) {
     return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 })
   }
@@ -86,9 +87,9 @@ export async function POST(req: NextRequest) {
   // see at /api/claim/verify (invalid / expired / already claimed).
   let claimBusinessId: string | null = null
   if (claimToken) {
-    const claimable = await prisma.business.findUnique({
-      where: { claimToken },
-      select: { id: true, ownerId: true, claimExpiresAt: true },
+    const claimable = await db.query.business.findFirst({
+      where: eq(businessTable.claimToken, claimToken),
+      columns: { id: true, ownerId: true, claimExpiresAt: true },
     })
     if (!claimable) {
       return NextResponse.json({ error: 'Invalid claim link' }, { status: 404 })
@@ -103,8 +104,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Create the owner with consent tracking
-  const owner = await prisma.owner.create({
-    data: {
+  const [owner] = await db
+    .insert(ownerTable)
+    .values({
       email: normalizedEmail,
       name: name?.trim() || null,
       passwordHash,
@@ -115,27 +117,27 @@ export async function POST(req: NextRequest) {
       emailConsentAt: emailOptIn ? now : null,
       smsConsentAt: smsOptIn ? now : null,
       smsConsentSource: smsOptIn ? 'claim-form' : null,
-    },
-  })
+    })
+    .returning()
 
   // Persist the "Se Habla Español" flag onto the Business so the public
   // listing card renders the badge. Done here (not at /claim/complete)
   // because by the time the complete page runs the form's checkbox state
   // is gone — only the token survives the redirect.
   if (claimBusinessId) {
-    await prisma.business.update({
-      where: { id: claimBusinessId },
-      data: { seHablaEspanol: Boolean(seHablaEspanol) },
-    })
+    await db
+      .update(businessTable)
+      .set({ seHablaEspanol: Boolean(seHablaEspanol) })
+      .where(eq(businessTable.id, claimBusinessId))
   }
 
   // Link the freshly-created Owner to the nomination they came in from.
   // Guards with ownerId: null so concurrent registrations can't both win.
   if (linkedNominationId) {
-    await prisma.bestOfNomination.updateMany({
-      where: { id: linkedNominationId, ownerId: null },
-      data: { ownerId: owner.id },
-    })
+    await db
+      .update(bestOfNomination)
+      .set({ ownerId: owner.id })
+      .where(and(eq(bestOfNomination.id, linkedNominationId), isNull(bestOfNomination.ownerId)))
   }
 
   // Sign in immediately so the session is established

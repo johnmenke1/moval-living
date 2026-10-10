@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Building2 } from 'lucide-react'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { asc } from 'drizzle-orm'
+import { db, category } from '@/db'
 import ManualAddBusinessClient from '@/components/admin/ManualAddBusinessClient'
 
 // /dashboard/add/manual — admin-only entry to the manual business
@@ -17,9 +18,7 @@ export default async function ManualAddBusinessPage() {
     redirect('/dashboard')
   }
 
-  const categories = await prisma.category.findMany({
-    orderBy: { name: 'asc' },
-  })
+  const categories = await db.query.category.findMany({ orderBy: asc(category.name) })
 
   return (
     <div className="bg-slate-50 min-h-screen">

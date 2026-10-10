@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
 import {
   createGuestAuthor,
   guestAuthorCreateSchema,
+  listGuestAuthors,
   uniqueAuthorSlug,
 } from '@/lib/guest-content'
 
@@ -13,10 +13,7 @@ export async function GET() {
   if (!session?.user?.id || session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  const authors = await prisma.guestAuthor.findMany({
-    orderBy: [{ isActive: 'desc' }, { displayName: 'asc' }],
-    include: { _count: { select: { posts: true } } },
-  })
+  const authors = await listGuestAuthors()
   return NextResponse.json(authors)
 }
 

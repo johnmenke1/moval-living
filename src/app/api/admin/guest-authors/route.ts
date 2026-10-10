@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, guestAuthor } from '@/db'
 import { auth } from '@/auth'
 import { z } from 'zod'
 import { revalidateAuthorData } from '@/lib/revalidate'
+import { getGuestAuthorAdmin, listGuestAuthorsAdmin } from '@/lib/guest-content'
 
 const CreateGuestAuthorSchema = z.object({
   displayName: z.string().min(1),
@@ -30,17 +32,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const authors = await prisma.guestAuthor.findMany({
-    include: {
-      _count: { select: { posts: true } },
-      business: { select: { id: true, name: true, slug: true, logo: true } },
-    },
-    orderBy: { displayName: 'asc' },
-  })
-
-  return NextResponse.json(
-    authors.map(a => ({ ...a, postCount: a._count.posts }))
-  )
+  return NextResponse.json(await listGuestAuthorsAdmin())
 }
 
 // POST /api/admin/guest-authors — create author
@@ -64,21 +56,16 @@ export async function POST(req: NextRequest) {
 
   const { slug, ...data } = parsed.data
 
-  const existing = await prisma.guestAuthor.findUnique({ where: { slug } })
+  const existing = await db.query.guestAuthor.findFirst({ where: eq(guestAuthor.slug, slug) })
   if (existing) {
     return NextResponse.json({ error: 'Slug already in use' }, { status: 409 })
   }
 
-  const author = await prisma.guestAuthor.create({
-    data: { slug, ...data },
-    include: {
-      _count: { select: { posts: true } },
-      business: { select: { id: true, name: true, slug: true, logo: true } },
-    },
-  })
+  const [created] = await db.insert(guestAuthor).values({ slug, ...data }).returning({ id: guestAuthor.id })
+  const author = (await getGuestAuthorAdmin(created.id))!
   // ISR cache bust — see src/lib/revalidate.ts for the path map.
 
   revalidateAuthorData()
 
-  return NextResponse.json({ ...author, postCount: author._count.posts }, { status: 201 })
+  return NextResponse.json(author, { status: 201 })
 }

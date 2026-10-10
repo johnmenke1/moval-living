@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, Calendar } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, guestPost } from '@/db'
 import { renderMarkdown } from '@/lib/markdown'
 import { JsonLd } from '@/components/seo/JsonLd'
 import OutingPhotoGallery from './OutingPhotoGallery'
@@ -16,11 +17,11 @@ async function getPublishedOuting(slug: string) {
   // Full author select — the Article + Person JSON-LD blocks need every
   // social URL + bio + photo. Mirrors life/[slug]/page.tsx and
   // insights/[slug]/page.tsx for the same schema.
-  const post = await prisma.guestPost.findUnique({
-    where: { slug },
-    include: {
+  const post = await db.query.guestPost.findFirst({
+    where: eq(guestPost.slug, slug),
+    with: {
       author: {
-        select: {
+        columns: {
           slug: true,
           displayName: true,
           title: true,

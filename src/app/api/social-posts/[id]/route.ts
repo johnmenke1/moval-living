@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
-import { PostStatus } from '@prisma/client'
+import { eq } from 'drizzle-orm'
+import { db, socialPost, requireRow } from '@/db'
 import { extractInstagramMedia } from '@/lib/instagram-media'
 
 // PATCH /api/social-posts/[id] — approve/reject (admin only)
@@ -26,10 +26,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'status must be APPROVED or REJECTED' }, { status: 400 })
   }
 
-  const updateData: Record<string, unknown> = {}
+  const updateData: Partial<typeof socialPost.$inferInsert> = {}
 
   if (isStatusChange) {
-    updateData.status = status
+    updateData.status = status as typeof socialPost.$inferInsert['status']
   }
 
   if (eventDate !== undefined) {
@@ -41,7 +41,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   // On approval, auto-extract media from the post URL if mediaUrl is missing
   if (isStatusChange && status === 'APPROVED') {
-    const post = await prisma.socialPost.findUnique({ where: { id } })
+    const post = await db.query.socialPost.findFirst({ where: eq(socialPost.id, id) })
     if (post && !post.mediaUrl && post.platform === 'INSTAGRAM') {
       const extracted = await extractInstagramMedia(post.postUrl)
       if (extracted.mediaUrl) {
@@ -53,11 +53,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
   }
 
-  const updated = await prisma.socialPost.update({
-    where: { id },
-    data: updateData,
-    include: { business: { select: { id: true, slug: true, name: true } } },
-  })
+  if (Object.keys(updateData).length > 0) {
+    requireRow(
+      await db.update(socialPost).set(updateData).where(eq(socialPost.id, id)).returning({ id: socialPost.id }),
+      'Post not found'
+    )
+  }
+  const updated = requireRow(
+    await db.query.socialPost.findMany({
+      where: eq(socialPost.id, id),
+      with: { business: { columns: { id: true, slug: true, name: true } } },
+    }),
+    'Post not found'
+  )
 
   return NextResponse.json(updated)
 }
@@ -71,7 +79,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   const { id } = await params
-  await prisma.socialPost.delete({ where: { id } })
+  requireRow(
+    await db.delete(socialPost).where(eq(socialPost.id, id)).returning({ id: socialPost.id }),
+    'Post not found'
+  )
 
   return NextResponse.json({ success: true })
 }

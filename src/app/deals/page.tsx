@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { prisma } from '@/lib/prisma'
+import { queryPublicDeals, type DealSort } from '@/lib/deals-query'
 import { DealCardPublic, DealPublicBusiness } from '@/components/business/DealCardPublic'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Tag } from 'lucide-react'
@@ -25,54 +25,8 @@ async function getDeals(params: { sort?: string; page?: string }) {
   const page = Math.max(1, parseInt(params.page || '1'))
   const skip = (page - 1) * 20
 
-  const now = new Date()
-  const where = {
-    isActive: true,
-    OR: [
-      { expiresAt: null },
-      { expiresAt: { gt: now } },
-    ],
-    AND: [
-      {
-        OR: [
-          { startsAt: null },
-          { startsAt: { lte: now } },
-        ],
-      },
-      { business: { status: 'APPROVED' as const } },
-    ],
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const orderBy: any = params.sort === 'expiring'
-    ? [{ isActive: 'desc' }, { expiresAt: 'asc' }]
-    : params.sort === 'business'
-      ? [{ business: { name: 'asc' as const } }, { createdAt: 'desc' as const }]
-      : [{ displayOrder: 'asc' as const }, { createdAt: 'desc' as const }]
-
-  const [deals, total] = await Promise.all([
-    prisma.deal.findMany({
-      where,
-      include: {
-        business: {
-          select: {
-            id: true,
-            slug: true,
-            name: true,
-            tagline: true,
-            logo: true,
-            coverImage: true,
-            category: { select: { name: true, slug: true } },
-            _count: { select: { reviews: true } },
-          },
-        },
-      },
-      orderBy,
-      skip,
-      take: 20,
-    }),
-    prisma.deal.count({ where }),
-  ])
+  const sort: DealSort = params.sort === 'expiring' || params.sort === 'business' ? params.sort : 'newest'
+  const { deals, total } = await queryPublicDeals({ sort, skip, take: 20 })
 
   return {
     deals: deals.map(d => {

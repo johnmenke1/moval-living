@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { prisma } from '@/lib/prisma'
+import { and, asc, desc, eq } from 'drizzle-orm'
+import { db, business as businessTable, deal as dealTable, review as reviewTable } from '@/db'
 import { auth } from '@/auth'
 import { averageRating, formatPhone } from '@/lib/utils'
 import { MapPin, Phone, Globe, Mail, Clock, Star, ChevronRight, Trophy, Tag, Award, Sparkles, Building2, Languages, Calendar } from 'lucide-react'
@@ -35,9 +36,9 @@ interface BusinessPageProps {
 }
 
 async function getBusiness(slug: string) {
-  const business = await prisma.business.findUnique({
-    where: { slug, status: 'APPROVED' },
-    select: {
+  const business = await db.query.business.findFirst({
+    where: and(eq(businessTable.slug, slug), eq(businessTable.status, 'APPROVED')),
+    columns: {
       id: true, slug: true, name: true, tagline: true, description: true,
       address: true, city: true, state: true, zip: true,
       phone: true, email: true, website: true,
@@ -50,16 +51,21 @@ async function getBusiness(slug: string) {
       expertPartnerSlug: true,
       foundingPartnerSince: true,
       foundingPartnerRate: true,
+      // Languages & Chamber affiliation badges
+      seHablaEspanol: true,
+      chamberMember: true,
+      hispanicChamberMember: true,
+      metaTitle: true, metaDescription: true,
+      ownerId: true,
+    },
+    with: {
       // Active deals — surfaced on the listing page below the Photos
       // gallery. Ordered by displayOrder asc, newest expiring first as
       // the secondary sort so seasonal promos win during tie-breaks.
       deals: {
-        where: { isActive: true },
-        orderBy: [
-          { displayOrder: 'asc' },
-          { expiresAt: 'desc' },
-        ],
-        select: {
+        where: eq(dealTable.isActive, true),
+        orderBy: [asc(dealTable.displayOrder), desc(dealTable.expiresAt)],
+        columns: {
           id: true,
           headline: true,
           description: true,
@@ -70,26 +76,16 @@ async function getBusiness(slug: string) {
           displayOrder: true,
         },
       },
-      // Languages & Chamber affiliation badges
-      seHablaEspanol: true,
-      chamberMember: true,
-      hispanicChamberMember: true,
-      metaTitle: true, metaDescription: true,
       category: true,
-      ownerId: true,
       reviews: {
-        orderBy: { createdAt: 'desc' },
-        where: { flagged: false },
+        orderBy: desc(reviewTable.createdAt),
+        where: eq(reviewTable.flagged, false),
       },
       // All Best Of categories this business has been nominated in
       // (winners AND runner-ups). Drives the Best Of badge on the listing.
       bestOfNominees: {
-        select: {
-          winner: true,
-          category: {
-            select: { name: true, slug: true },
-          },
-        },
+        columns: { winner: true },
+        with: { category: { columns: { name: true, slug: true } } },
       },
     },
   })

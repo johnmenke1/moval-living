@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { asc } from 'drizzle-orm'
+import { db, park } from '@/db'
 import { auth } from '@/auth'
 
 export const dynamic = 'force-dynamic'
@@ -16,9 +17,9 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const parks = await prisma.park.findMany({
-    orderBy: [{ type: 'asc' }, { name: 'asc' }],
-    select: {
+  const parks = await db.query.park.findMany({
+    orderBy: [asc(park.type), asc(park.name)],
+    columns: {
       id: true,
       slug: true,
       name: true,

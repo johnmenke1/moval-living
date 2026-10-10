@@ -93,13 +93,17 @@ describe('matchOwnerByEmail', () => {
 
   function makeMockPrisma(owners: OwnerRow[]): OwnerLookup {
     return {
-      owner: {
-        async findFirst(args: unknown) {
-          const a = args as { where: { email: { equals: string } } }
-          const target = a.where.email.equals.toLowerCase()
-          const matched = owners.find((o) => o.email.toLowerCase() === target)
-          if (!matched) return null
-          return { id: matched.id }
+      query: {
+        owner: {
+          // The real query is `lower(email) = <normalized input>`. Drizzle keeps
+          // interpolated values in `queryChunks`, so read the compared value
+          // from there and apply the same rule.
+          async findFirst(args: unknown) {
+            const chunks = (args as { where: { queryChunks: unknown[] } }).where.queryChunks
+            const target = chunks.find((c) => typeof c === 'string') as string
+            const matched = owners.find((o) => o.email.toLowerCase() === target)
+            return matched ? { id: matched.id } : undefined
+          },
         },
       },
     }
@@ -122,10 +126,12 @@ describe('matchOwnerByEmail', () => {
   it('returns null for empty / whitespace / null input without hitting the DB', async () => {
     let called = false
     const prisma = {
-      owner: {
-        async findFirst() {
-          called = true
-          return null
+      query: {
+        owner: {
+          async findFirst() {
+            called = true
+            return undefined
+          },
         },
       },
     }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq, sql } from 'drizzle-orm'
+import { db, business as businessTable } from '@/db'
 import { canManageBusiness } from '@/lib/business-mutations'
 import { put } from '@vercel/blob'
 
@@ -40,9 +41,9 @@ export async function POST(request: Request) {
     }
 
     // Fetch business and verify ownership
-    const business = await prisma.business.findUnique({
-      where: { id: businessId },
-      select: { id: true, ownerId: true, tier: true, photos: true },
+    const business = await db.query.business.findFirst({
+      where: eq(businessTable.id, businessId),
+      columns: { id: true, ownerId: true, tier: true, photos: true },
     })
 
     if (!business) {
@@ -110,20 +111,14 @@ export async function POST(request: Request) {
 
     // Update the appropriate field on the Business record
     if (isLogo) {
-      await prisma.business.update({
-        where: { id: businessId },
-        data: { logo: blob.url },
-      })
+      await db.update(businessTable).set({ logo: blob.url }).where(eq(businessTable.id, businessId))
     } else if (isCover) {
-      await prisma.business.update({
-        where: { id: businessId },
-        data: { coverImage: blob.url },
-      })
+      await db.update(businessTable).set({ coverImage: blob.url }).where(eq(businessTable.id, businessId))
     } else if (isPhoto) {
-      await prisma.business.update({
-        where: { id: businessId },
-        data: { photos: { push: blob.url } },
-      })
+      await db
+        .update(businessTable)
+        .set({ photos: sql`array_append(${businessTable.photos}, ${blob.url})` })
+        .where(eq(businessTable.id, businessId))
     }
 
     return NextResponse.json({ url: blob.url, type })
@@ -149,9 +144,9 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Missing businessId or url' }, { status: 400 })
     }
 
-    const business = await prisma.business.findUnique({
-      where: { id: businessId },
-      select: { id: true, ownerId: true, photos: true },
+    const business = await db.query.business.findFirst({
+      where: eq(businessTable.id, businessId),
+      columns: { id: true, ownerId: true, photos: true },
     })
 
     if (!business) {
@@ -165,10 +160,7 @@ export async function DELETE(request: Request) {
 
     // Remove the photo URL from the array
     const updated = business.photos.filter((p) => p !== photoUrl)
-    await prisma.business.update({
-      where: { id: businessId },
-      data: { photos: updated },
-    })
+    await db.update(businessTable).set({ photos: updated }).where(eq(businessTable.id, businessId))
 
     return NextResponse.json({ success: true })
   } catch (error) {

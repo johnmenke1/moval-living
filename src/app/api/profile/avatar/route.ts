@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, owner } from '@/db'
 import { put } from '@vercel/blob'
 import {
   AVATAR_MAX_BYTES,
@@ -62,11 +63,7 @@ export async function POST(request: NextRequest) {
   })
 
   // Persist the new avatar URL on the Owner record
-  await prisma.owner.update({
-    where: { id: session.user.id },
-    data: { image: blob.url },
-    select: { id: true, image: true },
-  })
+  await db.update(owner).set({ image: blob.url }).where(eq(owner.id, session.user.id))
 
   return NextResponse.json({ url: blob.url })
 }

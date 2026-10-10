@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { desc, eq, and, inArray } from 'drizzle-orm'
+import { db, business as businessTable, review as reviewTable } from '@/db'
 import { auth } from '@/auth'
 import { normalizeReviewEmail } from '@/lib/review-owner-helpers'
 
@@ -19,7 +20,7 @@ export async function POST(
       return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 })
     }
 
-    const business = await prisma.business.findUnique({ where: { slug } })
+    const business = await db.query.business.findFirst({ where: eq(businessTable.slug, slug) })
     if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
@@ -31,16 +32,17 @@ export async function POST(
     const session = await auth()
     const ownerId = session?.user?.id ?? null
 
-    const review = await prisma.review.create({
-      data: {
+    const [review] = await db
+      .insert(reviewTable)
+      .values({
         businessId: business.id,
         ownerId,
         authorName: authorName.trim(),
         authorEmail: normalizeReviewEmail(authorEmail) || null,
         rating,
         content: content.trim(),
-      },
-    })
+      })
+      .returning()
 
     return NextResponse.json(review, { status: 201 })
   } catch (error) {
@@ -55,12 +57,15 @@ export async function GET(
 ) {
   try {
     const { slug } = await params
-    const reviews = await prisma.review.findMany({
-      where: {
-        business: { slug },
-        flagged: false,
-      },
-      orderBy: { createdAt: 'desc' },
+    const reviews = await db.query.review.findMany({
+      where: and(
+        inArray(
+          reviewTable.businessId,
+          db.select({ id: businessTable.id }).from(businessTable).where(eq(businessTable.slug, slug))
+        ),
+        eq(reviewTable.flagged, false)
+      ),
+      orderBy: desc(reviewTable.createdAt),
     })
 
     return NextResponse.json(reviews)

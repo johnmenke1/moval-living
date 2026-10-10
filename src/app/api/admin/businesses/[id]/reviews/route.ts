@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, business as businessTable, review } from '@/db'
 import { auth } from '@/auth'
 
 // DELETE /api/admin/businesses/[id]/reviews — delete all reviews for a business
@@ -14,12 +15,15 @@ export async function DELETE(
 
   const { id } = await params
 
-  const business = await prisma.business.findUnique({ where: { id }, select: { id: true, name: true } })
+  const business = await db.query.business.findFirst({
+    where: eq(businessTable.id, id),
+    columns: { id: true, name: true },
+  })
   if (!business) {
     return NextResponse.json({ error: 'Business not found' }, { status: 404 })
   }
 
-  const result = await prisma.review.deleteMany({ where: { businessId: id } })
+  const deleted = await db.delete(review).where(eq(review.businessId, id)).returning({ id: review.id })
 
-  return NextResponse.json({ deleted: result.count, business: business.name })
+  return NextResponse.json({ deleted: deleted.length, business: business.name })
 }

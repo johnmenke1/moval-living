@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, guestPost } from '@/db'
 import { put } from '@vercel/blob'
 import { revalidatePostData } from '@/lib/revalidate'
 
@@ -42,9 +43,9 @@ export async function POST(request: NextRequest) {
 
     let pathSegment = 'new'
     if (postId) {
-      const post = await prisma.guestPost.findUnique({
-        where: { id: postId },
-        select: { slug: true },
+      const post = await db.query.guestPost.findFirst({
+        where: eq(guestPost.id, postId),
+        columns: { slug: true },
       })
       if (post) pathSegment = post.slug
     }

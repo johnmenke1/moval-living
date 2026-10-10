@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { desc, eq } from 'drizzle-orm'
+import { db, business, owner, expertPartnerLead, review } from '@/db'
 
 /**
  * POST /api/admin/diagnostics/db
@@ -17,17 +18,17 @@ export async function POST() {
 
   try {
     const [businessCount, ownerCount, leadCount, expertCount, reviewCount] = await Promise.all([
-      prisma.business.count(),
-      prisma.owner.count(),
-      prisma.expertPartnerLead.count(),
-      prisma.business.count({ where: { isExpertPartner: true } }),
-      prisma.review.count(),
+      db.$count(business),
+      db.$count(owner),
+      db.$count(expertPartnerLead),
+      db.$count(business, eq(business.isExpertPartner, true)),
+      db.$count(review),
     ])
 
     // Find the most recent lead timestamp so we can spot a stuck pipeline
-    const lastLead = await prisma.expertPartnerLead.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { createdAt: true, businessId: true },
+    const lastLead = await db.query.expertPartnerLead.findFirst({
+      orderBy: desc(expertPartnerLead.createdAt),
+      columns: { createdAt: true, businessId: true },
     })
 
     return NextResponse.json({

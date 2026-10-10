@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Calendar } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
+import { and, desc, eq } from 'drizzle-orm'
+import { db, guestPost } from '@/db'
 import { SpotlightsHero } from '@/components/spotlights/SpotlightsHero'
 
 export const dynamic = 'force-dynamic'
@@ -14,10 +15,10 @@ export const metadata: Metadata = {
 }
 
 export default async function SpotlightsIndexPage() {
-  const posts = await prisma.guestPost.findMany({
-    where: { status: 'published', postType: 'SPOTLIGHT' },
-    orderBy: { publishedAt: 'desc' },
-    take: 50,
+  const posts = await db.query.guestPost.findMany({
+    where: and(eq(guestPost.status, 'published'), eq(guestPost.postType, 'SPOTLIGHT')),
+    orderBy: desc(guestPost.publishedAt),
+    limit: 50,
   })
 
   // Derive the answer-capsule text + hero stat counts from the live data.

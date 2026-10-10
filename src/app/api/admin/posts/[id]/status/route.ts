@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
+import { eq } from 'drizzle-orm'
+import { db, guestPost } from '@/db'
 import { transitionPostStatus, guestPostStatusSchema, checkPostCadence } from '@/lib/guest-content'
 import { revalidatePostData } from '@/lib/revalidate'
 
@@ -33,11 +35,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
   // Cadence check on publish — block if the author is at their monthly limit.
   if (parsed.data.status === 'published') {
-    const post = await (
-      await import('@/lib/prisma')
-    ).prisma.guestPost.findUnique({
-      where: { id },
-      select: { authorId: true, status: true },
+    const post = await db.query.guestPost.findFirst({
+      where: eq(guestPost.id, id),
+      columns: { authorId: true, status: true },
     })
     if (!post) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 })

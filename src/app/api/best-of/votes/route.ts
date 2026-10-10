@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, owner, bestOfNominee, bestOfVote, isUniqueViolation } from '@/db'
 import { auth } from '@/auth'
 import {
   castVoteSchema,
@@ -58,9 +58,9 @@ export async function POST(req: NextRequest) {
   // verification. Owner.emailVerified must be set; we re-read from DB
   // instead of trusting the session because the session JWT may be
   // older than the email verification event.
-  const voter = await prisma.owner.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, name: true, image: true, emailVerified: true },
+  const voter = await db.query.owner.findFirst({
+    where: eq(owner.id, session.user.id),
+    columns: { id: true, name: true, image: true, emailVerified: true },
   })
   if (!voter) {
     return NextResponse.json({ error: 'Account not found' }, { status: 401 })
@@ -81,12 +81,10 @@ export async function POST(req: NextRequest) {
   // Verify the nominee exists and its category is published. Without this,
   // an attacker with a valid session could INSERT against nomineeIds from
   // deleted/archived categories, leaving dangling votes in the DB.
-  const nominee = await prisma.bestOfNominee.findUnique({
-    where: { id: nomineeId },
-    select: {
-      id: true,
-      category: { select: { published: true } },
-    },
+  const nominee = await db.query.bestOfNominee.findFirst({
+    where: eq(bestOfNominee.id, nomineeId),
+    columns: { id: true },
+    with: { category: { columns: { published: true } } },
   })
   if (!nominee) {
     return NextResponse.json(
@@ -105,23 +103,21 @@ export async function POST(req: NextRequest) {
   // races; we don't need to pre-check with a SELECT first (which would
   // race too).
   try {
-    const vote = await prisma.bestOfVote.create({
-      data: {
+    const [vote] = await db
+      .insert(bestOfVote)
+      .values({
         voterId: voter.id,
         nomineeId,
         voterNameSnapshot: snapshot.voterNameSnapshot,
         voterImageSnapshot: snapshot.voterImageSnapshot,
-      },
-      select: { id: true, createdAt: true },
-    })
-
-    // Track voter activity (used by v1.5 digests). Fire-and-forget so a
-    // transient update failure doesn't roll back the vote.
-    void prisma.owner
-      .update({
-        where: { id: voter.id },
-        data: { lastBestOfVoteAt: vote.createdAt },
       })
+      .returning({ id: bestOfVote.id, createdAt: bestOfVote.createdAt })
+
+    // Best-effort: stamp the voter's last-vote time. Don't block the response.
+    void db
+      .update(owner)
+      .set({ lastBestOfVoteAt: vote.createdAt })
+      .where(eq(owner.id, voter.id))
       .catch((e) =>
         console.error('[best-of/votes] lastBestOfVoteAt update failed:', e),
       )
@@ -141,10 +137,7 @@ export async function POST(req: NextRequest) {
       { status: 201 },
     )
   } catch (err) {
-    if (
-      err instanceof Prisma.PrismaClientKnownRequestError &&
-      err.code === 'P2002'
-    ) {
+    if (isUniqueViolation(err)) {
       // Unique constraint hit — concurrent vote or user re-clicked.
       return NextResponse.json(
         { error: 'You already voted for this', code: 'ALREADY_VOTED' },

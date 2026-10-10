@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, guestAuthor, guestPost, requireRow } from '@/db'
 import {
   guestAuthorUpdateSchema,
   updateGuestAuthor,
@@ -50,14 +51,14 @@ export async function DELETE(_req: Request, { params }: Ctx) {
 
   // Soft-delete only — never hard-delete because posts reference them.
   // If the author has posts, set isActive=false. Otherwise allow hard delete.
-  const posts = await prisma.guestPost.count({ where: { authorId: id } })
+  const posts = await db.$count(guestPost, eq(guestPost.authorId, id))
   if (posts > 0) {
-    const author = await prisma.guestAuthor.update({
-      where: { id },
-      data: { isActive: false },
-    })
+    const author = requireRow(
+      await db.update(guestAuthor).set({ isActive: false }).where(eq(guestAuthor.id, id)).returning(),
+      'Author not found'
+    )
     return NextResponse.json({ ok: true, soft: true, author })
   }
-  await prisma.guestAuthor.delete({ where: { id } })
+  requireRow(await db.delete(guestAuthor).where(eq(guestAuthor.id, id)).returning({ id: guestAuthor.id }), 'Author not found')
   return NextResponse.json({ ok: true, soft: false })
 }

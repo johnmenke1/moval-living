@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, park as parkTable, requireRow } from '@/db'
 import { auth } from '@/auth'
 import { del } from '@vercel/blob'
 import { revalidateParkData } from '@/lib/revalidate'
@@ -30,9 +31,9 @@ export async function DELETE(
     return NextResponse.json({ error: 'Missing url param' }, { status: 400 })
   }
 
-  const park = await prisma.park.findUnique({
-    where: { slug },
-    select: { photoUrls: true, heroPhotoUrl: true },
+  const park = await db.query.park.findFirst({
+    where: eq(parkTable.slug, slug),
+    columns: { photoUrls: true, heroPhotoUrl: true },
   })
   if (!park) {
     return NextResponse.json({ error: 'Park not found' }, { status: 404 })
@@ -45,10 +46,14 @@ export async function DELETE(
   const wasHero = park.heroPhotoUrl === url
   const newHero = wasHero ? (remaining[0] ?? null) : park.heroPhotoUrl
 
-  const updated = await prisma.park.update({
-    where: { slug },
-    data: { photoUrls: remaining, heroPhotoUrl: newHero },
-  })
+  const updated = requireRow(
+    await db
+      .update(parkTable)
+      .set({ photoUrls: remaining, heroPhotoUrl: newHero })
+      .where(eq(parkTable.slug, slug))
+      .returning(),
+    'Park not found'
+  )
 
   // Best-effort blob cleanup.
   try {

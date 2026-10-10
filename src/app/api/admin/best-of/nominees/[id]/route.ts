@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { and, eq, ne } from 'drizzle-orm'
+import { db, bestOfNominee, business, requireRow } from '@/db'
 import { z } from 'zod'
 import { revalidateBestOfData, revalidateBusinessData } from '@/lib/revalidate'
 
@@ -31,24 +32,34 @@ export async function PATCH(
 
   // If setting winner=true, clear winner flag from other nominees in the same category
   if (winner === true) {
-    const current = await prisma.bestOfNominee.findUnique({ where: { id } })
+    const current = await db.query.bestOfNominee.findFirst({ where: eq(bestOfNominee.id, id) })
     if (current) {
-      await prisma.bestOfNominee.updateMany({
-        where: { categoryId: current.categoryId, winner: true, id: { not: id } },
-        data: { winner: false },
-      })
-      await prisma.business.update({
-        where: { id: current.businessId },
-        data: { isBestOfWinner: true },
-      })
+      await db
+        .update(bestOfNominee)
+        .set({ winner: false })
+        .where(
+          and(
+            eq(bestOfNominee.categoryId, current.categoryId),
+            eq(bestOfNominee.winner, true),
+            ne(bestOfNominee.id, id)
+          )
+        )
+      await db.update(business).set({ isBestOfWinner: true }).where(eq(business.id, current.businessId))
     }
   }
 
-  const nominee = await prisma.bestOfNominee.update({
-    where: { id },
-    data: { winner, notes, displayOrder },
-    include: { business: { select: { name: true, slug: true } } },
+  const changes = { winner, notes, displayOrder }
+  if (Object.values(changes).some((v) => v !== undefined)) {
+    requireRow(
+      await db.update(bestOfNominee).set(changes).where(eq(bestOfNominee.id, id)).returning({ id: bestOfNominee.id }),
+      'Nominee not found'
+    )
+  }
+  const nominee = await db.query.bestOfNominee.findFirst({
+    where: eq(bestOfNominee.id, id),
+    with: { business: { columns: { name: true, slug: true } } },
   })
+  if (!nominee) throw new Error('Nominee not found')
 
   return NextResponse.json(nominee)
 }
@@ -60,22 +71,19 @@ export async function DELETE(
 ) {
   const { id } = await params
 
-  const nominee = await prisma.bestOfNominee.findUnique({ where: { id } })
+  const nominee = await db.query.bestOfNominee.findFirst({ where: eq(bestOfNominee.id, id) })
   if (!nominee) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  await prisma.bestOfNominee.delete({ where: { id } })
+  await db.delete(bestOfNominee).where(eq(bestOfNominee.id, id))
 
   // Check if business is still a winner anywhere
-  const stillWinner = await prisma.bestOfNominee.findFirst({
-    where: { businessId: nominee.businessId, winner: true },
+  const stillWinner = await db.query.bestOfNominee.findFirst({
+    where: and(eq(bestOfNominee.businessId, nominee.businessId), eq(bestOfNominee.winner, true)),
   })
   if (!stillWinner) {
-    await prisma.business.update({
-      where: { id: nominee.businessId },
-      data: { isBestOfWinner: false },
-    })
+    await db.update(business).set({ isBestOfWinner: false }).where(eq(business.id, nominee.businessId))
   }
   // ISR cache bust — see src/lib/revalidate.ts for the path map.
 

@@ -4,7 +4,8 @@ import { auth } from '@/auth'
 // This route consumes a one-time claim token and depends on the current
 // authenticated session. It must never be prerendered at build time.
 export const dynamic = 'force-dynamic'
-import { prisma } from '@/lib/prisma'
+import { and, eq, gt, isNull } from 'drizzle-orm'
+import { db, business as businessTable, owner as ownerTable } from '@/db'
 import { getAutoApprovedClaimData, isClaimValid } from '@/lib/claim-policy'
 import { notifyCrmOfClaimChange } from '@/lib/moval-claim/notify-crm'
 
@@ -23,9 +24,9 @@ export default async function ClaimCompletePage({
   const ownerId = session.user.id
   const ownerEmail = session.user.email.toLowerCase()
 
-  const business = await prisma.business.findUnique({
-    where: { claimToken: token },
-    select: { id: true, ownerId: true, claimExpiresAt: true, email: true },
+  const business = await db.query.business.findFirst({
+    where: eq(businessTable.claimToken, token),
+    columns: { id: true, ownerId: true, claimExpiresAt: true, email: true },
   })
 
   if (!business || !isClaimValid(business)) {
@@ -35,29 +36,26 @@ export default async function ClaimCompletePage({
   // Conditional update makes token consumption safe if the completion URL is
   // requested twice. A verified claim also publishes immediately by product
   // decision: possession of the claim link + verified mailbox is sufficient.
-  const claimed = await prisma.$transaction(async tx => {
-    const consumed = await tx.business.updateMany({
-      where: {
-        id: business.id,
-        ownerId: null,
-        claimToken: token,
-        claimExpiresAt: { gt: new Date() },
-      },
-      data: {
-        claimToken: null,
-        claimExpiresAt: null,
-      },
-    })
+  const claimed = await db.transaction(async tx => {
+    const consumed = await tx
+      .update(businessTable)
+      .set({ claimToken: null, claimExpiresAt: null })
+      .where(
+        and(
+          eq(businessTable.id, business.id),
+          isNull(businessTable.ownerId),
+          eq(businessTable.claimToken, token),
+          gt(businessTable.claimExpiresAt, new Date())
+        )
+      )
+      .returning({ id: businessTable.id })
 
-    if (consumed.count !== 1) return false
+    if (consumed.length !== 1) return false
 
-    await tx.business.update({
-      where: { id: business.id },
-      data: {
-        ...getAutoApprovedClaimData(ownerId),
-        email: ownerEmail,
-      },
-    })
+    await tx
+      .update(businessTable)
+      .set({ ...getAutoApprovedClaimData(ownerId), email: ownerEmail })
+      .where(eq(businessTable.id, business.id))
     return true
   })
 
@@ -70,9 +68,9 @@ export default async function ClaimCompletePage({
   // on this, and the CRM has a daily catch-up cron that will sync any
   // claim event this call missed (network blip, CRM deploy, secret
   // rotation, etc).
-  const owner = await prisma.owner.findUnique({
-    where: { id: ownerId },
-    select: { name: true },
+  const owner = await db.query.owner.findFirst({
+    where: eq(ownerTable.id, ownerId),
+    columns: { name: true },
   })
   await notifyCrmOfClaimChange({
     websiteBusinessId: business.id,

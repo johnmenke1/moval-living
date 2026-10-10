@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { asc, eq } from 'drizzle-orm'
+import { db, guestAuthor } from '@/db'
 import PostEditor from '@/components/admin/PostEditor'
 
 export const dynamic = 'force-dynamic'
@@ -13,10 +14,10 @@ export default async function NewPostPage() {
     redirect('/dashboard')
   }
 
-  const authors = await prisma.guestAuthor.findMany({
-    where: { isActive: true },
-    orderBy: { displayName: 'asc' },
-    select: { id: true, slug: true, displayName: true, photoUrl: true },
+  const authors = await db.query.guestAuthor.findMany({
+    where: eq(guestAuthor.isActive, true),
+    orderBy: asc(guestAuthor.displayName),
+    columns: { id: true, slug: true, displayName: true, photoUrl: true },
   })
 
   return (

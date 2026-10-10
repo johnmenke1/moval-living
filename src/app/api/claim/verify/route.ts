@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, business as businessTable } from '@/db'
 
 // GET /api/claim/verify?token=... — verify a claim token and return the business name.
 //
@@ -23,9 +24,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'token is required' }, { status: 400 })
   }
 
-  const business = await prisma.business.findUnique({
-    where: { claimToken: token },
-    select: { id: true, name: true, ownerId: true, claimExpiresAt: true },
+  const business = await db.query.business.findFirst({
+    where: eq(businessTable.claimToken, token),
+    columns: { id: true, name: true, ownerId: true, claimExpiresAt: true },
   })
 
   if (!business) {

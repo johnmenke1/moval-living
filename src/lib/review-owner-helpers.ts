@@ -18,6 +18,9 @@
  * review-time — same model as Google/Yelp.
  */
 
+import { asc, sql } from 'drizzle-orm'
+import { owner as ownerTable } from '../db/schema'
+
 interface SessionOwner {
   name: string | null
   email: string
@@ -62,8 +65,8 @@ export function canBackfillReview(review: { authorEmail: string | null }): boole
  *
  * Used by the review backfill script to link legacy anonymous reviews
  * (no ownerId) to their original reviewer, by matching Review.authorEmail
- * against Owner.email. Case-insensitive (Postgres `mode: 'insensitive'`
- * does the right thing for `LOWER()`-equivalent matching).
+ * against Owner.email. Case-insensitive (compares LOWER(column) to the
+ * already-lowercased input).
  *
  * Returns `null` when:
  *   - The email is empty / malformed
@@ -75,21 +78,24 @@ export function canBackfillReview(review: { authorEmail: string | null }): boole
  * with the same address.
  */
 type OwnerLookup = {
-  owner: {
-    findFirst: (args: unknown) => Promise<{ id: string } | null>
+  query: {
+    owner: {
+      findFirst: (args: unknown) => Promise<{ id: string } | undefined>
+    }
   }
 }
 
 export async function matchOwnerByEmail(
-  prisma: OwnerLookup,
+  database: OwnerLookup,
   rawEmail: string | null | undefined,
 ): Promise<string | null> {
   const email = normalizeReviewEmail(rawEmail)
   if (!email) return null
-  const owner = await prisma.owner.findFirst({
-    where: { email: { equals: email, mode: 'insensitive' } },
-    orderBy: { createdAt: 'asc' },
-    select: { id: true },
+  const owner = await database.query.owner.findFirst({
+    // `email` is already trimmed + lowercased, so compare against LOWER(column).
+    where: sql`lower(${ownerTable.email}) = ${email}`,
+    orderBy: asc(ownerTable.createdAt),
+    columns: { id: true },
   })
   return owner?.id ?? null
 }

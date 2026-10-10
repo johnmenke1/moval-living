@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, deal as dealTable, business as businessTable } from '@/db'
+import { queryPublicDeals } from '@/lib/deals-query'
 import { canManageBusiness } from '@/lib/business-mutations'
 
 // Sort options for the public /deals index. The Deal table was added in
@@ -41,54 +43,7 @@ export async function GET(request: Request) {
     // date window is currently open. Prisma 7 dropped the top-level
     // OR inside nullable date filters, so we hoist OR to the where
     // clause and combine the two date predicates at the top level.
-    const now = new Date()
-    const where = {
-      isActive: true,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: now } },
-      ],
-      AND: [
-        {
-          OR: [
-            { startsAt: null },
-            { startsAt: { lte: now } },
-          ],
-        },
-        { business: { status: 'APPROVED' as const } },
-      ],
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const orderBy: any = sort === 'expiring'
-      ? [{ isActive: 'desc' }, { expiresAt: 'asc' }]
-      : sort === 'business'
-        ? [{ business: { name: 'asc' as const } }, { createdAt: 'desc' as const }]
-        : [{ displayOrder: 'asc' as const }, { createdAt: 'desc' as const }]
-
-    const [deals, total] = await Promise.all([
-      prisma.deal.findMany({
-        where,
-        include: {
-          business: {
-            select: {
-              id: true,
-              slug: true,
-              name: true,
-              tagline: true,
-              logo: true,
-              coverImage: true,
-              category: { select: { name: true, slug: true } },
-              _count: { select: { reviews: true } },
-            },
-          },
-        },
-        orderBy,
-        skip,
-        take: limit,
-      }),
-      prisma.deal.count({ where }),
-    ])
+    const { deals, total } = await queryPublicDeals({ sort, skip, take: limit })
 
     return NextResponse.json({ deals, total, page, totalPages: Math.ceil(total / limit) })
   } catch (error) {
@@ -114,9 +69,9 @@ export async function POST(request: Request) {
     // Resolve the target business + verify the caller may manage it.
     // canManageBusiness returns true for the business owner OR for
     // any ADMIN — that's exactly what we want here.
-    const business = await prisma.business.findUnique({
-      where: { id: parsed.businessId },
-      select: { id: true, ownerId: true },
+    const business = await db.query.business.findFirst({
+      where: eq(businessTable.id, parsed.businessId),
+      columns: { id: true, ownerId: true },
     })
     if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
@@ -126,8 +81,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const deal = await prisma.deal.create({
-      data: {
+    const [deal] = await db
+      .insert(dealTable)
+      .values({
         businessId: business.id,
         headline: parsed.headline,
         description: parsed.description ?? null,
@@ -137,8 +93,8 @@ export async function POST(request: Request) {
         expiresAt: parsed.expiresAt ? new Date(parsed.expiresAt) : null,
         displayOrder: parsed.displayOrder ?? 0,
         isActive: parsed.isActive ?? true,
-      },
-    })
+      })
+      .returning()
 
     return NextResponse.json(deal, { status: 201 })
   } catch (error: unknown) {

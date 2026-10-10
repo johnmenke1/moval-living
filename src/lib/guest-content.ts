@@ -6,8 +6,11 @@
 // only PUBLISHED posts do.
 
 import { z } from 'zod'
-import { Prisma } from '@prisma/client'
-import { prisma } from './prisma'
+import { and, asc, desc, eq, sql } from 'drizzle-orm'
+import { db, guestAuthor, guestPost, requireRow } from '../db'
+
+type GuestAuthorRow = typeof guestAuthor.$inferInsert
+type GuestPostRow = typeof guestPost.$inferInsert
 
 // ── Schemas ──────────────────────────────────────────────────────────────
 
@@ -142,9 +145,9 @@ export async function uniqueAuthorSlug(
   let candidate = seed
   let n = 2
   while (true) {
-    const existing = await prisma.guestAuthor.findUnique({
-      where: { slug: candidate },
-      select: { id: true },
+    const existing = await db.query.guestAuthor.findFirst({
+      where: eq(guestAuthor.slug, candidate),
+      columns: { id: true },
     })
     if (!existing || existing.id === excludeId) return candidate
     candidate = `${seed}-${n++}`
@@ -159,9 +162,9 @@ export async function uniquePostSlug(
   let candidate = seed
   let n = 2
   while (true) {
-    const existing = await prisma.guestPost.findUnique({
-      where: { slug: candidate },
-      select: { id: true },
+    const existing = await db.query.guestPost.findFirst({
+      where: eq(guestPost.slug, candidate),
+      columns: { id: true },
     })
     if (!existing || existing.id === excludeId) return candidate
     candidate = `${seed}-${n++}`
@@ -178,9 +181,9 @@ export async function checkPostCadence(authorId: string): Promise<{
   periodStartedAt: Date
   resetsAt?: Date
 }> {
-  const author = await prisma.guestAuthor.findUnique({
-    where: { id: authorId },
-    select: { postsThisPeriod: true, periodStartedAt: true },
+  const author = await db.query.guestAuthor.findFirst({
+    where: eq(guestAuthor.id, authorId),
+    columns: { postsThisPeriod: true, periodStartedAt: true },
   })
   if (!author) throw new Error('Author not found')
 
@@ -212,9 +215,9 @@ export async function checkPostCadence(authorId: string): Promise<{
 // rolls the period window if necessary.
 export async function recordPostPublish(authorId: string): Promise<void> {
   const now = new Date()
-  const author = await prisma.guestAuthor.findUnique({
-    where: { id: authorId },
-    select: { postsThisPeriod: true, periodStartedAt: true },
+  const author = await db.query.guestAuthor.findFirst({
+    where: eq(guestAuthor.id, authorId),
+    columns: { postsThisPeriod: true, periodStartedAt: true },
   })
   if (!author) return
 
@@ -222,58 +225,91 @@ export async function recordPostPublish(authorId: string): Promise<void> {
     author.periodStartedAt.getUTCFullYear() === now.getUTCFullYear() &&
     author.periodStartedAt.getUTCMonth() === now.getUTCMonth()
 
-  await prisma.guestAuthor.update({
-    where: { id: authorId },
-    data: {
+  await db
+    .update(guestAuthor)
+    .set({
       postsThisPeriod: sameMonth ? author.postsThisPeriod + 1 : 1,
       periodStartedAt: sameMonth ? author.periodStartedAt : now,
       lastPostedAt: now,
-    },
-  })
+    })
+    .where(eq(guestAuthor.id, authorId))
 }
 
 // Called when a published post is unpublished (rare). Decrements the count.
 export async function recordPostUnpublish(authorId: string): Promise<void> {
-  await prisma.guestAuthor.update({
-    where: { id: authorId },
-    data: {
-      postsThisPeriod: { decrement: 1 },
-    },
-  })
+  await db
+    .update(guestAuthor)
+    .set({ postsThisPeriod: sql`${guestAuthor.postsThisPeriod} - 1` })
+    .where(eq(guestAuthor.id, authorId))
 }
 
 // ── Author CRUD ─────────────────────────────────────────────────────────
 
 export async function createGuestAuthor(input: GuestAuthorCreateInput) {
-  const data = normalizeAuthorInput(input) as Prisma.GuestAuthorUncheckedCreateInput
-  return prisma.guestAuthor.create({ data })
+  const data = normalizeAuthorInput(input) as GuestAuthorRow
+  const [row] = await db.insert(guestAuthor).values(data).returning()
+  return row
 }
 
 export async function updateGuestAuthor(
   id: string,
   input: GuestAuthorUpdateInput
 ) {
-  const data = normalizeAuthorInput(input) as Prisma.GuestAuthorUpdateInput
-  return prisma.guestAuthor.update({ where: { id }, data })
+  const data = normalizeAuthorInput(input)
+  const rows = await db.update(guestAuthor).set(data).where(eq(guestAuthor.id, id)).returning()
+  return requireRow(rows, 'Guest author not found')
+}
+
+// Correlated subquery used by every "author + post count" query. The outer
+// column MUST be alias-qualified: Drizzle renders a bare "id" here, which SQL
+// resolves to the INNER table's id and silently counts 0. "guestAuthor" is the
+// relational query's alias for GuestAuthor (the schema key).
+const postCountSql = sql<number>`(select count(*)::int from "GuestPost" gp where gp."authorId" = "guestAuthor"."id")`
+
+/** Old Prisma shape: the row plus `_count: { posts }` and a flat `postCount`. */
+function withCounts<T extends { postCount: number }>(row: T) {
+  return { ...row, _count: { posts: row.postCount } }
+}
+
+const ADMIN_BUSINESS = { columns: { id: true, name: true, slug: true, logo: true } } as const
+
+/** Admin list: every author with its business summary and post count. */
+export async function listGuestAuthorsAdmin() {
+  const rows = await db.query.guestAuthor.findMany({
+    with: { business: ADMIN_BUSINESS },
+    extras: { postCount: postCountSql.as('post_count') },
+    orderBy: asc(guestAuthor.displayName),
+  })
+  return rows.map(withCounts)
+}
+
+/** Admin detail for one author (same shape as one list row). */
+export async function getGuestAuthorAdmin(id: string) {
+  const row = await db.query.guestAuthor.findFirst({
+    where: eq(guestAuthor.id, id),
+    with: { business: ADMIN_BUSINESS },
+    extras: { postCount: postCountSql.as('post_count') },
+  })
+  return row ? withCounts(row) : undefined
 }
 
 export async function listGuestAuthors() {
-  return prisma.guestAuthor.findMany({
-    orderBy: [{ isActive: 'desc' }, { displayName: 'asc' }],
-    include: {
-      _count: { select: { posts: true } },
-    },
+  const rows = await db.query.guestAuthor.findMany({
+    orderBy: [desc(guestAuthor.isActive), asc(guestAuthor.displayName)],
+    extras: { postCount: postCountSql.as('post_count') },
   })
+  // Keep the old Prisma `_count: { posts }` shape so callers don't change.
+  return rows.map(({ postCount, ...author }) => ({ ...author, _count: { posts: postCount } }))
 }
 
 export async function getGuestAuthorBySlug(slug: string) {
-  return prisma.guestAuthor.findUnique({
-    where: { slug },
-    include: {
+  return db.query.guestAuthor.findFirst({
+    where: eq(guestAuthor.slug, slug),
+    with: {
       posts: {
-        where: { status: 'published', postType: 'GUEST' },
-        orderBy: { publishedAt: 'desc' },
-        select: {
+        where: and(eq(guestPost.status, 'published'), eq(guestPost.postType, 'GUEST')),
+        orderBy: desc(guestPost.publishedAt),
+        columns: {
           id: true,
           slug: true,
           title: true,
@@ -287,7 +323,7 @@ export async function getGuestAuthorBySlug(slug: string) {
 }
 
 function normalizeAuthorInput(input: GuestAuthorCreateInput | GuestAuthorUpdateInput) {
-  const data: Prisma.GuestAuthorUpdateInput = {}
+  const data: Partial<GuestAuthorRow> = {}
   if (input.slug !== undefined) data.slug = input.slug
   if (input.displayName !== undefined) data.displayName = input.displayName
   if (input.title !== undefined) data.title = emptyToNull(input.title)
@@ -301,10 +337,8 @@ function normalizeAuthorInput(input: GuestAuthorCreateInput | GuestAuthorUpdateI
   if (input.facebookUrl !== undefined) data.facebookUrl = emptyToNull(input.facebookUrl)
   if (input.instagramUrl !== undefined) data.instagramUrl = emptyToNull(input.instagramUrl)
   if (input.businessId !== undefined) {
-    data.business =
-      input.businessId && input.businessId !== ''
-        ? { connect: { id: input.businessId } }
-        : { disconnect: true }
+    // '' / null disconnects the business, an id connects it.
+    data.businessId = input.businessId ? input.businessId : null
   }
   return data
 }
@@ -313,7 +347,8 @@ function normalizeAuthorInput(input: GuestAuthorCreateInput | GuestAuthorUpdateI
 
 export async function createGuestPost(input: GuestPostCreateInput) {
   const data = normalizePostInput(input)
-  return prisma.guestPost.create({ data })
+  const [row] = await db.insert(guestPost).values(data).returning()
+  return row
 }
 
 export async function updateGuestPost(
@@ -321,33 +356,34 @@ export async function updateGuestPost(
   input: GuestPostUpdateInput
 ) {
   const data = normalizePostUpdateInput(input)
-  return prisma.guestPost.update({ where: { id }, data })
+  const rows = await db.update(guestPost).set(data).where(eq(guestPost.id, id)).returning()
+  return requireRow(rows, 'Guest post not found')
 }
 
 export async function listGuestPosts(opts?: { status?: string }) {
-  return prisma.guestPost.findMany({
-    where: opts?.status ? { status: opts.status } : undefined,
-    orderBy: { updatedAt: 'desc' },
-    include: {
-      author: { select: { id: true, slug: true, displayName: true, photoUrl: true } },
+  return db.query.guestPost.findMany({
+    where: opts?.status ? eq(guestPost.status, opts.status) : undefined,
+    orderBy: desc(guestPost.updatedAt),
+    with: {
+      author: { columns: { id: true, slug: true, displayName: true, photoUrl: true } },
     },
   })
 }
 
 export async function getGuestPostBySlug(slug: string) {
-  return prisma.guestPost.findUnique({
-    where: { slug },
-    include: {
-      author: true,
-    },
+  return db.query.guestPost.findFirst({
+    where: eq(guestPost.slug, slug),
+    with: { author: true },
   })
 }
 
 export async function getGuestPostById(id: string) {
-  return prisma.guestPost.findUnique({
-    where: { id },
-    include: {
-      author: { select: { id: true, slug: true, displayName: true, photoUrl: true, companyName: true } },
+  return db.query.guestPost.findFirst({
+    where: eq(guestPost.id, id),
+    with: {
+      author: {
+        columns: { id: true, slug: true, displayName: true, photoUrl: true, companyName: true },
+      },
     },
   })
 }
@@ -361,14 +397,14 @@ export async function transitionPostStatus(
   postId: string,
   input: GuestPostStatusInput
 ) {
-  const post = await prisma.guestPost.findUnique({
-    where: { id: postId },
-    select: { id: true, status: true, authorId: true },
+  const post = await db.query.guestPost.findFirst({
+    where: eq(guestPost.id, postId),
+    columns: { id: true, status: true, authorId: true },
   })
   if (!post) throw new Error('Post not found')
 
   const now = new Date()
-  const data: Prisma.GuestPostUpdateInput = { status: input.status }
+  const data: Partial<GuestPostRow> = { status: input.status }
 
   if (input.status === 'scheduled') {
     if (!input.scheduledFor) throw new Error('scheduledFor required when status=scheduled')
@@ -394,25 +430,31 @@ export async function transitionPostStatus(
     data.scheduledFor = null
   }
 
+  const apply = async () =>
+    requireRow(
+      await db.update(guestPost).set(data).where(eq(guestPost.id, postId)).returning(),
+      'Post not found'
+    )
+
   // Side effects on publish / unpublish — only for guest-authored posts
   if (input.status === 'published' && post.status !== 'published') {
-    await prisma.guestPost.update({ where: { id: postId }, data })
+    const updated = await apply()
     if (post.authorId) await recordPostPublish(post.authorId)
-    return prisma.guestPost.findUnique({ where: { id: postId } })
+    return updated
   }
   if (post.status === 'published' && input.status !== 'published') {
-    await prisma.guestPost.update({ where: { id: postId }, data })
+    const updated = await apply()
     if (post.authorId) await recordPostUnpublish(post.authorId)
-    return prisma.guestPost.findUnique({ where: { id: postId } })
+    return updated
   }
 
-  return prisma.guestPost.update({ where: { id: postId }, data })
+  return apply()
 }
 
-function normalizePostInput(input: GuestPostCreateInput) {
-  const data: Prisma.GuestPostCreateInput = {
+function normalizePostInput(input: GuestPostCreateInput): GuestPostRow {
+  const data: GuestPostRow = {
     slug: input.slug,
-    postType: (input.postType as string) as 'LIFE' | 'GUEST' | 'OUTING' | 'SPOTLIGHT',
+    postType: input.postType, // undefined -> column default ('GUEST')
     title: input.title,
     excerpt: input.excerpt,
     body: input.body,
@@ -426,21 +468,21 @@ function normalizePostInput(input: GuestPostCreateInput) {
     youtubeVideoId: emptyToNull(input.youtubeVideoId),
   }
   if (input.authorId) {
-    data.author = { connect: { id: input.authorId } }
+    data.authorId = input.authorId
   }
   return data
 }
 
 function normalizePostUpdateInput(input: GuestPostUpdateInput) {
-  const data: Prisma.GuestPostUpdateInput = {}
+  const data: Partial<GuestPostRow> = {}
   if (input.slug !== undefined) data.slug = input.slug
-  if (input.postType !== undefined) data.postType = input.postType as 'LIFE' | 'GUEST' | 'OUTING' | 'SPOTLIGHT'
+  if (input.postType !== undefined) data.postType = input.postType
   if (input.title !== undefined) data.title = input.title
   if (input.excerpt !== undefined) data.excerpt = input.excerpt
   if (input.body !== undefined) data.body = input.body
   if (input.heroImageUrl !== undefined) data.heroImageUrl = emptyToNull(input.heroImageUrl)
   if (input.authorId !== undefined) {
-    data.author = input.authorId ? { connect: { id: input.authorId } } : { disconnect: true }
+    data.authorId = input.authorId ? input.authorId : null
   }
   if (input.metaTitle !== undefined) data.metaTitle = emptyToNull(input.metaTitle)
   if (input.metaDescription !== undefined) data.metaDescription = emptyToNull(input.metaDescription)
@@ -466,11 +508,16 @@ function normalizeStringArray(v: string[] | null | undefined): string[] | undefi
   return filtered.length > 0 ? filtered : undefined
 }
 
+// GuestPost.outingPhotos is a NOT NULL jsonb column. The old code wrote a JSON
+// `null` literal (Prisma.JsonNull) for "no photos", not SQL NULL and not [].
+// Preserve that exactly so readers see the same data as before.
+const JSON_NULL = sql`'null'::jsonb`
+
 function normalizePhotosArray(
   v: { url: string; caption?: string }[] | null | undefined
-): Prisma.InputJsonValue | typeof Prisma.JsonNull | undefined {
+): { url: string; caption: string }[] | typeof JSON_NULL | undefined {
   if (v === undefined) return undefined
-  if (v === null) return Prisma.JsonNull
+  if (v === null) return JSON_NULL
   // Strip entries with empty URLs; trim captions
   const filtered = v
     .filter((p) => typeof p.url === 'string' && p.url.trim() !== '')
@@ -478,5 +525,5 @@ function normalizePhotosArray(
       url: p.url.trim(),
       caption: (p.caption ?? '').trim(),
     }))
-  return filtered.length > 0 ? (filtered as unknown as Prisma.InputJsonValue) : Prisma.JsonNull
+  return filtered.length > 0 ? filtered : JSON_NULL
 }

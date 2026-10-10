@@ -4,10 +4,11 @@ import { getAutoApprovedClaimData, isClaimValid } from './claim-policy'
 describe('claim policy', () => {
   it('auto-publishes a listing after a valid verified claim', () => {
     expect(getAutoApprovedClaimData('owner-1')).toEqual({
-      owner: { connect: { id: 'owner-1' } },
+      ownerId: 'owner-1',
       claimToken: null,
       claimExpiresAt: null,
       status: 'APPROVED',
+      claimedAt: expect.any(Date),
     })
   })
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, bestOfVote } from '@/db'
 import { auth } from '@/auth'
 import { revalidateBestOfVoteData } from '@/lib/revalidate'
 
@@ -35,15 +36,15 @@ export async function DELETE(
   // ownership keeps the response surface honest: 404 means "doesn't
   // exist OR you don't own it", same as GitHub's /repos/{owner}/{repo}
   // patterns.
-  const vote = await prisma.bestOfVote.findUnique({
-    where: { id: voteId },
-    select: { id: true, voterId: true },
+  const vote = await db.query.bestOfVote.findFirst({
+    where: eq(bestOfVote.id, voteId),
+    columns: { id: true, voterId: true },
   })
   if (!vote || vote.voterId !== session.user.id) {
     return NextResponse.json({ error: 'Vote not found' }, { status: 404 })
   }
 
-  await prisma.bestOfVote.delete({ where: { id: voteId } })
+  await db.delete(bestOfVote).where(eq(bestOfVote.id, voteId))
 
   revalidateBestOfVoteData()
   return new NextResponse(null, { status: 204 })

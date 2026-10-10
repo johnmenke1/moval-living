@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, park as parkTable } from '@/db'
 import { ParksClient } from './ParksClient'
 import { JsonLd } from '@/components/seo/JsonLd'
 import type { ParkSummary } from '@/lib/parks'
@@ -91,9 +92,9 @@ async function getParks(): Promise<ParkSummary[]> {
   // (description, blurb, hoursJson, photoUrls) are intentionally read
   // here so the card can show photos as soon as the capture pipeline
   // (step 9) writes them.
-  const rows = await prisma.park.findMany({
-    where: { isActive: true },
-    select: {
+  const rows = await db.query.park.findMany({
+    where: eq(parkTable.isActive, true),
+    columns: {
       id: true,
       slug: true,
       name: true,

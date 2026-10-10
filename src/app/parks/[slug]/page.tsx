@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { prisma } from '@/lib/prisma'
+import { and, eq } from 'drizzle-orm'
+import { db, park as parkTable } from '@/db'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { ArrowLeft, MapPin, Phone, Globe, Star, Clock, HelpCircle } from 'lucide-react'
 import { AMENITIES } from '@/lib/park-amenities'
@@ -23,8 +24,8 @@ interface Props {
 const BASE_URL = 'https://www.moval.living'
 
 async function getPark(slug: string) {
-  return prisma.park.findFirst({
-    where: { slug, isActive: true },
+  return db.query.park.findFirst({
+    where: and(eq(parkTable.slug, slug), eq(parkTable.isActive, true)),
   })
 }
 

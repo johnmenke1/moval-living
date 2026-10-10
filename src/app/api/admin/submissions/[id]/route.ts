@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, event as eventTable, submission as submissionTable, requireRow } from '@/db'
 import { auth } from '@/auth'
 
 const actionSchema = z.object({
@@ -33,7 +34,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
 
-  const submission = await prisma.submission.findUnique({ where: { id: submissionId } })
+  const submission = await db.query.submission.findFirst({ where: eq(submissionTable.id, submissionId) })
   if (!submission) {
     return NextResponse.json({ error: 'Submission not found' }, { status: 404 })
   }
@@ -54,8 +55,9 @@ export async function PATCH(
       // afterwards (venue address, hero image, category, tier, etc.).
       const eventSlug = generateEventSlug(submission.title)
 
-      const event = await prisma.event.create({
-        data: {
+      const [event] = await db
+        .insert(eventTable)
+        .values({
           slug: eventSlug,
           title: submission.title,
           description: submission.sourcePostCaption ?? submission.submitterNote ?? null,
@@ -87,27 +89,27 @@ export async function PATCH(
           submittedById: submission.submittedById ?? null,
           reviewedById,
           reviewedAt,
-        },
-      })
+        })
+        .returning()
 
-      await prisma.submission.update({
-        where: { id: submission.id },
-        data: {
+      await db
+        .update(submissionTable)
+        .set({
           status: 'APPROVED',
           reviewedById,
           reviewedAt,
           promotedToEventId: event.id,
-        },
-      })
+        })
+        .where(eq(submissionTable.id, submission.id))
 
       return NextResponse.json({ event })
     }
 
     case 'reject': {
-      await prisma.submission.update({
-        where: { id: submission.id },
-        data: { status: 'REJECTED', reviewedById, reviewedAt },
-      })
+      await db
+        .update(submissionTable)
+        .set({ status: 'REJECTED', reviewedById, reviewedAt })
+        .where(eq(submissionTable.id, submission.id))
       return NextResponse.json({ success: true })
     }
 
@@ -118,19 +120,19 @@ export async function PATCH(
           { status: 400 }
         )
       }
-      const existing = await prisma.event.findUnique({ where: { id: parsed.data.eventId } })
+      const existing = await db.query.event.findFirst({ where: eq(eventTable.id, parsed.data.eventId) })
       if (!existing) {
         return NextResponse.json({ error: 'Linked event not found' }, { status: 404 })
       }
-      await prisma.submission.update({
-        where: { id: submission.id },
-        data: {
+      await db
+        .update(submissionTable)
+        .set({
           status: 'DUPLICATE',
           reviewedById,
           reviewedAt,
           promotedToEventId: existing.id,
-        },
-      })
+        })
+        .where(eq(submissionTable.id, submission.id))
       return NextResponse.json({ success: true, event: existing })
     }
   }

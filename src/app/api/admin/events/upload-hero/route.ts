@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, event as eventTable } from '@/db'
 import { put } from '@vercel/blob'
 import { revalidateEventData } from '@/lib/revalidate'
 
@@ -37,9 +38,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
     }
 
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-      select: { id: true },
+    const event = await db.query.event.findFirst({
+      where: eq(eventTable.id, eventId),
+      columns: { id: true },
     })
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })

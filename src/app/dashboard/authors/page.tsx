@@ -2,7 +2,9 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, UserPlus, Users } from 'lucide-react'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { asc, desc } from 'drizzle-orm'
+import { db, guestAuthor, guestPost } from '@/db'
+import { countGroupedBy } from '@/lib/counts'
 import AuthorsAdmin from '@/components/admin/AuthorsAdmin'
 
 export const dynamic = 'force-dynamic'
@@ -18,10 +20,14 @@ export default async function DashboardAuthorsPage() {
     redirect('/dashboard')
   }
 
-  const authors = await prisma.guestAuthor.findMany({
-    orderBy: [{ isActive: 'desc' }, { displayName: 'asc' }],
-    include: { _count: { select: { posts: true } } },
-  })
+  const authors = await db.query.guestAuthor
+    .findMany({
+      orderBy: [desc(guestAuthor.isActive), asc(guestAuthor.displayName)],
+    })
+    .then(async (rows) => {
+      const posts = await countGroupedBy(guestPost.authorId, rows.map((r) => r.id))
+      return rows.map((r) => ({ ...r, _count: { posts: posts.get(r.id) ?? 0 } }))
+    })
 
   return (
     <div className="bg-slate-50 min-h-screen">

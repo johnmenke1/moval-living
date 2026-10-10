@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, business, requireRow } from '@/db'
 import Stripe from 'stripe'
-import type { Tier } from '@prisma/client'
+type Tier = typeof business.$inferSelect['tier']
 
 /**
  * Stripe webhook handler — supports both Featured and Expert Partner tiers.
@@ -68,30 +69,31 @@ export async function POST(req: NextRequest) {
 
         // Only stamp featuredAt on the FIRST upgrade to a premium tier.
         // Idempotent: re-subscribing after a cancel won't bump the date.
-        const existing = await prisma.business.findUnique({
-          where: { id: businessId },
-          select: { featuredAt: true },
+        const existing = await db.query.business.findFirst({
+          where: eq(business.id, businessId),
+          columns: { featuredAt: true },
         })
         const shouldStampFeaturedAt =
           !!existing &&
           !existing.featuredAt &&
           (newTier === 'FEATURED' || newTier === 'EXPERT_PARTNER')
 
-        await prisma.business.update({
-          where: { id: businessId },
-          data: {
-            tier: newTier,
-            stripeCustomerId: session.customer as string,
-            stripeSubscriptionId: sub.id as string,
-            subscriptionStatus: sub.status as string,
-            subscriptionCurrentPeriodEnd: new Date((sub.billing_period_end as number) * 1000),
-            // Expert Partner upgrades auto-flag the partner; founding date
-            // is set later by Johnny when he confirms Founding Partner status.
-            ...(isExpert ? { isExpertPartner: true } : {}),
-            // First-time premium transition only — see check above.
-            ...(shouldStampFeaturedAt ? { featuredAt: new Date() } : {}),
-          },
-        })
+        requireRow(
+          await db
+            .update(business)
+            .set({
+              tier: newTier,
+              stripeCustomerId: session.customer as string,
+              stripeSubscriptionId: sub.id as string,
+              subscriptionStatus: sub.status as string,
+              subscriptionCurrentPeriodEnd: new Date((sub.billing_period_end as number) * 1000),
+              ...(isExpert ? { isExpertPartner: true } : {}),
+              ...(shouldStampFeaturedAt ? { featuredAt: new Date() } : {}),
+            })
+            .where(eq(business.id, businessId))
+            .returning({ id: business.id }),
+          'Business not found'
+        )
         console.log(
           `[Stripe] Business ${businessId} upgraded to ${newTier} via checkout.session.completed`
         )
@@ -111,20 +113,19 @@ export async function POST(req: NextRequest) {
         // property in current @stripe/stripe-js typings; cast for the cast.
         const periodEnd = (subRaw as unknown as { billing_period_end?: number }).billing_period_end
 
-        await prisma.business.update({
-          where: { id: businessId },
-          data: {
-            tier,
-            subscriptionStatus: subRaw.status,
-            subscriptionCurrentPeriodEnd: periodEnd
-              ? new Date(periodEnd * 1000)
-              : null,
-            ...(isExpert ? { isExpertPartner: true } : { isExpertPartner: false }),
-            // Don't bump featuredAt on renewals/cancellations — original
-            // upgrade timestamp is preserved so the ticker shows the
-            // correct "first upgrade" date.
-          },
-        })
+        requireRow(
+          await db
+            .update(business)
+            .set({
+              tier,
+              subscriptionStatus: subRaw.status,
+              subscriptionCurrentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
+              ...(isExpert ? { isExpertPartner: true } : { isExpertPartner: false }),
+            })
+            .where(eq(business.id, businessId))
+            .returning({ id: business.id }),
+          'Business not found'
+        )
         console.log(
           `[Stripe] Business ${businessId} subscription updated to ${subRaw.status} → tier=${tier}`
         )
@@ -139,20 +140,19 @@ export async function POST(req: NextRequest) {
 
         const wasExpert = tierMeta === 'expert'
 
-        await prisma.business.update({
-          where: { id: businessId },
-          data: {
-            tier: 'FREE',
-            subscriptionStatus: 'canceled',
-            stripeSubscriptionId: null,
-            // If they were Expert Partner, drop the flag too so the badge
-            // disappears. Johnny can manually re-enable for grace periods.
-            ...(wasExpert ? { isExpertPartner: false } : {}),
-            // featuredAt preserved — a business that was once Featured
-            // still has that history. The ticker can filter by current
-            // tier === FEATURED if it wants only-active features.
-          },
-        })
+        requireRow(
+          await db
+            .update(business)
+            .set({
+              tier: 'FREE',
+              subscriptionStatus: 'canceled',
+              stripeSubscriptionId: null,
+              ...(wasExpert ? { isExpertPartner: false } : {}),
+            })
+            .where(eq(business.id, businessId))
+            .returning({ id: business.id }),
+          'Business not found'
+        )
         console.log(
           `[Stripe] Business ${businessId} subscription canceled — reverted to FREE` +
             (wasExpert ? ' (Expert Partner flag cleared)' : '')

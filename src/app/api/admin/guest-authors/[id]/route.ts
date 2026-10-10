@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, guestAuthor } from '@/db'
 import { auth } from '@/auth'
 import { z } from 'zod'
 import { revalidateAuthorData } from '@/lib/revalidate'
+import { getGuestAuthorAdmin } from '@/lib/guest-content'
 
 const UpdateGuestAuthorSchema = z.object({
   displayName: z.string().min(1).optional(),
@@ -42,21 +44,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: parsed.error.message }, { status: 400 })
   }
 
-  const author = await prisma.guestAuthor.findUnique({ where: { id } })
+  const author = await db.query.guestAuthor.findFirst({ where: eq(guestAuthor.id, id) })
   if (!author) {
     return NextResponse.json({ error: 'Author not found' }, { status: 404 })
   }
 
-  const updated = await prisma.guestAuthor.update({
-    where: { id },
-    data: parsed.data,
-    include: {
-      _count: { select: { posts: true } },
-      business: { select: { id: true, name: true, slug: true, logo: true } },
-    },
-  })
+  await db.update(guestAuthor).set(parsed.data).where(eq(guestAuthor.id, id))
 
-  return NextResponse.json({ ...updated, postCount: updated._count.posts })
+  return NextResponse.json(await getGuestAuthorAdmin(id))
 }
 
 // DELETE /api/admin/guest-authors/[id]
@@ -68,12 +63,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const { id } = await params
 
-  const author = await prisma.guestAuthor.findUnique({ where: { id } })
+  const author = await db.query.guestAuthor.findFirst({ where: eq(guestAuthor.id, id) })
   if (!author) {
     return NextResponse.json({ error: 'Author not found' }, { status: 404 })
   }
 
-  await prisma.guestAuthor.delete({ where: { id } })
+  await db.delete(guestAuthor).where(eq(guestAuthor.id, id))
   // ISR cache bust — see src/lib/revalidate.ts for the path map.
 
   revalidateAuthorData()

@@ -34,7 +34,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { and, asc, gt, isNull, or } from 'drizzle-orm'
+import { db, business } from '@/db'
 import {
   getSharedSecret,
   verifyClaimSignature,
@@ -91,22 +92,15 @@ export async function GET(req: NextRequest) {
   // We also include rows that flipped owner from one Owner to another
   // (i.e. updatedAt > since with claimedAt set, but we just return them
   // and the CRM will idempotently re-apply).
-  const rows = await prisma.business.findMany({
-    where: {
-      OR: [
-        { claimedAt: { gt: sinceDate } },
-        { AND: [{ claimedAt: null }, { updatedAt: { gt: sinceDate } }, { ownerId: null }] },
-      ],
-    },
-    select: {
-      id: true,
-      claimedAt: true,
-      updatedAt: true,
-      ownerId: true,
-      owner: { select: { email: true, name: true } },
-    },
-    orderBy: { updatedAt: 'asc' },
-    take: limit + 1, // +1 sentinel for hasMore
+  const rows = await db.query.business.findMany({
+    where: or(
+      gt(business.claimedAt, sinceDate),
+      and(isNull(business.claimedAt), gt(business.updatedAt, sinceDate), isNull(business.ownerId))
+    ),
+    columns: { id: true, claimedAt: true, updatedAt: true, ownerId: true },
+    with: { owner: { columns: { email: true, name: true } } },
+    orderBy: asc(business.updatedAt),
+    limit: limit + 1, // +1 sentinel for hasMore
   })
 
   const hasMore = rows.length > limit

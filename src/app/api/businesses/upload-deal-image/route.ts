@@ -11,7 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, business as businessTable } from '@/db'
 import { canManageBusiness } from '@/lib/business-mutations'
 
 export const runtime = 'nodejs' // @vercel/blob requires Node.js
@@ -45,9 +46,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Resolve the business + check the caller can manage it.
-    const business = await prisma.business.findUnique({
-      where: { id: businessId },
-      select: { id: true, slug: true, ownerId: true },
+    const business = await db.query.business.findFirst({
+      where: eq(businessTable.id, businessId),
+      columns: { id: true, slug: true, ownerId: true },
     })
     if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })

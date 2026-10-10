@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { asc } from 'drizzle-orm'
+import { db, park as parkTable } from '@/db'
 import { ParksAdminClient } from '@/components/admin/ParksAdminClient'
 
 export const dynamic = 'force-dynamic'
@@ -16,9 +17,9 @@ export default async function ParksAdminPage() {
   if (!session?.user?.id) redirect('/login')
   if (session.user.role !== 'ADMIN') redirect('/dashboard')
 
-  const parks = await prisma.park.findMany({
-    orderBy: [{ type: 'asc' }, { name: 'asc' }],
-    select: {
+  const parks = await db.query.park.findMany({
+    orderBy: [asc(parkTable.type), asc(parkTable.name)],
+    columns: {
       id: true,
       slug: true,
       name: true,

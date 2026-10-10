@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { prisma } from '@/lib/prisma'
+import { and, asc, eq, gt, gte, ilike, inArray, isNull, lt, or } from 'drizzle-orm'
+import { db, event as eventTable, eventAttendee, escapeLike } from '@/db'
+import { countGroupedBy } from '@/lib/counts'
 import { Calendar, MapPin, Sparkles, Award, Send, Building2, Users } from 'lucide-react'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildEvent, type Event as EventSchema } from '@/lib/seo-schema'
@@ -140,41 +142,40 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const searchDateEnd = searchQuery
     ? new Date(now.getTime() + 90 * 86400000)
     : range.end
-  const where: any = {
+  const pattern = searchQuery ? `%${escapeLike(searchQuery)}%` : null
+  const where = and(
     // archivedAt: null hides soft-deleted events from public listings.
-    archivedAt: null,
-    startsAt: { gte: searchQuery ? startOfDayUTC(now) : range.start, lt: searchDateEnd },
-  }
-  if (selectedCats.length > 0) {
-    where.category = { in: selectedCats }
-  }
-  if (langEs) {
-    where.esEnEspanol = true
-  }
-  if (searchQuery) {
+    isNull(eventTable.archivedAt),
+    gte(eventTable.startsAt, searchQuery ? startOfDayUTC(now) : range.start),
+    lt(eventTable.startsAt, searchDateEnd),
+    selectedCats.length > 0
+      ? inArray(eventTable.category, selectedCats as unknown as NonNullable<(typeof eventTable.$inferSelect)['category']>[])
+      : undefined,
+    langEs ? eq(eventTable.esEnEspanol, true) : undefined,
     // Case-insensitive substring match across the user-visible text fields.
     // Same OR-shape as /search page so behavior is consistent end-to-end.
-    where.OR = [
-      { title: { contains: searchQuery, mode: 'insensitive' } },
-      { description: { contains: searchQuery, mode: 'insensitive' } },
-      { venueName: { contains: searchQuery, mode: 'insensitive' } },
-      { address: { contains: searchQuery, mode: 'insensitive' } },
-      { city: { contains: searchQuery, mode: 'insensitive' } },
-    ]
-  }
+    pattern
+      ? or(
+          ilike(eventTable.title, pattern),
+          ilike(eventTable.description, pattern),
+          ilike(eventTable.venueName, pattern),
+          ilike(eventTable.address, pattern),
+          ilike(eventTable.city, pattern),
+        )
+      : undefined,
+  )
 
-  const events = await prisma.event.findMany({
+  const eventRows = await db.query.event.findMany({
     where,
-    orderBy: [{ tier: 'asc' }, { startsAt: 'asc' }],
-    include: {
-      business: { select: { slug: true, name: true } },
-      _count: {
-        select: {
-          attendees: { where: { status: 'GOING' } },
-        },
-      },
-    },
+    orderBy: [asc(eventTable.tier), asc(eventTable.startsAt)],
+    with: { business: { columns: { slug: true, name: true } } },
   })
+  const goingByEvent = await countGroupedBy(
+    eventAttendee.eventId,
+    eventRows.map((e) => e.id),
+    eq(eventAttendee.status, 'GOING'),
+  )
+  const events = eventRows.map((e) => ({ ...e, _count: { attendees: goingByEvent.get(e.id) ?? 0 } }))
 
   // View-aware hero. Each view window gets its own `tier=HERO` event so the
   // hero strip is always relevant to what the user is looking at:
@@ -192,14 +193,15 @@ export default async function EventsPage({ searchParams }: PageProps) {
   // no HERO event in that narrow window, the strip is hidden rather than
   // showing a marquee pick that's not actually relevant to the view.
   const heroFindInWindow = async (windowStart: Date, windowEnd: Date) => {
-    const tierHero = await prisma.event.findFirst({
-      where: {
-        tier: 'HERO',
-        archivedAt: null,
-        startsAt: { gte: windowStart, lt: windowEnd },
-      },
-      orderBy: { startsAt: 'asc' },
-      include: { business: { select: { slug: true, name: true } } },
+    const tierHero = await db.query.event.findFirst({
+      where: and(
+        eq(eventTable.tier, 'HERO'),
+        isNull(eventTable.archivedAt),
+        gte(eventTable.startsAt, windowStart),
+        lt(eventTable.startsAt, windowEnd)
+      ),
+      orderBy: asc(eventTable.startsAt),
+      with: { business: { columns: { slug: true, name: true } } },
     })
     if (tierHero) return { event: tierHero, source: 'tier-hero' }
     return null
@@ -211,14 +213,10 @@ export default async function EventsPage({ searchParams }: PageProps) {
   heroResult = await heroFindInWindow(range.start, range.end)
 
   if (!heroResult) {
-    const fallbackHero = await prisma.event.findFirst({
-      where: {
-        tier: 'HERO',
-        archivedAt: null,
-        startsAt: { gt: now },
-      },
-      orderBy: { startsAt: 'asc' },
-      include: { business: { select: { slug: true, name: true } } },
+    const fallbackHero = await db.query.event.findFirst({
+      where: and(eq(eventTable.tier, 'HERO'), isNull(eventTable.archivedAt), gt(eventTable.startsAt, now)),
+      orderBy: asc(eventTable.startsAt),
+      with: { business: { columns: { slug: true, name: true } } },
     })
     if (fallbackHero && fallbackHero.startsAt.getTime() - now.getTime() < 90 * 86400000) {
       heroResult = { event: fallbackHero, source: 'tier-hero-future' }

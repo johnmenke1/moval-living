@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, business as businessTable } from '@/db'
 
 /**
  * GET /api/partners/badge/[slug]?size=banner|square&theme=light|dark
@@ -37,14 +38,14 @@ export async function GET(
   const size = url.searchParams.get('size') === 'square' ? 'square' : 'banner'
   const theme = url.searchParams.get('theme') === 'dark' ? 'dark' : 'light'
 
-  const business = await prisma.business.findUnique({
-    where: { expertPartnerSlug: slug },
-    select: {
+  const business = await db.query.business.findFirst({
+    where: eq(businessTable.expertPartnerSlug, slug),
+    columns: {
       name: true,
       isExpertPartner: true,
       foundingPartnerSince: true,
-      category: { select: { name: true, icon: true } },
     },
+    with: { category: { columns: { name: true, icon: true } } },
   })
 
   // Don't reveal whether a business exists if the slug is wrong — return

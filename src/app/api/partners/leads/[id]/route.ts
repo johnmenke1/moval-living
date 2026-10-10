@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, expertPartnerLead, requireRow } from '@/db'
 
 /**
  * PATCH /api/partners/leads/:id
@@ -42,11 +43,9 @@ export async function PATCH(
   }
 
   // Verify ownership by joining through Business.ownerId
-  const lead = await prisma.expertPartnerLead.findUnique({
-    where: { id },
-    include: {
-      business: { select: { ownerId: true } },
-    },
+  const lead = await db.query.expertPartnerLead.findFirst({
+    where: eq(expertPartnerLead.id, id),
+    with: { business: { columns: { ownerId: true } } },
   })
 
   if (!lead) {
@@ -56,24 +55,27 @@ export async function PATCH(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const updated = await prisma.expertPartnerLead.update({
-    where: { id },
-    data: {
-      ...(body.contacted !== undefined
-        ? {
-            contacted: body.contacted,
-            contactedAt: body.contacted ? new Date() : null,
-          }
-        : {}),
-      ...(body.notes !== undefined ? { notes: body.notes } : {}),
-    },
-    select: {
-      id: true,
-      contacted: true,
-      contactedAt: true,
-      notes: true,
-    },
-  })
+  const updated = requireRow(
+    await db
+      .update(expertPartnerLead)
+      .set({
+        ...(body.contacted !== undefined
+          ? {
+              contacted: body.contacted,
+              contactedAt: body.contacted ? new Date() : null,
+            }
+          : {}),
+        ...(body.notes !== undefined ? { notes: body.notes } : {}),
+      })
+      .where(eq(expertPartnerLead.id, id))
+      .returning({
+        id: expertPartnerLead.id,
+        contacted: expertPartnerLead.contacted,
+        contactedAt: expertPartnerLead.contactedAt,
+        notes: expertPartnerLead.notes,
+      }),
+    'Lead not found'
+  )
 
   return NextResponse.json({ success: true, lead: updated })
 }

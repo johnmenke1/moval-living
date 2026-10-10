@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { asc, desc } from 'drizzle-orm'
+import { db, bestOfNomination } from '@/db'
 
 // GET /api/admin/best-of/nominations
 // Returns the last 100 nominations with the related business (if matched)
@@ -11,12 +12,12 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const nominations = await prisma.bestOfNomination.findMany({
-    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
-    take: 100,
-    include: {
+  const nominations = await db.query.bestOfNomination.findMany({
+    orderBy: [asc(bestOfNomination.status), desc(bestOfNomination.createdAt)],
+    limit: 100,
+    with: {
       business: {
-        select: { id: true, name: true, slug: true, status: true, logo: true },
+        columns: { id: true, name: true, slug: true, status: true, logo: true },
       },
     },
   })

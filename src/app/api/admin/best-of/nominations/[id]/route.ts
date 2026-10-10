@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { and, eq } from 'drizzle-orm'
+import { db, bestOfCategory, bestOfNominee, bestOfNomination, requireRow } from '@/db'
 
 const ReviewSchema = z.object({
   action: z.enum(['approve', 'reject']),
@@ -49,7 +50,7 @@ export async function PATCH(
   const { action, categoryId, adminNotes, rejectionReason } = parsed.data
 
   // Look up the nomination first — verify it's PENDING.
-  const nomination = await prisma.bestOfNomination.findUnique({ where: { id } })
+  const nomination = await db.query.bestOfNomination.findFirst({ where: eq(bestOfNomination.id, id) })
   if (!nomination) {
     return NextResponse.json({ error: 'Nomination not found' }, { status: 404 })
   }
@@ -81,7 +82,7 @@ export async function PATCH(
       )
     }
 
-    const category = await prisma.bestOfCategory.findUnique({ where: { id: categoryId } })
+    const category = await db.query.bestOfCategory.findFirst({ where: eq(bestOfCategory.id, categoryId) })
     if (!category) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 })
     }
@@ -89,53 +90,65 @@ export async function PATCH(
     // Create the nominee (or skip if a unique conflict already exists for
     // that business in that category — the @unique([categoryId, businessId])
     // on BestOfNominee would otherwise throw).
-    const existing = await prisma.bestOfNominee.findUnique({
-      where: { categoryId_businessId: { categoryId, businessId: nomination.businessId } },
-      select: { id: true },
+    const existing = await db.query.bestOfNominee.findFirst({
+      where: and(
+        eq(bestOfNominee.categoryId, categoryId),
+        eq(bestOfNominee.businessId, nomination.businessId)
+      ),
+      columns: { id: true },
     })
 
     let nomineeId: string
     if (existing) {
       nomineeId = existing.id
     } else {
-      const created = await prisma.bestOfNominee.create({
-        data: {
+      const [created] = await db
+        .insert(bestOfNominee)
+        .values({
           categoryId,
           businessId: nomination.businessId,
           // Promoted via community nomination — copy the nominator's reason
           // into the nominee's admin-facing notes (truncated to fit).
           notes: nomination.reason.slice(0, 1000),
           displayOrder: 0,
-        },
-      })
+        })
+        .returning({ id: bestOfNominee.id })
       nomineeId = created.id
     }
 
-    const updated = await prisma.bestOfNomination.update({
-      where: { id },
-      data: {
-        status: 'APPROVED',
-        reviewedBy: adminId,
-        reviewedAt: new Date(),
-        promotedNomineeId: nomineeId,
-        ...(adminNotes ? { adminNotes } : {}),
-      },
-    })
+    const updated = requireRow(
+      await db
+        .update(bestOfNomination)
+        .set({
+          status: 'APPROVED',
+          reviewedBy: adminId,
+          reviewedAt: new Date(),
+          promotedNomineeId: nomineeId,
+          ...(adminNotes ? { adminNotes } : {}),
+        })
+        .where(eq(bestOfNomination.id, id))
+        .returning(),
+      'Nomination not found'
+    )
 
     return NextResponse.json({ ok: true, nomination: updated, nomineeId })
   }
 
   // Rejection path
-  const updated = await prisma.bestOfNomination.update({
-    where: { id },
-    data: {
-      status: 'REJECTED',
-      reviewedBy: adminId,
-      reviewedAt: new Date(),
-      ...(rejectionReason ? { rejectionReason } : {}),
-      ...(adminNotes ? { adminNotes } : {}),
-    },
-  })
+  const updated = requireRow(
+    await db
+      .update(bestOfNomination)
+      .set({
+        status: 'REJECTED',
+        reviewedBy: adminId,
+        reviewedAt: new Date(),
+        ...(rejectionReason ? { rejectionReason } : {}),
+        ...(adminNotes ? { adminNotes } : {}),
+      })
+      .where(eq(bestOfNomination.id, id))
+      .returning(),
+    'Nomination not found'
+  )
 
   return NextResponse.json({ ok: true, nomination: updated })
 }

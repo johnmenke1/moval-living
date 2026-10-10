@@ -9,7 +9,7 @@ export function isClaimValid(business: ClaimableBusiness, now = new Date()): boo
 
 export function getAutoApprovedClaimData(ownerId: string) {
   return {
-    owner: { connect: { id: ownerId } },
+    ownerId,
     claimToken: null,
     claimExpiresAt: null,
     status: 'APPROVED' as const,

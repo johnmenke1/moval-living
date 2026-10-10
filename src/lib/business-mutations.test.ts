@@ -44,7 +44,7 @@ describe('buildBusinessUpdateData', () => {
       name: 'Menke Real Estate',
       tagline: null,
       description: 'A detailed description of the business and its services.',
-      category: { connect: { id: 'category-1' } },
+      categoryId: 'category-1',
       address: '123 Main St',
       city: 'Moreno Valley',
       state: 'CA',
@@ -90,7 +90,7 @@ describe('buildBusinessUpdateData', () => {
     })).toThrow()
   })
 
-  it('rejects protected or unknown fields instead of passing them to Prisma', () => {
+  it('rejects protected or unknown fields instead of passing them to the database', () => {
     expect(() => buildBusinessUpdateData({
       name: 'Safe Business',
       description: 'A sufficiently detailed description for a real business listing.',

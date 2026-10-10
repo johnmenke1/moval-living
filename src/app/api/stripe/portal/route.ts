@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getStripe } from '@/lib/stripe'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, owner as ownerTable } from '@/db'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -9,9 +10,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const owner = await prisma.owner.findUnique({
-    where: { id: session.user.id },
-    include: { business: true },
+  const owner = await db.query.owner.findFirst({
+    where: eq(ownerTable.id, session.user.id),
+    with: { business: true },
   })
 
   if (!owner?.business?.stripeCustomerId) {

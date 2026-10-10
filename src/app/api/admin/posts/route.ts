@@ -6,7 +6,7 @@ import {
   uniquePostSlug,
   checkPostCadence,
 } from '@/lib/guest-content'
-import { prisma } from '@/lib/prisma'
+import { listGuestPosts } from '@/lib/guest-content'
 import { revalidatePostData } from '@/lib/revalidate'
 
 // GET /api/admin/posts — list posts (optionally filtered by status)
@@ -17,13 +17,7 @@ export async function GET(req: Request) {
   }
   const url = new URL(req.url)
   const status = url.searchParams.get('status') ?? undefined
-  const posts = await prisma.guestPost.findMany({
-    where: status ? { status } : undefined,
-    orderBy: { updatedAt: 'desc' },
-    include: {
-      author: { select: { id: true, slug: true, displayName: true, photoUrl: true } },
-    },
-  })
+  const posts = await listGuestPosts({ status })
   return NextResponse.json(posts)
 }
 

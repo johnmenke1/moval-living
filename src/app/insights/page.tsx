@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { prisma } from '@/lib/prisma'
+import { and, desc, eq } from 'drizzle-orm'
+import { db, guestPost } from '@/db'
 import { InsightsHero } from '@/components/insights/InsightsHero'
 import { InsightsArticlesGrid } from '@/components/insights/InsightsArticlesGrid'
 
@@ -28,12 +29,12 @@ export const metadata: Metadata = {
 }
 
 export default async function InsightsIndexPage() {
-  const posts = await prisma.guestPost.findMany({
-    where: { status: 'published', postType: 'GUEST' },
-    orderBy: { publishedAt: 'desc' },
-    include: {
+  const posts = await db.query.guestPost.findMany({
+    where: and(eq(guestPost.status, 'published'), eq(guestPost.postType, 'GUEST')),
+    orderBy: desc(guestPost.publishedAt),
+    with: {
       author: {
-        select: {
+        columns: {
           id: true,
           slug: true,
           displayName: true,
@@ -43,7 +44,7 @@ export default async function InsightsIndexPage() {
         },
       },
     },
-    take: 50,
+    limit: 50,
   })
 
   // Answer capsule — server-rendered, first ~150 words of HTML.

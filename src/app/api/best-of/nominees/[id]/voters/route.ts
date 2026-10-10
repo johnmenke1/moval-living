@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { desc, eq } from 'drizzle-orm'
+import { db, bestOfNominee, bestOfVote } from '@/db'
 
 /**
  * GET /api/best-of/nominees/[id]/voters
@@ -34,12 +35,10 @@ export async function GET(
 
   // Sanity-check the nominee exists — without this, an attacker could
   // probe votes for any nomineeId and learn count distribution.
-  const nominee = await prisma.bestOfNominee.findUnique({
-    where: { id: nomineeId },
-    select: {
-      id: true,
-      category: { select: { published: true } },
-    },
+  const nominee = await db.query.bestOfNominee.findFirst({
+    where: eq(bestOfNominee.id, nomineeId),
+    columns: { id: true },
+    with: { category: { columns: { published: true } } },
   })
   if (!nominee || !nominee.category.published) {
     return NextResponse.json({ error: 'Nominee not found' }, { status: 404 })
@@ -55,17 +54,17 @@ export async function GET(
   // Promise.all is fine here — both are simple WHERE clauses with the
   // (nomineeId, createdAt DESC) index, so they hit the same B-tree.
   const [recent, total] = await Promise.all([
-    prisma.bestOfVote.findMany({
-      where: { nomineeId },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      select: {
+    db.query.bestOfVote.findMany({
+      where: eq(bestOfVote.nomineeId, nomineeId),
+      orderBy: desc(bestOfVote.createdAt),
+      limit,
+      columns: {
         voterNameSnapshot: true,
         voterImageSnapshot: true,
         createdAt: true,
       },
     }),
-    prisma.bestOfVote.count({ where: { nomineeId } }),
+    db.$count(bestOfVote, eq(bestOfVote.nomineeId, nomineeId)),
   ])
 
   return NextResponse.json({

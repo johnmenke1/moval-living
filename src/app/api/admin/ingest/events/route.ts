@@ -34,7 +34,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, submission as submissionTable } from '@/db'
 import { nextSubmissionSlug } from '@/lib/submission-slug'
 import { put } from '@vercel/blob'
 
@@ -97,8 +98,8 @@ export async function POST(req: NextRequest) {
   for (const e of parsed.data.events) {
     try {
       // Skip duplicates by sourceUrl — same source = same event
-      const existing = await prisma.submission.findFirst({
-        where: { sourceUrl: e.sourceUrl },
+      const existing = await db.query.submission.findFirst({
+        where: eq(submissionTable.sourceUrl, e.sourceUrl),
       })
       if (existing) {
         results.push({ title: e.title, slug: existing.slug, status: 'duplicate' })
@@ -158,8 +159,9 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const submission = await prisma.submission.create({
-        data: {
+      const [submission] = await db
+        .insert(submissionTable)
+        .values({
           slug,
           sourceUrl: e.sourceUrl,
           // 'OTHER' covers city calendars, venue sites, etc. — not IG/FB
@@ -176,8 +178,8 @@ export async function POST(req: NextRequest) {
           // Mark as already-captured so admin knows this was curated
           sourceCapturedAt: new Date(),
           status: 'PENDING',
-        },
-      })
+        })
+        .returning()
 
       results.push({ title: e.title, slug: submission.slug, status: 'created' })
     } catch (err) {

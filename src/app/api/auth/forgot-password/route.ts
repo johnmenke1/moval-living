@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, owner as ownerTable } from '@/db'
 import { sendForgotPasswordEmail } from '@/lib/email'
 import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 
@@ -34,9 +35,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  const owner = await prisma.owner.findUnique({
-    where: { email },
-    select: { id: true },
+  const owner = await db.query.owner.findFirst({
+    where: eq(ownerTable.email, email),
+    columns: { id: true },
   })
 
   // Always return success to prevent email enumeration. Only generate a
@@ -53,10 +54,10 @@ export async function POST(req: NextRequest) {
   const hashedToken = await bcrypt.hash(rawToken, 10)
   const resetExpires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
-  await prisma.owner.update({
-    where: { email },
-    data: { resetToken: hashedToken, resetExpires },
-  })
+  await db
+    .update(ownerTable)
+    .set({ resetToken: hashedToken, resetExpires })
+    .where(eq(ownerTable.email, email))
 
   // Token-only URL — we don't put the email in the query string because
   // it gets logged in access logs and browser history. The bcrypt.compare

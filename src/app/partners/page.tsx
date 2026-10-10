@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { prisma } from '@/lib/prisma'
+import { and, asc, eq } from 'drizzle-orm'
+import { db, business as businessTable, category as categoryTable } from '@/db'
 import { Sparkles, Check, Clock } from 'lucide-react'
 import { ExpertPartnerBadge } from '@/components/business/ExpertPartnerBadge'
 
@@ -15,12 +16,9 @@ export const dynamic = 'force-dynamic'
 
 async function getPartnersData() {
   const [partners, categories, allCategories] = await Promise.all([
-    prisma.business.findMany({
-      where: {
-        isExpertPartner: true,
-        status: 'APPROVED',
-      },
-      select: {
+    db.query.business.findMany({
+      where: and(eq(businessTable.isExpertPartner, true), eq(businessTable.status, 'APPROVED')),
+      columns: {
         id: true,
         slug: true,
         expertPartnerSlug: true,
@@ -28,22 +26,19 @@ async function getPartnersData() {
         tagline: true,
         logo: true,
         coverImage: true,
-        category: { select: { id: true, name: true, slug: true } },
         isExpertPartner: true,
         foundingPartnerSince: true,
       },
-      orderBy: [{ foundingPartnerSince: 'asc' }, { name: 'asc' }],
+      with: { category: { columns: { id: true, name: true, slug: true } } },
+      orderBy: [asc(businessTable.foundingPartnerSince), asc(businessTable.name)],
     }),
-    prisma.business.findMany({
-      where: {
-        isExpertPartner: true,
-        status: 'APPROVED',
-      },
-      select: { categoryId: true },
+    db.query.business.findMany({
+      where: and(eq(businessTable.isExpertPartner, true), eq(businessTable.status, 'APPROVED')),
+      columns: { categoryId: true },
     }),
-    prisma.category.findMany({
-      select: { id: true, name: true, slug: true, icon: true },
-      orderBy: { name: 'asc' },
+    db.query.category.findMany({
+      columns: { id: true, name: true, slug: true, icon: true },
+      orderBy: asc(categoryTable.name),
     }),
   ])
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, park as parkTable, requireRow } from '@/db'
 import { auth } from '@/auth'
 import { put } from '@vercel/blob'
 import { revalidateParkData } from '@/lib/revalidate'
@@ -41,9 +42,9 @@ export async function POST(
     )
   }
 
-  const park = await prisma.park.findUnique({
-    where: { slug },
-    select: { photoUrls: true, heroPhotoUrl: true },
+  const park = await db.query.park.findFirst({
+    where: eq(parkTable.slug, slug),
+    columns: { photoUrls: true, heroPhotoUrl: true },
   })
   if (!park) {
     return NextResponse.json({ error: 'Park not found' }, { status: 404 })
@@ -62,10 +63,14 @@ export async function POST(
   const newPhotoUrls = [...park.photoUrls, blob.url]
   const newHero = park.heroPhotoUrl ?? blob.url
 
-  const updated = await prisma.park.update({
-    where: { slug },
-    data: { photoUrls: newPhotoUrls, heroPhotoUrl: newHero },
-  })
+  const updated = requireRow(
+    await db
+      .update(parkTable)
+      .set({ photoUrls: newPhotoUrls, heroPhotoUrl: newHero })
+      .where(eq(parkTable.slug, slug))
+      .returning(),
+    'Park not found'
+  )
   // ISR cache bust — see src/lib/revalidate.ts for the path map.
 
   revalidateParkData()

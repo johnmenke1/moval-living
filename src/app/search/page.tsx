@@ -1,7 +1,10 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { Building2, MapPin, ExternalLink } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
+import { and, asc, desc, eq, ilike, inArray, or, type SQL } from 'drizzle-orm'
+import { db, business as businessTable, category as categoryTable, deal as dealTable } from '@/db'
+import { escapeLike } from '@/db'
+import { countGroupedBy } from '@/lib/counts'
 import { categories } from '@/data/categories'
 import { BusinessCard } from '@/components/business/BusinessCard'
 import { SearchFilters } from '@/components/search/SearchFilters'
@@ -111,16 +114,17 @@ async function getBusinesses(params: {
   tier?: string
   espanol?: string
 }): Promise<SearchResults> {
-  const where: Record<string, unknown> = {
-    status: 'APPROVED',
-  }
+  const conditions: (SQL | undefined)[] = [eq(businessTable.status, 'APPROVED')]
 
   if (params.q) {
-    where.OR = [
-      { name: { contains: params.q, mode: 'insensitive' } },
-      { description: { contains: params.q, mode: 'insensitive' } },
-      { tagline: { contains: params.q, mode: 'insensitive' } },
-    ]
+    const pattern = `%${escapeLike(params.q)}%`
+    conditions.push(
+      or(
+        ilike(businessTable.name, pattern),
+        ilike(businessTable.description, pattern),
+        ilike(businessTable.tagline, pattern),
+      ),
+    )
   }
 
   // The category dropdown now filters /search in-place. When a category is
@@ -128,42 +132,49 @@ async function getBusinesses(params: {
   // card grid narrow together. The /category/[slug] pages remain canonical
   // for SEO; /search?category=X is the browsable filtered view.
   if (params.category) {
-    where.category = { slug: params.category }
+    conditions.push(
+      inArray(
+        businessTable.categoryId,
+        db.select({ id: categoryTable.id }).from(categoryTable).where(eq(categoryTable.slug, params.category)),
+      ),
+    )
   }
 
   if (params.espanol) {
-    where.seHablaEspanol = true
+    conditions.push(eq(businessTable.seHablaEspanol, true))
   }
 
-  const businesses = await prisma.business.findMany({
-    where,
-    include: {
+  const businessRows = await db.query.business.findMany({
+    where: and(...conditions),
+    with: {
       category: true,
       reviews: true,
-      _count: {
-        select: {
-          reviews: true,
-          // Active-deal count — propagated into mapItems so SearchMap
-          // can show the "Deal available" info-window badge without
-          // reading the legacy Business.hasCoupon boolean (the column
-          // stays in the schema for the writer-side migration, but
-          // readers derive from the Deal table).
-          deals: { where: { isActive: true } },
-        },
-      },
       // First active deal — the BusinessCard uses the deal's imageUrl
       // as the highest-priority cover fallback, and renders a "Deal"
       // pill when any row is present. Replaces the legacy
       // Business.coupon Json blob (dropped in migration
       // 20260915000000_drop_business_coupon).
       deals: {
-        where: { isActive: true },
-        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-        take: 1,
-        select: { imageUrl: true, isActive: true },
+        where: eq(dealTable.isActive, true),
+        orderBy: [asc(dealTable.displayOrder), desc(dealTable.createdAt)],
+        limit: 1,
+        columns: { imageUrl: true, isActive: true },
       },
     },
   })
+  // Active-deal count — propagated into mapItems so SearchMap can show the
+  // "Deal available" info-window badge without reading the legacy
+  // Business.hasCoupon boolean (the column stays in the schema for the
+  // writer-side migration, but readers derive from the Deal table).
+  const activeDeals = await countGroupedBy(
+    dealTable.businessId,
+    businessRows.map((b) => b.id),
+    eq(dealTable.isActive, true),
+  )
+  const businesses = businessRows.map((b) => ({
+    ...b,
+    _count: { reviews: b.reviews.length, deals: activeDeals.get(b.id) ?? 0 },
+  }))
 
   const mapItems = businesses
     .filter((b) => b.latitude != null && b.longitude != null)

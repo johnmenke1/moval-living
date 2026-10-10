@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { and, eq, isNull } from 'drizzle-orm'
+import { db, emailChangeRequest, owner } from '@/db'
 import {
   isTokenExpired,
   isTokenUsed,
@@ -41,9 +42,9 @@ export async function GET(req: NextRequest) {
     return renderConfirmPage('Invalid link', 'The confirmation link is invalid or malformed.', 400)
   }
 
-  const looked = await prisma.emailChangeRequest.findUnique({
-    where: { token },
-    select: {
+  const looked = await db.query.emailChangeRequest.findFirst({
+    where: eq(emailChangeRequest.token, token ?? ''),
+    columns: {
       id: true,
       ownerId: true,
       newEmail: true,
@@ -84,29 +85,22 @@ export async function GET(req: NextRequest) {
   // double-click on the link cannot double-swap or leave inconsistent
   // state.
   try {
-    await prisma.$transaction(async (tx) => {
-      const claim = await tx.emailChangeRequest.updateMany({
-        where: { id: looked.id, usedAt: null },
-        data: { usedAt: new Date() },
-      })
-      if (claim.count !== 1) {
+    await db.transaction(async (tx) => {
+      const claim = await tx
+        .update(emailChangeRequest)
+        .set({ usedAt: new Date() })
+        .where(and(eq(emailChangeRequest.id, looked.id), isNull(emailChangeRequest.usedAt)))
+        .returning({ id: emailChangeRequest.id })
+      if (claim.length !== 1) {
         // Another tab/click won the race. Bail out of the txn.
         throw new Error('Email change already claimed')
       }
 
-      await tx.owner.update({
-        where: { id: looked.ownerId },
-        data: { email: looked.newEmail },
-      })
+      await tx.update(owner).set({ email: looked.newEmail }).where(eq(owner.id, looked.ownerId))
 
-      // Delete any other pending requests for this Owner — they
-      // pre-date the just-confirmed swap and should not be usable.
-      await tx.emailChangeRequest.deleteMany({
-        where: {
-          ownerId: looked.ownerId,
-          usedAt: null,
-        },
-      })
+      await tx
+        .delete(emailChangeRequest)
+        .where(and(eq(emailChangeRequest.ownerId, looked.ownerId), isNull(emailChangeRequest.usedAt)))
     })
   } catch (e) {
     // Race or DB error — surface as a friendly 409 with retry guidance.

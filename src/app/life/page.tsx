@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { prisma } from '@/lib/prisma'
+import { and, desc, eq } from 'drizzle-orm'
+import { db, guestPost } from '@/db'
 import { LifeHero } from '@/components/life/LifeHero'
 import { LifeArticlesGrid } from '@/components/life/LifeArticlesGrid'
 
@@ -28,10 +29,10 @@ export const metadata: Metadata = {
 }
 
 export default async function LifeIndexPage() {
-  const posts = await prisma.guestPost.findMany({
-    where: { status: 'published', postType: 'LIFE' },
-    orderBy: { publishedAt: 'desc' },
-    take: 50,
+  const posts = await db.query.guestPost.findMany({
+    where: and(eq(guestPost.status, 'published'), eq(guestPost.postType, 'LIFE')),
+    orderBy: desc(guestPost.publishedAt),
+    limit: 50,
   })
 
   // Answer capsule — server-rendered, first ~150 words of HTML.

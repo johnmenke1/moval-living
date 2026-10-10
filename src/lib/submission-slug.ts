@@ -12,7 +12,8 @@
  * 08-19-26-a, would you look up the venue?").
  */
 
-import { prisma } from './prisma'
+import { like } from 'drizzle-orm'
+import { db, submission } from '../db'
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0')
@@ -30,10 +31,11 @@ function dateSlug(d: Date): string {
  *  to need more than 26 in a day for an MVP community calendar). */
 export async function nextSubmissionSlug(now: Date = new Date()): Promise<string> {
   const base = dateSlug(now)
-  const existing = await prisma.submission.findMany({
-    where: { slug: { startsWith: base } },
-    select: { slug: true },
-  })
+  // `base` is built from digits and dashes only, so no LIKE wildcards to escape.
+  const existing = await db
+    .select({ slug: submission.slug })
+    .from(submission)
+    .where(like(submission.slug, `${base}%`))
   const usedLetters = new Set<string>()
   for (const row of existing) {
     const suffix = row.slug.slice(base.length + 1) // after the dash

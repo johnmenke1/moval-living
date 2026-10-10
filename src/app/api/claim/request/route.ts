@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, business as businessTable } from '@/db'
 import { nanoid } from 'nanoid'
 import { sendEmail } from '@/lib/email'
 import { verifyTurnstileOrSkip } from '@/lib/turnstile'
@@ -93,9 +94,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const business = await prisma.business.findUnique({
-      where: { slug },
-      select: { id: true, name: true, status: true, ownerId: true, claimToken: true, claimExpiresAt: true },
+    const business = await db.query.business.findFirst({
+      where: eq(businessTable.slug, slug),
+      columns: { id: true, name: true, status: true, ownerId: true, claimToken: true, claimExpiresAt: true },
     })
 
     if (!business) {
@@ -126,10 +127,10 @@ export async function POST(request: NextRequest) {
       : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days
 
     if (!existingTokenValid) {
-      await prisma.business.update({
-        where: { id: business.id },
-        data: { claimToken, claimExpiresAt },
-      })
+      await db
+        .update(businessTable)
+        .set({ claimToken, claimExpiresAt })
+        .where(eq(businessTable.id, business.id))
     }
 
     // Build the claim URL

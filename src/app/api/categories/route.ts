@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { asc } from 'drizzle-orm'
+import { db, category } from '@/db'
 
 export async function GET() {
   try {
-    const categories = await prisma.category.findMany({
-      orderBy: { name: 'asc' },
+    const categories = await db.query.category.findMany({
+      orderBy: asc(category.name),
     })
     return NextResponse.json(categories)
   } catch (error) {

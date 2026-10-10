@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, guestPost, requireRow } from '@/db'
 import { revalidatePostData } from '@/lib/revalidate'
 import {
   guestPostUpdateSchema,
@@ -52,7 +53,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const { id } = await params
-  await prisma.guestPost.delete({ where: { id } })
+  requireRow(await db.delete(guestPost).where(eq(guestPost.id, id)).returning({ id: guestPost.id }), 'Post not found')
   // ISR cache bust — see src/lib/revalidate.ts for the path map.
   revalidatePostData()
   return NextResponse.json({ ok: true })

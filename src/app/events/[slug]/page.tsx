@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { and, asc, count, eq, isNull, ne, or, type SQL } from 'drizzle-orm'
+import { db, event as eventTable, eventAttendee } from '@/db'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildEvent } from '@/lib/seo-schema'
 import {
@@ -25,9 +26,9 @@ export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
-  const event = await prisma.event.findUnique({
-    where: { slug },
-    select: {
+  const event = await db.query.event.findFirst({
+    where: eq(eventTable.slug, slug),
+    columns: {
       title: true,
       description: true,
       heroImageUrl: true,
@@ -57,9 +58,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function EventDetailPage({ params }: PageProps) {
   const { slug } = await params
-  const event = await prisma.event.findUnique({
-    where: { slug },
-    include: { business: { select: { slug: true, name: true } } },
+  const event = await db.query.event.findFirst({
+    where: eq(eventTable.slug, slug),
+    with: { business: { columns: { slug: true, name: true } } },
   })
 
   if (!event || event.archivedAt) notFound()
@@ -69,30 +70,23 @@ export default async function EventDetailPage({ params }: PageProps) {
 
   // Aggregate RSVP counts and, if logged in, the current user's status.
   const [attendeeCounts, myAttendee, attendees] = await Promise.all([
-    prisma.eventAttendee.groupBy({
-      by: ['status'],
-      where: { eventId: event.id },
-      _count: { status: true },
-    }),
+    db
+      .select({ status: eventAttendee.status, _count: { status: count() } })
+      .from(eventAttendee)
+      .where(eq(eventAttendee.eventId, event.id))
+      .groupBy(eventAttendee.status),
     isAuthenticated
-      ? prisma.eventAttendee.findUnique({
-          where: {
-            eventId_ownerId: {
-              eventId: event.id,
-              ownerId: session!.user!.id,
-            },
-          },
-          select: { status: true },
+      ? db.query.eventAttendee.findFirst({
+          where: and(eq(eventAttendee.eventId, event.id), eq(eventAttendee.ownerId, session!.user!.id)),
+          columns: { status: true },
         })
       : null,
-    prisma.eventAttendee.findMany({
-      where: { eventId: event.id },
-      orderBy: { createdAt: 'asc' },
-      take: 24,
-      select: {
-        status: true,
-        owner: { select: { id: true, name: true, image: true } },
-      },
+    db.query.eventAttendee.findMany({
+      where: eq(eventAttendee.eventId, event.id),
+      orderBy: asc(eventAttendee.createdAt),
+      limit: 24,
+      columns: { status: true },
+      with: { owner: { columns: { id: true, name: true, image: true } } },
     }),
   ])
 
@@ -156,22 +150,18 @@ export default async function EventDetailPage({ params }: PageProps) {
   const hostBusiness = event.business
 
   // Related events at the same venue or in the same category.
-  const relatedOrClauses: any[] = []
-  if (event.venueId) relatedOrClauses.push({ venueId: event.venueId })
-  else if (event.venueName) relatedOrClauses.push({ venueName: event.venueName })
-  if (event.category) relatedOrClauses.push({ category: event.category })
-  else if (event.city) relatedOrClauses.push({ city: event.city })
+  const relatedOrClauses: SQL[] = []
+  if (event.venueId) relatedOrClauses.push(eq(eventTable.venueId, event.venueId))
+  else if (event.venueName) relatedOrClauses.push(eq(eventTable.venueName, event.venueName))
+  if (event.category) relatedOrClauses.push(eq(eventTable.category, event.category))
+  else if (event.city) relatedOrClauses.push(eq(eventTable.city, event.city))
 
   const related = relatedOrClauses.length > 0
-    ? await prisma.event.findMany({
-        where: {
-          slug: { not: event.slug },
-          archivedAt: null,
-          OR: relatedOrClauses,
-        },
-        orderBy: { startsAt: 'asc' },
-        take: 6,
-        select: {
+    ? await db.query.event.findMany({
+        where: and(ne(eventTable.slug, event.slug), isNull(eventTable.archivedAt), or(...relatedOrClauses)),
+        orderBy: asc(eventTable.startsAt),
+        limit: 6,
+        columns: {
           id: true,
           slug: true,
           title: true,

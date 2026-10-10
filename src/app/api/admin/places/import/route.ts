@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, category as categoryTable, business as businessTable } from '@/db'
 import { auth } from '@/auth'
 import { nanoid } from 'nanoid'
 
@@ -36,18 +37,19 @@ export async function POST(req: NextRequest) {
   // Resolve category: accept a CUID, slug, or use "other" fallback
   let resolvedCategoryId = categoryId
   if (!resolvedCategoryId) {
-    const fallback = await prisma.category.findFirst({
-      where: { slug: 'other' },
-      select: { id: true },
+    const fallback = await db.query.category.findFirst({
+      where: eq(categoryTable.slug, 'other'),
+      columns: { id: true },
     })
     resolvedCategoryId = fallback?.id
   }
 
   if (!resolvedCategoryId) {
     // Auto-create an "other" category
-    const created = await prisma.category.create({
-      data: { name: 'Other', slug: 'other', icon: 'Star', description: '' },
-    })
+    const [created] = await db
+      .insert(categoryTable)
+      .values({ name: 'Other', slug: 'other', icon: 'Star', description: '' })
+      .returning({ id: categoryTable.id })
     resolvedCategoryId = created.id
   }
 
@@ -56,15 +58,16 @@ export async function POST(req: NextRequest) {
   const slug = `${baseSlug}-${nanoid(6)}`
 
   // Check for duplicate placeId to prevent re-importing the same listing
-  const existing = await prisma.business.findFirst({
-    where: { googleBusiness: placeId },
+  const existing = await db.query.business.findFirst({
+    where: eq(businessTable.googleBusiness, placeId),
   })
   if (existing) {
     return NextResponse.json({ error: 'This business has already been imported', business: existing }, { status: 409 })
   }
 
-  const business = await prisma.business.create({
-    data: {
+  const [business] = await db
+    .insert(businessTable)
+    .values({
       slug,
       name: name.trim(),
       categoryId: resolvedCategoryId,
@@ -83,8 +86,8 @@ export async function POST(req: NextRequest) {
       photos: [],
       status: 'APPROVED',
       tier: 'FREE',
-    },
-  })
+    })
+    .returning()
 
   return NextResponse.json({ business: { id: business.id, slug: business.slug, name: business.name } }, { status: 201 })
 }

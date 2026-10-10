@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, bestOfCategory } from '@/db'
 import { put } from '@vercel/blob'
 
 export const runtime = 'nodejs'
@@ -40,9 +41,9 @@ export async function POST(request: NextRequest) {
     // back to 'new' so the upload still lands somewhere sane.
     let pathSegment = 'new'
     if (categoryId) {
-      const category = await prisma.bestOfCategory.findUnique({
-        where: { id: categoryId },
-        select: { slug: true },
+      const category = await db.query.bestOfCategory.findFirst({
+        where: eq(bestOfCategory.id, categoryId),
+        columns: { slug: true },
       })
       if (category) pathSegment = category.slug
     }

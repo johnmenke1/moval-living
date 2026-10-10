@@ -2,7 +2,8 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, guestAuthor } from '@/db'
 import AuthorEditor from '@/components/admin/AuthorEditor'
 
 export const dynamic = 'force-dynamic'
@@ -16,7 +17,7 @@ export default async function EditAuthorPage({ params }: Ctx) {
   }
 
   const { slug } = await params
-  const author = await prisma.guestAuthor.findUnique({ where: { slug } })
+  const author = await db.query.guestAuthor.findFirst({ where: eq(guestAuthor.slug, slug) })
   if (!author) notFound()
 
   return (

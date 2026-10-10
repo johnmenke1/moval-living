@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, bestOfNominee } from '@/db'
 import SubmitBestOfForm from './SubmitBestOfForm'
 import { SubmitBestOfHero } from '@/components/best-of/SubmitBestOfHero'
 import { SubmitBestOfSidebar } from '@/components/best-of/SubmitBestOfSidebar'
@@ -27,7 +28,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 async function getWinnerCount() {
-  return prisma.bestOfNominee.count({ where: { winner: true } })
+  return db.$count(bestOfNominee, eq(bestOfNominee.winner, true))
 }
 
 export default async function SubmitBestOfPage() {

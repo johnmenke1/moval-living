@@ -1,5 +1,8 @@
-import { Prisma } from '@prisma/client'
 import { z } from 'zod'
+import type { business } from '../db'
+
+/** Columns an owner/admin edit may write (Drizzle replaces Prisma.BusinessUpdateInput). */
+export type BusinessUpdateData = Partial<typeof business.$inferInsert>
 
 export type BusinessActor = {
   userId: string
@@ -93,13 +96,13 @@ function parseDateField(value: string | null | undefined): Date | null | undefin
   return new Date(value)
 }
 
-export function buildBusinessUpdateData(input: unknown): Prisma.BusinessUpdateInput {
+export function buildBusinessUpdateData(input: unknown): BusinessUpdateData {
   const parsed = businessUpdateSchema.parse(input)
   return {
     name: parsed.name,
     tagline: parsed.tagline ?? null,
     description: parsed.description,
-    category: { connect: { id: parsed.categoryId } },
+    categoryId: parsed.categoryId,
     address: parsed.address,
     city: parsed.city,
     state: parsed.state,
@@ -110,9 +113,8 @@ export function buildBusinessUpdateData(input: unknown): Prisma.BusinessUpdateIn
     facebook: parsed.facebook ?? null,
     instagram: parsed.instagram ?? null,
     yelp: parsed.yelp ?? null,
-    hours: parsed.hours === null
-      ? Prisma.JsonNull
-      : parsed.hours as Prisma.InputJsonValue | undefined,
+    // null -> SQL NULL (clears hours); undefined -> column left untouched.
+    hours: parsed.hours,
     // Deal fields removed — see migration 20260915000000_drop_business_coupon.
     // The Deal row is managed via /api/deals from /dashboard/edit's submit
     // handler, sequenced after this Business update completes.

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
-import { EventAttendeeStatus } from '@prisma/client'
+import { and, eq } from 'drizzle-orm'
+import { db, event as eventTable, eventAttendee } from '@/db'
+
+type EventAttendeeStatus = (typeof eventAttendee.$inferSelect)['status']
 
 interface RouteParams {
   params: Promise<{ slug: string }>
@@ -25,9 +27,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   }
 
   const { slug } = await params
-  const event = await prisma.event.findUnique({
-    where: { slug },
-    select: { id: true, archivedAt: true },
+  const event = await db.query.event.findFirst({
+    where: eq(eventTable.slug, slug),
+    columns: { id: true, archivedAt: true },
   })
   if (!event || event.archivedAt) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
@@ -48,28 +50,22 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     )
   }
 
-  const upserted = await prisma.eventAttendee.upsert({
-    where: {
-      eventId_ownerId: {
-        eventId: event.id,
-        ownerId: session.user.id,
-      },
-    },
-    update: {
-      status: status as EventAttendeeStatus,
-      updatedAt: new Date(),
-    },
-    create: {
+  const [upserted] = await db
+    .insert(eventAttendee)
+    .values({
       eventId: event.id,
       ownerId: session.user.id,
       status: status as EventAttendeeStatus,
-    },
-    select: {
-      id: true,
-      status: true,
-      createdAt: true,
-    },
-  })
+    })
+    .onConflictDoUpdate({
+      target: [eventAttendee.eventId, eventAttendee.ownerId],
+      set: { status: status as EventAttendeeStatus, updatedAt: new Date() },
+    })
+    .returning({
+      id: eventAttendee.id,
+      status: eventAttendee.status,
+      createdAt: eventAttendee.createdAt,
+    })
 
   return NextResponse.json({ attendee: upserted })
 }
@@ -90,20 +86,17 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   }
 
   const { slug } = await params
-  const event = await prisma.event.findUnique({
-    where: { slug },
-    select: { id: true },
+  const event = await db.query.event.findFirst({
+    where: eq(eventTable.slug, slug),
+    columns: { id: true },
   })
   if (!event) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
   }
 
-  await prisma.eventAttendee.deleteMany({
-    where: {
-      eventId: event.id,
-      ownerId: session.user.id,
-    },
-  })
+  await db
+    .delete(eventAttendee)
+    .where(and(eq(eventAttendee.eventId, event.id), eq(eventAttendee.ownerId, session.user.id)))
 
   return NextResponse.json({ removed: true })
 }

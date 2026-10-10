@@ -18,7 +18,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, event as eventTable, requireRow } from '@/db'
 import { put } from '@vercel/blob'
 import { revalidateEventData } from '@/lib/revalidate'
 
@@ -59,9 +60,9 @@ export async function POST(
 
   const { id } = await params
 
-  const event = await prisma.event.findUnique({
-    where: { id },
-    select: { id: true, slug: true },
+  const event = await db.query.event.findFirst({
+    where: eq(eventTable.id, id),
+    columns: { id: true, slug: true },
   })
   if (!event) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
@@ -102,11 +103,14 @@ export async function POST(
     contentType: file.type,
   })
 
-  const updated = await prisma.event.update({
-    where: { id },
-    data: { heroImageUrl: blob.url },
-    select: { id: true, slug: true, heroImageUrl: true },
-  })
+  const updated = requireRow(
+    await db
+      .update(eventTable)
+      .set({ heroImageUrl: blob.url })
+      .where(eq(eventTable.id, id))
+      .returning({ id: eventTable.id, slug: eventTable.slug, heroImageUrl: eventTable.heroImageUrl }),
+    'Event not found'
+  )
   // ISR cache bust — see src/lib/revalidate.ts for the path map.
   revalidateEventData()
   return NextResponse.json({

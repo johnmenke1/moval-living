@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { and, asc, eq, ilike } from 'drizzle-orm'
+import { db, business, escapeLike } from '@/db'
 import { auth } from '@/auth'
 
 // GET /api/admin/businesses/search?q= — search businesses for BestOf admin
@@ -12,12 +13,9 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q') ?? ''
   if (!q.trim()) return NextResponse.json({ businesses: [] })
 
-  const businesses = await prisma.business.findMany({
-    where: {
-      name: { contains: q, mode: 'insensitive' },
-      status: 'APPROVED',
-    },
-    select: {
+  const businesses = await db.query.business.findMany({
+    where: and(ilike(business.name, `%${escapeLike(q)}%`), eq(business.status, 'APPROVED')),
+    columns: {
       id: true,
       name: true,
       slug: true,
@@ -28,8 +26,8 @@ export async function GET(req: NextRequest) {
       googleReviewCount: true,
       bestOfTags: true,
     },
-    take: 20,
-    orderBy: { name: 'asc' },
+    limit: 20,
+    orderBy: asc(business.name),
   })
 
   return NextResponse.json({ businesses })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, owner } from '@/db'
 import { hashPassword } from '@/lib/password'
 
 // POST /api/auth/set-password — set a password for the currently logged-in owner
@@ -19,10 +20,10 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await hashPassword(password)
 
-  await prisma.owner.update({
-    where: { id: session.user.id },
-    data: { passwordHash, emailVerified: new Date() },
-  })
+  await db
+    .update(owner)
+    .set({ passwordHash, emailVerified: new Date() })
+    .where(eq(owner.id, session.user.id))
 
   return NextResponse.json({ ok: true })
 }

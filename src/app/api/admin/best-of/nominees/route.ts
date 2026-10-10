@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { and, asc, desc, eq } from 'drizzle-orm'
+import { db, bestOfNominee, business } from '@/db'
 import { z } from 'zod'
 import { revalidateBestOfData } from '@/lib/revalidate'
 
@@ -20,11 +21,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'categoryId required' }, { status: 400 })
   }
 
-  const nominees = await prisma.bestOfNominee.findMany({
-    where: { categoryId },
-    include: {
+  const nominees = await db.query.bestOfNominee.findMany({
+    where: eq(bestOfNominee.categoryId, categoryId),
+    with: {
       business: {
-        select: {
+        columns: {
           id: true,
           slug: true,
           name: true,
@@ -36,7 +37,7 @@ export async function GET(req: Request) {
         },
       },
     },
-    orderBy: [{ winner: 'desc' }, { displayOrder: 'asc' }],
+    orderBy: [desc(bestOfNominee.winner), asc(bestOfNominee.displayOrder)],
   })
 
   return NextResponse.json(nominees)
@@ -59,8 +60,8 @@ export async function POST(req: NextRequest) {
   const { categoryId, businessId, winner, notes, displayOrder } = parsed.data
 
   // Check for duplicate
-  const existing = await prisma.bestOfNominee.findUnique({
-    where: { categoryId_businessId: { categoryId, businessId } },
+  const existing = await db.query.bestOfNominee.findFirst({
+    where: and(eq(bestOfNominee.categoryId, categoryId), eq(bestOfNominee.businessId, businessId)),
   })
   if (existing) {
     return NextResponse.json({ error: 'Business already nominated in this category' }, { status: 409 })
@@ -68,18 +69,23 @@ export async function POST(req: NextRequest) {
 
   // If this nominee is being marked winner, clear winner flag from others in same category
   if (winner) {
-    await prisma.bestOfNominee.updateMany({
-      where: { categoryId, winner: true },
-      data: { winner: false },
-    })
+    await db
+      .update(bestOfNominee)
+      .set({ winner: false })
+      .where(and(eq(bestOfNominee.categoryId, categoryId), eq(bestOfNominee.winner, true)))
     // Also update Business.isBestOfWinner
-    await prisma.business.update({ where: { id: businessId }, data: { isBestOfWinner: true } })
+    await db.update(business).set({ isBestOfWinner: true }).where(eq(business.id, businessId))
   }
 
-  const nominee = await prisma.bestOfNominee.create({
-    data: { categoryId, businessId, winner: winner ?? false, notes, displayOrder: displayOrder ?? 0 },
-    include: { business: { select: { name: true } } },
+  const [inserted] = await db
+    .insert(bestOfNominee)
+    .values({ categoryId, businessId, winner: winner ?? false, notes, displayOrder: displayOrder ?? 0 })
+    .returning()
+  const biz = await db.query.business.findFirst({
+    where: eq(business.id, businessId),
+    columns: { name: true },
   })
+  const nominee = { ...inserted, business: biz ?? null }
   // ISR cache bust — see src/lib/revalidate.ts for the path map.
 
   revalidateBestOfData()

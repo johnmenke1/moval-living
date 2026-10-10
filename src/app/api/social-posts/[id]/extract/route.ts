@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, socialPost, requireRow } from '@/db'
 import { extractInstagramMedia } from '@/lib/instagram-media'
 
 // POST /api/social-posts/[id]/extract — re-extract media from IG URL (admin only)
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params
-  const post = await prisma.socialPost.findUnique({ where: { id } })
+  const post = await db.query.socialPost.findFirst({ where: eq(socialPost.id, id) })
 
   if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 })
 
@@ -25,13 +26,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   // Update DB with result if we got a URL
   if (result.mediaUrl) {
-    const updated = await prisma.socialPost.update({
-      where: { id },
-      data: {
-        mediaUrl: result.mediaUrl,
-        ...(post.caption ? {} : { caption: result.caption }),
-      },
-      include: { business: { select: { id: true, slug: true, name: true } } },
+    requireRow(
+      await db
+        .update(socialPost)
+        .set({
+          mediaUrl: result.mediaUrl,
+          ...(post.caption ? {} : { caption: result.caption }),
+        })
+        .where(eq(socialPost.id, id))
+        .returning({ id: socialPost.id }),
+      'Post not found'
+    )
+    const updated = await db.query.socialPost.findFirst({
+      where: eq(socialPost.id, id),
+      with: { business: { columns: { id: true, slug: true, name: true } } },
     })
     return NextResponse.json({ success: true, result, post: updated })
   }

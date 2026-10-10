@@ -12,7 +12,8 @@ import {
   ArrowLeft,
   Award,
 } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
+import { and, asc, eq, ne, or, sql } from 'drizzle-orm'
+import { db, business as businessTable } from '@/db'
 import { auth } from '@/auth'
 import { ExpertPartnerBadge } from '@/components/business/ExpertPartnerBadge'
 import { ExpertPartnerLeadForm } from '@/components/forms/ExpertPartnerLeadForm'
@@ -26,14 +27,17 @@ interface PartnerPageProps {
 }
 
 async function getPartnerBySlug(slug: string) {
-  const partner = await prisma.business.findFirst({
-    where: {
-      OR: [{ expertPartnerSlug: slug }, { slug, isExpertPartner: true }],
-      status: 'APPROVED',
-      isExpertPartner: true,
-    },
-    include: {
-      category: { select: { name: true, slug: true } },
+  const partner = await db.query.business.findFirst({
+    where: and(
+      or(
+        eq(businessTable.expertPartnerSlug, slug),
+        and(eq(businessTable.slug, slug), eq(businessTable.isExpertPartner, true))
+      ),
+      eq(businessTable.status, 'APPROVED'),
+      eq(businessTable.isExpertPartner, true)
+    ),
+    with: {
+      category: { columns: { name: true, slug: true } },
     },
   })
 
@@ -42,20 +46,18 @@ async function getPartnerBySlug(slug: string) {
   // Fetch 4 other Expert Partners (different category) for the
     // cross-promotion widget. One per category means we can't have
     // duplicates, so siblings are always from different categories.
-    const siblingPartners = await prisma.business.findMany({
-      where: {
-        isExpertPartner: true,
-        status: 'APPROVED',
-        id: { not: partner.id },
+    const siblingPartners = await db.query.business.findMany({
+      where: and(
+        eq(businessTable.isExpertPartner, true),
+        eq(businessTable.status, 'APPROVED'),
+        ne(businessTable.id, partner.id),
         // Different category. If partner has no category, all other Expert
         // Partners qualify. If partner has a category, exclude the same id.
-        ...(partner.categoryId
-          ? { categoryId: { not: partner.categoryId } }
-          : {}),
-      },
-      orderBy: [{ foundingPartnerSince: { sort: 'desc', nulls: 'last' } }, { name: 'asc' }],
-      take: 4,
-      select: {
+        partner.categoryId ? ne(businessTable.categoryId, partner.categoryId) : undefined
+      ),
+      orderBy: [sql`${businessTable.foundingPartnerSince} desc nulls last`, asc(businessTable.name)],
+      limit: 4,
+      columns: {
         id: true,
         name: true,
         slug: true,
@@ -64,8 +66,8 @@ async function getPartnerBySlug(slug: string) {
         logo: true,
         isExpertPartner: true,
         foundingPartnerSince: true,
-        category: { select: { name: true } },
       },
+      with: { category: { columns: { name: true } } },
     })
 
   return { ...partner, siblingPartners }

@@ -11,26 +11,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { asc, ilike, or } from 'drizzle-orm'
+import { db, venue, escapeLike } from '@/db'
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.trim() ?? ''
   const take = 10
 
   // If empty query, return all venues alphabetically (small set).
-  const where = q
-    ? {
-        OR: [
-          { name: { contains: q, mode: 'insensitive' as const } },
-          { slug: { contains: q, mode: 'insensitive' as const } },
-          { city: { contains: q, mode: 'insensitive' as const } },
-        ],
-      }
-    : {}
-
-  const venues = await prisma.venue.findMany({
-    where,
-    select: {
+  const pattern = `%${escapeLike(q)}%`
+  const venues = await db.query.venue.findMany({
+    where: q
+      ? or(ilike(venue.name, pattern), ilike(venue.slug, pattern), ilike(venue.city, pattern))
+      : undefined,
+    columns: {
       id: true,
       slug: true,
       name: true,
@@ -40,8 +34,8 @@ export async function GET(req: NextRequest) {
       state: true,
       zip: true,
     },
-    orderBy: { name: 'asc' },
-    take,
+    orderBy: asc(venue.name),
+    limit: take,
   })
 
   return NextResponse.json({ venues })

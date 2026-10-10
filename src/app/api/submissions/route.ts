@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, submission as submissionTable, venue } from '@/db'
 import { nextSubmissionSlug } from '@/lib/submission-slug'
 import { captureSubmissionMetadata, detectPlatform, closeBrowser } from '@/lib/submission-capture'
 
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Reject duplicate submissions by sourceUrl. Same post URL = same event.
-  const existing = await prisma.submission.findFirst({ where: { sourceUrl } })
+  const existing = await db.query.submission.findFirst({ where: eq(submissionTable.sourceUrl, sourceUrl) })
   if (existing) {
     return NextResponse.json(
       {
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
   let resolvedState: string | null = state ?? null
   let resolvedZip: string | null = zip ?? null
   if (venueId) {
-    const v = await prisma.venue.findUnique({ where: { id: venueId } })
+    const v = await db.query.venue.findFirst({ where: eq(venue.id, venueId) })
     if (!v) {
       return NextResponse.json({ error: 'Selected venue not found' }, { status: 400 })
     }
@@ -157,8 +158,9 @@ export async function POST(req: NextRequest) {
   // Generate slug MM-DD-YY-a, MM-DD-YY-b, ...
   const slug = await nextSubmissionSlug()
 
-  const submission = await prisma.submission.create({
-    data: {
+  const [submission] = await db
+    .insert(submissionTable)
+    .values({
       slug,
       sourceUrl,
       sourcePlatform: platform,
@@ -178,8 +180,8 @@ export async function POST(req: NextRequest) {
       zip: resolvedZip,
       submitterNote: submitterNote ?? null,
       status: 'PENDING',
-    },
-  })
+    })
+    .returning()
 
   return NextResponse.json({
     submissionId: submission.id,

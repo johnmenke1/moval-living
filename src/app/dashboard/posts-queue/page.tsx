@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, FileText, Plus } from 'lucide-react'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { asc, desc, eq } from 'drizzle-orm'
+import { db, guestPost, guestAuthor } from '@/db'
 import PostsAdmin from '@/components/admin/PostsAdmin'
 
 export const dynamic = 'force-dynamic'
@@ -17,19 +18,19 @@ export default async function DashboardPostsQueuePage() {
   }
 
   const [posts, authors] = await Promise.all([
-    prisma.guestPost.findMany({
-      orderBy: { updatedAt: 'desc' },
-      include: {
+    db.query.guestPost.findMany({
+      orderBy: desc(guestPost.updatedAt),
+      with: {
         author: {
-          select: { id: true, slug: true, displayName: true, photoUrl: true },
+          columns: { id: true, slug: true, displayName: true, photoUrl: true },
         },
       },
     }),
-    prisma.guestAuthor.findMany({
-      where: { isActive: true },
-      orderBy: { displayName: 'asc' },
-      select: { id: true, slug: true, displayName: true, photoUrl: true },
-    }),
+    db.query.guestAuthor.findMany({
+    where: eq(guestAuthor.isActive, true),
+    orderBy: asc(guestAuthor.displayName),
+    columns: { id: true, slug: true, displayName: true, photoUrl: true },
+  }),
   ])
 
   return (

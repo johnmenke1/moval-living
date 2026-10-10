@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { asc, desc, eq } from 'drizzle-orm'
+import { db, owner as ownerTable, deal as dealTable } from '@/db'
 import { DealsManager } from '@/components/business/DealsManager'
 import Link from 'next/link'
 import { ChevronLeft, Tag } from 'lucide-react'
@@ -25,16 +26,14 @@ export default async function OwnerDealsPage() {
     redirect('/dashboard')
   }
 
-  const owner = await prisma.owner.findUnique({
-    where: { id: session.user.id },
-    include: {
+  const owner = await db.query.owner.findFirst({
+    where: eq(ownerTable.id, session.user.id),
+    with: {
       business: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
+        columns: { id: true, name: true, slug: true },
+        with: {
           deals: {
-            orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+            orderBy: [asc(dealTable.displayOrder), desc(dealTable.createdAt)],
           },
         },
       },

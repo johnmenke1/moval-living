@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, park as parkTable, requireRow } from '@/db'
 import { auth } from '@/auth'
 import { z } from 'zod'
 import { del } from '@vercel/blob'
@@ -59,9 +60,9 @@ export async function POST(
     )
   }
 
-  const existing = await prisma.park.findUnique({
-    where: { slug },
-    select: { photoUrls: true },
+  const existing = await db.query.park.findFirst({
+    where: eq(parkTable.slug, slug),
+    columns: { photoUrls: true },
   })
   if (!existing) {
     return NextResponse.json({ error: 'Park not found' }, { status: 404 })
@@ -70,13 +71,17 @@ export async function POST(
   // Find blobs that are being removed so we can garbage-collect them.
   const removed = existing.photoUrls.filter((u) => !parsed.data.photoUrls.includes(u))
 
-  const updated = await prisma.park.update({
-    where: { slug },
-    data: {
-      photoUrls: parsed.data.photoUrls,
-      heroPhotoUrl: parsed.data.heroPhotoUrl,
-    },
-  })
+  const updated = requireRow(
+    await db
+      .update(parkTable)
+      .set({
+        photoUrls: parsed.data.photoUrls,
+        heroPhotoUrl: parsed.data.heroPhotoUrl,
+      })
+      .where(eq(parkTable.slug, slug))
+      .returning(),
+    'Park not found'
+  )
 
   // Best-effort blob delete — failure here shouldn't block the response
   // (the admin's change already committed). Log and continue.

@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
+import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
+import { db, bestOfCategory, bestOfNominee, bestOfVote, deal as dealTable } from '@/db'
+import { countNomineesByCategory } from '@/lib/best-of-counts'
 import { auth } from '@/auth'
 import type { Metadata } from 'next'
 import { JsonLd } from '@/components/seo/JsonLd'
@@ -13,75 +15,70 @@ interface Props {
   params: Promise<{ category: string }>
 }
 
-async function getCategory(slug: string) {
-  return prisma.bestOfCategory.findUnique({
-    where: { slug, published: true },
-    include: {
-      nominees: {
-        orderBy: [{ winner: 'desc' }, { displayOrder: 'asc' }],
-        include: {
-          business: {
-            select: {
-              id: true, name: true, slug: true, tagline: true, description: true,
-              address: true, city: true, state: true, zip: true,
-              logo: true, coverImage: true, photos: true,
-              tier: true, status: true,
-              isBestOfWinner: true, isExpertPartner: true, foundingPartnerSince: true,
-              website: true, phone: true, email: true,
-              googleRating: true, googleReviewCount: true,
-              seHablaEspanol: true, chamberMember: true, hispanicChamberMember: true,
-              category: { select: { name: true, slug: true } },
-              reviews: { select: { rating: true } },
-              _count: { select: { reviews: true } },
-              // First active deal — replaces the legacy Business.hasCoupon/coupon
-              // Json fields (dropped in migration
-              // 20260915000000_drop_business_coupon). The BestOfNomineeCard may
-              // surface a "Deal" pill or use the deal's image as a cover fallback.
-              deals: {
-                where: { isActive: true },
-                orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-                take: 1,
-                select: { imageUrl: true, isActive: true },
-              },
-            },
-          },
-        },
-      },
-      subCategories: {
-        where: { published: true },
-        orderBy: { name: 'asc' },
-        include: {
-          nominees: {
-            orderBy: [{ winner: 'desc' }, { displayOrder: 'asc' }],
-            include: {
-              business: {
-                select: {
-                  id: true, name: true, slug: true, tagline: true, description: true,
-                  address: true, city: true, state: true, zip: true,
-                  logo: true, coverImage: true, photos: true,
-                  tier: true, status: true,
-                  isBestOfWinner: true, isExpertPartner: true, foundingPartnerSince: true,
-                  website: true, phone: true, email: true,
-                  googleRating: true, googleReviewCount: true,
-                  seHablaEspanol: true, chamberMember: true, hispanicChamberMember: true,
-                  category: { select: { name: true, slug: true } },
-                  reviews: { select: { rating: true } },
-                  _count: { select: { reviews: true } },
-                  deals: {
-                    where: { isActive: true },
-                    orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-                    take: 1,
-                    select: { imageUrl: true, isActive: true },
-                  },
-                },
-              },
-            },
-          },
-          _count: { select: { nominees: true } },
+const NOMINEE_BUSINESS_COLUMNS = {
+  id: true, name: true, slug: true, tagline: true, description: true,
+  address: true, city: true, state: true, zip: true,
+  logo: true, coverImage: true, photos: true,
+  tier: true, status: true,
+  isBestOfWinner: true, isExpertPartner: true, foundingPartnerSince: true,
+  website: true, phone: true, email: true,
+  googleRating: true, googleReviewCount: true,
+  seHablaEspanol: true, chamberMember: true, hispanicChamberMember: true,
+} as const
+
+// First active deal — replaces the legacy Business.hasCoupon/coupon Json
+// fields (dropped in migration 20260915000000_drop_business_coupon). The
+// BestOfNomineeCard may surface a "Deal" pill or use the deal's image as a
+// cover fallback.
+const NOMINEE_ORDER = [desc(bestOfNominee.winner), asc(bestOfNominee.displayOrder)]
+const DEAL_ORDER = [asc(dealTable.displayOrder), desc(dealTable.createdAt)]
+
+const nomineesWith = {
+  orderBy: NOMINEE_ORDER,
+  with: {
+    business: {
+      columns: NOMINEE_BUSINESS_COLUMNS,
+      with: {
+        category: { columns: { name: true, slug: true } },
+        reviews: { columns: { rating: true } },
+        deals: {
+          where: eq(dealTable.isActive, true),
+          orderBy: DEAL_ORDER,
+          limit: 1,
+          columns: { imageUrl: true, isActive: true },
         },
       },
     },
+  },
+} as const
+
+function withReviewCount<B extends { reviews: unknown[] }>(b: B) {
+  return { ...b, _count: { reviews: b.reviews.length } }
+}
+
+async function getCategory(slug: string) {
+  const cat = await db.query.bestOfCategory.findFirst({
+    where: and(eq(bestOfCategory.slug, slug), eq(bestOfCategory.published, true)),
+    with: {
+      nominees: nomineesWith,
+      subCategories: {
+        where: eq(bestOfCategory.published, true),
+        orderBy: asc(bestOfCategory.name),
+        with: { nominees: nomineesWith },
+      },
+    },
   })
+  if (!cat) return null
+  const subCounts = await countNomineesByCategory(cat.subCategories.map((sc) => sc.id))
+  return {
+    ...cat,
+    nominees: cat.nominees.map((n) => ({ ...n, business: withReviewCount(n.business) })),
+    subCategories: cat.subCategories.map((sc) => ({
+      ...sc,
+      nominees: sc.nominees.map((n) => ({ ...n, business: withReviewCount(n.business) })),
+      _count: { nominees: subCounts.get(sc.id) ?? 0 },
+    })),
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -160,24 +157,24 @@ export default async function BestOfCategoryPage({ params }: Props) {
 
   const [userVotes, votesByNominee, recentVotersRaw] = await Promise.all([
     voterId && everyNomineeId.length > 0
-      ? prisma.bestOfVote.findMany({
-          where: { voterId, nomineeId: { in: everyNomineeId } },
-          select: { id: true, nomineeId: true },
+      ? db.query.bestOfVote.findMany({
+          where: and(eq(bestOfVote.voterId, voterId), inArray(bestOfVote.nomineeId, everyNomineeId)),
+          columns: { id: true, nomineeId: true },
         })
       : Promise.resolve([]),
     everyNomineeId.length > 0
-      ? prisma.bestOfVote.groupBy({
-          by: ['nomineeId'],
-          where: { nomineeId: { in: everyNomineeId } },
-          _count: { _all: true },
-        })
+      ? db
+          .select({ nomineeId: bestOfVote.nomineeId, _count: { _all: count() } })
+          .from(bestOfVote)
+          .where(inArray(bestOfVote.nomineeId, everyNomineeId))
+          .groupBy(bestOfVote.nomineeId)
       : Promise.resolve([]),
     everyNomineeId.length > 0
-      ? prisma.bestOfVote.findMany({
-          where: { nomineeId: { in: everyNomineeId } },
-          orderBy: [{ nomineeId: 'asc' }, { createdAt: 'desc' }],
-          take: everyNomineeId.length * 12,
-          select: {
+      ? db.query.bestOfVote.findMany({
+          where: inArray(bestOfVote.nomineeId, everyNomineeId),
+          orderBy: [asc(bestOfVote.nomineeId), desc(bestOfVote.createdAt)],
+          limit: everyNomineeId.length * 12,
+          columns: {
             nomineeId: true,
             voterNameSnapshot: true,
             voterImageSnapshot: true,

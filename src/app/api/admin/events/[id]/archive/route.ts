@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, event as eventTable, requireRow } from '@/db'
 import { revalidateEventData } from '@/lib/revalidate'
 
 // PATCH /api/admin/events/[id]/archive
@@ -39,19 +40,22 @@ export async function PATCH(
     )
   }
 
-  const existing = await prisma.event.findUnique({
-    where: { id },
-    select: { id: true, archivedAt: true, slug: true },
+  const existing = await db.query.event.findFirst({
+    where: eq(eventTable.id, id),
+    columns: { id: true, archivedAt: true, slug: true },
   })
   if (!existing) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
   }
 
-  const updated = await prisma.event.update({
-    where: { id },
-    data: { archivedAt: parsed.data.archived ? new Date() : null },
-    select: { id: true, slug: true, archivedAt: true },
-  })
+  const updated = requireRow(
+    await db
+      .update(eventTable)
+      .set({ archivedAt: parsed.data.archived ? new Date() : null })
+      .where(eq(eventTable.id, id))
+      .returning({ id: eventTable.id, slug: eventTable.slug, archivedAt: eventTable.archivedAt }),
+    'Event not found'
+  )
 
   // Revalidate the public events page so the change is visible immediately.
   // ISR cache bust — see src/lib/revalidate.ts for the path map.

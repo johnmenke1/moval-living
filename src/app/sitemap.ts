@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
-import { prisma } from '@/lib/prisma'
+import { and, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
+import { db, park as parkTable, business as businessTable, bestOfCategory, guestPost, guestAuthor, event as eventTable } from '@/db'
 import { categories as directoryCategories } from '@/data/categories'
 
 const BASE = 'https://www.moval.living'
@@ -56,10 +57,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Parks — /parks index is in staticPages above. Individual park
   // detail pages live at /parks/[slug] for active parks.
-  const parks = await prisma.park.findMany({
-    select: { slug: true, updatedAt: true },
-    where: { isActive: true },
-    orderBy: { updatedAt: 'desc' },
+  const parks = await db.query.park.findMany({
+    columns: { slug: true, updatedAt: true },
+    where: eq(parkTable.isActive, true),
+    orderBy: desc(parkTable.updatedAt),
   })
 
   const parkPages: MetadataRoute.Sitemap = parks.map(p => ({
@@ -70,11 +71,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }))
 
   // Dynamic business pages — APPROVED only
-  const businesses = await prisma.business.findMany({
-    select: { slug: true, updatedAt: true },
-    where: { status: 'APPROVED' },
-    orderBy: { updatedAt: 'desc' },
-    take: 5000,
+  const businesses = await db.query.business.findMany({
+    columns: { slug: true, updatedAt: true },
+    where: eq(businessTable.status, 'APPROVED'),
+    orderBy: desc(businessTable.updatedAt),
+    limit: 5000,
   })
 
   const businessPages: MetadataRoute.Sitemap = businesses.map(b => ({
@@ -85,10 +86,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }))
 
   // Dynamic BestOf category pages
-  const categories = await prisma.bestOfCategory.findMany({
-    select: { slug: true, updatedAt: true },
-    where: { published: true },
-    orderBy: { updatedAt: 'desc' },
+  const categories = await db.query.bestOfCategory.findMany({
+    columns: { slug: true, updatedAt: true },
+    where: eq(bestOfCategory.published, true),
+    orderBy: desc(bestOfCategory.updatedAt),
   })
 
   const bestOfPages: MetadataRoute.Sitemap = categories.map(c => ({
@@ -105,13 +106,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   //   SPOTLIGHT → /spotlights/[slug]
   // Surfacing all four means crawlers can discover outings & spotlights
   // through the sitemap even before external links point at them.
-  const editorialPosts = await prisma.guestPost.findMany({
-    where: {
-      status: 'published',
-      postType: { in: ['LIFE', 'GUEST', 'OUTING', 'SPOTLIGHT'] },
-    },
-    select: { slug: true, postType: true, publishedAt: true, updatedAt: true },
-    orderBy: { publishedAt: 'desc' },
+  const editorialPosts = await db.query.guestPost.findMany({
+    where: and(
+      eq(guestPost.status, 'published'),
+      inArray(guestPost.postType, ['LIFE', 'GUEST', 'OUTING', 'SPOTLIGHT'])
+    ),
+    columns: { slug: true, postType: true, publishedAt: true, updatedAt: true },
+    orderBy: desc(guestPost.publishedAt),
   })
 
   const postTypeToPath: Record<string, string> = {
@@ -132,10 +133,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // /events/[slug] route renders Schema.org Event JSON-LD server-side
   // and gives each event its own indexable URL for "things to do in
   // Moreno Valley" long-tail queries. Priority boosts HERO events.
-  const eventRows = await prisma.event.findMany({
-    where: { archivedAt: null },
-    select: { slug: true, updatedAt: true, tier: true },
-    orderBy: { updatedAt: 'desc' },
+  const eventRows = await db.query.event.findMany({
+    where: isNull(eventTable.archivedAt),
+    columns: { slug: true, updatedAt: true, tier: true },
+    orderBy: desc(eventTable.updatedAt),
   })
 
   const eventPages: MetadataRoute.Sitemap = eventRows.map((ev) => ({
@@ -148,10 +149,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Expert Partner detail pages — Business rows that opted into the
   // Expert Partner program. The detail route uses expertPartnerSlug
   // (falls back to slug if missing).
-  const partners = await prisma.business.findMany({
-    select: { slug: true, expertPartnerSlug: true, updatedAt: true },
-    where: { status: 'APPROVED', isExpertPartner: true, expertPartnerSlug: { not: null } },
-    orderBy: { updatedAt: 'desc' },
+  const partners = await db.query.business.findMany({
+    columns: { slug: true, expertPartnerSlug: true, updatedAt: true },
+    where: and(
+      eq(businessTable.status, 'APPROVED'),
+      eq(businessTable.isExpertPartner, true),
+      isNotNull(businessTable.expertPartnerSlug)
+    ),
+    orderBy: desc(businessTable.updatedAt),
   })
 
   const partnerPages: MetadataRoute.Sitemap = partners.map(p => ({
@@ -165,13 +170,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // profile pages at /authors/[slug]. We filter to active authors and
   // rely on the detail route's own published-post filter to avoid
   // surfacing empty profiles.
-  const authors = await prisma.guestAuthor.findMany({
-    select: { slug: true, updatedAt: true, _count: { select: { posts: true } } },
-    where: {
-      isActive: true,
-      posts: { some: { status: 'published' } },
-    },
-    orderBy: { updatedAt: 'desc' },
+  const authors = await db.query.guestAuthor.findMany({
+    columns: { slug: true, updatedAt: true },
+    where: and(
+      eq(guestAuthor.isActive, true),
+      inArray(
+        guestAuthor.id,
+        db.select({ id: guestPost.authorId }).from(guestPost).where(eq(guestPost.status, 'published'))
+      )
+    ),
+    orderBy: desc(guestAuthor.updatedAt),
   })
 
   const authorPages: MetadataRoute.Sitemap = authors.map(a => ({

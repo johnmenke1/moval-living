@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { eq } from 'drizzle-orm'
+import { db, park as parkTable, requireRow } from '@/db'
 import { auth } from '@/auth'
 import { z } from 'zod'
 import { AMENITY_SLUGS } from '@/lib/park-amenities'
@@ -75,20 +76,23 @@ export async function PATCH(
     )
   }
 
-  const existing = await prisma.park.findUnique({ where: { slug } })
+  const existing = await db.query.park.findFirst({ where: eq(parkTable.slug, slug) })
   if (!existing) {
     return NextResponse.json({ error: 'Park not found' }, { status: 404 })
   }
 
-  const data: Record<string, unknown> = {}
+  const data: Partial<typeof parkTable.$inferInsert> = {}
   for (const [k, v] of Object.entries(parsed.data)) {
-    if (v !== undefined) data[k] = v
+    if (v !== undefined) (data as Record<string, unknown>)[k] = v
   }
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
   }
 
-  const updated = await prisma.park.update({ where: { slug }, data })
+  const updated = requireRow(
+    await db.update(parkTable).set(data).where(eq(parkTable.slug, slug)).returning(),
+    'Park not found'
+  )
   return NextResponse.json({ park: updated })
 }
 
@@ -105,7 +109,7 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const { slug } = await params
-  const park = await prisma.park.findUnique({ where: { slug } })
+  const park = await db.query.park.findFirst({ where: eq(parkTable.slug, slug) })
   if (!park) {
     return NextResponse.json({ error: 'Park not found' }, { status: 404 })
   }

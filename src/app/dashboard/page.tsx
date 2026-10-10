@@ -1,8 +1,26 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
-import { Status } from '@prisma/client'
+import { and, asc, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
+import {
+  db,
+  owner as ownerTable,
+  business as businessTable,
+  deal as dealTable,
+  review as reviewTable,
+  socialPost,
+  bestOfCategory,
+  bestOfNominee,
+  bestOfNomination,
+  guestPost,
+  submission,
+  event as eventTable,
+} from '@/db'
+import { countGroupedBy } from '@/lib/counts'
+import { countNomineesByCategory } from '@/lib/best-of-counts'
+import { listGuestAuthorsAdmin } from '@/lib/guest-content'
+
+type Status = typeof businessTable.$inferSelect['status']
 import { Building2, Star, Eye, Settings, ExternalLink, CheckCircle, Clock, XCircle, Tag, MessageSquare, Plus, FileText, Users, Sparkles, User } from 'lucide-react'
 import DashboardUpgradeWidget from './DashboardUpgradeWidget'
 import AdminTabs from './AdminTabs'
@@ -14,26 +32,36 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  const owner = await prisma.owner.findUnique({
-    where: { id: session.user.id },
-    include: {
-      business: {
-        select: {
-          id: true, slug: true, name: true, tagline: true, address: true, city: true, state: true, zip: true,
-          phone: true, email: true, website: true,
-          logo: true, tier: true, status: true, coverImage: true, photos: true,
-          isBestOfWinner: true,
-          category: { select: { name: true, slug: true } },
-          reviews: {
-            orderBy: { createdAt: 'desc' },
-            take: 5,
-            select: { id: true, rating: true, content: true, authorName: true, createdAt: true },
+  const owner = await db.query.owner
+    .findFirst({
+      where: eq(ownerTable.id, session.user.id),
+      with: {
+        business: {
+          columns: {
+            id: true, slug: true, name: true, tagline: true, address: true, city: true, state: true, zip: true,
+            phone: true, email: true, website: true,
+            logo: true, tier: true, status: true, coverImage: true, photos: true,
+            isBestOfWinner: true,
           },
-          _count: { select: { reviews: true, deals: true } },
+          with: {
+            category: { columns: { name: true, slug: true } },
+            reviews: {
+              orderBy: desc(reviewTable.createdAt),
+              limit: 5,
+              columns: { id: true, rating: true, content: true, authorName: true, createdAt: true },
+            },
+          },
         },
       },
-    },
-  })
+    })
+    .then(async (row) => {
+      if (!row?.business) return row ? { ...row, business: null } : undefined
+      const [reviews, deals] = await Promise.all([
+        db.$count(reviewTable, eq(reviewTable.businessId, row.business.id)),
+        db.$count(dealTable, eq(dealTable.businessId, row.business.id)),
+      ])
+      return { ...row, business: { ...row.business, _count: { reviews, deals } } }
+    })
 
   const isAdmin = session.user.role === 'ADMIN'
 
@@ -56,150 +84,160 @@ export default async function DashboardPage() {
       events,
       archivedEvents,
     ] = await Promise.all([
-      prisma.socialPost.findMany({
-        include: { business: { select: { id: true, slug: true, name: true, logo: true } } },
-        orderBy: { createdAt: 'desc' },
+      db.query.socialPost.findMany({
+        with: { business: { columns: { id: true, slug: true, name: true, logo: true } } },
+        orderBy: desc(socialPost.createdAt),
       }),
       // Filter to APPROVED + PENDING only. REJECTED businesses are
       // intentionally kept out of the admin views (Johnny asked 2026-09-17)
       // so the moderation + image-backfill workflows never accidentally
       // surface rejected ones. The data is still in the DB if it's ever
       // needed — this is a UI filter, not a delete.
-      prisma.business.findMany({
-        where: { status: { in: ['APPROVED', 'PENDING'] } },
-        select: {
-          id: true,
-          slug: true,
-          name: true,
-          tagline: true,
-          address: true,
-          city: true,
-          state: true,
-          zip: true,
-          phone: true,
-          email: true,
-          website: true,
-          logo: true,
-          tier: true,
-          status: true,
-          coverImage: true,
-          photos: true,
-          isBestOfWinner: true,
-          isExpertPartner: true,
-          expertPartnerSlug: true,
-          foundingPartnerSince: true,
-          liveQaZoomUrl: true,
-          liveQaNextDate: true,
-          seHablaEspanol: true,
-          chamberMember: true,
-          hispanicChamberMember: true,
-          googleBusiness: true,
-          googleRating: true,
-          googleReviewCount: true,
-          // claimedAt is the canonical "this business is owned" flag — surfaced
-          // by the new Claimed/Unclaimed filter chips on the BusinessesModeration
-          // tab. Selecting it here keeps the chips honest without a follow-up fetch.
-          claimedAt: true,
-          category: { select: { name: true, slug: true } },
-          owner: { select: { id: true, name: true, email: true } },
-          _count: { select: { reviews: true } },
-          // First active deal — drives the "Add Deal on behalf" panel in
-          // BusinessesModeration. Pre-2026-09-15 this was read from the
-          // Business.coupon Json blob; the migration to the first-class Deal
-          // model means the panel now pulls from here. Same UX, same
-          // single-deal scope; richer multi-deal management lives on
-          // /dashboard/deals for owners and the Deals tab for admins.
-          deals: {
-            where: { isActive: true },
-            orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-            take: 1,
-            select: { id: true, headline: true, description: true, code: true, imageUrl: true, expiresAt: true },
+      db.query.business
+        .findMany({
+          where: inArray(businessTable.status, ['APPROVED', 'PENDING']),
+          columns: {
+            id: true,
+            slug: true,
+            name: true,
+            tagline: true,
+            address: true,
+            city: true,
+            state: true,
+            zip: true,
+            phone: true,
+            email: true,
+            website: true,
+            logo: true,
+            tier: true,
+            status: true,
+            coverImage: true,
+            photos: true,
+            isBestOfWinner: true,
+            isExpertPartner: true,
+            expertPartnerSlug: true,
+            foundingPartnerSince: true,
+            liveQaZoomUrl: true,
+            liveQaNextDate: true,
+            seHablaEspanol: true,
+            chamberMember: true,
+            hispanicChamberMember: true,
+            googleBusiness: true,
+            googleRating: true,
+            googleReviewCount: true,
+            // claimedAt is the canonical "this business is owned" flag — surfaced
+            // by the new Claimed/Unclaimed filter chips on the BusinessesModeration
+            // tab. Selecting it here keeps the chips honest without a follow-up fetch.
+            claimedAt: true,
           },
-        },
-        orderBy: { createdAt: 'desc' },
-            }),
-      // Slim list — just for the Guest Authors "Link Business" picker
-      prisma.business.findMany({
-        where: { status: 'APPROVED' },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          logo: true,
-          category: { select: { name: true, slug: true } },
-          isExpertPartner: true,
-        },
-        orderBy: [{ isExpertPartner: 'desc' }, { name: 'asc' }],
-      }),
-      prisma.socialPost.count({ where: { status: 'PENDING' } }),
-      prisma.business.count({ where: { status: 'PENDING' } }),
-      prisma.business.count({ where: { ownerId: { not: null } } }),
-      prisma.bestOfCategory.findMany({
-        include: {
-          nominees: {
-            include: {
-              business: { select: { id: true, name: true, slug: true, address: true, website: true, logo: true } },
+          with: {
+            category: { columns: { name: true, slug: true } },
+            owner: { columns: { id: true, name: true, email: true } },
+            // First active deal — drives the "Add Deal on behalf" panel in
+            // BusinessesModeration. Pre-2026-09-15 this was read from the
+            // Business.coupon Json blob; the migration to the first-class Deal
+            // model means the panel now pulls from here. Same UX, same
+            // single-deal scope; richer multi-deal management lives on
+            // /dashboard/deals for owners and the Deals tab for admins.
+            deals: {
+              where: eq(dealTable.isActive, true),
+              orderBy: [asc(dealTable.displayOrder), desc(dealTable.createdAt)],
+              limit: 1,
+              columns: { id: true, headline: true, description: true, code: true, imageUrl: true, expiresAt: true },
             },
-            orderBy: { winner: 'desc' },
           },
-          subCategories: {
-            orderBy: { name: 'asc' },
-            include: { _count: { select: { nominees: true } } },
-          },
+          orderBy: desc(businessTable.createdAt),
+        })
+        .then(async (rows) => {
+          const reviews = await countGroupedBy(reviewTable.businessId, rows.map((r) => r.id))
+          return rows.map((r) => ({ ...r, _count: { reviews: reviews.get(r.id) ?? 0 } }))
+        }),
+      // Slim list — just for the Guest Authors "Link Business" picker
+      db.query.business.findMany({
+        where: eq(businessTable.status, 'APPROVED'),
+        columns: {
+          id: true,
+          name: true,
+          slug: true,
+          logo: true,
+          isExpertPartner: true,
         },
-        orderBy: { name: 'asc' },
+        with: { category: { columns: { name: true, slug: true } } },
+        orderBy: [desc(businessTable.isExpertPartner), asc(businessTable.name)],
       }),
+      db.$count(socialPost, eq(socialPost.status, 'PENDING')),
+      db.$count(businessTable, eq(businessTable.status, 'PENDING')),
+      db.$count(businessTable, isNotNull(businessTable.ownerId)),
+      db.query.bestOfCategory
+        .findMany({
+          with: {
+            nominees: {
+              with: {
+                business: { columns: { id: true, name: true, slug: true, address: true, website: true, logo: true } },
+              },
+              orderBy: desc(bestOfNominee.winner),
+            },
+            subCategories: {
+              orderBy: asc(bestOfCategory.name),
+            },
+          },
+          orderBy: asc(bestOfCategory.name),
+        })
+        .then(async (cats) => {
+          const counts = await countNomineesByCategory(cats.flatMap((cat) => cat.subCategories.map((sc) => sc.id)))
+          return cats.map((cat) => ({
+            ...cat,
+            subCategories: cat.subCategories.map((sc) => ({
+              ...sc,
+              _count: { nominees: counts.get(sc.id) ?? 0 },
+            })),
+          }))
+        }),
       // Best-Of Nominations — last 100, with matched Business for display.
       // Sorted by status (PENDING first via enum ordering) then newest.
-      prisma.bestOfNomination.findMany({
-        orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
-        take: 100,
-        include: {
+      db.query.bestOfNomination.findMany({
+        orderBy: [asc(bestOfNomination.status), desc(bestOfNomination.createdAt)],
+        limit: 100,
+        with: {
           business: {
-            select: { id: true, name: true, slug: true, status: true, logo: true },
+            columns: { id: true, name: true, slug: true, status: true, logo: true },
           },
         },
       }),
       // Slim category list for the approve modal — only what the panel needs.
-      prisma.bestOfCategory.findMany({
-        where: { published: true },
-        select: { id: true, name: true, slug: true, published: true },
-        orderBy: { name: 'asc' },
+      db.query.bestOfCategory.findMany({
+        where: eq(bestOfCategory.published, true),
+        columns: { id: true, name: true, slug: true, published: true },
+        orderBy: asc(bestOfCategory.name),
       }),
-      prisma.guestAuthor.findMany({
-        include: {
-          _count: { select: { posts: true } },
-          business: { select: { id: true, name: true, slug: true, logo: true } },
+      listGuestAuthorsAdmin(),
+      db.query.guestPost.findMany({
+        with: {
+          author: { columns: { id: true, displayName: true, slug: true, photoUrl: true, title: true } },
         },
-        orderBy: { displayName: 'asc' },
-      }),
-      prisma.guestPost.findMany({
-        include: {
-          author: { select: { id: true, displayName: true, slug: true, photoUrl: true, title: true } },
-        },
-        orderBy: { createdAt: 'desc' },
+        orderBy: desc(guestPost.createdAt),
       }),
       // Event submissions for the Events tab. Lightweight by default — panel
       // runs search/pagination client-side against this array. The expensive
       // case is 651 approved after bulk-approve; ~200KB JSON which is fine.
-      prisma.submission.findMany({
-        orderBy: { createdAt: 'desc' },
+      db.query.submission.findMany({
+        orderBy: desc(submission.createdAt),
       }),
       // Existing events for the "Mark as duplicate" picker on each submission.
       // Hide archived events — they shouldn't be picked as duplicates.
-      prisma.event.findMany({
-        where: { archivedAt: null },
-        orderBy: { startsAt: 'desc' },
-        select: { id: true, slug: true, title: true, startsAt: true, venueName: true },
+      db.query.event.findMany({
+        where: isNull(eventTable.archivedAt),
+        orderBy: desc(eventTable.startsAt),
+        columns: { id: true, slug: true, title: true, startsAt: true, venueName: true },
       }),
       // Active (non-archived) events for the Live Events admin tab. The
       // EventsAdminPanel has a client-side toggle to show archived; that
       // view is supported by a separate fetch below. Sorted soonest-first
       // so upcoming events surface at the top of the panel.
-      prisma.event.findMany({
-        where: { archivedAt: null },
-        orderBy: { startsAt: 'asc' },
-        select: {
+      db.query.event.findMany({
+        where: isNull(eventTable.archivedAt),
+        orderBy: asc(eventTable.startsAt),
+        columns: {
           id: true,
           slug: true,
           shareUrl: true,
@@ -210,15 +248,15 @@ export default async function DashboardPage() {
           tier: true,
           category: true,
           archivedAt: true,
-          business: { select: { id: true, name: true, slug: true } },
         },
+        with: { business: { columns: { id: true, name: true, slug: true } } },
       }),
       // Archived events — separate fetch so the admin can toggle
       // "Show archived" without an extra round-trip. Small set; cheap.
-      prisma.event.findMany({
-        where: { archivedAt: { not: null } },
-        orderBy: { archivedAt: 'desc' },
-        select: {
+      db.query.event.findMany({
+        where: isNotNull(eventTable.archivedAt),
+        orderBy: desc(eventTable.archivedAt),
+        columns: {
           id: true,
           slug: true,
           shareUrl: true,
@@ -229,8 +267,8 @@ export default async function DashboardPage() {
           tier: true,
           category: true,
           archivedAt: true,
-          business: { select: { id: true, name: true, slug: true } },
         },
+        with: { business: { columns: { id: true, name: true, slug: true } } },
       }),
     ])
     // Map subCategories to the shape BestOfAdmin expects ({ id, name, nomineeCount })

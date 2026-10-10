@@ -11,44 +11,38 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Prisma } from '@prisma/client'
+import { getTableConfig } from 'drizzle-orm/pg-core'
+import { bestOfVote, owner } from '../db/schema'
 import { castVoteSchema, buildVoteSnapshot, CastVoteError } from './best-of-votes'
 
 describe('BestOfVote model shape', () => {
   it('exposes the registered-voter schema fields', () => {
-    // The Prisma client is generated from schema.prisma. If any of these
-    // fields is missing or renamed, the schema migration hasn't shipped
-    // yet — this test fails to compile, surfacing the drift.
-    expect(typeof Prisma.BestOfVoteScalarFieldEnum).toBe('object')
-    expect(Prisma.BestOfVoteScalarFieldEnum.voterId).toBe('voterId')
-    expect(Prisma.BestOfVoteScalarFieldEnum.nomineeId).toBe('nomineeId')
-    expect(Prisma.BestOfVoteScalarFieldEnum.voterNameSnapshot).toBe(
-      'voterNameSnapshot'
-    )
-    expect(Prisma.BestOfVoteScalarFieldEnum.voterImageSnapshot).toBe(
-      'voterImageSnapshot'
-    )
+    // The Drizzle schema (src/db/schema.ts) mirrors the database. If any of
+    // these columns is missing or renamed, this fails (or fails to compile),
+    // surfacing the drift.
+    expect(bestOfVote.voterId.name).toBe('voterId')
+    expect(bestOfVote.nomineeId.name).toBe('nomineeId')
+    expect(bestOfVote.voterNameSnapshot.name).toBe('voterNameSnapshot')
+    expect(bestOfVote.voterImageSnapshot.name).toBe('voterImageSnapshot')
   })
 
   it('defines a unique constraint on (voterId, nomineeId)', async () => {
     // The unique constraint enforces "one vote per user per nominee" at
-    // the database level. If a migration accidentally drops it, this
-    // query succeeds when it shouldn't — but a parallel INSERT would
-    // quietly create duplicate votes. The cleanest assertion is that
-    // the model exposes BestOfVoteWhereUniqueInput with voterId_nomineeId.
-    const uniqueInput: Prisma.BestOfVoteWhereUniqueInput = {
-      voterId_nomineeId: {
-        voterId: 'placeholder',
-        nomineeId: 'placeholder',
-      },
-    }
-    expect(uniqueInput.voterId_nomineeId).toBeDefined()
+    // the database level. If a migration accidentally drops it, parallel
+    // INSERTs would quietly create duplicate votes, so assert the schema
+    // still declares a unique index over exactly (voterId, nomineeId).
+    const unique = getTableConfig(bestOfVote).indexes.find(
+      (i) =>
+        i.config.unique &&
+        i.config.columns.map((c) => (c as { name: string }).name).join(',') === 'voterId,nomineeId'
+    )
+    expect(unique).toBeDefined()
   })
 })
 
 describe('Owner model shape', () => {
   it('exposes lastBestOfVoteAt for tracking voter activity', () => {
-    expect(Prisma.OwnerScalarFieldEnum.lastBestOfVoteAt).toBe('lastBestOfVoteAt')
+    expect(owner.lastBestOfVoteAt.name).toBe('lastBestOfVoteAt')
   })
 })
 

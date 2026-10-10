@@ -1,4 +1,5 @@
-import { prisma } from '@/lib/prisma'
+import { and, desc, eq, gte, isNotNull } from 'drizzle-orm'
+import { db, business, expertPartnerLead } from '@/db'
 import { sendEmail } from '@/lib/email'
 
 /**
@@ -28,22 +29,22 @@ export async function sendWeeklyLeadRecaps(now: Date = new Date()): Promise<Reca
   monthStart.setHours(0, 0, 0, 0)
 
   // Find all active Expert Partner businesses with an email + an owner
-  const partners = await prisma.business.findMany({
-    where: {
-      isExpertPartner: true,
-      status: 'APPROVED',
-      email: { not: null },
-      ownerId: { not: null },
-    },
-    select: {
+  const partners = await db.query.business.findMany({
+    where: and(
+      eq(business.isExpertPartner, true),
+      eq(business.status, 'APPROVED'),
+      isNotNull(business.email),
+      isNotNull(business.ownerId)
+    ),
+    columns: {
       id: true,
       name: true,
       email: true,
       expertPartnerSlug: true,
       slug: true,
       foundingPartnerSince: true,
-      owner: { select: { email: true, name: true } },
     },
+    with: { owner: { columns: { email: true, name: true } } },
   })
 
   const result: RecapResult = {
@@ -63,22 +64,24 @@ export async function sendWeeklyLeadRecaps(now: Date = new Date()): Promise<Reca
 
     try {
       const [weekLeads, monthLeads, totalLeads, contactedThisWeek] = await Promise.all([
-        prisma.expertPartnerLead.findMany({
-          where: { businessId: p.id, createdAt: { gte: weekAgo } },
-          orderBy: { createdAt: 'desc' },
-          select: { name: true, email: true, contacted: true, createdAt: true },
+        db.query.expertPartnerLead.findMany({
+          where: and(eq(expertPartnerLead.businessId, p.id), gte(expertPartnerLead.createdAt, weekAgo)),
+          orderBy: desc(expertPartnerLead.createdAt),
+          columns: { name: true, email: true, contacted: true, createdAt: true },
         }),
-        prisma.expertPartnerLead.count({
-          where: { businessId: p.id, createdAt: { gte: monthStart } },
-        }),
-        prisma.expertPartnerLead.count({ where: { businessId: p.id } }),
-        prisma.expertPartnerLead.count({
-          where: {
-            businessId: p.id,
-            contacted: true,
-            createdAt: { gte: weekAgo },
-          },
-        }),
+        db.$count(
+          expertPartnerLead,
+          and(eq(expertPartnerLead.businessId, p.id), gte(expertPartnerLead.createdAt, monthStart))
+        ),
+        db.$count(expertPartnerLead, eq(expertPartnerLead.businessId, p.id)),
+        db.$count(
+          expertPartnerLead,
+          and(
+            eq(expertPartnerLead.businessId, p.id),
+            eq(expertPartnerLead.contacted, true),
+            gte(expertPartnerLead.createdAt, weekAgo)
+          )
+        ),
       ])
 
       // Skip inactive partners (don't spam)

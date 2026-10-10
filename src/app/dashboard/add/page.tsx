@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { asc } from 'drizzle-orm'
+import { db, category } from '@/db'
 import PlacesSearchClient from '@/components/admin/PlacesSearchClient'
 
 export default async function AddBusinessPage() {
@@ -10,9 +11,7 @@ export default async function AddBusinessPage() {
     redirect('/dashboard')
   }
 
-  const categories = await prisma.category.findMany({
-    orderBy: { name: 'asc' },
-  })
+  const categories = await db.query.category.findMany({ orderBy: asc(category.name) })
 
   return (
     <div className="bg-slate-50 min-h-screen">

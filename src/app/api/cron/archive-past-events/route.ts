@@ -20,7 +20,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { and, isNull, sql } from 'drizzle-orm'
+import { db, event } from '@/db'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60 // Plenty for an updateMany on <1k rows.
@@ -47,13 +48,17 @@ export async function GET(req: NextRequest) {
     // We use a single updateMany with a raw SQL fragment for the date
     // comparison because Prisma's where-clause doesn't have a "coalesce
     // endsAt + startsAt" operator.
-    const result = await prisma.$executeRawUnsafe(
-      `UPDATE "Event"
-       SET "archivedAt" = NOW()
-       WHERE "archivedAt" IS NULL
-         AND COALESCE("endsAt", "startsAt" + INTERVAL '24 hours') <= $1`,
-      cutoff,
-    )
+    const archivedRows = await db
+      .update(event)
+      .set({ archivedAt: sql`NOW()` })
+      .where(
+        and(
+          isNull(event.archivedAt),
+          sql`COALESCE(${event.endsAt}, ${event.startsAt} + INTERVAL '24 hours') <= ${cutoff.toISOString()}::timestamp`
+        )
+      )
+      .returning({ id: event.id })
+    const result = archivedRows.length
 
     return NextResponse.json({
       ok: true,

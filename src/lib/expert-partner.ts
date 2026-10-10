@@ -12,8 +12,8 @@
  * partner via SES only. (See src/app/api/partners/[slug]/leads/route.ts.)
  */
 
-import { prisma } from './prisma'
-import type { ExpertPartnerLead } from '@prisma/client'
+import { and, eq } from 'drizzle-orm'
+import { db, business } from '../db'
 
 // ───────────────────────────────────────────────────────────────────────────
 // Slug helpers
@@ -35,9 +35,9 @@ export async function ensureUniqueExpertPartnerSlug(
   const base = slugifyExpertPartner(desired)
   if (!base) throw new Error('Could not generate a slug from input')
 
-  const existing = await prisma.business.findUnique({
-    where: { expertPartnerSlug: base },
-    select: { id: true },
+  const existing = await db.query.business.findFirst({
+    where: eq(business.expertPartnerSlug, base),
+    columns: { id: true },
   })
   if (!existing || existing.id === excludeBusinessId) {
     return base
@@ -45,9 +45,9 @@ export async function ensureUniqueExpertPartnerSlug(
 
   for (let i = 2; i < 1000; i++) {
     const candidate = `${base}-${i}`
-    const conflict = await prisma.business.findUnique({
-      where: { expertPartnerSlug: candidate },
-      select: { id: true },
+    const conflict = await db.query.business.findFirst({
+      where: eq(business.expertPartnerSlug, candidate),
+      columns: { id: true },
     })
     if (!conflict || conflict.id === excludeBusinessId) {
       return candidate
@@ -95,12 +95,13 @@ export function getPartnerDisplay(business: {
  * status badges next to each category.
  */
 export async function isCategoryOpenForPartner(categoryId: string): Promise<boolean> {
-  const count = await prisma.business.count({
-    where: {
-      isExpertPartner: true,
-      categoryId,
-      status: 'APPROVED',
-    },
-  })
+  const count = await db.$count(
+    business,
+    and(
+      eq(business.isExpertPartner, true),
+      eq(business.categoryId, categoryId),
+      eq(business.status, 'APPROVED')
+    )
+  )
   return count === 0
 }
