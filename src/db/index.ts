@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import * as schema from './schema'
 import * as relations from './relations'
+import { perRequestClient, hyperdriveUrl } from '@/db/runtime'
 
 /**
  * Single Drizzle client for the whole app.
@@ -21,6 +22,7 @@ function getPool(): Pool {
     globalForDb.__movalPool = new Pool({
       // Placeholder lets `next build` import this module without a database.
       connectionString:
+        hyperdriveUrl() ||
         process.env.DATABASE_URL ||
         'postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder?sslmode=disable',
       max: 2,
@@ -38,7 +40,25 @@ function getPool(): Pool {
   return globalForDb.__movalPool
 }
 
-export const db = drizzle(getPool(), { schema: { ...schema, ...relations } })
+function makeDb() {
+  return drizzle(getPool(), { schema: { ...schema, ...relations } })
+}
+
+/**
+ * On Node the client is a module singleton. On Workers (perRequestClient) a
+ * fresh pool + client is built on every access: sockets cannot be shared
+ * across requests there, and Hyperdrive does the real pooling.
+ */
+export const db: ReturnType<typeof makeDb> = perRequestClient
+  ? (new Proxy({} as ReturnType<typeof makeDb>, {
+      get(_t, prop) {
+        globalForDb.__movalPool = undefined
+        const real: any = makeDb()
+        const v = real[prop]
+        return typeof v === 'function' ? v.bind(real) : v
+      },
+    }) as ReturnType<typeof makeDb>)
+  : makeDb()
 export * from './schema'
 export * from './errors'
 export * from './sql'
