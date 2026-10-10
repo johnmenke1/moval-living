@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { eq } from 'drizzle-orm'
 import { db, bestOfCategory } from '@/db'
-import { put } from '@vercel/blob'
+import { put } from '@/lib/storage'
 
 export const runtime = 'nodejs'
 

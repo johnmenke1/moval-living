@@ -3,7 +3,7 @@ import { auth } from '@/auth'
 import { eq, sql } from 'drizzle-orm'
 import { db, business as businessTable } from '@/db'
 import { canManageBusiness } from '@/lib/business-mutations'
-import { put } from '@vercel/blob'
+import { put } from '@/lib/storage'
 
 export async function POST(request: Request) {
   try {

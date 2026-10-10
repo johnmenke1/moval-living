@@ -37,7 +37,7 @@ import { auth } from '@/auth'
 import { eq } from 'drizzle-orm'
 import { db, submission as submissionTable } from '@/db'
 import { nextSubmissionSlug } from '@/lib/submission-slug'
-import { put } from '@vercel/blob'
+import { put } from '@/lib/storage'
 
 const ingestSchema = z.object({
   events: z.array(

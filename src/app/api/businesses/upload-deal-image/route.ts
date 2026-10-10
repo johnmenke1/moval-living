@@ -9,7 +9,7 @@
 // admin image upload pattern — see references/admin-image-upload-pattern-2026-08-16.md.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { put } from '@vercel/blob'
+import { put } from '@/lib/storage'
 import { auth } from '@/auth'
 import { eq } from 'drizzle-orm'
 import { db, business as businessTable } from '@/db'

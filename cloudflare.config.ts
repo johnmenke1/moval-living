@@ -14,6 +14,8 @@ export default defineConfig({
       AUTH_URL: bindings.secret(),
       AUTH_TRUST_HOST: bindings.secret(),
       DATABASE_URL: bindings.secret(),
+      R2_PUBLIC_URL: bindings.secret(),
+      MEDIA: bindings.r2({ name: "moval-media" }),
       HYPERDRIVE: bindings.hyperdrive({ id: "local-spike", dev: { connectionString: "postgres://test:test@127.0.0.1:54330/spike" } }),
     },
   }),

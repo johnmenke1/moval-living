@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { eq } from 'drizzle-orm'
 import { db, owner } from '@/db'
-import { put } from '@vercel/blob'
+import { put } from '@/lib/storage'
 import {
   AVATAR_MAX_BYTES,
   AVATAR_ALLOWED_TYPES,

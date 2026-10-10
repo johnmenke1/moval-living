@@ -23,6 +23,7 @@ export default defineConfig({
       "@resvg/resvg-js": path.resolve(__dirname, "empty-stub.js"),
       "satori": path.resolve(__dirname, "empty-stub.js"),
       "@/db/runtime": path.resolve(__dirname, "src/db/runtime.worker.ts"),
+      "@/lib/r2-runtime": path.resolve(__dirname, "src/lib/r2-runtime.worker.ts"),
       "playwright": path.resolve(__dirname, "empty-stub.js"),
     },
   },

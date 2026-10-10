@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { eq } from 'drizzle-orm'
 import { db, event as eventTable } from '@/db'
-import { put } from '@vercel/blob'
+import { put } from '@/lib/storage'
 import { revalidateEventData } from '@/lib/revalidate'
 
 export const runtime = 'nodejs'

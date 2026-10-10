@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { db, park as parkTable, requireRow } from '@/db'
 import { auth } from '@/auth'
-import { put } from '@vercel/blob'
+import { put } from '@/lib/storage'
 import { revalidateParkData } from '@/lib/revalidate'
 
 export const runtime = 'nodejs'

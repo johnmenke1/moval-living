@@ -16,7 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { put } from '@vercel/blob'
+import { put } from '@/lib/storage'
 import { z } from 'zod'
 
 // @vercel/blob requires Node.js runtime

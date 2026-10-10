@@ -20,7 +20,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { eq } from 'drizzle-orm'
 import { db, event as eventTable, requireRow } from '@/db'
-import { put } from '@vercel/blob'
+import { put } from '@/lib/storage'
 import { revalidateEventData } from '@/lib/revalidate'
 
 const ALLOWED_MIME = new Set([

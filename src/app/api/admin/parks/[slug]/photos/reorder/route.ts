@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 import { db, park as parkTable, requireRow } from '@/db'
 import { auth } from '@/auth'
 import { z } from 'zod'
-import { del } from '@vercel/blob'
+import { del } from '@/lib/storage'
 import { revalidateParkData } from '@/lib/revalidate'
 
 export const dynamic = 'force-dynamic'

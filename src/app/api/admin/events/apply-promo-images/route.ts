@@ -28,7 +28,7 @@ import { z } from 'zod'
 import { auth } from '@/auth'
 import { eq, like } from 'drizzle-orm'
 import { db, event as eventTable, submission, escapeLike } from '@/db'
-import { put } from '@vercel/blob'
+import { put } from '@/lib/storage'
 import { revalidateEventData } from '@/lib/revalidate'
 
 const schema = z.object({
