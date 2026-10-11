@@ -1,0 +1,4 @@
+# Force LF for patch files (pnpm patches are hashed by content; CRLF mismatches
+# cause ERR_PNPM_LOCKFILE_CONFIG_MISMATCH on Linux CI when the lockfile was
+# computed on Windows).
+patches/** patch text eol=lf
