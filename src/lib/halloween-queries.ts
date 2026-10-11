@@ -31,7 +31,7 @@ export async function getPublicEntries(): Promise<PublicHalloweenEntry[]> {
       locationLabel: halloweenEntry.locationLabel,
       exactAddress: halloweenEntry.showExactAddress,
       createdAt: halloweenEntry.createdAt,
-      votes: sql<number>`(select count(*)::int from "HalloweenVote" v where v."entryId" = ${halloweenEntry.id})`,
+      votes: sql<number>`(select count(*)::int from "HalloweenVote" v where v."entryId" = "HalloweenEntry"."id")`,
     })
     .from(halloweenEntry)
     .where(eq(halloweenEntry.status, 'APPROVED'))

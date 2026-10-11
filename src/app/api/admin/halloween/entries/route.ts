@@ -14,7 +14,7 @@ export async function GET() {
   const rows = await db
     .select({
       entry: halloweenEntry,
-      votes: sql<number>`(select count(*)::int from "HalloweenVote" v where v."entryId" = ${halloweenEntry.id})`,
+      votes: sql<number>`(select count(*)::int from "HalloweenVote" v where v."entryId" = "HalloweenEntry"."id")`,
     })
     .from(halloweenEntry)
     .orderBy(desc(halloweenEntry.createdAt))

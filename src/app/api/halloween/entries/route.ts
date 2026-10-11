@@ -47,7 +47,7 @@ const fieldsSchema = z.object({
   zip: z.string().trim().regex(/^\d{5}$/, 'Use a 5-digit ZIP').optional().or(z.literal('')),
   showExactAddress: z.enum(['true', 'false']).default('false'),
   agreeRules: z.literal('true', { message: 'You must accept the contest rules' }),
-  website: z.string().max(0).optional().or(z.literal('')), // honeypot
+  website: z.string().max(500).optional(), // honeypot - must stay empty
   turnstileToken: z.string().optional(),
 })
 

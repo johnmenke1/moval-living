@@ -33,7 +33,7 @@ export default async function HalloweenPage() {
   return (
     <main>
       {/* Hero */}
-      <section className="container-max pt-12 pb-8 text-center md:text-left">
+      <section className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pt-12 pb-8 text-center md:text-left">
         <div className="inline-flex items-center gap-2 rounded-full border border-[#c9a227]/50 bg-[#c9a227]/10 px-3 py-1 text-xs font-semibold text-[#e6c453]">
           <ShieldCheck className="w-3.5 h-3.5" /> Hosted by {c.host}
         </div>
@@ -64,7 +64,7 @@ export default async function HalloweenPage() {
       </section>
 
       {/* Map + voting */}
-      <section id="map" className="container-max py-6 scroll-mt-24">
+      <section id="map" className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 scroll-mt-24">
         <HauntedExplorer
           initialEntries={entries}
           initialState={state}
@@ -74,7 +74,7 @@ export default async function HalloweenPage() {
       </section>
 
       {/* How it works */}
-      <section className="container-max py-12">
+      <section className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
         <h2 className="font-halloween text-4xl text-orange-400 mb-6">How it works</h2>
         <div className="grid gap-4 md:grid-cols-4">
           {[
@@ -98,7 +98,7 @@ export default async function HalloweenPage() {
 
       {/* Prizes */}
       {(c.prizes.length > 0 || c.sponsors.length > 0) && (
-        <section className="container-max pb-12">
+        <section className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pb-12">
           <div className="grid gap-4 md:grid-cols-2">
             {c.prizes.length > 0 && (
               <div className="rounded-2xl border border-[#3a1d57] bg-[#160b24] p-6">
@@ -128,7 +128,7 @@ export default async function HalloweenPage() {
       )}
 
       {/* Cross-promo */}
-      <section className="container-max pb-16">
+      <section className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pb-16">
         <div className="rounded-3xl border border-[#3a1d57] bg-gradient-to-br from-[#1f0f33] to-[#120920] p-8">
           <h2 className="font-halloween text-3xl text-orange-400">More to do in Moreno Valley</h2>
           <p className="mt-1 text-purple-200/80 text-sm max-w-2xl">

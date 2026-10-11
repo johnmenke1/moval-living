@@ -207,6 +207,10 @@ export async function readDeviceCookie(value: string | undefined | null): Promis
   return diff === 0 ? id : null
 }
 
+/**
+ * Caller IP. On Cloudflare, `cf-connecting-ip` is set by the edge and cannot be
+ * spoofed by the client, so it is preferred; the others are dev/proxy fallbacks.
+ */
 export function clientIp(headers: Headers): string {
   return (
     headers.get('cf-connecting-ip') ||

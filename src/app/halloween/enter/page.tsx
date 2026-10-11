@@ -16,7 +16,7 @@ export default function EnterPage() {
   const c = HALLOWEEN_CONFIG
   const close = new Date(c.submissionsClose).toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' })
   return (
-    <main className="container-max py-10 max-w-3xl">
+    <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-10 max-w-3xl">
       <Link href="/halloween" className="text-sm text-purple-300 hover:text-orange-300">← Back to the map</Link>
       <h1 className="font-halloween text-5xl text-orange-400 mt-3">Enter your haunted home</h1>
       <p className="mt-2 text-purple-100/90">
