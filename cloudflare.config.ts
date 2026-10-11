@@ -38,6 +38,16 @@ export default defineConfig({
       TURNSTILE_SECRET_KEY: bindings.secret(),
       MEDIA: bindings.r2({ name: "moval-media" }),
       HYPERDRIVE: bindings.hyperdrive({ id: "c72fb43ec1a24cdca0bde62b4b066636", dev: { connectionString: "postgres://test:test@127.0.0.1:54330/spike" } }),
+      // Backs the Next.js ISR + data cache on Workers (revalidate, fetch cache,
+      // revalidatePath bookkeeping). Provisioned 2026-10-11; production id below.
+      // Without this binding, `vinext-cloudflare deploy` refuses to ship because
+      // src/app/page.tsx and src/app/events/page.tsx both use `export const revalidate`.
+      VINEXT_KV_CACHE: bindings.kv({
+        id: "7150caa2ea0544568b3659eb0a0428d2",
+        // preview_id is on the wrangler side, not on this binding options type.
+        // Cloudflare's deploy pipeline resolves the preview namespace from
+        // the same id when serving preview deploys.
+      }),
     },
   }),
 });
