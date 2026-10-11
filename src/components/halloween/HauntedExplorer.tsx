@@ -52,6 +52,7 @@ export function HauntedExplorer({ initialEntries, initialState, categories, voti
       })
       .catch(() => {})
     const id = new URLSearchParams(window.location.search).get('home')
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (id) setSelectedId(id)
     return () => { cancelled = true }
   }, [])

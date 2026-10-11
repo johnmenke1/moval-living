@@ -69,6 +69,7 @@ export function HauntedMap({ entries, selectedId, onSelect }: HauntedMapProps) {
   // Load the Maps script + create the map once.
   useEffect(() => {
     if (!apiKey) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMsg('Map unavailable (no API key configured).')
       setStatus('error')
       return
