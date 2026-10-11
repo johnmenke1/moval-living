@@ -226,6 +226,15 @@ the build in Cloudflare's own CI, which doesn't know about vinext's
 `vinext-cloudflare deploy` build step. GitHub Actions gives us full control
 of the build pipeline and is the right fit for a custom framework.
 
+**Deploy pipeline landmines (already worked around):**
+- `cf@1.0.0-beta.14` hardcodes a strict-mode conflict guard that aborts
+  non-interactive deploys when the worker's `last_deployed_from` is `api` and
+  the local config differs (e.g. a new KV binding). We patch `cf` via
+  `patches/cf@1.0.0-beta.14.patch` (changes `strict:!0` → `strict:!1`).
+- pnpm v11+ moved the build-allowlist out of `package.json#pnpm`. We use
+  `allowBuilds:` in `pnpm-workspace.yaml` and pin pnpm to `12.9.1` in the
+  workflow to match the lockfile generator.
+
 ---
 
 ## License
