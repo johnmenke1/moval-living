@@ -1,4 +1,4 @@
-import { bindings, defineConfig, defineWorker } from "cf/config";
+import { bindings, defineConfig, defineWorker, triggers } from "cf/config";
 
 export default defineConfig({
   worker: defineWorker({
@@ -6,8 +6,11 @@ export default defineConfig({
     entrypoint: "./src/worker.ts",
     compatibilityDate: "2026-10-10",
     compatibilityFlags: ["nodejs_compat"],
-    // Cron (archive past events, 0 10 * * *) is handled in src/worker.ts scheduled(); enable once the account is on Workers Paid:
-    // triggers: [triggers.scheduled({ schedule: "0 10 * * *" })],
+    triggers: [
+      // Custom domains (moval.living, www.moval.living) are attached to the Worker in the
+      // Cloudflare account, not declared here. `cf deploy` shows them as a remote-only diff.
+      triggers.scheduled({ schedule: "0 10 * * *" }),
+    ],
     assets: { notFoundHandling: "none" },
     env: {
       ASSETS: bindings.assets(),
