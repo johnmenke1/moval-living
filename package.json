@@ -70,5 +70,16 @@
     "vite": "^8.3.0",
     "vitest": "^4.1.10"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@embedded-postgres/windows-x64",
+      "@prisma/engines",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "unrs-resolver",
+      "workerd"
+    ]
+  },
   "type": "module"
 }
