@@ -1,2 +1,11 @@
+allowBuilds:
+  "@embedded-postgres/windows-x64": true
+  "@prisma/engines": true
+  esbuild: true
+  prisma: true
+  sharp: true
+  unrs-resolver: true
+  workerd: true
+
 patchedDependencies:
   cf@1.0.0-beta.14: "patches/cf@1.0.0-beta.14.patch"
