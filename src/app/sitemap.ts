@@ -28,6 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/about-moreno-valley`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE}/events`, lastModified: now, changeFrequency: 'daily', priority: 0.7 },
     { url: `${BASE}/open-houses`, lastModified: now, changeFrequency: 'daily', priority: 0.7 },
+    { url: `${BASE}/halloween`, lastModified: now, changeFrequency: 'daily', priority: 0.7 },
     { url: `${BASE}/deals`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE}/pricing`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE}/submit`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },

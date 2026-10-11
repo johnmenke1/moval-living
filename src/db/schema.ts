@@ -729,3 +729,59 @@ export const deal = pgTable("Deal", {
 			name: "Deal_businessId_fkey"
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
+
+/**
+ * Halloween Home Decorating Contest (American Legion Post 574 x MoVal Living).
+ * Residents submit a home (PENDING); an admin approves it; the public votes.
+ * Private fields (contact*, streetAddress, latitude/longitude, ipHash) are
+ * never returned by the public API - only publicLatitude/publicLongitude and
+ * locationLabel are.
+ */
+export const halloweenEntry = pgTable("HalloweenEntry", {
+	id: text().primaryKey().$defaultFn(() => createId()).notNull(),
+	displayName: text().notNull(),
+	tagline: text(),
+	description: text(),
+	category: text(),
+	contactName: text().notNull(),
+	contactEmail: text().notNull(),
+	contactPhone: text(),
+	streetAddress: text().notNull(),
+	city: text().default('Moreno Valley').notNull(),
+	zip: text(),
+	addressKey: text().notNull(),
+	latitude: doublePrecision(),
+	longitude: doublePrecision(),
+	showExactAddress: boolean().default(false).notNull(),
+	publicLatitude: doublePrecision(),
+	publicLongitude: doublePrecision(),
+	locationLabel: text(),
+	photoUrls: text().array().default(sql`ARRAY[]::text[]`).notNull(),
+	status: status().default('PENDING').notNull(),
+	rejectionReason: text(),
+	ipHash: text(),
+	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	approvedAt: timestamp({ precision: 3, mode: 'date' }),
+	updatedAt: timestamp({ precision: 3, mode: 'date' }).$defaultFn(() => new Date()).$onUpdate(() => new Date()).notNull(),
+}, (table) => [
+	uniqueIndex("HalloweenEntry_addressKey_key").using("btree", table.addressKey.asc().nullsLast()),
+	index("HalloweenEntry_status_idx").using("btree", table.status.asc().nullsLast()),
+	index("HalloweenEntry_ipHash_createdAt_idx").using("btree", table.ipHash.asc().nullsLast(), table.createdAt.desc().nullsFirst()),
+]);
+
+export const halloweenVote = pgTable("HalloweenVote", {
+	id: text().primaryKey().$defaultFn(() => createId()).notNull(),
+	entryId: text().notNull(),
+	ipHash: text().notNull(),
+	deviceId: text().notNull(),
+	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => [
+	index("HalloweenVote_entryId_idx").using("btree", table.entryId.asc().nullsLast()),
+	uniqueIndex("HalloweenVote_entryId_ipHash_key").using("btree", table.entryId.asc().nullsLast(), table.ipHash.asc().nullsLast()),
+	uniqueIndex("HalloweenVote_entryId_deviceId_key").using("btree", table.entryId.asc().nullsLast(), table.deviceId.asc().nullsLast()),
+	foreignKey({
+			columns: [table.entryId],
+			foreignColumns: [halloweenEntry.id],
+			name: "HalloweenVote_entryId_fkey"
+		}).onUpdate("cascade").onDelete("cascade"),
+]);
