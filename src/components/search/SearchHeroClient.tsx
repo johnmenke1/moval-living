@@ -52,7 +52,7 @@ export function SearchHeroClient({
     <section className="relative overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="https://zcbtyeiwows1rc8s.public.blob.vercel-storage.com/home/home-hero-1786913867250.jpg"
+        src="https://media.moval.living/home/home-hero-1786913867250.jpg"
         alt="Aerial view of Moreno Valley with Box Springs Mountain in the distance"
         className="absolute inset-0 w-full h-full object-cover"
         loading="eager"

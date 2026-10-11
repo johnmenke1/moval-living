@@ -10,7 +10,7 @@ await pg.initialise(); await pg.start(); await pg.createDatabase('spike')
 const ddl = execSync('npx drizzle-kit export --sql --config drizzle.config.ts', { encoding: 'utf8', env: { ...process.env, DATABASE_URL: 'postgres://u:u@localhost:1/u' } }).split('\n').filter(l => !l.startsWith('◇')).join('\n')
 const c = pg.getPgClient('spike'); await c.connect(); await c.query(ddl)
 await c.end()
-execSync('npx tsx scripts/cf-spike/spike-seed.ts', { stdio: 'inherit', env: { ...process.env, DATABASE_URL: 'postgres://test:test@127.0.0.1:54330/spike' } })
+execSync('npx tsx scripts/cloudflare/smoke/spike-seed.ts', { stdio: 'inherit', env: { ...process.env, DATABASE_URL: 'postgres://test:test@127.0.0.1:54330/spike' } })
 
 
 const url = 'postgres://test:test@127.0.0.1:54330/spike'

@@ -245,10 +245,10 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
             connections (no reduced-motion, no save-data, not 3g/slower).
             See src/components/home/HeroVideo.tsx for the full architecture. */}
         <HeroVideo
-          posterSrc="https://zcbtyeiwows1rc8s.public.blob.vercel-storage.com/home/hero-video-poster.jpg"
+          posterSrc="https://media.moval.living/home/hero-video-poster.jpg"
           posterAlt="Aerial view of Moreno Valley with Box Springs Mountain in the distance"
-          webmSrc="https://zcbtyeiwows1rc8s.public.blob.vercel-storage.com/home/hero-video.webm"
-          mp4Src="https://zcbtyeiwows1rc8s.public.blob.vercel-storage.com/home/hero-video.mp4"
+          webmSrc="https://media.moval.living/home/hero-video.webm"
+          mp4Src="https://media.moval.living/home/hero-video.mp4"
         />
         {/* Vertical vignette — dark navy at the top (behind the headline)
             and the bottom (behind the search form), transparent through
