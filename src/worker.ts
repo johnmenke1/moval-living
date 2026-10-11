@@ -1,4 +1,6 @@
 import handler from 'vinext/server/fetch-handler'
+import { requestScope } from './db/runtime.worker'
+import type { DbScope } from './db/runtime'
 
 export * from 'vinext/server/fetch-handler'
 
@@ -20,7 +22,20 @@ export default {
       url.hostname = 'www.moval.living'
       return Response.redirect(url.toString(), 308)
     }
-    return (handler as { fetch(r: Request, e: unknown, c: unknown): Promise<Response> }).fetch(request, env, ctx)
+    const scope: DbScope = {}
+    const ec = ctx as { waitUntil(p: Promise<unknown>): void }
+    const res = await requestScope.run(scope, () =>
+      (handler as { fetch(r: Request, e: unknown, c: unknown): Promise<Response> }).fetch(request, env, ctx),
+    )
+    // Close this request's pool once the (possibly streaming) body is done.
+    const close = () => scope.pool?.end().catch(() => {})
+    if (!res.body) {
+      ec.waitUntil(Promise.resolve(close()))
+      return res
+    }
+    const { readable, writable } = new TransformStream()
+    ec.waitUntil(res.body.pipeTo(writable).catch(() => {}).finally(() => close()))
+    return new Response(readable, res)
   },
   async scheduled(controller: { cron: string }, env: CronEnv, ctx: { waitUntil(p: Promise<unknown>): void }) {
     const path = CRON_ROUTES[controller.cron]
@@ -28,12 +43,15 @@ export default {
     const req = new Request(`https://moval.living${path}`, {
       headers: { 'x-cron-secret': env.CRON_SECRET ?? '' },
     })
+    const scope: DbScope = {}
     ctx.waitUntil(
-      (handler as { fetch(r: Request, e: unknown, c: unknown): Promise<Response> })
-        .fetch(req, env, ctx)
-        .then(async (res) => {
+      requestScope
+        .run(scope, async () => {
+          const res = await (handler as { fetch(r: Request, e: unknown, c: unknown): Promise<Response> }).fetch(req, env, ctx)
           if (!res.ok) console.error(`[cron] ${path} -> ${res.status}`, await res.text())
-        }),
+          else await res.text()
+        })
+        .finally(() => scope.pool?.end().catch(() => {})),
     )
   },
 }
