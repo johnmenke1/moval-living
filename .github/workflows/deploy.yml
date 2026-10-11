@@ -1,0 +1,56 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false  # never kill a deploy mid-flight
+
+jobs:
+  deploy:
+    name: Build & deploy via vinext-cloudflare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify types
+        run: pnpm exec tsc --noEmit
+
+      # Deploy — `npm run deploy:vinext` runs `vinext-cloudflare deploy` which
+      # builds the bundle (vite + vinext) and uploads to the moval-living worker.
+      # It reads CLOUDFLARE_API_TOKEN from the environment.
+      - name: Deploy to Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm run deploy:vinext
+
+      - name: Smoke test
+        run: |
+          sleep 15
+          for path in / /best-of /deals /events /halloween; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "https://www.moval.living$path")
+            echo "  $code  https://www.moval.living$path"
+            if [ "$code" != "200" ]; then
+              echo "::warning::Smoke test failed for $path (got $code)"
+            fi
+          done

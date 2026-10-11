@@ -195,6 +195,39 @@ Add new jobs with `hermes cron` — see the Hermes Agent docs.
 
 ---
 
+## Deployment
+
+Production is on Cloudflare Workers (not Vercel). The build runs `vinext-cloudflare deploy` against the
+`moval-living` worker. The deploy is fully automated:
+
+**Auto-deploy on push to `master`** — GitHub Actions runs `.github/workflows/deploy.yml`,
+which builds, type-checks, deploys via `npm run deploy:vinext`, and smoke-tests the live URL.
+
+**One-time setup** (already done in this repo, but if you ever re-create the project):
+1. Create a Cloudflare API token with `Workers Scripts:Edit` and `Workers Routes:Edit` permissions.
+   Save it in 1Password under `cloudflare.com / Workers & Pages / moval-living`.
+2. Add the token as a GitHub repository secret named `CLOUDFLARE_API_TOKEN`
+   (Settings → Secrets and variables → Actions → New repository secret).
+
+That's it. Every push to master deploys automatically. The deploy includes a
+smoke test that hits `/`, `/best-of`, `/deals`, `/events`, and `/halloween` —
+any non-200 surfaces as a GitHub Actions warning so you catch a broken deploy
+in the Actions tab, not from user reports.
+
+**Manual deploy from a local machine** (if you need to bypass the GitHub integration):
+```bash
+# Set the same token locally
+export CLOUDFLARE_API_TOKEN=...
+npm run deploy:vinext
+```
+
+**Why not Cloudflare's official Git Integration (Workers Builds)?** That runs
+the build in Cloudflare's own CI, which doesn't know about vinext's
+`vinext-cloudflare deploy` build step. GitHub Actions gives us full control
+of the build pipeline and is the right fit for a custom framework.
+
+---
+
 ## License
 
 Proprietary. © 2026 Moval Living. All rights reserved.
