@@ -1,11 +1,12 @@
-import { bindings, defineConfig, defineWorker } from "cf/config";
+import { bindings, defineConfig, defineWorker, triggers } from "cf/config";
 
 export default defineConfig({
   worker: defineWorker({
     name: "moval-living",
-    entrypoint: "vinext/server/fetch-handler",
+    entrypoint: "./src/worker.ts",
     compatibilityDate: "2026-10-10",
     compatibilityFlags: ["nodejs_compat"],
+    triggers: [triggers.scheduled({ schedule: "0 10 * * *" })],
     assets: { notFoundHandling: "none" },
     env: {
       ASSETS: bindings.assets(),
@@ -15,8 +16,27 @@ export default defineConfig({
       AUTH_TRUST_HOST: bindings.secret(),
       DATABASE_URL: bindings.secret(),
       R2_PUBLIC_URL: bindings.secret(),
+      CRON_SECRET: bindings.secret(),
+      STRIPE_SECRET_KEY: bindings.secret(),
+      ADMIN_NOTIFY_EMAIL: bindings.secret(),
+      AUTH_EMAIL_FROM: bindings.secret(),
+      AWS_SES_SMTP_HOST: bindings.secret(),
+      AWS_SES_SMTP_PASSWORD: bindings.secret(),
+      AWS_SES_SMTP_USERNAME: bindings.secret(),
+      CRM_BASE_URL: bindings.secret(),
+      GOOGLE_PLACES_API_KEY: bindings.secret(),
+      MOVAL_CLAIM_SHARED_SECRET: bindings.secret(),
+      STRIPE_PRICE_EXPERT_MONTHLY: bindings.secret(),
+      STRIPE_PRICE_EXPERT_YEARLY: bindings.secret(),
+      STRIPE_PRICE_MONTHLY: bindings.secret(),
+      STRIPE_PRICE_YEARLY: bindings.secret(),
+      STRIPE_WEBHOOK_SECRET: bindings.secret(),
+      TRESTLE_BASE_URL: bindings.secret(),
+      TRESTLE_CLIENT_ID: bindings.secret(),
+      TRESTLE_CLIENT_SECRET: bindings.secret(),
+      TURNSTILE_SECRET_KEY: bindings.secret(),
       MEDIA: bindings.r2({ name: "moval-media" }),
-      HYPERDRIVE: bindings.hyperdrive({ id: "local-spike", dev: { connectionString: "postgres://test:test@127.0.0.1:54330/spike" } }),
+      HYPERDRIVE: bindings.hyperdrive({ id: "c72fb43ec1a24cdca0bde62b4b066636", dev: { connectionString: "postgres://test:test@127.0.0.1:54330/spike" } }),
     },
   }),
 });
