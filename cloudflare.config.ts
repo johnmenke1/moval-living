@@ -1,4 +1,4 @@
-import { bindings, defineConfig, defineWorker, triggers } from "cf/config";
+import { bindings, defineConfig, defineWorker } from "cf/config";
 
 export default defineConfig({
   worker: defineWorker({
@@ -6,7 +6,8 @@ export default defineConfig({
     entrypoint: "./src/worker.ts",
     compatibilityDate: "2026-10-10",
     compatibilityFlags: ["nodejs_compat"],
-    triggers: [triggers.scheduled({ schedule: "0 10 * * *" })],
+    // Cron (archive past events, 0 10 * * *) is handled in src/worker.ts scheduled(); enable once the account is on Workers Paid:
+    // triggers: [triggers.scheduled({ schedule: "0 10 * * *" })],
     assets: { notFoundHandling: "none" },
     env: {
       ASSETS: bindings.assets(),

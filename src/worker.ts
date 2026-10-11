@@ -13,6 +13,15 @@ interface CronEnv {
  */
 export default {
   ...handler,
+  async fetch(request: Request, env: unknown, ctx: unknown): Promise<Response> {
+    const url = new URL(request.url)
+    // Canonical host is www (the old Vercel project redirected the apex).
+    if (url.hostname === 'moval.living') {
+      url.hostname = 'www.moval.living'
+      return Response.redirect(url.toString(), 308)
+    }
+    return (handler as { fetch(r: Request, e: unknown, c: unknown): Promise<Response> }).fetch(request, env, ctx)
+  },
   async scheduled(controller: { cron: string }, env: CronEnv, ctx: { waitUntil(p: Promise<unknown>): void }) {
     const path = CRON_ROUTES[controller.cron]
     if (!path) return
