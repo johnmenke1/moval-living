@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { MapPin, Camera, Vote, Sparkles, CalendarDays, Store, Star, Tag, ShieldCheck } from 'lucide-react'
 import { HALLOWEEN_CONFIG, getContestState } from '@/lib/halloween'
 import { getPublicEntries } from '@/lib/halloween-queries'
@@ -34,8 +35,11 @@ export default async function HalloweenPage() {
     <main>
       {/* Hero */}
       <section className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pt-12 pb-8 text-center md:text-left">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#c9a227]/50 bg-[#c9a227]/10 px-3 py-1 text-xs font-semibold text-[#e6c453]">
-          <ShieldCheck className="w-3.5 h-3.5" /> Hosted by {c.host}
+        <div className="flex flex-col items-center gap-3 md:flex-row md:items-center md:gap-4">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#c9a227]/50 bg-[#c9a227]/10 px-3 py-1 text-xs font-semibold text-[#e6c453]">
+            <ShieldCheck className="w-3.5 h-3.5" /> Hosted by {c.host}
+          </span>
+          <span className="text-xs text-purple-200/60">Presented by American Legion Post 574 — Moreno Valley, CA</span>
         </div>
         <div className="mt-4 grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-end">
           <div>
@@ -57,7 +61,28 @@ export default async function HalloweenPage() {
               </a>
             </div>
           </div>
-          <div className="flex justify-center md:justify-end">
+          <div className="flex flex-col items-center md:items-end gap-5">
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-[#3a1d57] bg-[#160b24] p-4 shadow-[0_0_36px_rgba(201,162,39,0.18)]">
+              <Image
+                src="/halloween/american-legion-badge.png"
+                alt="American Legion Post 574 emblem"
+                width={128}
+                height={128}
+                className="w-28 h-28 md:w-32 md:h-32"
+                priority
+              />
+              <p className="text-[10px] uppercase tracking-[0.18em] text-[#c9a227]/80">Presented by</p>
+              <p className="font-halloween text-xl text-[#e6c453] leading-none">American Legion</p>
+              <p className="text-sm font-semibold text-white">Post 574</p>
+              <a
+                href="https://www.facebook.com/profile.php?id=61595164925011"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-purple-200/70 hover:text-[#e6c453] underline underline-offset-2"
+              >
+                Follow on Facebook
+              </a>
+            </div>
             {countdown && <Countdown {...countdown} />}
           </div>
         </div>
