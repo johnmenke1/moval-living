@@ -67,6 +67,7 @@ export default async function HalloweenPage() {
               />
               <p className="text-[10px] uppercase tracking-[0.18em] text-[#c9a227]/80">Presented by</p>
               <p className="font-halloween text-2xl text-[#e6c453] leading-none">American Legion</p>
+              <p className="font-halloween text-2xl text-[#e6c453] leading-none">Post 574</p>
               <a
                 href="https://www.facebook.com/profile.php?id=61595164925011"
                 target="_blank"
