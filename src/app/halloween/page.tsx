@@ -96,7 +96,7 @@ export default async function HalloweenPage() {
         </p>
       </section>
 
-      {/* Prizes */}
+      {/* Prizes + participation perk */}
       {(c.prizes.length > 0 || c.sponsors.length > 0) && (
         <section className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pb-12">
           <div className="grid gap-4 md:grid-cols-2">
@@ -110,20 +110,27 @@ export default async function HalloweenPage() {
                 </ul>
               </div>
             )}
-            {c.sponsors.length > 0 && (
-              <div className="rounded-2xl border border-[#3a1d57] bg-[#160b24] p-6">
-                <h2 className="font-halloween text-3xl text-orange-400 mb-3">Sponsors</h2>
-                <ul className="flex flex-wrap gap-2">
-                  {c.sponsors.map((s) => (
-                    <li key={s.name}>
-                      {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer sponsored" className="rounded-full bg-[#2a1546] px-3 py-1 text-sm hover:bg-[#3a1d5e]">{s.name}</a>
-                        : <span className="rounded-full bg-[#2a1546] px-3 py-1 text-sm">{s.name}</span>}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <div className="rounded-2xl border border-[#3a1d57] bg-[#160b24] p-6">
+              <h2 className="font-halloween text-3xl text-orange-400 mb-3">Just for entering</h2>
+              <p className="text-sm text-purple-200/80">
+                The first {c.participationSignLimit} homes to register receive a free competition
+                participation sign for their yard. Submit your entry early to claim yours.
+              </p>
+            </div>
           </div>
+          {c.sponsors.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-[#3a1d57] bg-[#160b24] p-6">
+              <h2 className="font-halloween text-3xl text-orange-400 mb-3">Sponsors</h2>
+              <ul className="flex flex-wrap gap-2">
+                {c.sponsors.map((s) => (
+                  <li key={s.name}>
+                    {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer sponsored" className="rounded-full bg-[#2a1546] px-3 py-1 text-sm hover:bg-[#3a1d5e]">{s.name}</a>
+                      : <span className="rounded-full bg-[#2a1546] px-3 py-1 text-sm">{s.name}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
       )}
 

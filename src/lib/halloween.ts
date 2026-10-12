@@ -16,12 +16,13 @@ export const HALLOWEEN_CONFIG = {
   title: 'MoVal Haunted Homes',
   year: 2026,
   host: 'American Legion Post 574',
-  // Entries accepted from ... to ...
-  submissionsOpen: '2026-10-12T00:00:00-07:00',
-  submissionsClose: '2026-10-25T23:59:59-07:00',
+  // Entries accepted from ... to ... (PDT = UTC-7 through Nov 1, 2026).
+  // Open as of Oct 11; both windows close end of day Oct 24.
+  submissionsOpen: '2026-10-11T00:00:00-07:00',
+  submissionsClose: '2026-10-24T23:59:59-07:00',
   // Public voting window
-  votingOpen: '2026-10-19T00:00:00-07:00',
-  votingClose: '2026-10-31T20:00:00-07:00',
+  votingOpen: '2026-10-11T00:00:00-07:00',
+  votingClose: '2026-10-24T23:59:59-07:00',
   // Winners announced
   winnersAnnounced: '2026-11-01T12:00:00-07:00',
   // Optional categories entrants pick from. Public voting is one People's
@@ -33,15 +34,21 @@ export const HALLOWEEN_CONFIG = {
     'Best Lights & Animation',
     'Best Use of a Theme',
   ],
+  // Top-3 winners all receive a custom yard sign naming their placement.
   prizes: [
-    { place: "People's Choice", prize: 'Prize TBD - announce sponsor here' },
-    { place: "Judges' Pick", prize: 'Prize TBD - announce sponsor here' },
+    { place: '1st Place', prize: 'Yard sign naming 1st Place' },
+    { place: '2nd Place', prize: 'Yard sign naming 2nd Place' },
+    { place: '3rd Place', prize: 'Yard sign naming 3rd Place' },
   ] as { place: string; prize: string }[],
   // Sponsors shown on the page (name + optional link). Great cross-promo spot.
   sponsors: [] as { name: string; url?: string }[],
   // Photos
   maxPhotos: 3,
   maxPhotoBytes: 10 * 1024 * 1024,
+  // Registration perk: the first N entries receive a free competition
+  // participation sign. Display-only (the actual limit is enforced by the
+  // enter flow once the cap is hit).
+  participationSignLimit: 25,
 }
 
 export type ContestPhase = 'upcoming' | 'open' | 'voting' | 'closed'
