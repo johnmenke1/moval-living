@@ -13,12 +13,27 @@ export function EnterForm({ categories, maxPhotos }: { categories: string[]; max
   const [showExact, setShowExact] = useState(false)
   const [agree, setAgree] = useState(false)
   const [token, setToken] = useState('')
+  // Turnstile tokens are single-use: after ANY submit attempt we remount the widget for a fresh one.
+  const [captchaKey, setCaptchaKey] = useState(0)
+  const [inAppBrowser, setInAppBrowser] = useState(false)
+  const captchaConfigured = (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '').length >= 16
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
 
   const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files])
   useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews])
+
+  useEffect(() => {
+    // Facebook / Instagram / TikTok in-app browsers often block or break the security check.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInAppBrowser(/FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|Line\/|MicroMessenger/i.test(navigator.userAgent))
+  }, [])
+
+  function resetCaptcha() {
+    setToken('')
+    setCaptchaKey((k) => k + 1)
+  }
 
   function addFiles(list: FileList | null) {
     if (!list) return
@@ -31,6 +46,11 @@ export function EnterForm({ categories, maxPhotos }: { categories: string[]; max
     setError(null)
     if (files.length === 0) return setError('Please add at least one photo.')
     if (!agree) return setError('Please accept the contest rules.')
+    if (captchaConfigured && !token) {
+      return setError(
+        'The security check hasn\'t finished yet. Wait for the green checkmark above the button, then tap Submit again. If it never appears, open this page in Chrome or Safari.',
+      )
+    }
     const fd = new FormData(e.currentTarget)
     fd.delete('photos')
     files.forEach((f) => fd.append('photos', f))
@@ -41,10 +61,15 @@ export function EnterForm({ categories, maxPhotos }: { categories: string[]; max
     try {
       const res = await fetch('/api/halloween/entries', { method: 'POST', body: fd })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error ?? 'Something went wrong. Please try again.')
+      if (!res.ok) {
+        // The server may already have spent this token - get a fresh one for the retry.
+        resetCaptcha()
+        throw new Error(data.error ?? 'Something went wrong. Please try again.')
+      }
       setDone(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
+      resetCaptcha()
       setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
       setSubmitting(false)
@@ -171,7 +196,14 @@ export function EnterForm({ categories, maxPhotos }: { categories: string[]; max
         </span>
       </label>
 
-      <TurnstileWidget theme="dark" onVerify={setToken} onExpire={() => setToken('')} />
+      {inAppBrowser && (
+        <p className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+          Tip: you&apos;re in an in-app browser (Facebook, Instagram, etc.). If the security check below doesn&apos;t finish, tap the
+          menu (⋮ or …) and choose <strong>Open in browser</strong> - your answers will be there waiting if you copy this page&apos;s link.
+        </p>
+      )}
+
+      <TurnstileWidget key={captchaKey} theme="dark" onVerify={setToken} onExpire={() => setToken('')} onError={() => setToken('')} />
 
       {error && <p role="alert" className="rounded-xl bg-red-500/15 border border-red-400/40 px-4 py-3 text-sm text-red-200">{error}</p>}
 

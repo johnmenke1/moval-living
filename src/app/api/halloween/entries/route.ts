@@ -86,26 +86,6 @@ export async function POST(req: NextRequest) {
   // Honeypot - pretend success.
   if (f.website) return NextResponse.json({ ok: true })
 
-  const ip = clientIp(req.headers)
-  const turnstile = await verifyTurnstileOrSkip(f.turnstileToken ?? '', ip === 'unknown' ? null : ip)
-  if (!turnstile.ok) {
-    return NextResponse.json({ error: 'Bot protection check failed - please try again.' }, { status: 403 })
-  }
-
-  const ipHash = ip === 'unknown' ? null : await hashIp(ip)
-
-  // DB-backed rate limit (in-memory limiters don't work across Worker isolates).
-  if (ipHash) {
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    const [row] = await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(halloweenEntry)
-      .where(and(eq(halloweenEntry.ipHash, ipHash), gt(halloweenEntry.createdAt, since)))
-    if ((row?.n ?? 0) >= MAX_ENTRIES_PER_IP_PER_DAY) {
-      return NextResponse.json({ error: 'Too many entries from this network today.' }, { status: 429 })
-    }
-  }
-
   // Photos
   const files = form.getAll('photos').filter((v): v is File => typeof v !== 'string' && v.size > 0)
   if (files.length < 1) {
@@ -120,6 +100,36 @@ export async function POST(req: NextRequest) {
     }
     if (file.size > HALLOWEEN_CONFIG.maxPhotoBytes) {
       return NextResponse.json({ error: 'Each photo must be under 10 MB.' }, { status: 400 })
+    }
+  }
+
+  const ip = clientIp(req.headers)
+  const turnstile = await verifyTurnstileOrSkip(f.turnstileToken ?? '', ip === 'unknown' ? null : ip)
+  if (!turnstile.ok) {
+    const missing = turnstile.reason === 'missing-token'
+    return NextResponse.json(
+      {
+        code: 'captcha',
+        reason: turnstile.reason,
+        error: missing
+          ? "The security check didn't finish loading. Wait for the green checkmark above the button and try again - or open this page in Chrome or Safari."
+          : 'The security check expired or was already used. We refreshed it - please tap Submit once more.',
+      },
+      { status: 403 },
+    )
+  }
+
+  const ipHash = ip === 'unknown' ? null : await hashIp(ip)
+
+  // DB-backed rate limit (in-memory limiters don't work across Worker isolates).
+  if (ipHash) {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const [row] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(halloweenEntry)
+      .where(and(eq(halloweenEntry.ipHash, ipHash), gt(halloweenEntry.createdAt, since)))
+    if ((row?.n ?? 0) >= MAX_ENTRIES_PER_IP_PER_DAY) {
+      return NextResponse.json({ error: 'Too many entries from this network today.' }, { status: 429 })
     }
   }
 

@@ -31,6 +31,7 @@ export function HauntedExplorer({ initialEntries, initialState, categories, voti
   const [sort, setSort] = useState<Sort>('votes')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [captchaFor, setCaptchaFor] = useState<string | null>(null)
+  const [captchaTry, setCaptchaTry] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map())
 
@@ -100,7 +101,10 @@ export function HauntedExplorer({ initialEntries, initialState, categories, voti
           setCaptchaFor(null)
           flash(res.ok ? 'Vote counted - thanks for haunting with us! 🎃' : 'You already voted for this home.')
         } else if (data.needsCaptcha) {
+          // Show (or refresh) the check - a used/expired token needs a brand-new widget.
           setCaptchaFor(entryId)
+          setCaptchaTry((n) => n + 1)
+          if (token) flash('That check expired - please try it once more.')
         } else {
           setCaptchaFor(null)
           flash(data.error ?? 'Could not record your vote.')
@@ -279,7 +283,7 @@ export function HauntedExplorer({ initialEntries, initialState, categories, voti
             <p className="font-halloween text-2xl text-white mb-1">Quick check 👻</p>
             <p className="text-sm text-purple-200/80 mb-4">Confirm you&apos;re human to cast your vote.</p>
             <div className="flex justify-center">
-              <TurnstileWidget theme="dark" onVerify={(t) => castVote(captchaFor, t)} />
+              <TurnstileWidget key={captchaTry} theme="dark" onVerify={(t) => castVote(captchaFor, t)} />
             </div>
             <button onClick={() => setCaptchaFor(null)} className="mt-4 text-sm text-purple-300/80 underline">Cancel</button>
           </div>
