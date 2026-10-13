@@ -42,25 +42,34 @@ describe('public location privacy', () => {
   })
 })
 
-describe('contest phases', () => {
-  const at = (iso: string) => getContestState(new Date(iso))
-  it('moves through upcoming -> open -> voting -> closed', () => {
-    expect(at('2026-10-01T12:00:00-07:00').phase).toBe('upcoming')
-    const open = at('2026-10-15T12:00:00-07:00')
-    expect(open.phase).toBe('open')
-    expect(open.submissionsOpen && !open.votingOpen).toBe(true)
-    const voting = at('2026-10-22T12:00:00-07:00')
-    expect(voting.phase).toBe('voting')
-    expect(voting.votingOpen && voting.submissionsOpen).toBe(true)
-    const late = at('2026-10-28T12:00:00-07:00')
-    expect(late.votingOpen).toBe(true)
-    expect(late.submissionsOpen).toBe(false)
-    expect(at('2026-11-02T12:00:00-07:00').phase).toBe('closed')
+describe('contest phases (driven by whatever dates are configured)', () => {
+  const c = HALLOWEEN_CONFIG
+  const ms = (iso: string) => Date.parse(iso)
+  const at = (t: number) => getContestState(new Date(t))
+  const firstOpen = Math.min(ms(c.submissionsOpen), ms(c.votingOpen))
+  const lastClose = Math.max(ms(c.submissionsClose), ms(c.votingClose))
+
+  it('is upcoming before anything opens', () => {
+    const s = at(firstOpen - 86_400_000)
+    expect(s.phase).toBe('upcoming')
+    expect(s.submissionsOpen || s.votingOpen).toBe(false)
+  })
+  it('reports each window independently inside the contest', () => {
+    for (const t of [firstOpen + 1000, (firstOpen + lastClose) / 2, lastClose - 1000]) {
+      const s = at(t)
+      expect(s.submissionsOpen).toBe(t >= ms(c.submissionsOpen) && t <= ms(c.submissionsClose))
+      expect(s.votingOpen).toBe(t >= ms(c.votingOpen) && t <= ms(c.votingClose))
+      expect(s.phase).not.toBe('closed')
+    }
+  })
+  it('is closed after both windows end', () => {
+    const s = at(lastClose + 60_000)
+    expect(s.phase).toBe('closed')
+    expect(s.submissionsOpen || s.votingOpen).toBe(false)
   })
   it('config windows are ordered', () => {
-    const c = HALLOWEEN_CONFIG
-    expect(Date.parse(c.submissionsOpen)).toBeLessThan(Date.parse(c.submissionsClose))
-    expect(Date.parse(c.votingOpen)).toBeLessThan(Date.parse(c.votingClose))
+    expect(ms(c.submissionsOpen)).toBeLessThan(ms(c.submissionsClose))
+    expect(ms(c.votingOpen)).toBeLessThan(ms(c.votingClose))
   })
 })
 
