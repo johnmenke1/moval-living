@@ -213,7 +213,7 @@ function ReviewRow({
               {review.formattedDate}
             </span>
             {review.flagged && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
                 <AlertCircle className="w-3 h-3" />
                 Under review
               </span>

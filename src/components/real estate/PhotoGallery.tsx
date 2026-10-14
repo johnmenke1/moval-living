@@ -382,7 +382,7 @@ export function PhotoGallery({ photos, address }: PhotoGalleryProps) {
                   <ChevronRight className="w-4 h-4" />
                   <span>Swipe to navigate · Pinch to zoom</span>
                 </span>
-                <span className="text-white/70 text-[10px] uppercase tracking-wide">
+                <span className="text-white/70 text-xs uppercase tracking-wide">
                   Swipe down to close
                 </span>
               </div>

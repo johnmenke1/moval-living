@@ -184,7 +184,7 @@ export default function EventsAdminPanel({ events, archivedEvents }: Props) {
                       <p className="font-semibold text-text truncate max-w-[280px]">
                         {e.title}
                       </p>
-                      <code className="text-[10px] font-mono text-text-secondary">
+                      <code className="text-xs font-mono text-text-secondary">
                         {e.slug}
                       </code>
                     </td>
@@ -198,7 +198,7 @@ export default function EventsAdminPanel({ events, archivedEvents }: Props) {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-block text-[10px] uppercase font-bold px-2 py-0.5 rounded ${tierColor(e.tier)}`}
+                        className={`inline-block text-xs uppercase font-bold px-2 py-0.5 rounded ${tierColor(e.tier)}`}
                       >
                         {e.tier.replace('_', ' ')}
                       </span>

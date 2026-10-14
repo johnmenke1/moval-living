@@ -59,7 +59,7 @@ export function BestOfMethodology() {
           })}
         </div>
 
-        <div className="mt-10 rounded-2xl border-l-4 border-accent bg-accent/5 p-6 md:p-8">
+        <div className="mt-10 rounded-2xl border border-accent/25 bg-accent/5 p-6 md:p-8">
           <p className="text-text leading-relaxed">
             <strong className="text-secondary">Editorial independence.</strong>{' '}
             Featured or Expert Partner listings never influence Best Of selections.

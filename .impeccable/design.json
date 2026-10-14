@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-14T00:47:45.707Z",
+  "title": "Design System: MoVal Living",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Storefront Teal",
+        "canonical": "#00a8a8",
+        "tonalRamp": [
+          "#081014",
+          "#063b3e",
+          "#036769",
+          "#019293",
+          "#20b3b3",
+          "#60c8c8",
+          "#a1dede",
+          "#e1f4f4"
+        ]
+      },
+      "primary-dark": {
+        "role": "primary",
+        "displayName": "Deep Harbor Teal",
+        "canonical": "#007a7f",
+        "tonalRamp": [
+          "#081014",
+          "#062e33",
+          "#034d51",
+          "#016b70",
+          "#208b8f",
+          "#60acaf",
+          "#a1cecf",
+          "#e1eff0"
+        ]
+      },
+      "midnight": {
+        "role": "secondary",
+        "displayName": "Midnight Navy",
+        "canonical": "#061f2e",
+        "tonalRamp": [
+          "#081014",
+          "#07141b",
+          "#071923",
+          "#061d2a",
+          "#253b48",
+          "#64747d",
+          "#a3adb2",
+          "#e2e6e7"
+        ]
+      },
+      "midnight-light": {
+        "role": "secondary",
+        "displayName": "Evening Navy",
+        "canonical": "#0b3a52",
+        "tonalRamp": [
+          "#081014",
+          "#091c26",
+          "#0a2837",
+          "#0b3449",
+          "#2a5368",
+          "#678594",
+          "#a5b7bf",
+          "#e2e9eb"
+        ]
+      },
+      "coral": {
+        "role": "tertiary",
+        "displayName": "Awning Coral",
+        "canonical": "#ff7a66",
+        "tonalRamp": [
+          "#081014",
+          "#4f2e2b",
+          "#954d43",
+          "#dc6b5a",
+          "#fe8b79",
+          "#fdaca0",
+          "#fccec6",
+          "#fbefed"
+        ]
+      },
+      "coral-dark": {
+        "role": "tertiary",
+        "displayName": "Hot Coral",
+        "canonical": "#e85d4a",
+        "tonalRamp": [
+          "#081014",
+          "#482623",
+          "#883c33",
+          "#c85242",
+          "#ea7161",
+          "#ef9a8f",
+          "#f4c3bc",
+          "#f8ecea"
+        ]
+      },
+      "gold": {
+        "role": "tertiary",
+        "displayName": "Champagne Gold",
+        "canonical": "#f3c46c",
+        "tonalRamp": [
+          "#081014",
+          "#4b432d",
+          "#8e7746",
+          "#d1aa5f",
+          "#f4cb7f",
+          "#f6daa4",
+          "#f8e8c9",
+          "#f9f6ee"
+        ]
+      },
+      "mist": {
+        "role": "neutral",
+        "displayName": "Cool Mist",
+        "canonical": "#f8f9fb",
+        "tonalRamp": [
+          "#081014",
+          "#4d5356",
+          "#919598",
+          "#d6d8da",
+          "#f8f9fb",
+          "#f9fafb",
+          "#f9fbfc",
+          "#fafcfc"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Shop Ink",
+        "canonical": "#081820",
+        "tonalRamp": [
+          "#081014",
+          "#081217",
+          "#08151b",
+          "#08171e",
+          "#27353c",
+          "#657075",
+          "#a4abad",
+          "#e2e5e6"
+        ]
+      },
+      "slate": {
+        "role": "neutral",
+        "displayName": "Slate Gray",
+        "canonical": "#5a6c72",
+        "tonalRamp": [
+          "#081014",
+          "#1f2a2f",
+          "#37454a",
+          "#4e5f65",
+          "#6f7f84",
+          "#98a4a7",
+          "#c1c9cb",
+          "#eaeeee"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero and page headlines in Fraunces."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Inter body copy and descriptions."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels and small UI text."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-rest",
+        "value": "0 1px 3px rgba(0,0,0,0.05)",
+        "purpose": "Resting card."
+      },
+      {
+        "name": "card-lift",
+        "value": "0 12px 32px rgba(0,0,0,0.1)",
+        "purpose": "Card hover."
+      },
+      {
+        "name": "primary-glow",
+        "value": "0 4px 14px rgba(0,122,127,0.25)",
+        "purpose": "Teal buttons."
+      },
+      {
+        "name": "accent-glow",
+        "value": "0 4px 14px rgba(232,93,74,0.25)",
+        "purpose": "Coral buttons."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 3px rgba(0,168,168,0.4)",
+        "purpose": "Keyboard focus."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-200",
+        "value": "200ms ease-out",
+        "purpose": "Standard hover/focus transition for buttons, cards, inputs."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main teal action.",
+      "html": "<button class=\"ds-btn-primary\">Browse businesses</button>",
+      "css": ".ds-btn-primary{background:linear-gradient(135deg,#00a8a8,#007a7f);color:#fff;padding:.75rem 1.5rem;border-radius:.75rem;font-weight:600;border:none;display:inline-flex;gap:.5rem;align-items:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,122,127,.25);transition:all 200ms ease-out;font-family:Inter,sans-serif}.ds-btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,122,127,.35);filter:brightness(1.08)}.ds-btn-primary:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(0,168,168,.4)}"
+    },
+    {
+      "name": "Accent Button",
+      "kind": "button",
+      "refersTo": "button-accent",
+      "description": "Coral featured/conversion action.",
+      "html": "<button class=\"ds-btn-accent\">Get listed</button>",
+      "css": ".ds-btn-accent{background:linear-gradient(135deg,#ff7a66,#e85d4a);color:#fff;padding:.75rem 1.5rem;border-radius:.75rem;font-weight:600;border:none;display:inline-flex;gap:.5rem;align-items:center;cursor:pointer;box-shadow:0 4px 14px rgba(232,93,74,.25);transition:all 200ms ease-out;font-family:Inter,sans-serif}.ds-btn-accent:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(232,93,74,.35);filter:brightness(1.08)}.ds-btn-accent:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(0,168,168,.4)}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary teal outline action.",
+      "html": "<button class=\"ds-btn-outline\">Learn more</button>",
+      "css": ".ds-btn-outline{border:2px solid #00a8a8;color:#00a8a8;background:transparent;padding:.75rem 1.5rem;border-radius:.75rem;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;transition:all 200ms ease-out}.ds-btn-outline:hover{background:linear-gradient(135deg,#00a8a8,#007a7f);color:#fff;border-color:transparent}.ds-btn-outline:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(0,168,168,.4)}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Listing card that lifts on hover.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">Local Taqueria</h3><p class=\"ds-card-copy\">Family-owned in Moreno Valley.</p></div>",
+      "css": ".ds-card{background:#fff;border-radius:1rem;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(0,0,0,.05);padding:1.25rem;max-width:18rem;transition:all 200ms ease-out}.ds-card:hover{box-shadow:0 12px 32px rgba(0,0,0,.1);transform:translateY(-4px)}.ds-card-title{font-family:Fraunces,Georgia,serif;font-weight:700;letter-spacing:-.02em;color:#081820;margin:0 0 .25rem;font-size:1.25rem}.ds-card-copy{font-family:Inter,sans-serif;color:#5a6c72;margin:0;font-size:.875rem}"
+    },
+    {
+      "name": "Featured Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Paid featured listing with coral border.",
+      "html": "<div class=\"ds-card-featured\"><h3 class=\"ds-card-title\">Featured Business</h3><p class=\"ds-card-copy\">Highlighted placement.</p></div>",
+      "css": ".ds-card-featured{background:#fff;border-radius:1rem;border:2px solid #ff7a66;padding:1.25rem;max-width:18rem;transition:all 200ms ease-out}.ds-card-featured:hover{box-shadow:0 12px 32px rgba(0,0,0,.1);transform:translateY(-4px)}.ds-card-title{font-family:Fraunces,Georgia,serif;font-weight:700;letter-spacing:-.02em;color:#081820;margin:0 0 .25rem;font-size:1.25rem}.ds-card-copy{font-family:Inter,sans-serif;color:#5a6c72;margin:0;font-size:.875rem}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Rounded field with teal focus halo.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search businesses\" />",
+      "css": ".ds-input{width:100%;box-sizing:border-box;padding:.875rem 1rem;border-radius:.75rem;border:1px solid #e2e8f0;background:#fff;font-size:.875rem;font-family:Inter,sans-serif;transition:all 200ms ease-out}.ds-input::placeholder{color:#94a3b8}.ds-input:focus{outline:none;border-color:#00a8a8;box-shadow:0 0 0 3px rgba(0,168,168,.2)}"
+    },
+    {
+      "name": "Midnight Band",
+      "kind": "custom",
+      "refersTo": "midnight",
+      "description": "Dark gradient hero band with serif heading.",
+      "html": "<div class=\"ds-band\"><h2 class=\"ds-band-title\">Moreno Valley's Local Business Hub</h2></div>",
+      "css": ".ds-band{background:linear-gradient(180deg,#061f2e,#0b3a52);padding:2rem;border-radius:1rem}.ds-band-title{font-family:Fraunces,Georgia,serif;font-weight:700;letter-spacing:-.025em;color:#fff;margin:0;font-size:1.5rem}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Valley Storefront",
+    "overview": "The site behaves like a well-kept main street: bright, inviting, and a little showy about local pride. Deep midnight navy provides the frame, vivid teal is the welcome mat, and coral and gold are the window signage that says \"look here.\"",
+    "keyCharacteristics": [
+      "Navy-and-teal base with coral and gold as deliberate accents",
+      "Serif headlines over a sans body",
+      "Rounded (12-16px) cards, buttons and inputs",
+      "Ambient, tinted shadows and lift-on-hover states",
+      "Gradient fills on primary actions; mesh and midnight gradients for hero bands",
+      "Mobile-first, content width capped at 80rem"
+    ],
+    "rules": [
+      {
+        "name": "The Featured Coral Rule",
+        "body": "Coral marks paid or featured placement and the single most important action on a screen. If everything is coral, nothing is featured.",
+        "section": "colors"
+      },
+      {
+        "name": "The Midnight Frame Rule",
+        "body": "Dark navy bands are for hero and campaign moments; content pages stay on Cool Mist and Paper White.",
+        "section": "colors"
+      },
+      {
+        "name": "The Serif-Heads Rule",
+        "body": "All h1-h6 use Fraunces; all other text uses Inter. Never set body copy in the serif.",
+        "section": "typography"
+      },
+      {
+        "name": "The Lift-Not-Scale Rule",
+        "body": "Hover raises elements with translateY and shadow; it never scales them, which shimmers text.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use Fraunces for every heading and Inter for everything else.",
+      "Do keep teal as the default interactive color and reserve coral for featured items and the primary conversion.",
+      "Do lift cards and buttons with translateY and shadow on hover.",
+      "Do use Lucide icons for UI glyphs.",
+      "Do use the shared tokens (`--color-*`, `.btn-*`, `.card`, `.input`) before inventing new ones."
+    ],
+    "donts": [
+      "Don't scale elements on hover.",
+      "Don't put body copy in the serif.",
+      "Don't use coral or gold as large background fills on content pages.",
+      "Don't introduce a second accent hue beyond coral and gold.",
+      "Don't hard-code new hex values in components when a token exists."
+    ]
+  }
+}

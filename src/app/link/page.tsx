@@ -49,7 +49,7 @@ const LINKS = [
     description: 'What’s happening this week in Moreno Valley',
     href: '/events',
     icon: Calendar,
-    accent: 'from-violet-500 to-fuchsia-500',
+    accent: 'from-secondary-light to-primary-dark',
   },
   {
     label: 'Local Deals',
@@ -84,7 +84,7 @@ const LINKS = [
     description: 'Trusted local pros',
     href: '/partners',
     icon: Sparkles,
-    accent: 'from-purple-500 to-violet-500',
+    accent: 'from-accent-strong to-accent-deep',
   },
   {
     label: 'About Moreno Valley',

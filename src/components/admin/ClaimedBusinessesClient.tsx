@@ -243,7 +243,7 @@ export default function ClaimedBusinessesClient({ businesses, counts }: Props) {
                           </div>
                         )}
                         {b.owner.emailOptIn && (
-                          <span className="ml-2 inline-block text-[10px] uppercase tracking-wider font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                          <span className="ml-2 inline-block text-xs uppercase tracking-wider font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                             Email OK
                           </span>
                         )}
@@ -276,7 +276,7 @@ export default function ClaimedBusinessesClient({ businesses, counts }: Props) {
                           {formatRelative(b.claimedAt)}
                         </time>
                         {b.featuredAt && (
-                          <div className="text-[10px] text-amber-600 mt-0.5">
+                          <div className="text-xs text-amber-600 mt-0.5">
                             ★ Featured {formatRelative(b.featuredAt)}
                           </div>
                         )}
@@ -343,7 +343,7 @@ function SortHeader({
         className={`inline-flex items-center gap-1 hover:text-text transition ${active ? 'text-text' : ''}`}
       >
         {label}
-        {active && <span className="text-[10px]">{dir === 'asc' ? '▲' : '▼'}</span>}
+        {active && <span className="text-xs">{dir === 'asc' ? '▲' : '▼'}</span>}
       </button>
     </th>
   )

@@ -130,30 +130,30 @@ export function EventsHero({ event, viewLabel, eventCount, nextEventTitle, nextE
           <div className="max-w-4xl">
             {/* Metadata pills immediately above title */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent text-white text-[10px] uppercase tracking-[0.22em] font-semibold shadow-sm">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent text-white text-xs uppercase tracking-[0.22em] font-semibold shadow-sm">
                 <span className="relative inline-flex h-1.5 w-1.5">
                   <span className="absolute inset-0 inline-flex h-full w-full animate-ping rounded-full bg-white opacity-60" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
                 </span>
                 {viewLabel}&apos;s Pick
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[10px] uppercase tracking-[0.22em] font-semibold">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-xs uppercase tracking-[0.22em] font-semibold">
                 <Calendar className="w-3 h-3" />
                 {day}
               </span>
               {time && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[10px] uppercase tracking-[0.22em] font-semibold">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-xs uppercase tracking-[0.22em] font-semibold">
                   <Clock className="w-3 h-3" />
                   {time}
                 </span>
               )}
               {category && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[10px] uppercase tracking-[0.22em] font-semibold">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-xs uppercase tracking-[0.22em] font-semibold">
                   {category}
                 </span>
               )}
               {event.isFree && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500/90 text-white text-[10px] uppercase tracking-[0.22em] font-semibold">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500/90 text-white text-xs uppercase tracking-[0.22em] font-semibold">
                   Free
                 </span>
               )}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -76,6 +76,28 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
 
+  const navRef = useRef<HTMLElement>(null)
+
+  // Dismiss an open dropdown with Escape (returning focus to its trigger) or a click elsewhere.
+  useEffect(() => {
+    if (!openMenu) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      const trigger = navRef.current?.querySelector<HTMLElement>('button[aria-expanded="true"]')
+      setOpenMenu(null)
+      trigger?.focus()
+    }
+    const onPointer = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenMenu(null)
+    }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onPointer)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('mousedown', onPointer)
+    }
+  }, [openMenu])
+
   const closeNavigation = () => {
     setMobileOpen(false)
     setOpenMenu(null)
@@ -96,7 +118,7 @@ export function Header() {
             />
           </Link>
 
-          <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
+          <nav ref={navRef} className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
             {navGroups.map(group => (
               <div key={group.label} className="relative">
                 <button
@@ -104,7 +126,6 @@ export function Header() {
                   onClick={() => setOpenMenu(openMenu === group.label ? null : group.label)}
                   className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
                   aria-expanded={openMenu === group.label}
-                  aria-haspopup="true"
                 >
                   <group.icon className="h-4 w-4" />
                   {group.label}

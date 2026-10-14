@@ -220,7 +220,7 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
           >
             {f}
             <span
-              className={`inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 rounded-full text-[10px] ${
+              className={`inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 rounded-full text-xs ${
                 filter === f ? 'bg-white text-primary' : 'bg-white text-text-secondary'
               }`}
             >
@@ -281,7 +281,7 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
                       {s.slug}
                     </code>
                     <span
-                      className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                      className={`text-xs uppercase font-bold px-1.5 py-0.5 rounded ${
                         s.status === 'PENDING'
                           ? 'bg-amber-100 text-amber-700'
                           : s.status === 'APPROVED'
@@ -294,7 +294,7 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
                       {s.status}
                     </span>
                     {s.sourcePlatform !== 'OTHER' && (
-                      <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                      <span className="text-xs uppercase font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
                         {s.sourcePlatform}
                       </span>
                     )}
@@ -368,7 +368,7 @@ export default function EventSubmissionsPanel({ initialSubmissions, existingEven
                         <div>
                           <p className="text-xs font-semibold text-text-secondary mb-1">
                             Original post caption
-                            <span className="ml-2 text-[10px] font-normal text-text-secondary/70">
+                            <span className="ml-2 text-xs font-normal text-text-secondary/70">
                               (will become the Event description on approve)
                             </span>
                           </p>
@@ -542,7 +542,7 @@ function ReadOnlyField({
     <div
       className={`rounded-lg border p-3 ${warn ? 'border-amber-200 bg-amber-50/50' : 'border-slate-100 bg-white'}`}
     >
-      <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary mb-1">{label}</p>
+      <p className="text-xs uppercase font-bold tracking-wider text-text-secondary mb-1">{label}</p>
       <p className={`text-sm ${mono ? 'font-mono' : ''} ${warn ? 'text-amber-800' : 'text-text'}`}>
         {value}
       </p>

@@ -120,7 +120,7 @@ export function BestOfVoterActivity() {
           <ul className="divide-y divide-slate-100">
             {data.recentVotes.slice(0, 10).map((v) => (
               <li key={v.id} className="py-2 flex items-start gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-text-secondary">
+                <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-text-secondary">
                   {v.voterImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -140,7 +140,7 @@ export function BestOfVoterActivity() {
                     <span className="text-text-secondary"> voted for </span>
                     <span className="font-medium">{v.nominee.name}</span>
                   </p>
-                  <p className="text-[10px] text-text-secondary">
+                  <p className="text-xs text-text-secondary">
                     {v.category.name} · {timeAgo(v.votedAt)}
                     {v.voterEmail && ` · ${v.voterEmail}`}
                   </p>
@@ -174,7 +174,7 @@ export function BestOfVoterActivity() {
                 <span className="text-xs font-bold text-text-secondary w-5 text-right">
                   #{idx + 1}
                 </span>
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                   {voter.voterImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -193,7 +193,7 @@ export function BestOfVoterActivity() {
                     {voter.voterName}
                   </p>
                   {voter.voterEmail && (
-                    <p className="text-[10px] text-text-secondary truncate">
+                    <p className="text-xs text-text-secondary truncate">
                       {voter.voterEmail}
                     </p>
                   )}

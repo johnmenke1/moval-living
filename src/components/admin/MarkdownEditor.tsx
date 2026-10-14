@@ -232,7 +232,7 @@ export default function MarkdownEditor({ value, onChange, placeholder, minRows =
           }}
           rows={minRows}
           placeholder={placeholder ?? 'Write here, or paste formatted content from Google Docs / Word…'}
-          className="w-full px-4 py-3 text-sm font-mono focus:outline-none resize-y leading-relaxed"
+          className="w-full px-4 py-3 text-sm font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-dark resize-y leading-relaxed"
         />
       ) : (
         <div

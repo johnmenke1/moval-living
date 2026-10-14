@@ -20,7 +20,7 @@ export function Countdown({ target, label }: { target: string; label: string }) 
   const cell = (v: number, l: string) => (
     <div className="rounded-xl bg-black/40 border border-[#3a1d57] px-3 py-2 min-w-[64px] text-center">
       <div className="text-2xl font-bold text-orange-300 tabular-nums">{String(v).padStart(2, '0')}</div>
-      <div className="text-[10px] uppercase tracking-wider text-purple-200/70">{l}</div>
+      <div className="text-xs uppercase tracking-wider text-purple-200/70">{l}</div>
     </div>
   )
   return (

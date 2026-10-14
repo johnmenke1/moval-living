@@ -566,7 +566,7 @@ export function ParkEditor({ initialPark }: Props) {
                         className="object-cover"
                       />
                       {isHero && (
-                        <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-primary text-white text-[10px] font-bold uppercase tracking-wide">
+                        <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-primary text-white text-xs font-bold uppercase tracking-wide">
                           Hero
                         </span>
                       )}
@@ -575,7 +575,7 @@ export function ParkEditor({ initialPark }: Props) {
                           <button
                             type="button"
                             onClick={() => setHero(url)}
-                            className="px-1.5 py-0.5 rounded bg-white/90 hover:bg-white text-[10px] font-bold"
+                            className="px-1.5 py-0.5 rounded bg-white/90 hover:bg-white text-xs font-bold"
                           >
                             Set hero
                           </button>

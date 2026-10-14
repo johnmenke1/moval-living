@@ -195,7 +195,7 @@ function CheckCard({
       )}
 
       {result.ranAt && (
-        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">
+        <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">
           Last checked {new Date(result.ranAt).toLocaleTimeString()}
         </p>
       )}
@@ -205,7 +205,7 @@ function CheckCard({
           {result.details ? 'View raw response' : 'Run to see details'}
         </summary>
         {result.details && (
-          <pre className="mt-2 bg-slate-900 text-slate-100 p-3 rounded text-[10px] overflow-x-auto max-h-64 leading-relaxed">
+          <pre className="mt-2 bg-slate-900 text-slate-100 p-3 rounded text-xs overflow-x-auto max-h-64 leading-relaxed">
             {JSON.stringify(result.details, null, 2)}
           </pre>
         )}

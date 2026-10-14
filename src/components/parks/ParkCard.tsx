@@ -71,7 +71,7 @@ export function ParkCard({ park, distanceLabel, highlighted = false, onClick }: 
               <TreePine className="w-12 h-12" />
             </div>
           )}
-          <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/95 text-text shadow-sm">
+          <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/95 text-text shadow-sm">
             {typeLabel(park.type)}
           </div>
           {distanceLabel && (

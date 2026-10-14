@@ -255,7 +255,7 @@ function NominationRow({
             <span className="inline-flex items-center gap-1 text-sm text-text-secondary">
               <Tag className="w-3.5 h-3.5" /> {n.categoryName}
             </span>
-            <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
+            <span className={`text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
               {badge.label}
             </span>
           </div>
@@ -271,7 +271,7 @@ function NominationRow({
               <span className="text-text-secondary">
                 → matched: <Link href={`/business/${n.business.slug}`} className="text-primary hover:underline">{n.business.name}</Link>
                 {n.business.status !== 'APPROVED' && (
-                  <span className="ml-1 text-[10px] uppercase font-bold text-amber-600">({n.business.status})</span>
+                  <span className="ml-1 text-xs uppercase font-bold text-amber-600">({n.business.status})</span>
                 )}
               </span>
             ) : (

@@ -135,7 +135,7 @@ export default async function AboutMorenoValleyPage() {
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {/* Primary card: the /parks directory */}
-            <div className="card flex flex-col overflow-hidden border-l-4 border-accent">
+            <div className="card flex flex-col overflow-hidden ring-1 ring-accent/40">
               <div className="flex-1 p-6 md:p-8">
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">
                   <MapIcon className="h-7 w-7" />
@@ -166,7 +166,7 @@ export default async function AboutMorenoValleyPage() {
             </div>
 
             {/* Secondary card: Flight Deck Bike Park spotlight */}
-            <div className="card flex flex-col overflow-hidden border-l-4 border-accent">
+            <div className="card flex flex-col overflow-hidden ring-1 ring-accent/40">
               <div className="flex-1 p-6 md:p-8">
                 <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent">
                   Just Opened — December 2025
