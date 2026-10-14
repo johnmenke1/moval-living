@@ -64,7 +64,7 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-secondary" />
-                <a href="mailto:hello@moval.living" className="transition-colors hover:text-white">
+                <a href="mailto:hello@moval.living" className="inline-block py-3 transition-colors hover:text-white">
                   hello@moval.living
                 </a>
               </div>
@@ -72,13 +72,13 @@ export function Footer() {
 
             {/* Social — official MoVal accounts. All open in a new tab. */}
             <div className="mt-6 flex items-center gap-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Follow</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Follow</span>
               <a
                 href="https://www.instagram.com/moval_living/"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="moval.living on Instagram"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <InstagramIcon className="h-4 w-4" />
               </a>
@@ -87,7 +87,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="moval.living on Facebook"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <FacebookIcon className="h-4 w-4" />
               </a>
@@ -96,7 +96,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="moval.living on LinkedIn"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <LinkedinIcon className="h-4 w-4" />
               </a>
@@ -105,7 +105,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="moval.living on TikTok"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <TiktokIcon className="h-4 w-4" />
               </a>
@@ -123,7 +123,7 @@ export function Footer() {
               <ul className="space-y-2.5">
                 {column.links.map(link => (
                   <li key={link.href}>
-                    <Link href={link.href} className="text-sm text-slate-400 transition-colors hover:text-white">
+                    <Link href={link.href} className="inline-block py-3 text-sm text-slate-400 transition-colors hover:text-white">
                       {link.label}
                     </Link>
                   </li>
@@ -136,12 +136,12 @@ export function Footer() {
         <hr className="my-10 border-slate-700" />
 
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-400">
             &copy; {new Date().getUTCFullYear()} moval.living — Moreno Valley Local Business Directory. All rights reserved.
           </p>
-          <div className="flex items-center gap-4 text-xs text-slate-500">
-            <Link href="/terms" className="transition-colors hover:text-white">Terms of Service</Link>
-            <Link href="/privacy" className="transition-colors hover:text-white">Privacy Policy</Link>
+          <div className="flex flex-wrap items-center gap-x-4 text-sm text-slate-400">
+            <Link href="/terms" className="inline-block py-3 transition-colors hover:text-white">Terms of Service</Link>
+            <Link href="/privacy" className="inline-block py-3 transition-colors hover:text-white">Privacy Policy</Link>
             <span>Built with ❤️ for Moreno Valley</span>
           </div>
         </div>

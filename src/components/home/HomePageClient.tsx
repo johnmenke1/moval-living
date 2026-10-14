@@ -1,9 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   Search,
+  Calendar,
+  Home as HomeIcon,
+  TreePine,
+  Trophy,
   ArrowRight,
   ChevronRight,
   UtensilsCrossed,
@@ -36,7 +40,6 @@ import { BusinessCard } from '@/components/business/BusinessCard'
 import { EventsCallout, type UpcomingEvent } from '@/components/home/EventsCallout'
 import LiveActivityTicker from '@/components/home/LiveActivityTicker'
 import { HeroVideo } from '@/components/home/HeroVideo'
-import { ShimmerText } from '@/components/motion'
 import { motion } from 'framer-motion'
 
 // Constrained to four brand-adjacent hues (teal, navy, terracotta, warm
@@ -140,6 +143,13 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
   const [dockStuck, setDockStuck] = useState(false)
   const dockSentinelRef = useRef<HTMLDivElement | null>(null)
 
+  // Most-populated categories first: the hero chips and the category grid lead
+  // with what the directory actually has the most of.
+  const popularCategories = useMemo(() => {
+    const countOf = (c: (typeof categories)[number]) => categoryCounts[c.slug] ?? categoryCounts[c.id] ?? 0
+    return [...categories].sort((a, b) => countOf(b) - countOf(a))
+  }, [categoryCounts])
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     const params = new URLSearchParams()
@@ -176,8 +186,8 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
         : 'flex flex-wrap gap-2 py-2'
     const pillClass =
       variant === 'hero'
-        ? 'text-sm text-white bg-white/15 hover:bg-white/25 px-4 min-h-11 inline-flex items-center rounded-full transition-colors'
-        : 'text-sm text-text bg-slate-100 hover:bg-slate-200 px-4 min-h-11 inline-flex items-center rounded-full transition-colors'
+        ? 'text-sm text-white bg-white/15 hover:bg-white/25 px-4 py-2.5 min-h-11 inline-flex items-center rounded-full transition-colors'
+        : 'text-sm text-text bg-slate-100 hover:bg-slate-200 px-4 py-2.5 min-h-11 inline-flex items-center rounded-full transition-colors'
     const inputId = `home-search-${variant}`
     return (
       <>
@@ -200,7 +210,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
             <button
               type="submit"
               disabled={isSearching}
-              className="btn-accent flex items-center justify-center gap-2 py-3.5 px-8 disabled:opacity-70"
+              className="btn-primary flex items-center justify-center gap-2 py-3.5 px-8 disabled:opacity-70"
             >
               {isSearching ? 'Searching…' : 'Search'}
               <ArrowRight className="w-4 h-4" aria-hidden />
@@ -209,7 +219,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
         </form>
 
         <div className={pillsClass}>
-          {categories.slice(0, 3).map(cat => (
+          {popularCategories.slice(0, 3).map(cat => (
             <Link key={cat.id} href={`/search?category=${cat.slug}`} className={pillClass}>
               {cat.name}
             </Link>
@@ -229,7 +239,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
           vignette that keeps the headline and search readable while the sunlit
           middle of the aerial stays clear. On mobile the search drops into the
           sticky dock below so it stays reachable while scrolling. */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden bg-gradient-to-br from-secondary via-secondary-light to-primary-deep">
         <HeroVideo
           posterSrc="https://media.moval.living/home/hero-video-poster.jpg"
           posterAlt="Aerial view of Moreno Valley with Box Springs Mountain in the distance"
@@ -253,7 +263,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
               className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight text-balance"
             >
               Your neighbors&apos; guide to{' '}
-              <ShimmerText dark>Moreno Valley</ShimmerText>
+              <span className="text-[var(--color-teal-light)]">Moreno Valley</span>
             </motion.h1>
 
             <motion.p
@@ -295,7 +305,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
                 <strong className="font-semibold text-text">Best Of</strong> winners and nominees are chosen by community vote.
               </p>
             </div>
-            <Link href="/best-of" className="hidden sm:flex items-center gap-1 whitespace-nowrap text-primary font-medium hover:gap-2 transition-all">
+            <Link href="/best-of" className="hidden sm:flex min-h-11 items-center gap-1 whitespace-nowrap text-primary font-medium hover:gap-2 transition-all">
               See Best Of <ChevronRight className="w-4 h-4" aria-hidden />
             </Link>
           </div>
@@ -314,7 +324,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
             )}
           </div>
           <div className="sm:hidden mt-6 text-center">
-            <Link href="/best-of" className="inline-flex items-center gap-1 text-primary font-medium">
+            <Link href="/best-of" className="inline-flex min-h-11 items-center gap-1 text-primary font-medium">
               See Best Of <ChevronRight className="w-4 h-4" aria-hidden />
             </Link>
           </div>
@@ -333,7 +343,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
                   Observations, outings, and reflections from John Menke on what&apos;s worth noticing in Moreno Valley.
                 </p>
               </div>
-              <Link href="/life" className="hidden sm:flex items-center gap-1 whitespace-nowrap text-primary font-medium hover:gap-2 transition-all">
+              <Link href="/life" className="hidden sm:flex min-h-11 items-center gap-1 whitespace-nowrap text-primary font-medium hover:gap-2 transition-all">
                 Read all <ArrowRight className="w-4 h-4" aria-hidden />
               </Link>
             </div>
@@ -389,6 +399,37 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
         </section>
       )}
 
+      {/* ─── MORE THAN A DIRECTORY: doors to the rest of the hub ─── */}
+      <section className="section bg-white" aria-labelledby="doors-heading">
+        <div className="container-max">
+          <h2 id="doors-heading" className="text-3xl font-bold text-text mb-8">More than a directory</h2>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 border-y border-slate-200">
+            {[
+              { href: '/events', label: 'Events', blurb: "What's on in the Valley this month", Icon: Calendar },
+              { href: '/homes', label: 'Homes', blurb: 'Homes for sale and open houses', Icon: HomeIcon },
+              { href: '/parks', label: 'Parks', blurb: 'Parks and outdoor recreation', Icon: TreePine },
+              { href: '/best-of', label: 'Best Of', blurb: 'Vote for your local favorites', Icon: Trophy },
+            ].map(({ href, label, blurb, Icon }) => (
+              <li key={href}>
+                <Link
+                  href={href}
+                  className="group flex min-h-24 items-center justify-between gap-4 px-2 py-5 sm:px-6 hover:bg-slate-50 transition-colors"
+                >
+                  <span className="flex items-center gap-4 min-w-0">
+                    <Icon className="w-6 h-6 shrink-0 text-primary-dark" aria-hidden />
+                    <span className="min-w-0">
+                      <span className="block text-xl font-bold text-text font-[family-name:var(--font-fraunces)]">{label}</span>
+                      <span className="block text-sm text-text-secondary">{blurb}</span>
+                    </span>
+                  </span>
+                  <ArrowRight className="w-4 h-4 shrink-0 text-text-secondary transition-transform group-hover:translate-x-1 motion-reduce:group-hover:translate-x-0" aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       {/* ─── BROWSE BY CATEGORY ─── */}
       <section className="section bg-white">
         <div className="container-max">
@@ -398,7 +439,7 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {categories.map(category => {
+            {popularCategories.slice(0, 10).map(category => {
               const Icon = categoryIcons[category.icon] ?? Building
               const color = categoryColors[category.id] ?? 'var(--color-primary-dark)'
               const count = categoryCounts[category.slug] ?? categoryCounts[category.id] ?? 0
@@ -425,6 +466,12 @@ export function HomePageClient({ featuredBusinesses, categoryCounts, latestLifeP
                 </Link>
               )
             })}
+          </div>
+          <div className="mt-8 text-center">
+            <Link href="/search" className="btn-outline">
+              See all {categories.length} categories
+              <ArrowRight className="w-4 h-4" aria-hidden />
+            </Link>
           </div>
         </div>
       </section>

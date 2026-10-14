@@ -108,6 +108,11 @@ export function HeroVideo({
         loading="eager"
         decoding="async"
         fetchPriority="high"
+        onError={e => {
+          // Poster failed: hide the broken image so alt text never overlays the
+          // headline; the section keeps its navy gradient fallback.
+          e.currentTarget.style.visibility = 'hidden'
+        }}
       />
 
       {/* Video overlay — only mounted if JS decides it's safe.

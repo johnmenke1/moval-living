@@ -102,7 +102,7 @@ export function EventsCallout({ events }: EventsCalloutProps) {
                         <div className="flex items-center gap-1.5">
                           <Calendar className="h-4 w-4 shrink-0" aria-hidden />
                           <span>
-                            {weekday} {month} {day}, {formatTime(event.startsAt)}
+                            {formatTime(event.startsAt)}
                             {event.isFree ? ' · Free' : ''}
                           </span>
                         </div>

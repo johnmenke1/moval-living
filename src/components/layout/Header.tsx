@@ -124,7 +124,7 @@ export function Header() {
                 <button
                   type="button"
                   onClick={() => setOpenMenu(openMenu === group.label ? null : group.label)}
-                  className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
+                  className="flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
                   aria-expanded={openMenu === group.label}
                 >
                   <group.icon className="h-4 w-4" />
@@ -155,7 +155,7 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 onClick={closeNavigation}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
+                className="flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-slate-50 hover:text-primary"
               >
                 <link.icon className="h-4 w-4" />
                 {link.label}
@@ -164,7 +164,7 @@ export function Header() {
           </nav>
 
           <div className="hidden shrink-0 items-center gap-3 lg:flex">
-            <Link href="/login" className="text-sm font-medium text-text-secondary transition-colors hover:text-primary">
+            <Link href="/login" className="inline-flex min-h-11 items-center text-sm font-medium text-text-secondary transition-colors hover:text-primary">
               Sign In
             </Link>
             <Link href="/submit" className="btn-accent px-4 py-2 text-sm">
@@ -175,7 +175,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setMobileOpen(open => !open)}
-            className="rounded-lg p-2 text-text transition-colors hover:bg-slate-100 lg:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-text transition-colors hover:bg-slate-100 lg:hidden"
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileOpen}
             aria-controls="mobile-navigation"
