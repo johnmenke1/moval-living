@@ -372,7 +372,7 @@ function VideoDemoBrowser() {
             <div className="absolute inset-0 bg-black/50" />
             <div className="relative flex items-center justify-between border-b border-white/10 px-6 sm:px-10 py-5">
               <div className="text-white font-bold tracking-tight text-sm sm:text-base">ACME <span className="text-[#ff7a66]">.</span></div>
-              <div className="hidden sm:flex items-center gap-6 text-[10px] text-white/70 uppercase tracking-[0.15em]">
+              <div className="hidden sm:flex items-center gap-6 text-xs text-white/70 uppercase tracking-[0.15em]">
                 <span>Services</span><span>Work</span><span>About</span>
                 <span className="text-white border border-white/20 px-3 py-1 rounded">Contact</span>
               </div>
@@ -393,7 +393,7 @@ function VideoDemoBrowser() {
               ].map(stat => (
                 <div key={stat.label} className="p-4 text-center border-r border-white/10 last:border-r-0">
                   <div className="text-white text-xl sm:text-2xl font-extralight tracking-tight">{stat.value}</div>
-                  <div className="text-white/50 text-[10px] uppercase tracking-widest">{stat.label}</div>
+                  <div className="text-white/50 text-xs uppercase tracking-widest">{stat.label}</div>
                 </div>
               ))}
             </div>

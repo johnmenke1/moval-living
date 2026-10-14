@@ -75,7 +75,7 @@ export function SubmitBestOfSidebar() {
       </div>
 
       {/* Independence note */}
-      <div className="rounded-2xl border-l-4 border-accent bg-accent/5 p-5">
+      <div className="rounded-2xl border border-accent/25 bg-accent/5 p-5">
         <div className="flex items-start gap-3">
           <ShieldCheck className="w-5 h-5 text-accent shrink-0 mt-0.5" />
           <p className="text-sm text-text leading-relaxed">

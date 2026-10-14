@@ -297,7 +297,7 @@ export function ReviewList({ businessId, businessSlug, initialReviews, session, 
               </div>
               <p className="text-text-secondary leading-relaxed ml-13">{review.content}</p>
               {review.response && (
-                <div className="ml-13 mt-3 bg-blue-50 border-l-4 border-primary p-3 rounded-r-lg">
+                <div className="ml-13 mt-3 bg-primary/5 border border-primary-dark/20 p-3 rounded-lg">
                   <p className="text-xs font-semibold text-primary mb-1">Owner Response</p>
                   <p className="text-sm text-text-secondary">{review.response}</p>
                 </div>

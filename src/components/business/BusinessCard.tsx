@@ -125,20 +125,20 @@ export function BusinessCard({ business }: BusinessCardProps) {
       {(business.isBestOf || business.isExpertPartner || business.isNominated || business.seHablaEspanol) && (
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {business.isBestOf && (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50/80 text-amber-800 border border-amber-200">
+            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-gold/30 text-secondary border border-gold">
               <Trophy className="w-3 h-3" />
               Best of MoVal
             </span>
           )}
           {business.isNominated && !business.isBestOf && (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-50/80 text-purple-800 border border-purple-200">
+            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-gold/15 text-secondary border border-gold/60">
               <Trophy className="w-3 h-3" />
               Best Of Nominee
             </span>
           )}
           {business.isExpertPartner && (
             <span
-              className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-accent/10 text-accent border border-accent/25"
+              className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-accent/10 text-accent-deep border border-accent-deep/30"
               title={business.foundingPartnerSince ? 'Founding Expert Partner' : 'Expert Partner'}
             >
               {business.foundingPartnerSince ? (
@@ -151,7 +151,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
           )}
           {business.seHablaEspanol && (
             <span
-              className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/25"
+              className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary-dark border border-primary-dark/30"
               title="Atención en español — staff speaks Spanish"
             >
               <Languages className="w-3 h-3" />

@@ -956,7 +956,7 @@ export default function BusinessesModeration({ initialBusinesses, initialFilter 
                                   {edits?.dealImageUrl ? (
                                     <img src={edits.dealImageUrl} alt="Deal preview" className="w-20 h-20 rounded-lg object-cover bg-slate-100" />
                                   ) : (
-                                    <div className="w-20 h-20 rounded-lg bg-slate-100 flex items-center justify-center text-text-secondary text-[10px]">No image</div>
+                                    <div className="w-20 h-20 rounded-lg bg-slate-100 flex items-center justify-center text-text-secondary text-xs">No image</div>
                                   )}
                                 </div>
                                 <div className="flex-1 space-y-2">

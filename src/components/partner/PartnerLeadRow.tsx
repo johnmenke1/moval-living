@@ -69,11 +69,11 @@ export function PartnerLeadRow({ lead }: { lead: Lead }) {
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <h3 className="font-semibold text-slate-900">{lead.name}</h3>
             {contacted ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+              <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                 <CheckCircle className="w-3 h-3" /> Contacted
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+              <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
                 <Circle className="w-3 h-3" /> New
               </span>
             )}

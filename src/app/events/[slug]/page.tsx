@@ -279,7 +279,7 @@ export default async function EventDetailPage({ params }: PageProps) {
                           {a.owner.name ?? 'A guest'}
                         </span>
                         {a.status === 'INTERESTED' && (
-                          <span className="text-[10px] text-text-secondary">interested</span>
+                          <span className="text-xs text-text-secondary">interested</span>
                         )}
                       </div>
                     ))}

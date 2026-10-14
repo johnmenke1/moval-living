@@ -62,7 +62,7 @@ export function SiblingPartners({ partners }: { partners: SiblingPartner[] }) {
                   </span>
                   {isFounding && (
                     <span
-                      className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 flex-shrink-0"
+                      className="text-xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 flex-shrink-0"
                       title="Founding Partner"
                     >
                       ★

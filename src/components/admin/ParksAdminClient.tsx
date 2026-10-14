@@ -199,19 +199,19 @@ export function ParksAdminClient({ initialParks }: Props) {
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-text truncate">{p.name}</h3>
                       {!p.isActive && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-slate-200 text-text-secondary">
+                        <span className="px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide rounded bg-slate-200 text-text-secondary">
                           Inactive
                         </span>
                       )}
                       {p.featured && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-amber-100 text-amber-700">
+                        <span className="px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide rounded bg-amber-100 text-amber-700">
                           Featured
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-text-secondary">
                       <span className="inline-flex items-center gap-1">
-                        <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-semibold uppercase tracking-wide text-[10px]">
+                        <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-semibold uppercase tracking-wide text-xs">
                           {typeLabel(p.type)}
                         </span>
                       </span>

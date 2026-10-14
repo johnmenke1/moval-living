@@ -29,7 +29,7 @@
   .prose h3 { font-size: 1.25rem; }    /* 20px */
   .prose h4 { font-size: 1.125rem; }
   .prose a {
-    color: var(--color-primary);
+    color: var(--color-primary-dark);
     text-decoration: none;
     font-weight: 500;
   }
@@ -41,12 +41,12 @@
   .prose strong { color: var(--color-text); font-weight: 700; }
   .prose em { font-style: italic; }
   .prose blockquote {
-    border-left: 4px solid var(--color-primary);
-    background: var(--color-background);
+    border: 1px solid rgba(0, 122, 127, 0.18);
+    background: rgba(0, 168, 168, 0.07);
     font-style: italic;
     padding: 0.875em 1.25em;
     margin: 1.25em 0;
-    border-radius: 0 0.5rem 0.5rem 0;
+    border-radius: 0.75rem;
   }
   /* Restore list bullets — Tailwind v4 preflight strips them by default,
      and the typography plugin's :where() markers depend on list-style
@@ -130,6 +130,14 @@
   --color-text-secondary: #5a6c72;
   --color-success: #22C55E;
   --color-error: #EF4444;
+  --color-primary-deep: #00666b;
+  --color-teal-light: #8fd4d7;
+  --color-accent-strong: #c8402e;
+  --color-accent-deep: #b0331f;
+  --color-navy: #00405c;
+  --color-terracotta: #c9786d;
+  --color-brass: #b08a3e;
+  --color-placeholder: #64748b;
 }
 
 @theme inline {
@@ -146,13 +154,29 @@
   --color-text-secondary: #5a6c72;
   --color-success: #22C55E;
   --color-error: #EF4444;
+  --color-primary-deep: #00666b;
+  --color-teal-light: #8fd4d7;
+  --color-accent-strong: #c8402e;
+  --color-accent-deep: #b0331f;
+  --color-navy: #00405c;
+  --color-terracotta: #c9786d;
+  --color-brass: #b08a3e;
+  --color-placeholder: #64748b;
   --font-sans: 'Inter', sans-serif;
   --font-heading: 'Inter', sans-serif;
 }
 
 @layer base {
-  html {
-    scroll-behavior: smooth;
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* One visible keyboard focus ring for everything that does not define its own. */
+  :focus-visible {
+    outline: 2px solid var(--color-primary-dark);
+    outline-offset: 2px;
   }
 
   body {
@@ -170,12 +194,12 @@
 
 @layer components {
   .btn-primary {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary-deep) 100%);
     color: white;
     padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
     font-weight: 600;
-    transition: all 200ms ease-out;
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out, background-color 200ms ease-out;
     cursor: pointer;
     border: none;
     display: inline-flex;
@@ -188,20 +212,15 @@
   .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(0, 122, 127, 0.35);
-    filter: brightness(1.08);
-  }
-  .btn-primary:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 168, 168, 0.4);
   }
 
   .btn-accent {
-    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+    background: linear-gradient(135deg, var(--color-accent-strong) 0%, var(--color-accent-deep) 100%);
     color: white;
     padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
     font-weight: 600;
-    transition: all 200ms ease-out;
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out, background-color 200ms ease-out;
     cursor: pointer;
     border: none;
     display: inline-flex;
@@ -214,20 +233,15 @@
   .btn-accent:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(232, 93, 74, 0.35);
-    filter: brightness(1.08);
-  }
-  .btn-accent:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(255, 122, 102, 0.4);
   }
 
   .btn-outline {
-    border: 2px solid var(--color-primary);
-    color: var(--color-primary);
+    border: 2px solid var(--color-primary-dark);
+    color: var(--color-primary-dark);
     padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
     font-weight: 600;
-    transition: all 200ms ease-out;
+    transition: background-color 200ms ease-out, color 200ms ease-out, border-color 200ms ease-out;
     cursor: pointer;
     background: transparent;
     display: inline-flex;
@@ -237,13 +251,9 @@
     text-decoration: none;
   }
   .btn-outline:hover {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary-deep) 100%);
     color: white;
     border-color: transparent;
-  }
-  .btn-outline:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 168, 168, 0.4);
   }
 
   .card {
@@ -251,7 +261,7 @@
     border-radius: 1rem;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     border: 1px solid #f1f5f9;
-    transition: all 200ms ease-out;
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out;
   }
   .card:hover {
     /* Lift instead of scale — scaling makes text shimmer and edges wobble. */
@@ -263,7 +273,7 @@
     background-color: var(--color-surface);
     border-radius: 1rem;
     border: 2px solid var(--color-accent);
-    transition: all 200ms ease-out;
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out;
   }
   .card-featured:hover {
     box-shadow: 0 12px 32px rgba(0,0,0,0.1);
@@ -275,17 +285,17 @@
     padding: 0.875rem 1rem;
     border-radius: 0.75rem;
     border: 1px solid #e2e8f0;
-    transition: all 200ms ease-out;
+    transition: border-color 200ms ease-out, box-shadow 200ms ease-out;
     font-size: 0.875rem;
     background: white;
   }
   .input:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 168, 168, 0.2);
-    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 122, 127, 0.28);
+    border-color: var(--color-primary-dark);
   }
   .input::placeholder {
-    color: #94a3b8;
+    color: var(--color-placeholder);
   }
 
   .label {
@@ -354,4 +364,40 @@
 }
 @media (min-width: 1024px) {
   .container-max { padding: 0 2rem; }
+}
+
+/* Reduced motion: keep state feedback (shadow, color) but drop movement. */
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary:hover,
+  .btn-accent:hover,
+  .card:hover,
+  .card-featured:hover {
+    transform: none;
+  }
+}
+
+/* Contrast: the bright brand teal (#00a8a8) is ~2.9:1 on white, so teal TEXT
+   uses the darker teal (~5.1:1). Unlayered so it beats Tailwind's utility
+   layer. On dark bands the bright teal is the accessible choice; restore it
+   there, or opt in anywhere with .text-primary-bright. */
+.text-primary {
+  color: var(--color-primary-dark);
+}
+.hover\:text-primary:hover {
+  color: var(--color-primary-dark);
+}
+.group:hover .group-hover\:text-primary {
+  color: var(--color-primary-dark);
+}
+.bg-secondary .text-primary,
+.bg-midnight .text-primary,
+.bg-slate-900 .text-primary,
+[class*="from-secondary"] .text-primary,
+[class*="bg-black"] .text-primary,
+.text-primary-bright {
+  color: var(--color-primary);
+}
+.bg-secondary .hover\:text-primary:hover,
+.bg-midnight .hover\:text-primary:hover {
+  color: var(--color-primary);
 }

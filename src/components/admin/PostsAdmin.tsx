@@ -186,7 +186,7 @@ export default function PostsAdmin({ initialPosts, authors }: Props) {
                 }`}
               >
                 {label}
-                {count > 0 && <span className={`inline-flex items-center justify-center min-w-[1.1rem] h-4 px-1 rounded-full text-[10px] font-bold ${isActive ? 'bg-primary text-white' : 'bg-slate-200'}`}>{count}</span>}
+                {count > 0 && <span className={`inline-flex items-center justify-center min-w-[1.1rem] h-4 px-1 rounded-full text-xs font-bold ${isActive ? 'bg-primary text-white' : 'bg-slate-200'}`}>{count}</span>}
               </button>
             )
           })}

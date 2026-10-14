@@ -102,7 +102,7 @@ export function ParkFiltersPanel({
               {typeof count === 'number' && count > 0 && (
                 <span
                   className={cn(
-                    'ml-0.5 inline-flex items-center justify-center min-w-[1.25rem] px-1.5 py-0.5 rounded-full text-[10px] font-bold',
+                    'ml-0.5 inline-flex items-center justify-center min-w-[1.25rem] px-1.5 py-0.5 rounded-full text-xs font-bold',
                     active ? 'bg-white/20 text-white' : 'bg-slate-100 text-text-secondary',
                   )}
                 >

@@ -68,7 +68,7 @@ export function VotersFeed({ voters, total, displayed }: VotersFeedProps) {
                 key={`${voter.name}-${idx}`}
                 title={`${voter.name} voted`}
                 aria-label={`${voter.name} voted`}
-                className="relative w-7 h-7 rounded-full ring-2 ring-white overflow-hidden flex items-center justify-center text-[10px] font-bold text-white"
+                className="relative w-7 h-7 rounded-full ring-2 ring-white overflow-hidden flex items-center justify-center text-xs font-bold text-white"
                 style={{
                   background: voter.image
                     ? undefined

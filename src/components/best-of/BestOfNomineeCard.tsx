@@ -194,7 +194,7 @@ export function BestOfNomineeCard({ business, variant = 'nominee', rank, notes }
         </div>
 
         {notes && (
-          <p className="mt-4 text-sm text-text-secondary italic border-l-4 border-amber-300 pl-3">
+          <p className="mt-4 text-sm text-text-secondary italic rounded-lg bg-amber-50 px-3 py-2">
             &ldquo;{notes}&rdquo;
           </p>
         )}

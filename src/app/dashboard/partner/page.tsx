@@ -156,7 +156,7 @@ export default async function PartnerDashboardPage({ searchParams }: PartnerDash
             <div className="flex items-center gap-2 mb-1">
               <h1 className="text-2xl font-bold text-slate-900">Partner Dashboard</h1>
               {business.foundingPartnerSince && (
-                <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                <span className="text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
                   ★ Founding Partner
                 </span>
               )}

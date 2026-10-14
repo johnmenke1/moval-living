@@ -66,7 +66,7 @@ export default function LifePostContent({ post }: { post: LifePost }) {
             )}
 
             <div
-              className="prose prose-base max-w-none prose-headings:font-bold prose-headings:text-text prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-3 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-2 prose-p:text-text prose-p:my-3 prose-a:text-primary hover:prose-a:underline prose-strong:font-bold prose-strong:text-text prose-img:rounded-xl prose-blockquote:border-l-4 prose-blockquote:border-l-primary prose-blockquote:text-text-secondary prose-blockquote:pl-4 prose-blockquote:my-4 prose-ul:my-3 prose-ol:my-3 prose-li:my-1"
+              className="prose prose-base max-w-none prose-headings:font-bold prose-headings:text-text prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-3 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-2 prose-p:text-text prose-p:my-3 prose-a:text-primary hover:prose-a:underline prose-strong:font-bold prose-strong:text-text prose-img:rounded-xl prose-blockquote:border-0 prose-blockquote:bg-primary/5 prose-blockquote:rounded-xl prose-blockquote:px-5 prose-blockquote:py-3 prose-blockquote:text-text-secondary prose-blockquote:my-4 prose-ul:my-3 prose-ol:my-3 prose-li:my-1"
               dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
             />
           </div>

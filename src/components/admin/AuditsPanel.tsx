@@ -221,7 +221,7 @@ export default function AuditsPanel() {
             label="By tier"
             value={null}
             inline={
-              <div className="text-[10px] mt-1 space-y-0.5">
+              <div className="text-xs mt-1 space-y-0.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-red-700">Critical</span>
                   <span className="font-bold text-slate-900">{stats.tierCounts.critical}</span>
@@ -365,7 +365,7 @@ function StatCard({
       {value !== null && <p className="text-2xl font-bold text-slate-900">{value}</p>}
       {inline}
       <p className="text-xs text-slate-600 mt-1">{label}</p>
-      {subtext && <p className="text-[10px] text-slate-400 mt-0.5">{subtext}</p>}
+      {subtext && <p className="text-xs text-slate-400 mt-0.5">{subtext}</p>}
     </div>
   )
 }
@@ -409,7 +409,7 @@ function AuditRow({
           <div className="flex items-center gap-2">
             <p className="font-semibold text-slate-900 truncate">{audit.businessName}</p>
             {audit.usedTavily && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+              <span className="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
                 <Sparkles className="w-3 h-3" /> Tavily
               </span>
             )}
@@ -578,7 +578,7 @@ function AuditDetail({ audit }: { audit: Audit }) {
       </div>
 
       {/* Metadata footer */}
-      <div className="mt-3 pt-3 border-t border-slate-200 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-500">
+      <div className="mt-3 pt-3 border-t border-slate-200 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
         {audit.pageLoadMs && (
           <span>
             Loaded in <span className="font-mono">{audit.pageLoadMs}ms</span>
