@@ -40,6 +40,10 @@ const submit = async (over = {}, files = 1) => {
 }
 const s1 = await submit(); check('submit entry', s1.r.status === 200 && s1.d?.ok, `-> ${s1.r.status} ${s1.t.slice(0, 120)}`)
 const id = s1.d?.id
+// Anonymous submission (no name/email) - should succeed and persist nulls.
+const anon = await submit({ streetAddress: '8 Phantom Way', contactName: '', contactEmail: '', contactPhone: '' });
+check('anonymous submit accepted', anon.r.status === 200 && anon.d?.ok, `-> ${anon.r.status} ${anon.t.slice(0, 120)}`)
+const anonId = anon.d?.id
 check('duplicate address rejected', (await submit()).r.status === 409)
 check('no photo rejected', (await submit({ streetAddress: '9 Other St' }, 0)).r.status === 400)
 check('rules not accepted rejected', (await submit({ streetAddress: '10 Other St', agreeRules: 'false' })).r.status === 400)
@@ -55,7 +59,11 @@ const ck = r1.headers.getSetCookie().map(x => x.split(';')[0]).join('; ')
 const r2 = await fetch(base + '/api/auth/callback/credentials', { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded', cookie: ck }, body: new URLSearchParams({ csrfToken, email: 'test@example.com', password: 'Password123!', json: 'true' }) })
 const adminCk = [ck, ...r2.headers.getSetCookie().map(x => x.split(';')[0])].join('; ')
 const adminList = await j('/api/admin/halloween/entries', { headers: { cookie: adminCk } })
-check('admin lists entries incl. private data', adminList.d?.entries?.[0]?.contactEmail === 'ana@example.com', `-> ${adminList.r.status}`)
+const adminRows = adminList.d?.entries ?? []
+const anaRow = adminRows.find((x) => x.contactEmail === 'ana@example.com')
+const anonRow = adminRows.find((x) => x.id === anonId)
+check('admin lists Ana row with private email', !!anaRow, `-> ${adminList.r.status}`)
+check('admin lists anon row with null contact name+email', !!anonRow && anonRow.contactName === null && anonRow.contactEmail === null, JSON.stringify(anonRow && { cn: anonRow.contactName, ce: anonRow.contactEmail }))
 check('admin page renders', (await j('/dashboard/halloween', { headers: { cookie: adminCk } })).r.status === 200)
 const noPin = await j(`/api/admin/halloween/entries/${id}`, { method: 'PATCH', headers: { cookie: adminCk, 'content-type': 'application/json' }, body: JSON.stringify({ status: 'APPROVED' }) })
 check('cannot approve without a pin', noPin.r.status === 400, noPin.t.slice(0, 80))

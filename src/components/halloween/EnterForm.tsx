@@ -171,20 +171,13 @@ export function EnterForm({ categories, maxPhotos }: { categories: string[]; max
       </fieldset>
 
       <fieldset className="space-y-4">
-        <legend className="font-halloween text-2xl text-white mb-1">Contact (kept private)</legend>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block text-sm text-purple-200 mb-1" htmlFor="contactName">Your name *</label>
-            <input id="contactName" name="contactName" required maxLength={120} autoComplete="name" className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-sm text-purple-200 mb-1" htmlFor="contactEmail">Email *</label>
-            <input id="contactEmail" name="contactEmail" type="email" required maxLength={320} autoComplete="email" className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-sm text-purple-200 mb-1" htmlFor="contactPhone">Phone</label>
-            <input id="contactPhone" name="contactPhone" type="tel" maxLength={40} autoComplete="tel" className={inputCls} />
-          </div>
+        <legend className="font-halloween text-2xl text-white mb-1">How can we reach you? <span className="text-sm font-normal text-purple-300/70">(optional)</span></legend>
+        <p className="text-sm text-purple-200/80 -mt-1">
+          Entries are anonymous by default. Add a phone if our volunteers need to reach you about your display.
+        </p>
+        <div>
+          <label className="block text-sm text-purple-200 mb-1" htmlFor="contactPhone">Phone</label>
+          <input id="contactPhone" name="contactPhone" type="tel" maxLength={40} autoComplete="tel" className={inputCls} />
         </div>
       </fieldset>
 

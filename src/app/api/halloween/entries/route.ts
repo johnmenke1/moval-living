@@ -40,8 +40,9 @@ const fieldsSchema = z.object({
   tagline: z.string().trim().max(120).optional().or(z.literal('')),
   description: z.string().trim().min(20).max(800),
   category: z.string().trim().max(60).optional().or(z.literal('')),
-  contactName: z.string().trim().min(2).max(120),
-  contactEmail: z.string().trim().email().max(320),
+  // Entry form is anonymous; name/email are only used when volunteers need to reach the resident.
+  contactName: z.string().trim().min(2).max(120).optional().or(z.literal('')),
+  contactEmail: z.string().trim().email().max(320).optional().or(z.literal('')),
   contactPhone: z.string().trim().max(40).optional().or(z.literal('')),
   streetAddress: z.string().trim().min(5).max(160),
   zip: z.string().trim().regex(/^\d{5}$/, 'Use a 5-digit ZIP').optional().or(z.literal('')),
@@ -169,8 +170,8 @@ export async function POST(req: NextRequest) {
         tagline: f.tagline || null,
         description: f.description,
         category: f.category || null,
-        contactName: f.contactName,
-        contactEmail: f.contactEmail.toLowerCase(),
+        contactName: f.contactName ? f.contactName : null,
+        contactEmail: f.contactEmail ? f.contactEmail.toLowerCase() : null,
         contactPhone: f.contactPhone || null,
         streetAddress: f.streetAddress,
         city,
@@ -196,12 +197,19 @@ export async function POST(req: NextRequest) {
   const adminTo = process.env.ADMIN_NOTIFY_EMAIL
   if (adminTo) {
     const outside = geo && !insideMorenoValleyArea(geo.lat, geo.lng)
+    const hasContact = !!(f.contactName || f.contactEmail)
+    const contactLine = hasContact
+      ? `By ${f.contactName || 'Anonymous'}${f.contactEmail ? ` <${f.contactEmail}>` : ''}\n`
+      : ''
+    const contactHtml = hasContact
+      ? `<p>By ${escapeHtml(f.contactName || 'Anonymous')}${f.contactEmail ? ` &lt;${escapeHtml(f.contactEmail)}&gt;` : ''}</p>`
+      : ''
     await Promise.race([
       sendEmail({
-      to: adminTo,
-      subject: `New Haunted Homes entry: ${f.displayName}`,
-      text: `${f.displayName}\n${f.streetAddress}, ${city}\nBy ${f.contactName} <${f.contactEmail}>\n${geo ? '' : 'GEOCODING FAILED - set the pin manually.\n'}${outside ? 'WARNING: address resolves outside the Moreno Valley area.\n' : ''}\nReview: https://www.moval.living/dashboard/halloween`,
-      html: `<p><strong>${escapeHtml(f.displayName)}</strong><br>${escapeHtml(f.streetAddress)}, ${city}<br>By ${escapeHtml(f.contactName)} &lt;${escapeHtml(f.contactEmail)}&gt;</p>${geo ? '' : '<p><strong>Geocoding failed - set the pin manually.</strong></p>'}${outside ? '<p><strong>Address resolves outside the Moreno Valley area.</strong></p>' : ''}<p><a href="https://www.moval.living/dashboard/halloween">Review entries</a></p>`,
+        to: adminTo,
+        subject: `New Haunted Homes entry: ${f.displayName}`,
+        text: `${f.displayName}\n${f.streetAddress}, ${city}\n${contactLine}${geo ? '' : 'GEOCODING FAILED - set the pin manually.\n'}${outside ? 'WARNING: address resolves outside the Moreno Valley area.\n' : ''}Review: https://www.moval.living/dashboard/halloween`,
+        html: `<p><strong>${escapeHtml(f.displayName)}</strong><br>${escapeHtml(f.streetAddress)}, ${city}</p>${contactHtml}${geo ? '' : '<p><strong>Geocoding failed - set the pin manually.</strong></p>'}${outside ? '<p><strong>Address resolves outside the Moreno Valley area.</strong></p>' : ''}<p><a href="https://www.moval.living/dashboard/halloween">Review entries</a></p>`,
       }).catch((e) => console.warn('[halloween] admin email failed', e)),
       new Promise((resolve) => setTimeout(resolve, 5000)),
     ])
