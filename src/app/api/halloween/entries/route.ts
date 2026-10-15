@@ -61,6 +61,19 @@ const ALLOWED_TYPES: Record<string, string> = {
 const MAX_ENTRIES_PER_IP_PER_DAY = 3
 
 export async function POST(req: NextRequest) {
+  try {
+    return await handlePost(req)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    console.error('[halloween] unhandled POST error:', err)
+    return NextResponse.json(
+      { error: `Server error while processing your entry: ${msg}` },
+      { status: 500 },
+    )
+  }
+}
+
+async function handlePost(req: NextRequest) {
   const state = getContestState()
   if (!state.submissionsOpen) {
     return NextResponse.json({ error: 'Entries are not being accepted right now.' }, { status: 403 })
