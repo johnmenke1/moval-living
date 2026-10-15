@@ -739,7 +739,8 @@ export const deal = pgTable("Deal", {
  */
 export const halloweenEntry = pgTable("HalloweenEntry", {
 	id: text().primaryKey().$defaultFn(() => createId()).notNull(),
-	displayName: text().notNull(),
+	// Optional: only streetAddress is required. Anonymous/anonymous-named entries allowed.
+	displayName: text(),
 	tagline: text(),
 	description: text(),
 	category: text(),

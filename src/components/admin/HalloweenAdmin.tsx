@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 interface AdminEntry {
   id: string
-  displayName: string
+  displayName: string | null
   tagline: string | null
   description: string | null
   category: string | null
@@ -130,7 +130,7 @@ function EntryRow({ e, busy, onPatch, onDelete }: {
     <article className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">{e.displayName}</h3>
+          <h3 className="text-lg font-semibold text-slate-900">{e.displayName ?? 'Anonymous home'}</h3>
           {e.tagline && <p className="text-sm text-slate-600">{e.tagline}</p>}
           <p className="text-xs text-slate-500 mt-1">
             {new Date(e.createdAt).toLocaleString()} · {e.votes} vote{e.votes === 1 ? '' : 's'} · {e.category ?? 'no category'}

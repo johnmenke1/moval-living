@@ -37,7 +37,11 @@ export async function getPublicEntries(): Promise<PublicHalloweenEntry[]> {
     .where(eq(halloweenEntry.status, 'APPROVED'))
     .orderBy(desc(halloweenEntry.createdAt))
 
-  return rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }))
+  return rows.map((r) => ({
+    ...r,
+    displayName: r.displayName ?? 'Anonymous home',
+    createdAt: r.createdAt.toISOString(),
+  }))
 }
 
 /** Entry ids this device / network has already voted for. */
