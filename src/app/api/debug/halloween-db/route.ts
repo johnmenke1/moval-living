@@ -83,6 +83,25 @@ export async function GET() {
     const r = await db.execute(sql`SELECT current_database() AS db, current_user AS usr, inet_server_addr() AS ip`)
     return r.rows[0]
   })
+  out.all_tables = await tryQuery('all_tables', async () => {
+    const r = await db.execute(sql`
+      SELECT schemaname, COUNT(*)::int AS n
+      FROM pg_tables
+      WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+      GROUP BY schemaname
+      ORDER BY schemaname
+    `)
+    return r.rows
+  })
+  out.moval_tables = await tryQuery('moval_tables', async () => {
+    const r = await db.execute(sql`
+      SELECT table_schema, table_name
+      FROM information_schema.tables
+      WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+      ORDER BY table_schema, table_name
+    `)
+    return r.rows
+  })
 
   return NextResponse.json(out, { status: 200 })
-}
+}
