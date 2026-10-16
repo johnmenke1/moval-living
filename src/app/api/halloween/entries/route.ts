@@ -255,7 +255,23 @@ async function handlePost(req: NextRequest) {
         { status: 409 },
       )
     }
-    console.error('[halloween] insert failed', err)
+    // Same chain-serialization as the top-level catch - Drizzle wraps the real
+    // pg error on .cause, and without it we only see "Failed query: <sql> params: ..."
+    // which has been un-actionable in production.
+    const chain: { name?: string; message: string; code?: string }[] = []
+    let cur: unknown = err
+    let depth = 0
+    while (cur && depth < 5) {
+      const e = cur as { name?: string; message?: string; code?: unknown; cause?: unknown }
+      chain.push({
+        name: e.name,
+        message: e.message ?? '(no message)',
+        code: typeof e.code === 'string' ? e.code : undefined,
+      })
+      cur = e.cause
+      depth += 1
+    }
+    console.error('[halloween] insert failed chain:', JSON.stringify(chain, null, 2))
     return NextResponse.json({ error: 'Could not save your entry. Please try again.' }, { status: 500 })
   }
 
