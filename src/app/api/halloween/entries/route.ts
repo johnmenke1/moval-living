@@ -36,17 +36,18 @@ export async function GET(req: NextRequest) {
 }
 
 const fieldsSchema = z.object({
-  displayName: z.string().trim().min(3).max(80),
+  // Only streetAddress is required; everything else is collected best-effort.
+  displayName: z.string().trim().max(80).optional().or(z.literal('')),
   tagline: z.string().trim().max(120).optional().or(z.literal('')),
-  description: z.string().trim().min(20).max(800),
+  description: z.string().trim().max(800).optional().or(z.literal('')),
   category: z.string().trim().max(60).optional().or(z.literal('')),
-  contactName: z.string().trim().min(2).max(120),
-  contactEmail: z.string().trim().email().max(320),
+  // Entry form is anonymous; name/email are only used when volunteers need to reach the resident.
+  contactName: z.string().trim().min(2).max(120).optional().or(z.literal('')),
+  contactEmail: z.string().trim().email().max(320).optional().or(z.literal('')),
   contactPhone: z.string().trim().max(40).optional().or(z.literal('')),
   streetAddress: z.string().trim().min(5).max(160),
   zip: z.string().trim().regex(/^\d{5}$/, 'Use a 5-digit ZIP').optional().or(z.literal('')),
   showExactAddress: z.enum(['true', 'false']).default('false'),
-  agreeRules: z.literal('true', { message: 'You must accept the contest rules' }),
   website: z.string().max(500).optional(), // honeypot - must stay empty
   turnstileToken: z.string().optional(),
 })
@@ -60,6 +61,41 @@ const ALLOWED_TYPES: Record<string, string> = {
 const MAX_ENTRIES_PER_IP_PER_DAY = 3
 
 export async function POST(req: NextRequest) {
+  try {
+    return await handlePost(req)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    console.error('[halloween] unhandled POST error:', err)
+    return NextResponse.json(
+      { error: `Server error while processing your entry: ${msg}` },
+      { status: 500 },
+    )
+  }
+}
+
+/**
+ * DB-backed per-IP rate limit. Best-effort: if the lookup fails for any reason
+ * (Hyperdrive pool issue, transient DB error, schema drift on first deploy of a
+ * new index, etc.) we log a warning and let the submission through. The real
+ * duplicate protection is the address-uniqueness check below; Turnstile stops
+ * bots; the admin queue rejects anything that slips through. A flaky rate-limit
+ * query should never block every submission on the page.
+ */
+async function rateLimitedForIp(ipHash: string): Promise<boolean> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  try {
+    const [row] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(halloweenEntry)
+      .where(and(eq(halloweenEntry.ipHash, ipHash), gt(halloweenEntry.createdAt, since)))
+    return (row?.n ?? 0) >= MAX_ENTRIES_PER_IP_PER_DAY
+  } catch (err) {
+    console.warn('[halloween] rate-limit check failed; allowing submission', err)
+    return false
+  }
+}
+
+async function handlePost(req: NextRequest) {
   const state = getContestState()
   if (!state.submissionsOpen) {
     return NextResponse.json({ error: 'Entries are not being accepted right now.' }, { status: 403 })
@@ -86,11 +122,8 @@ export async function POST(req: NextRequest) {
   // Honeypot - pretend success.
   if (f.website) return NextResponse.json({ ok: true })
 
-  // Photos
+  // Photos are optional (address is the only required field). Sanity-check what's provided.
   const files = form.getAll('photos').filter((v): v is File => typeof v !== 'string' && v.size > 0)
-  if (files.length < 1) {
-    return NextResponse.json({ error: 'Please add at least one photo of your display.' }, { status: 400 })
-  }
   if (files.length > HALLOWEEN_CONFIG.maxPhotos) {
     return NextResponse.json({ error: `Up to ${HALLOWEEN_CONFIG.maxPhotos} photos please.` }, { status: 400 })
   }
@@ -121,16 +154,8 @@ export async function POST(req: NextRequest) {
 
   const ipHash = ip === 'unknown' ? null : await hashIp(ip)
 
-  // DB-backed rate limit (in-memory limiters don't work across Worker isolates).
-  if (ipHash) {
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    const [row] = await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(halloweenEntry)
-      .where(and(eq(halloweenEntry.ipHash, ipHash), gt(halloweenEntry.createdAt, since)))
-    if ((row?.n ?? 0) >= MAX_ENTRIES_PER_IP_PER_DAY) {
-      return NextResponse.json({ error: 'Too many entries from this network today.' }, { status: 429 })
-    }
+  if (ipHash && (await rateLimitedForIp(ipHash))) {
+    return NextResponse.json({ error: 'Too many entries from this network today.' }, { status: 429 })
   }
 
   const key = addressKey(f.streetAddress, f.zip || null)
@@ -165,12 +190,12 @@ export async function POST(req: NextRequest) {
     ;[created] = await db
       .insert(halloweenEntry)
       .values({
-        displayName: f.displayName,
+        displayName: f.displayName || null,
         tagline: f.tagline || null,
-        description: f.description,
+        description: f.description || null,
         category: f.category || null,
-        contactName: f.contactName,
-        contactEmail: f.contactEmail.toLowerCase(),
+        contactName: f.contactName ? f.contactName : null,
+        contactEmail: f.contactEmail ? f.contactEmail.toLowerCase() : null,
         contactPhone: f.contactPhone || null,
         streetAddress: f.streetAddress,
         city,
@@ -196,12 +221,19 @@ export async function POST(req: NextRequest) {
   const adminTo = process.env.ADMIN_NOTIFY_EMAIL
   if (adminTo) {
     const outside = geo && !insideMorenoValleyArea(geo.lat, geo.lng)
+    const hasContact = !!(f.contactName || f.contactEmail)
+    const contactLine = hasContact
+      ? `By ${f.contactName || 'Anonymous'}${f.contactEmail ? ` <${f.contactEmail}>` : ''}\n`
+      : ''
+    const contactHtml = hasContact
+      ? `<p>By ${escapeHtml(f.contactName || 'Anonymous')}${f.contactEmail ? ` &lt;${escapeHtml(f.contactEmail)}&gt;` : ''}</p>`
+      : ''
     await Promise.race([
       sendEmail({
-      to: adminTo,
-      subject: `New Haunted Homes entry: ${f.displayName}`,
-      text: `${f.displayName}\n${f.streetAddress}, ${city}\nBy ${f.contactName} <${f.contactEmail}>\n${geo ? '' : 'GEOCODING FAILED - set the pin manually.\n'}${outside ? 'WARNING: address resolves outside the Moreno Valley area.\n' : ''}\nReview: https://www.moval.living/dashboard/halloween`,
-      html: `<p><strong>${escapeHtml(f.displayName)}</strong><br>${escapeHtml(f.streetAddress)}, ${city}<br>By ${escapeHtml(f.contactName)} &lt;${escapeHtml(f.contactEmail)}&gt;</p>${geo ? '' : '<p><strong>Geocoding failed - set the pin manually.</strong></p>'}${outside ? '<p><strong>Address resolves outside the Moreno Valley area.</strong></p>' : ''}<p><a href="https://www.moval.living/dashboard/halloween">Review entries</a></p>`,
+        to: adminTo,
+        subject: `New Haunted Homes entry: ${f.displayName || 'Anonymous home'}`,
+        text: `${f.displayName || 'Anonymous home'}\n${f.streetAddress}, ${city}\n${contactLine}${geo ? '' : 'GEOCODING FAILED - set the pin manually.\n'}${outside ? 'WARNING: address resolves outside the Moreno Valley area.\n' : ''}Review: https://www.moval.living/dashboard/halloween`,
+        html: `<p><strong>${escapeHtml(f.displayName || 'Anonymous home')}</strong><br>${escapeHtml(f.streetAddress)}, ${city}</p>${contactHtml}${geo ? '' : '<p><strong>Geocoding failed - set the pin manually.</strong></p>'}${outside ? '<p><strong>Address resolves outside the Moreno Valley area.</strong></p>' : ''}<p><a href="https://www.moval.living/dashboard/halloween">Review entries</a></p>`,
       }).catch((e) => console.warn('[halloween] admin email failed', e)),
       new Promise((resolve) => setTimeout(resolve, 5000)),
     ])

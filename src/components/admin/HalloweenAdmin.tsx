@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from 'react'
 
 interface AdminEntry {
   id: string
-  displayName: string
+  displayName: string | null
   tagline: string | null
   description: string | null
   category: string | null
-  contactName: string
-  contactEmail: string
+  contactName: string | null
+  contactEmail: string | null
   contactPhone: string | null
   streetAddress: string
   city: string
@@ -130,7 +130,7 @@ function EntryRow({ e, busy, onPatch, onDelete }: {
     <article className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">{e.displayName}</h3>
+          <h3 className="text-lg font-semibold text-slate-900">{e.displayName ?? 'Anonymous home'}</h3>
           {e.tagline && <p className="text-sm text-slate-600">{e.tagline}</p>}
           <p className="text-xs text-slate-500 mt-1">
             {new Date(e.createdAt).toLocaleString()} · {e.votes} vote{e.votes === 1 ? '' : 's'} · {e.category ?? 'no category'}
@@ -155,7 +155,11 @@ function EntryRow({ e, busy, onPatch, onDelete }: {
       {e.description && <p className="mt-3 text-sm text-slate-700 whitespace-pre-line">{e.description}</p>}
 
       <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-        <div><dt className="inline text-slate-500">Contact: </dt><dd className="inline">{e.contactName} · <a className="underline" href={`mailto:${e.contactEmail}`}>{e.contactEmail}</a>{e.contactPhone ? ` · ${e.contactPhone}` : ''}</dd></div>
+        <div><dt className="inline text-slate-500">Contact: </dt><dd className="inline">
+            {e.contactName ?? <span className="italic text-slate-400">Anonymous</span>}
+            {e.contactEmail ? <> · <a className="underline" href={`mailto:${e.contactEmail}`}>{e.contactEmail}</a></> : null}
+            {e.contactPhone ? <> · {e.contactPhone}</> : null}
+          </dd></div>
         <div><dt className="inline text-slate-500">Address: </dt><dd className="inline">{full} <a className="underline text-slate-500" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(full)}`}>check</a></dd></div>
         <div><dt className="inline text-slate-500">Public label: </dt><dd className="inline">{e.locationLabel ?? '-'} ({e.showExactAddress ? 'exact pin' : 'approximate pin'})</dd></div>
       </dl>

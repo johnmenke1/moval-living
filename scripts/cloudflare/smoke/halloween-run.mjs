@@ -33,16 +33,24 @@ check('admin API 401 when logged out', (await j('/api/admin/halloween/entries'))
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
 const submit = async (over = {}, files = 1) => {
   const fd = new FormData()
-  const f = { displayName: 'The Garcia Graveyard', tagline: 'Rise and shine', description: 'Forty skeletons and a fog machine that never quits.', category: 'Spookiest', contactName: 'Ana Garcia', contactEmail: 'ana@example.com', contactPhone: '9515550100', streetAddress: '1234 Elm St', zip: '92553', showExactAddress: 'false', agreeRules: 'true', turnstileToken: '', ...over }
+  const f = { displayName: 'The Garcia Graveyard', tagline: 'Rise and shine', description: 'Forty skeletons and a fog machine that never quits.', category: 'Spookiest', contactName: 'Ana Garcia', contactEmail: 'ana@example.com', contactPhone: '9515550100', streetAddress: '1234 Elm St', zip: '92553', showExactAddress: 'false', turnstileToken: '', ...over }
   for (const [k, v] of Object.entries(f)) fd.append(k, v)
   for (let i = 0; i < files; i++) fd.append('photos', new Blob([png], { type: 'image/png' }), `p${i}.png`)
   return j('/api/halloween/entries', { method: 'POST', body: fd, headers: { 'cf-connecting-ip': '198.51.100.7' } })
 }
 const s1 = await submit(); check('submit entry', s1.r.status === 200 && s1.d?.ok, `-> ${s1.r.status} ${s1.t.slice(0, 120)}`)
 const id = s1.d?.id
+// Anonymous submission (no name/email) - should succeed and persist nulls.
+const anon = await submit({ streetAddress: '8 Phantom Way', contactName: '', contactEmail: '', contactPhone: '' });
+check('anonymous submit accepted', anon.r.status === 200 && anon.d?.ok, `-> ${anon.r.status} ${anon.t.slice(0, 120)}`)
+const anonId = anon.d?.id
 check('duplicate address rejected', (await submit()).r.status === 409)
-check('no photo rejected', (await submit({ streetAddress: '9 Other St' }, 0)).r.status === 400)
-check('rules not accepted rejected', (await submit({ streetAddress: '10 Other St', agreeRules: 'false' })).r.status === 400)
+check('no photo now allowed (address-only submissions accepted)', (await submit({ streetAddress: '9 Other St' }, 0)).r.status === 200)
+check('rules-not-accepted (legacy field) is now ignored by server', (await submit({ streetAddress: '10 Other St', agreeRules: 'false' })).r.status === 200)
+// Address-only submission (no photo, no display name, no description, no contact) still succeeds.
+const minimal = await submit({ streetAddress: '12 Minimal St', displayName: '', description: '', contactName: '', contactEmail: '', contactPhone: '' }, 0)
+check('address-only submission accepted (no photo, no name, no description)', minimal.r.status === 200 && minimal.d?.ok, `-> ${minimal.r.status} ${minimal.t.slice(0, 120)}`)
+const minimalId = minimal.d?.id
 const hp = await submit({ streetAddress: '11 Bot St', website: 'spam.example' }); check('honeypot silently ok but not stored', hp.r.status === 200 && !hp.d?.id)
 
 // pending entries are invisible
@@ -55,7 +63,13 @@ const ck = r1.headers.getSetCookie().map(x => x.split(';')[0]).join('; ')
 const r2 = await fetch(base + '/api/auth/callback/credentials', { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded', cookie: ck }, body: new URLSearchParams({ csrfToken, email: 'test@example.com', password: 'Password123!', json: 'true' }) })
 const adminCk = [ck, ...r2.headers.getSetCookie().map(x => x.split(';')[0])].join('; ')
 const adminList = await j('/api/admin/halloween/entries', { headers: { cookie: adminCk } })
-check('admin lists entries incl. private data', adminList.d?.entries?.[0]?.contactEmail === 'ana@example.com', `-> ${adminList.r.status}`)
+const adminRows = adminList.d?.entries ?? []
+const anaRow = adminRows.find((x) => x.contactEmail === 'ana@example.com')
+const anonRow = adminRows.find((x) => x.id === anonId)
+check('admin lists Ana row with private email', !!anaRow, `-> ${adminList.r.status}`)
+check('admin lists anon row with null contact name+email', !!anonRow && anonRow.contactName === null && anonRow.contactEmail === null, JSON.stringify(anonRow && { cn: anonRow.contactName, ce: anonRow.contactEmail }))
+const minimalRow = adminRows.find((x) => x.id === minimalId)
+check('admin lists minimal (address-only) row with null displayName + description', !!minimalRow && minimalRow.displayName === null && minimalRow.description === null, JSON.stringify(minimalRow && { dn: minimalRow.displayName, desc: minimalRow.description }))
 check('admin page renders', (await j('/dashboard/halloween', { headers: { cookie: adminCk } })).r.status === 200)
 const noPin = await j(`/api/admin/halloween/entries/${id}`, { method: 'PATCH', headers: { cookie: adminCk, 'content-type': 'application/json' }, body: JSON.stringify({ status: 'APPROVED' }) })
 check('cannot approve without a pin', noPin.r.status === 400, noPin.t.slice(0, 80))

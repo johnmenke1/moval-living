@@ -11,7 +11,6 @@ const inputCls =
 export function EnterForm({ categories, maxPhotos }: { categories: string[]; maxPhotos: number }) {
   const [files, setFiles] = useState<File[]>([])
   const [showExact, setShowExact] = useState(false)
-  const [agree, setAgree] = useState(false)
   const [token, setToken] = useState('')
   // Turnstile tokens are single-use: after ANY submit attempt we remount the widget for a fresh one.
   const [captchaKey, setCaptchaKey] = useState(0)
@@ -44,8 +43,6 @@ export function EnterForm({ categories, maxPhotos }: { categories: string[]; max
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
-    if (files.length === 0) return setError('Please add at least one photo.')
-    if (!agree) return setError('Please accept the contest rules.')
     if (captchaConfigured && !token) {
       return setError(
         'The security check hasn\'t finished yet. Wait for the green checkmark above the button, then tap Submit again. If it never appears, open this page in Chrome or Safari.',
@@ -55,7 +52,6 @@ export function EnterForm({ categories, maxPhotos }: { categories: string[]; max
     fd.delete('photos')
     files.forEach((f) => fd.append('photos', f))
     fd.set('showExactAddress', String(showExact))
-    fd.set('agreeRules', String(agree))
     fd.set('turnstileToken', token)
     setSubmitting(true)
     try {
@@ -82,7 +78,7 @@ export function EnterForm({ categories, maxPhotos }: { categories: string[]; max
         <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto" />
         <h2 className="font-halloween text-3xl text-white mt-3">You&apos;re in the crypt! 🎃</h2>
         <p className="mt-2 text-purple-100/90">
-          Thanks for entering. Your home will appear on the map once a volunteer approves it. We may email you if we have a question.
+          Thanks for entering. Your address will appear on the map once a volunteer approves it.
         </p>
         <Link href="/halloween" className="inline-block mt-5 rounded-xl bg-orange-500 hover:bg-orange-400 text-[#1b0b2e] font-bold px-6 py-3">
           Back to the map
@@ -99,17 +95,17 @@ export function EnterForm({ categories, maxPhotos }: { categories: string[]; max
       <fieldset className="space-y-4">
         <legend className="font-halloween text-2xl text-white mb-1">Your display</legend>
         <div>
-          <label className="block text-sm text-purple-200 mb-1" htmlFor="displayName">Display name *</label>
-          <input id="displayName" name="displayName" required minLength={3} maxLength={80} placeholder="e.g. The Garcia Graveyard" className={inputCls} />
+          <label className="block text-sm text-purple-200 mb-1" htmlFor="displayName">Display name</label>
+          <input id="displayName" name="displayName" maxLength={80} placeholder="e.g. The Garcia Graveyard (optional)" className={inputCls} />
         </div>
         <div>
           <label className="block text-sm text-purple-200 mb-1" htmlFor="tagline">Tagline</label>
           <input id="tagline" name="tagline" maxLength={120} placeholder="One spooky line (optional)" className={inputCls} />
         </div>
         <div>
-          <label className="block text-sm text-purple-200 mb-1" htmlFor="description">Tell us about it *</label>
-          <textarea id="description" name="description" required minLength={20} maxLength={800} rows={4}
-            placeholder="What makes your decorations special? Animatronics, lights, a theme, a story…" className={inputCls} />
+          <label className="block text-sm text-purple-200 mb-1" htmlFor="description">Tell us about it</label>
+          <textarea id="description" name="description" maxLength={800} rows={4}
+            placeholder="What makes your decorations special? Animatronics, lights, a theme, a story… (optional)" className={inputCls} />
         </div>
         {categories.length > 0 && (
           <div>
@@ -121,7 +117,7 @@ export function EnterForm({ categories, maxPhotos }: { categories: string[]; max
           </div>
         )}
         <div>
-          <span className="block text-sm text-purple-200 mb-1">Photos * (up to {maxPhotos}, JPG/PNG/WebP, 10 MB each)</span>
+          <span className="block text-sm text-purple-200 mb-1">Photos (up to {maxPhotos}, JPG/PNG/WebP, 10 MB each — add at least one)</span>
           <div className="flex flex-wrap gap-3">
             {previews.map((src, i) => (
               <div key={src} className="relative">
@@ -171,31 +167,17 @@ export function EnterForm({ categories, maxPhotos }: { categories: string[]; max
       </fieldset>
 
       <fieldset className="space-y-4">
-        <legend className="font-halloween text-2xl text-white mb-1">Contact (kept private)</legend>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block text-sm text-purple-200 mb-1" htmlFor="contactName">Your name *</label>
-            <input id="contactName" name="contactName" required maxLength={120} autoComplete="name" className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-sm text-purple-200 mb-1" htmlFor="contactEmail">Email *</label>
-            <input id="contactEmail" name="contactEmail" type="email" required maxLength={320} autoComplete="email" className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-sm text-purple-200 mb-1" htmlFor="contactPhone">Phone</label>
-            <input id="contactPhone" name="contactPhone" type="tel" maxLength={40} autoComplete="tel" className={inputCls} />
-          </div>
+        <legend className="font-halloween text-2xl text-white mb-1">How can we reach you? <span className="text-sm font-normal text-purple-300/70">(optional)</span></legend>
+        <p className="text-sm text-purple-200/80 -mt-1">
+          Entries are anonymous by default. Add a phone if our volunteers need to reach you about your display.
+        </p>
+        <div>
+          <label className="block text-sm text-purple-200 mb-1" htmlFor="contactPhone">Phone</label>
+          <input id="contactPhone" name="contactPhone" type="tel" maxLength={40} autoComplete="tel" className={inputCls} />
         </div>
       </fieldset>
 
-      <label className="flex gap-3 text-sm text-purple-100/90 cursor-pointer">
-        <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1 accent-orange-500" />
-        <span>
-          I live at this address (or have the resident&apos;s permission), the photos are mine to share, and I agree to display them publicly
-          on MoVal Living and to the contest rules set by the American Legion Post 574 organizers.
-        </span>
-      </label>
-
+      
       {inAppBrowser && (
         <p className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
           Tip: you&apos;re in an in-app browser (Facebook, Instagram, etc.). If the security check below doesn&apos;t finish, tap the

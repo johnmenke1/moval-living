@@ -110,8 +110,7 @@ export default async function HalloweenPage() {
           ))}
         </div>
         <p className="mt-4 text-xs text-purple-300/60">
-          Winners announced {fmt(c.winnersAnnounced)}. Private details (your name, email, phone and exact address unless you opt in)
-          are never shown publicly.
+          Winners announced {fmt(c.winnersAnnounced)}. Entries are anonymous by default. Private details (your phone and exact address unless you opt in) are never shown publicly.
         </p>
       </section>
 

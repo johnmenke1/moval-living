@@ -739,12 +739,15 @@ export const deal = pgTable("Deal", {
  */
 export const halloweenEntry = pgTable("HalloweenEntry", {
 	id: text().primaryKey().$defaultFn(() => createId()).notNull(),
-	displayName: text().notNull(),
+	// Optional: only streetAddress is required. Anonymous/anonymous-named entries allowed.
+	displayName: text(),
 	tagline: text(),
 	description: text(),
 	category: text(),
-	contactName: text().notNull(),
-	contactEmail: text().notNull(),
+	// Optional since the public entry form is anonymous (anyone can submit an address).
+	// When null, the admin dashboard renders "Anonymous" and the admin notify email omits the contact block.
+	contactName: text(),
+	contactEmail: text(),
 	contactPhone: text(),
 	streetAddress: text().notNull(),
 	city: text().default('Moreno Valley').notNull(),
