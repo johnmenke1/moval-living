@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { and, eq, gt, sql } from 'drizzle-orm'
 import { db, halloweenEntry } from '@/db'
+import { isUniqueViolation } from '@/db/errors'
 import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 import { put } from '@/lib/storage'
 import { sendEmail } from '@/lib/email'
@@ -64,10 +65,27 @@ export async function POST(req: NextRequest) {
   try {
     return await handlePost(req)
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
-    console.error('[halloween] unhandled POST error:', err)
+    // Capture everything we can so the worker logs are useful next time something
+    // fails in production. DrizzleQueryError hides the real pg error on .cause,
+    // so we serialize the full chain.
+    const chain: { name?: string; message: string; code?: string; stack?: string }[] = []
+    let cur: unknown = err
+    let depth = 0
+    while (cur && depth < 5) {
+      const e = cur as { name?: string; message?: string; code?: unknown; cause?: unknown; stack?: string }
+      chain.push({
+        name: e.name,
+        message: e.message ?? '(no message)',
+        code: typeof e.code === 'string' ? e.code : undefined,
+        stack: e.stack?.split('\n').slice(0, 5).join('\n'),
+      })
+      cur = e.cause
+      depth += 1
+    }
+    console.error('[halloween] unhandled POST error chain:', JSON.stringify(chain, null, 2))
+    const topMsg = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json(
-      { error: `Server error while processing your entry: ${msg}` },
+      { error: `Server error while processing your entry: ${topMsg}` },
       { status: 500 },
     )
   }
@@ -92,6 +110,26 @@ async function rateLimitedForIp(ipHash: string): Promise<boolean> {
   } catch (err) {
     console.warn('[halloween] rate-limit check failed; allowing submission', err)
     return false
+  }
+}
+
+/**
+ * Address-uniqueness precheck. Best-effort: if the lookup fails for any
+ * transient reason, log a warning and let the submission through. The unique
+ * index on "HalloweenEntry"."addressKey" will still reject duplicates at INSERT
+ * time, and the caller turns a 23505 into a 409.
+ */
+async function findExistingEntry(key: string): Promise<{ id: string } | null> {
+  try {
+    return (
+      (await db.query.halloweenEntry.findFirst({
+        where: eq(halloweenEntry.addressKey, key),
+        columns: { id: true },
+      })) ?? null
+    )
+  } catch (err) {
+    console.warn('[halloween] address-uniqueness precheck failed; relying on DB unique index', err)
+    return null
   }
 }
 
@@ -159,11 +197,7 @@ async function handlePost(req: NextRequest) {
   }
 
   const key = addressKey(f.streetAddress, f.zip || null)
-  const existing = await db.query.halloweenEntry.findFirst({
-    where: eq(halloweenEntry.addressKey, key),
-    columns: { id: true },
-  })
-  if (existing) {
+  if (await findExistingEntry(key)) {
     return NextResponse.json({ error: 'That address has already been entered. Contact us if this is a mistake.' }, { status: 409 })
   }
 
@@ -213,6 +247,14 @@ async function handlePost(req: NextRequest) {
       })
       .returning({ id: halloweenEntry.id })
   } catch (err) {
+    if (isUniqueViolation(err)) {
+      // Precheck was bypassed (findExistingEntry failed and let the insert through);
+      // the unique index on "HalloweenEntry"."addressKey" caught the duplicate.
+      return NextResponse.json(
+        { error: 'That address has already been entered. Contact us if this is a mistake.' },
+        { status: 409 },
+      )
+    }
     console.error('[halloween] insert failed', err)
     return NextResponse.json({ error: 'Could not save your entry. Please try again.' }, { status: 500 })
   }
