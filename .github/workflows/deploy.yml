@@ -46,10 +46,20 @@ jobs:
       # Server-side code reads GOOGLE_PLACES_API_KEY (a Worker secret), which is
       # a separate binding. We carry both names so the same Google Cloud key
       # powers both code paths.
+      #
+      # NEXT_PUBLIC_TURNSTILE_SITE_KEY is the same pattern for the Turnstile
+      # widget on the Halloween entry form, the /claim and /partner-lead
+      # forms, the email-change form, the forgot-password form, and the
+      # best-of nomination form. Server-side `verifyTurnstileOrSkip` reads
+      # `TURNSTILE_SECRET_KEY` (a separate Worker secret). Both must be set
+      # together — without the site key inlined into the client bundle, the
+      # widget renders the `data-turnstile="missing-key"` fallback and every
+      # form POST comes back 403 with reason `missing-token`.
       - name: Deploy to Cloudflare
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
         run: pnpm run deploy:vinext
 
       - name: Smoke test
