@@ -73,6 +73,28 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * DB-backed per-IP rate limit. Best-effort: if the lookup fails for any reason
+ * (Hyperdrive pool issue, transient DB error, schema drift on first deploy of a
+ * new index, etc.) we log a warning and let the submission through. The real
+ * duplicate protection is the address-uniqueness check below; Turnstile stops
+ * bots; the admin queue rejects anything that slips through. A flaky rate-limit
+ * query should never block every submission on the page.
+ */
+async function rateLimitedForIp(ipHash: string): Promise<boolean> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  try {
+    const [row] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(halloweenEntry)
+      .where(and(eq(halloweenEntry.ipHash, ipHash), gt(halloweenEntry.createdAt, since)))
+    return (row?.n ?? 0) >= MAX_ENTRIES_PER_IP_PER_DAY
+  } catch (err) {
+    console.warn('[halloween] rate-limit check failed; allowing submission', err)
+    return false
+  }
+}
+
 async function handlePost(req: NextRequest) {
   const state = getContestState()
   if (!state.submissionsOpen) {
@@ -132,16 +154,8 @@ async function handlePost(req: NextRequest) {
 
   const ipHash = ip === 'unknown' ? null : await hashIp(ip)
 
-  // DB-backed rate limit (in-memory limiters don't work across Worker isolates).
-  if (ipHash) {
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    const [row] = await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(halloweenEntry)
-      .where(and(eq(halloweenEntry.ipHash, ipHash), gt(halloweenEntry.createdAt, since)))
-    if ((row?.n ?? 0) >= MAX_ENTRIES_PER_IP_PER_DAY) {
-      return NextResponse.json({ error: 'Too many entries from this network today.' }, { status: 429 })
-    }
+  if (ipHash && (await rateLimitedForIp(ipHash))) {
+    return NextResponse.json({ error: 'Too many entries from this network today.' }, { status: 429 })
   }
 
   const key = addressKey(f.streetAddress, f.zip || null)
