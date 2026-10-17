@@ -254,7 +254,8 @@ async function handlePost(req: NextRequest) {
         publicLongitude: pub?.publicLongitude ?? null,
         locationLabel: pub?.locationLabel ?? null,
         photoUrls,
-        status: 'PENDING',
+        status: isAdmin ? 'APPROVED' : 'PENDING',
+        approvedAt: isAdmin ? new Date() : null,
         ipHash,
       })
       .returning({ id: halloweenEntry.id })
