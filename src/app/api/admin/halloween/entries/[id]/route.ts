@@ -25,50 +25,91 @@ async function requireAdmin() {
   return session?.user?.id && session.user.role === 'ADMIN' ? session : null
 }
 
+function serializeChain(err: unknown): { name?: string; message: string; code?: string }[] {
+  const chain: { name?: string; message: string; code?: string }[] = []
+  let cur: unknown = err
+  let depth = 0
+  while (cur && depth < 5) {
+    const e = cur as { name?: string; message?: string; code?: unknown; cause?: unknown }
+    chain.push({
+      name: e.name,
+      message: e.message ?? '(no message)',
+      code: typeof e.code === 'string' ? e.code : undefined,
+    })
+    cur = e.cause
+    depth += 1
+  }
+  return chain
+}
+
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   if (!(await requireAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await ctx.params
 
-  const parsed = patchSchema.safeParse(await req.json().catch(() => null))
-  if (!parsed.success) return NextResponse.json({ error: 'Validation failed', issues: parsed.error.issues }, { status: 400 })
-  const d = parsed.data
+  try {
+    const parsed = patchSchema.safeParse(await req.json().catch(() => null))
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', issues: parsed.error.issues },
+        { status: 400 },
+      )
+    }
+    const d = parsed.data
 
-  const current = await db.query.halloweenEntry.findFirst({ where: eq(halloweenEntry.id, id) })
-  if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    const current = await db.query.halloweenEntry.findFirst({ where: eq(halloweenEntry.id, id) })
+    if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const lat = d.latitude ?? current.latitude
-  const lng = d.longitude ?? current.longitude
-  const showExact = d.showExactAddress ?? current.showExactAddress
+    const lat = d.latitude ?? current.latitude
+    const lng = d.longitude ?? current.longitude
+    const showExact = d.showExactAddress ?? current.showExactAddress
 
-  if (d.status === 'APPROVED' && (lat == null || lng == null)) {
-    return NextResponse.json({ error: 'Set a latitude/longitude before approving.' }, { status: 400 })
+    if (d.status === 'APPROVED' && (lat == null || lng == null)) {
+      return NextResponse.json(
+        { error: 'Set a latitude/longitude before approving.' },
+        { status: 400 },
+      )
+    }
+
+    const update: Partial<typeof halloweenEntry.$inferInsert> = {}
+    if (d.displayName !== undefined) update.displayName = d.displayName
+    if (d.tagline !== undefined) update.tagline = d.tagline
+    if (d.description !== undefined) update.description = d.description
+    if (d.category !== undefined) update.category = d.category
+    if (d.photoUrls !== undefined) update.photoUrls = d.photoUrls
+    if (d.rejectionReason !== undefined) update.rejectionReason = d.rejectionReason
+    if (d.status !== undefined) {
+      update.status = d.status
+      update.approvedAt = d.status === 'APPROVED' ? new Date() : null
+    }
+    if (d.latitude !== undefined) update.latitude = d.latitude
+    if (d.longitude !== undefined) update.longitude = d.longitude
+    if (d.showExactAddress !== undefined) update.showExactAddress = d.showExactAddress
+
+    // Any change to the pin or the privacy choice recomputes what the public sees.
+    if (
+      lat != null &&
+      lng != null &&
+      (d.latitude !== undefined ||
+        d.longitude !== undefined ||
+        d.showExactAddress !== undefined ||
+        d.status === 'APPROVED')
+    ) {
+      const pub = publicLocationFor(lat, lng, current.streetAddress, showExact)
+      update.publicLatitude = pub.publicLatitude
+      update.publicLongitude = pub.publicLongitude
+      update.locationLabel = pub.locationLabel
+    }
+
+    await db.update(halloweenEntry).set(update).where(eq(halloweenEntry.id, id))
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    // Surface the real pg error (DrizzleQueryError wraps it on .cause) so the
+    // admin UI can show it instead of "Update failed (500)".
+    const chain = serializeChain(err)
+    console.error('[halloween-admin] PATCH failed chain:', JSON.stringify(chain, null, 2))
+    const topMsg = err instanceof Error ? err.message : 'Update failed'
+    return NextResponse.json({ error: topMsg, chain }, { status: 500 })
   }
-
-  const update: Partial<typeof halloweenEntry.$inferInsert> = {}
-  if (d.displayName !== undefined) update.displayName = d.displayName
-  if (d.tagline !== undefined) update.tagline = d.tagline
-  if (d.description !== undefined) update.description = d.description
-  if (d.category !== undefined) update.category = d.category
-  if (d.photoUrls !== undefined) update.photoUrls = d.photoUrls
-  if (d.rejectionReason !== undefined) update.rejectionReason = d.rejectionReason
-  if (d.status !== undefined) {
-    update.status = d.status
-    update.approvedAt = d.status === 'APPROVED' ? new Date() : null
-  }
-  if (d.latitude !== undefined) update.latitude = d.latitude
-  if (d.longitude !== undefined) update.longitude = d.longitude
-  if (d.showExactAddress !== undefined) update.showExactAddress = d.showExactAddress
-
-  // Any change to the pin or the privacy choice recomputes what the public sees.
-  if (lat != null && lng != null && (d.latitude !== undefined || d.longitude !== undefined || d.showExactAddress !== undefined || d.status === 'APPROVED')) {
-    const pub = publicLocationFor(lat, lng, current.streetAddress, showExact)
-    update.publicLatitude = pub.publicLatitude
-    update.publicLongitude = pub.publicLongitude
-    update.locationLabel = pub.locationLabel
-  }
-
-  await db.update(halloweenEntry).set(update).where(eq(halloweenEntry.id, id))
-  return NextResponse.json({ ok: true })
 }
 
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
