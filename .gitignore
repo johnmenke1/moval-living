@@ -31,3 +31,7 @@ tsconfig.tsbuildinfo
 .cloudflare/
 .vinext/
 dist/
+
+# Impeckable critique output - scratch notes from a desktop review tool
+/.impeccable/
+/.impeccable
