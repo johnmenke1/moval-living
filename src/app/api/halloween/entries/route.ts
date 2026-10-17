@@ -6,6 +6,7 @@ import { isUniqueViolation } from '@/db/errors'
 import { verifyTurnstileOrSkip } from '@/lib/turnstile'
 import { put } from '@/lib/storage'
 import { sendEmail } from '@/lib/email'
+import { auth } from '@/auth'
 import {
   HALLOWEEN_CONFIG,
   DEVICE_COOKIE,
@@ -59,7 +60,11 @@ const ALLOWED_TYPES: Record<string, string> = {
   'image/webp': 'webp',
 }
 
-const MAX_ENTRIES_PER_IP_PER_DAY = 3
+// Per-IP daily cap on submissions. Bumped from 3 to 10 for testing (2026-10-16)
+// so Johnny can submit a handful of real homes from his own network while we
+// iron out the form. Lower back down to 3 (or wherever feels right) before the
+// contest opens.
+const MAX_ENTRIES_PER_IP_PER_DAY = 10
 
 export async function POST(req: NextRequest) {
   try {
@@ -192,7 +197,14 @@ async function handlePost(req: NextRequest) {
 
   const ipHash = ip === 'unknown' ? null : await hashIp(ip)
 
-  if (ipHash && (await rateLimitedForIp(ipHash))) {
+  // Admin bypass: when an authenticated admin session submits a home, the
+  // per-IP rate limit is skipped. Lets Johnny add homes directly from his
+  // own network without consuming the daily public cap. The other two
+  // protections (address-uniqueness, Turnstile) still apply, and every admin
+  // submission still gets a real IP hash on the row for audit.
+  const session = await auth()
+  const isAdmin = session?.user?.role === 'ADMIN'
+  if (!isAdmin && ipHash && (await rateLimitedForIp(ipHash))) {
     return NextResponse.json({ error: 'Too many entries from this network today.' }, { status: 429 })
   }
 
